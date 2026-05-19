@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -9,6 +9,7 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { Extension } from "@tiptap/core";
+import { Fragment, Slice } from "@tiptap/pm/model";
 import {
   Bold,
   Italic,
@@ -87,6 +88,106 @@ const COLORS = [
   "#7C3AED",
 ];
 
+function normalizeHexColor(c: string): string {
+  return c.trim().toLowerCase();
+}
+
+function ColorSwatch({ color, className }: { color?: string; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={twMerge(
+        "inline-block size-4 shrink-0 rounded-sm border border-[var(--border)]",
+        className
+      )}
+      style={color ? { backgroundColor: color } : undefined}
+    />
+  );
+}
+
+function TextColorPicker({
+  value,
+  onPick,
+  onClear,
+}: {
+  value: string;
+  onPick: (hex: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const normalizedValue = value ? normalizeHexColor(value) : "";
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      if (rootRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative flex items-center gap-1" title="Kolor tekstu">
+      <Palette className="size-4 text-[var(--text2)] shrink-0" />
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="h-8 flex items-center gap-1.5 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] cursor-pointer min-w-[5.75rem]"
+      >
+        <ColorSwatch color={value || undefined} />
+        <span className="truncate tabular-nums">{value ? value.toUpperCase() : "Kolor"}</span>
+      </button>
+      {open ? (
+        <div
+          className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg"
+          role="listbox"
+        >
+          <button
+            type="button"
+            role="option"
+            aria-selected={!normalizedValue}
+            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm text-[var(--text)] hover:bg-[var(--bg3)]"
+            onClick={() => {
+              onClear();
+              setOpen(false);
+            }}
+          >
+            <span
+              aria-hidden
+              className="inline-block size-4 shrink-0 rounded-sm border border-dashed border-[var(--border)] bg-[var(--bg3)]"
+            />
+            <span>Domyślny</span>
+          </button>
+          {COLORS.map((color) => {
+            const active = normalizedValue === normalizeHexColor(color);
+            return (
+              <button
+                key={color}
+                type="button"
+                role="option"
+                aria-selected={active}
+                className={twMerge(
+                  "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm hover:bg-[var(--bg3)]",
+                  active && "bg-[var(--accent)]/25"
+                )}
+                onClick={() => {
+                  onPick(color);
+                  setOpen(false);
+                }}
+              >
+                <ColorSwatch color={color} />
+                <span className="font-mono text-xs tabular-nums text-[var(--text)]">{color}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ToolbarButton({
   onClick,
   active,
@@ -160,8 +261,17 @@ export function NoteEditor({
           if (text) {
             event.preventDefault();
             const { state } = view;
-            const tr = state.tr.insertText(text);
-            view.dispatch(tr);
+            const paragraph = state.schema.nodes.paragraph;
+            if (!paragraph) return false;
+
+            const lines = text.split(/\r?\n/);
+            const blocks = lines.map((line) => {
+              const content =
+                line.length > 0 ? Fragment.from(state.schema.text(line)) : Fragment.empty;
+              return paragraph.create({}, content);
+            });
+            const slice = Slice.maxOpen(Fragment.from(blocks));
+            view.dispatch(state.tr.replaceSelection(slice).scrollIntoView());
             return true;
           }
           return false;
@@ -304,26 +414,11 @@ export function NoteEditor({
           ))}
         </select>
         <span className="w-px h-6 bg-[var(--border)] mx-1" />
-        {/* Color */}
-        <div className="flex items-center gap-1" title="Kolor">
-          <Palette className="w-4 h-4 text-[var(--text2)]" />
-          <select
-            value={(editor.getAttributes("textStyle").color as string) ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v) editor.chain().focus().setColor(v).run();
-              else editor.chain().focus().unsetColor().run();
-            }}
-            className="h-8 w-20 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] cursor-pointer"
-          >
-            <option value="">Kolor</option>
-            {COLORS.map((color) => (
-              <option key={color} value={color}>
-                {color}
-              </option>
-            ))}
-          </select>
-        </div>
+        <TextColorPicker
+          value={(editor.getAttributes("textStyle").color as string) ?? ""}
+          onPick={(hex) => editor.chain().focus().setColor(hex).run()}
+          onClear={() => editor.chain().focus().unsetColor().run()}
+        />
       </div>
       {variant === "panel" ? (
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
