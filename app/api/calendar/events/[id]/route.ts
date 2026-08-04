@@ -14,6 +14,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     title?: string;
     tags?: string[];
     color?: string;
+    type?: string;
   };
   try {
     body = await request.json();
@@ -34,6 +35,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       title: body.title,
       tags: body.tags,
       color: body.color,
+      type: body.type !== undefined ? (body.type === "meeting" ? "meeting" : "work") : undefined,
     });
     return NextResponse.json({ success: true });
   } catch (err) {

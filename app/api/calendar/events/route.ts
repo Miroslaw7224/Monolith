@@ -26,13 +26,14 @@ export async function POST(request: NextRequest) {
     title?: string;
     tags?: string[];
     color?: string;
+    type?: string;
   };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { date, start_minutes, duration_minutes, title, tags, color } = body;
+  const { date, start_minutes, duration_minutes, title, tags, color, type } = body;
   if (!date || duration_minutes == null) {
     return NextResponse.json({ error: "date and duration_minutes required" }, { status: 400 });
   }
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
       title: title ?? "",
       tags: Array.isArray(tags) ? tags : tags ? [tags] : [],
       color: color ?? "#3B82F6",
+      type: type === "meeting" ? "meeting" : "work",
     });
     return NextResponse.json(event);
   } catch (err) {

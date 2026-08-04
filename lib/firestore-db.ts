@@ -53,6 +53,7 @@ export type CalendarEventRecord = {
   title: string;
   tags: string[];
   color: string;
+  type: "work" | "meeting";
   created_at?: string;
   createdAt?: Timestamp;
 };
@@ -451,6 +452,7 @@ export async function getCalendarEvents(
       title: data.title ?? "",
       tags: Array.isArray(data.tags) ? data.tags : data.tags ? [data.tags] : [],
       color: data.color ?? "#3B82F6",
+      type: data.type === "meeting" ? "meeting" : "work",
       created_at: createdAt?.toDate?.()?.toISOString?.(),
       createdAt: data.createdAt ?? createdAt,
     };
@@ -475,6 +477,7 @@ export async function createCalendarEvent(
     title: string;
     tags: string[];
     color: string;
+    type?: "work" | "meeting";
   }
 ): Promise<CalendarEventRecord> {
   if (data.duration_minutes % 15 !== 0) {
@@ -487,6 +490,7 @@ export async function createCalendarEvent(
     title: data.title,
     tags: data.tags ?? [],
     color: data.color ?? "#3B82F6",
+    type: data.type === "meeting" ? "meeting" : "work",
     createdAt: FieldValue.serverTimestamp(),
   });
   const doc = await ref.get();
@@ -499,6 +503,7 @@ export async function createCalendarEvent(
     title: d.title ?? "",
     tags: Array.isArray(d.tags) ? d.tags : [],
     color: d.color ?? "#3B82F6",
+    type: d.type === "meeting" ? "meeting" : "work",
     created_at: d.createdAt?.toDate?.()?.toISOString?.(),
     createdAt: d.createdAt,
   };
@@ -514,6 +519,7 @@ export async function updateCalendarEvent(
     title: string;
     tags: string[];
     color: string;
+    type: "work" | "meeting";
   }>
 ): Promise<void> {
   if (data.duration_minutes != null && data.duration_minutes % 15 !== 0) {
@@ -527,6 +533,7 @@ export async function updateCalendarEvent(
   if (data.title !== undefined) update.title = data.title;
   if (data.tags !== undefined) update.tags = data.tags;
   if (data.color !== undefined) update.color = data.color;
+  if (data.type !== undefined) update.type = data.type === "meeting" ? "meeting" : "work";
   if (Object.keys(update).length > 0) {
     await ref.update(update);
   }

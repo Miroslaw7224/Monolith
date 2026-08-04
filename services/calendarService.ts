@@ -16,6 +16,7 @@ export async function createCalendarEvent(
     title: string;
     tags: string[];
     color: string;
+    type?: "work" | "meeting";
   }
 ) {
   return firestoreDb.createCalendarEvent(userId, data);
@@ -31,6 +32,7 @@ export async function updateCalendarEvent(
     title: string;
     tags: string[];
     color: string;
+    type: "work" | "meeting";
   }>
 ) {
   return firestoreDb.updateCalendarEvent(userId, id, data);
