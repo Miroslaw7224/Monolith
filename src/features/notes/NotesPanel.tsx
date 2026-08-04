@@ -2,7 +2,7 @@ import React from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/src/lib/cn";
 import { NoteEditor } from "@/src/components/NoteEditor";
-import type { Note } from "./useWiedzaData";
+import type { Note } from "./useNotesData";
 
 export interface NotesPanelProps {
   notes: Note[];

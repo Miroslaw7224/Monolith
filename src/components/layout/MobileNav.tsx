@@ -1,13 +1,16 @@
 "use client";
 import React from "react";
-import { Home, MessageCircle, CheckSquare, FileText, MoreHorizontal } from "lucide-react";
+import { Home, CheckSquare, FileText, Calendar, MoreHorizontal } from "lucide-react";
 import { cn } from "@/src/lib/cn";
+import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
 
-type AppMode = "home" | "wiedza" | "planowanie";
+type AppMode = "home" | "planowanie";
 
 interface MobileNavProps {
   appMode: AppMode;
   setAppMode: (mode: AppMode) => void;
+  planningTab: PlanningTab;
+  setPlanningTab: (tab: PlanningTab) => void;
   lang: "en" | "pl";
   onMoreOpen: () => void;
 }
@@ -21,7 +24,19 @@ interface NavTab {
   active: boolean;
 }
 
-export function MobileNav({ appMode, setAppMode, lang, onMoreOpen }: MobileNavProps) {
+export function MobileNav({
+  appMode,
+  setAppMode,
+  planningTab,
+  setPlanningTab,
+  lang,
+  onMoreOpen,
+}: MobileNavProps) {
+  const goToTab = (tab: PlanningTab) => {
+    setPlanningTab(tab);
+    setAppMode("planowanie");
+  };
+
   const tabs: NavTab[] = [
     {
       id: "home",
@@ -32,28 +47,28 @@ export function MobileNav({ appMode, setAppMode, lang, onMoreOpen }: MobileNavPr
       active: appMode === "home",
     },
     {
-      id: "wiedza",
-      icon: <MessageCircle className="w-5 h-5" />,
-      labelPl: "Wiedza",
-      labelEn: "Knowledge",
-      action: () => setAppMode("wiedza"),
-      active: appMode === "wiedza",
-    },
-    {
-      id: "planowanie",
+      id: "tasks",
       icon: <CheckSquare className="w-5 h-5" />,
       labelPl: "Zadania",
       labelEn: "Tasks",
-      action: () => setAppMode("planowanie"),
-      active: appMode === "planowanie",
+      action: () => goToTab("tasks"),
+      active: appMode === "planowanie" && planningTab === "tasks",
     },
     {
-      id: "notatki",
+      id: "notes",
       icon: <FileText className="w-5 h-5" />,
       labelPl: "Notatki",
       labelEn: "Notes",
-      action: () => setAppMode("wiedza"),
-      active: false,
+      action: () => goToTab("notes"),
+      active: appMode === "planowanie" && planningTab === "notes",
+    },
+    {
+      id: "calendar",
+      icon: <Calendar className="w-5 h-5" />,
+      labelPl: "Kalendarz",
+      labelEn: "Calendar",
+      action: () => goToTab("calendar"),
+      active: appMode === "planowanie" && planningTab === "calendar",
     },
     {
       id: "more",

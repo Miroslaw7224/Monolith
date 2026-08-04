@@ -5,7 +5,6 @@ import {
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
-  Database,
   Network,
   Maximize2,
   Minimize2,
@@ -393,9 +392,6 @@ function MindMapEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
-  const [syncing, setSyncing] = useState(false);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
-
   const [notesPanelH, setNotesPanelH] = useState<number>(DEFAULT_NOTES_PANEL_H);
   const notesResizingRef = useRef<null | { startY: number; startH: number }>(null);
 
@@ -772,26 +768,6 @@ function MindMapEditor({
     [applyTree, rootNode, selId]
   );
 
-  const handleSyncToKnowledge = async (mapId: string) => {
-    setSyncing(true);
-    setSyncMessage(null);
-    try {
-      const res = await apiFetch("/api/knowledge/mind-map-sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mindMapId: mapId }),
-      });
-      if (!res.ok) throw new Error("Błąd synchronizacji");
-      const data = await res.json();
-      setSyncMessage(`Zsynchronizowano ${data.nodes} węzłów`);
-    } catch {
-      setSyncMessage("Błąd synchronizacji");
-    } finally {
-      setSyncing(false);
-      setTimeout(() => setSyncMessage(null), 4000);
-    }
-  };
-
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-center gap-3">
@@ -839,16 +815,6 @@ function MindMapEditor({
             <RotateCcw className="w-4 h-4" />
             {t.mindMapsReset as string}
           </button>
-          <button
-            type="button"
-            onClick={() => void handleSyncToKnowledge(map.id)}
-            disabled={syncing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text2)] text-xs hover:bg-[var(--bg2)] transition-colors disabled:opacity-50"
-          >
-            <Database size={14} />
-            {syncing ? "Synchronizuję..." : "Synchronizuj z bazą wiedzy"}
-          </button>
-          {syncMessage && <span className="text-xs text-[var(--text3)]">{syncMessage}</span>}
           <button
             type="button"
             onClick={() => addChild("root")}

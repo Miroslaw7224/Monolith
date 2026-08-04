@@ -5,8 +5,7 @@ test.describe("Task Management", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
 
-    // Navigate to Planning > Tasks
-    await page.getByRole("button", { name: /^(Planowanie|Planning)$/ }).click();
+    // Navigate to Tasks tab
     await page.getByRole("button", { name: /^(Zadania|Tasks)$/ }).click();
     // Wait for the inline task input to appear
     await expect(page.getByPlaceholder(/nowe zadanie|new task/i)).toBeVisible({

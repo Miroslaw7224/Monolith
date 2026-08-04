@@ -1,34 +1,47 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { LogOut, Network, Link, Calendar, Map } from "lucide-react";
+import { LogOut, Link, Briefcase, Tag, Map } from "lucide-react";
+import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
 
 interface MobileMoreDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onLogout: () => void;
   lang: "en" | "pl";
+  onSelectTab: (tab: PlanningTab) => void;
 }
 
-export function MobileMoreDrawer({ isOpen, onClose, onLogout, lang }: MobileMoreDrawerProps) {
-  const items = [
+export function MobileMoreDrawer({
+  isOpen,
+  onClose,
+  onLogout,
+  lang,
+  onSelectTab,
+}: MobileMoreDrawerProps) {
+  const items: Array<{
+    id: PlanningTab;
+    icon: React.ReactNode;
+    labelPl: string;
+    labelEn: string;
+  }> = [
     {
-      id: "graph",
-      icon: <Network className="w-5 h-5" />,
-      labelPl: "Graf wiedzy",
-      labelEn: "Knowledge Graph",
+      id: "activity",
+      icon: <Briefcase className="w-5 h-5" />,
+      labelPl: "Moja praca",
+      labelEn: "My Work",
+    },
+    {
+      id: "tags",
+      icon: <Tag className="w-5 h-5" />,
+      labelPl: "Tagi",
+      labelEn: "Tags",
     },
     {
       id: "resources",
       icon: <Link className="w-5 h-5" />,
       labelPl: "Zasoby",
       labelEn: "Resources",
-    },
-    {
-      id: "calendar",
-      icon: <Calendar className="w-5 h-5" />,
-      labelPl: "Kalendarz",
-      labelEn: "Calendar",
     },
     {
       id: "mindmaps",
@@ -59,26 +72,32 @@ export function MobileMoreDrawer({ isOpen, onClose, onLogout, lang }: MobileMore
           >
             <div className="w-10 h-1 bg-[var(--border)] rounded-full mx-auto mt-3 mb-4" />
             <div className="px-4 space-y-1">
-              {items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={onClose}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold text-[var(--text)] hover:bg-[var(--bg3)] transition-colors text-left"
-                >
-                  <span className="text-[var(--text2)]">{item.icon}</span>
-                  {lang === "pl" ? item.labelPl : item.labelEn}
-                </button>
-              ))}
-              <div className="border-t border-[var(--border)] my-2" />
+              {items.map((item) => {
+                const label = lang === "pl" ? item.labelPl : item.labelEn;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelectTab(item.id)}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-[var(--bg3)] text-[var(--text)] transition-colors"
+                  >
+                    {item.icon}
+                    <span className="text-sm font-semibold">{label}</span>
+                  </button>
+                );
+              })}
               <button
+                type="button"
                 onClick={() => {
                   onLogout();
                   onClose();
                 }}
-                className="w-full flex items-center gap-3 p-3 rounded-xl text-sm font-semibold text-red-400 hover:bg-[var(--bg3)] transition-colors text-left"
+                className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-[var(--bg3)] text-red-500 transition-colors mt-2"
               >
                 <LogOut className="w-5 h-5" />
-                {lang === "pl" ? "Wyloguj" : "Logout"}
+                <span className="text-sm font-semibold">
+                  {lang === "pl" ? "Wyloguj" : "Logout"}
+                </span>
               </button>
             </div>
           </motion.div>
