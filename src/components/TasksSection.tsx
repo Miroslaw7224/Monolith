@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Plus, Trash2, Check, Circle, ChevronUp, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Plus, Search } from "lucide-react";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { TaskColumn } from "./tasks/TaskColumn";
+import { matchTaskSearch, parseTaskInput } from "./tasks/taskInputUtils";
+import {
+  computeTaskOrderAfterDrop,
+  TASK_STATUSES,
+  tasksByStatus,
+  type TaskStatus,
+} from "./tasks/taskOrderUtils";
 
 export interface Task {
   id: string;
@@ -26,9 +34,13 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
+  const [dragTaskId, setDragTaskId] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
+  const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
   const titleClickPendingRef = useRef<{
     taskId: string;
     timer: ReturnType<typeof setTimeout>;
@@ -130,13 +142,13 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   };
 
   const addTask = async () => {
-    const title = newTitle.trim();
+    const { title, description } = parseTaskInput(newTitle);
     if (!title) return;
     try {
       const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, description }),
       });
       const task = await res.json();
       setTasks((prev) => [task, ...prev]);
@@ -146,16 +158,10 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     }
   };
 
-  const updateStatus = async (id: string, status: Task["status"]) => {
-    try {
-      await apiFetch(`/api/tasks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
-    } catch (err) {
-      console.error("Update task failed", err);
+  const handleNewTaskKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void addTask();
     }
   };
 
@@ -188,28 +194,73 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     }
   };
 
-  const orderedIds = tasks.map((t) => t.id);
+  const isSearching = searchQuery.trim().length > 0;
+  const filteredTasks = useMemo(
+    () => tasks.filter((task) => matchTaskSearch(task, searchQuery)),
+    [tasks, searchQuery]
+  );
+  const canDrag = !isSearching;
 
-  const moveTask = async (taskId: string, direction: "up" | "down") => {
-    const i = orderedIds.indexOf(taskId);
-    if (i < 0) return;
-    const j = direction === "up" ? i - 1 : i + 1;
-    if (j < 0 || j >= orderedIds.length) return;
-    const next = [...orderedIds];
-    [next[i], next[j]] = [next[j], next[i]];
+  const applyDrop = async (
+    draggedId: string | null,
+    targetStatus: TaskStatus,
+    targetTaskId: string | null
+  ) => {
+    if (!draggedId || !canDrag) return;
+
+    const { orderedIds, statusChanged } = computeTaskOrderAfterDrop(
+      tasks,
+      draggedId,
+      targetStatus,
+      targetTaskId
+    );
+
+    setTasks((prev) => {
+      const byId = new Map(prev.map((task) => [task.id, task]));
+      const dragged = byId.get(draggedId);
+      if (!dragged) return prev;
+      if (statusChanged) {
+        byId.set(draggedId, { ...dragged, status: targetStatus });
+      }
+      return orderedIds.map((id) => byId.get(id)!).filter(Boolean);
+    });
+
     try {
+      if (statusChanged) {
+        await apiFetch(`/api/tasks/${draggedId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: targetStatus }),
+        });
+      }
       await apiFetch("/api/tasks/reorder", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskIds: next }),
-      });
-      setTasks((prev) => {
-        const byId = new Map(prev.map((t) => [t.id, t]));
-        return next.map((id) => byId.get(id)!).filter(Boolean);
+        body: JSON.stringify({ taskIds: orderedIds }),
       });
     } catch (err) {
-      console.error("Reorder failed", err);
+      console.error("Task drop failed", err);
     }
+  };
+
+  const clearDragState = () => {
+    setDragTaskId(null);
+    setDragOverColumn(null);
+    setDragOverTaskId(null);
+  };
+
+  const handleDragEnd = () => {
+    clearDragState();
+  };
+
+  const handleColumnDrop = (status: TaskStatus) => {
+    void applyDrop(dragTaskId, status, null);
+    clearDragState();
+  };
+
+  const handleDropOnTask = (targetTaskId: string, columnStatus: TaskStatus) => {
+    void applyDrop(dragTaskId, columnStatus, targetTaskId);
+    clearDragState();
   };
 
   const updateDueDate = async (id: string, due: string | null) => {
@@ -224,29 +275,41 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
       console.error("Update task due_date failed", err);
     }
   };
+
   const labels = {
     addPlaceholder: (t.tasksNewPlaceholder as string) ?? "New task...",
     todo: (t.tasksTodo as string) ?? "To do",
     inProgress: (t.tasksInProgress as string) ?? "In progress",
     done: (t.tasksDone as string) ?? "Done",
     noTasks: (t.tasksNoTasks as string) ?? "No tasks. Add your first.",
-    moveUp: (t.tasksMoveUp as string) ?? "Move up",
-    moveDown: (t.tasksMoveDown as string) ?? "Move down",
     startDateLabel: (t.tasksStartDateLabel as string) ?? "Start",
     deadlineLabel: (t.tasksDeadlineLabel as string) ?? "Due",
+    searchPlaceholder: (t.tasksSearchPlaceholder as string) ?? "Search tasks…",
+    noSearchResults: (t.tasksNoSearchResults as string) ?? "No tasks match your search.",
+  };
+
+  const columnLabels: Record<TaskStatus, string> = {
+    todo: labels.todo,
+    in_progress: labels.inProgress,
+    done: labels.done,
+  };
+
+  const cardLabels = {
+    startDateLabel: labels.startDateLabel,
+    deadlineLabel: labels.deadlineLabel,
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
       <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="max-w-2xl flex gap-2">
-          <input
-            type="text"
+        <div className="max-w-2xl flex gap-2 items-start">
+          <textarea
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTask()}
+            onKeyDown={handleNewTaskKeyDown}
             placeholder={labels.addPlaceholder}
-            className="flex-1 px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)]"
+            rows={2}
+            className="flex-1 px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] resize-y min-h-[3.25rem]"
           />
           <button
             onClick={addTask}
@@ -256,231 +319,68 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
             {(t.tasksAdd as string) ?? "Add"}
           </button>
         </div>
+        <div className="max-w-2xl mt-3 relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text3)] pointer-events-none"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={labels.searchPlaceholder}
+            aria-label={labels.searchPlaceholder}
+            className="w-full pl-9 pr-4 py-2.5 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none"
+          />
+        </div>
       </div>
       <div className="flex-1 overflow-auto p-6 flex flex-col min-h-0">
         {loading ? (
           <div className="text-[var(--text2)] text-base">Loading…</div>
         ) : tasks.length === 0 ? (
           <p className="text-[var(--text3)] font-medium text-base">{labels.noTasks}</p>
+        ) : filteredTasks.length === 0 ? (
+          <p className="text-[var(--text3)] font-medium text-base">{labels.noSearchResults}</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-w-0 w-full content-start">
-            <div className="flex flex-col min-w-0 flex-1">
-              <h3 className="text-sm font-bold text-[var(--text2)] uppercase tracking-wider mb-3">
-                {labels.todo}
-              </h3>
-              <ul className="space-y-0.5 flex-1">
-                {tasks
-                  .filter((task) => task.status !== "done")
-                  .map((task) => {
-                    const idx = orderedIds.indexOf(task.id);
-                    const canMoveUp = idx > 0;
-                    const canMoveDown = idx >= 0 && idx < orderedIds.length - 1;
-                    return (
-                      <li
-                        key={task.id}
-                        className="flex items-center gap-1.5 py-1 px-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg"
-                      >
-                        <div className="flex flex-col flex-shrink-0 gap-0.5">
-                          <button
-                            type="button"
-                            onClick={() => moveTask(task.id, "up")}
-                            disabled={!canMoveUp}
-                            className="p-0.5 rounded hover:bg-[var(--bg3)] disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={labels.moveUp}
-                          >
-                            <ChevronUp className="w-3.5 h-3.5 text-[var(--text2)]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveTask(task.id, "down")}
-                            disabled={!canMoveDown}
-                            className="p-0.5 rounded hover:bg-[var(--bg3)] disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={labels.moveDown}
-                          >
-                            <ChevronDown className="w-3.5 h-3.5 text-[var(--text2)]" />
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(task.id, "done")}
-                          className="flex-shrink-0 p-0.5 rounded-full hover:bg-[var(--bg3)]"
-                          title={labels.done}
-                        >
-                          <Circle className="w-4 h-4 text-[var(--text3)]" />
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          {editingId === task.id ? (
-                            <input
-                              type="text"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              onBlur={() => updateTitle(task.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") updateTitle(task.id);
-                                if (e.key === "Escape") {
-                                  setEditingId(null);
-                                  setEditTitle("");
-                                }
-                              }}
-                              className="w-full px-2 py-0.5 border border-[var(--border)] rounded text-sm bg-[var(--surface)] text-[var(--text)]"
-                              autoFocus
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleTitleAreaClick(task)}
-                              className="w-full text-left text-sm font-medium text-[var(--text)] flex items-center gap-2 min-w-0"
-                            >
-                              <span className="truncate flex-1 min-w-0">{task.title}</span>
-                              {Boolean(task.description?.trim()) ? (
-                                <span
-                                  className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"
-                                  aria-hidden
-                                />
-                              ) : null}
-                            </button>
-                          )}
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--text3)]">
-                            {task.created_at && (
-                              <span>
-                                {labels.startDateLabel}: {formatDate(task.created_at)}
-                              </span>
-                            )}
-                            <label className="inline-flex items-center gap-1">
-                              <span>{labels.deadlineLabel}:</span>
-                              <input
-                                type="date"
-                                value={task.due_date ?? ""}
-                                onChange={(e) => {
-                                  const v = e.target.value.trim();
-                                  updateDueDate(task.id, v === "" ? null : v);
-                                }}
-                                className="rounded border border-[var(--border)] bg-[var(--bg3)] px-1 py-0.5 text-[10px] text-[var(--text)]"
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => deleteTask(task.id)}
-                          className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg flex-shrink-0"
-                          aria-label={lang === "pl" ? "Usuń" : "Delete"}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </div>
-            <div className="flex flex-col min-w-0 flex-1">
-              <ul className="space-y-0.5 flex-1">
-                {tasks
-                  .filter((task) => task.status === "done")
-                  .map((task) => {
-                    const idx = orderedIds.indexOf(task.id);
-                    const canMoveUp = idx > 0;
-                    const canMoveDown = idx >= 0 && idx < orderedIds.length - 1;
-                    return (
-                      <li
-                        key={task.id}
-                        className="flex items-center gap-1.5 py-1 px-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg opacity-90"
-                      >
-                        <div className="flex flex-col flex-shrink-0 gap-0.5">
-                          <button
-                            type="button"
-                            onClick={() => moveTask(task.id, "up")}
-                            disabled={!canMoveUp}
-                            className="p-0.5 rounded hover:bg-[var(--bg3)] disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={labels.moveUp}
-                          >
-                            <ChevronUp className="w-3.5 h-3.5 text-[var(--text2)]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveTask(task.id, "down")}
-                            disabled={!canMoveDown}
-                            className="p-0.5 rounded hover:bg-[var(--bg3)] disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={labels.moveDown}
-                          >
-                            <ChevronDown className="w-3.5 h-3.5 text-[var(--text2)]" />
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(task.id, "todo")}
-                          className="flex-shrink-0 p-0.5 rounded-full hover:bg-[var(--bg3)]"
-                          title={labels.todo}
-                        >
-                          <Check className="w-4 h-4 text-emerald-500" />
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          {editingId === task.id ? (
-                            <input
-                              type="text"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              onBlur={() => updateTitle(task.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") updateTitle(task.id);
-                                if (e.key === "Escape") {
-                                  setEditingId(null);
-                                  setEditTitle("");
-                                }
-                              }}
-                              className="w-full px-2 py-0.5 border border-[var(--border)] rounded text-sm bg-[var(--surface)] text-[var(--text)]"
-                              autoFocus
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleTitleAreaClick(task)}
-                              className="w-full text-left text-sm font-medium text-[var(--text3)] flex items-center gap-2 min-w-0"
-                            >
-                              <span className="truncate flex-1 min-w-0 line-through">
-                                {task.title}
-                              </span>
-                              {Boolean(task.description?.trim()) ? (
-                                <span
-                                  className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"
-                                  aria-hidden
-                                />
-                              ) : null}
-                            </button>
-                          )}
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--text3)]">
-                            {task.created_at && (
-                              <span>
-                                {labels.startDateLabel}: {formatDate(task.created_at)}
-                              </span>
-                            )}
-                            <label className="inline-flex items-center gap-1">
-                              <span>{labels.deadlineLabel}:</span>
-                              <input
-                                type="date"
-                                value={task.due_date ?? ""}
-                                onChange={(e) => {
-                                  const v = e.target.value.trim();
-                                  updateDueDate(task.id, v === "" ? null : v);
-                                }}
-                                className="rounded border border-[var(--border)] bg-[var(--bg3)] px-1 py-0.5 text-[10px] text-[var(--text)]"
-                              />
-                            </label>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => deleteTask(task.id)}
-                          className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg flex-shrink-0"
-                          aria-label={lang === "pl" ? "Usuń" : "Delete"}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </li>
-                    );
-                  })}
-              </ul>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-w-0 w-full content-start">
+            {TASK_STATUSES.map((status) => (
+              <TaskColumn
+                key={status}
+                status={status}
+                title={columnLabels[status]}
+                tasks={tasksByStatus(filteredTasks, status)}
+                lang={lang}
+                isDragOverColumn={dragOverColumn === status && dragOverTaskId === null}
+                dragTaskId={dragTaskId}
+                dragOverTaskId={dragOverTaskId}
+                draggable={canDrag}
+                editingId={editingId}
+                editTitle={editTitle}
+                labels={cardLabels}
+                formatDate={formatDate}
+                onColumnDragOver={(s) => {
+                  setDragOverColumn(s);
+                  setDragOverTaskId(null);
+                }}
+                onColumnDrop={handleColumnDrop}
+                onDragStart={setDragTaskId}
+                onDragOverTask={(taskId) => {
+                  setDragOverTaskId(taskId);
+                  setDragOverColumn(status);
+                }}
+                onDragEnd={handleDragEnd}
+                onDropOnTask={handleDropOnTask}
+                onTitleAreaClick={handleTitleAreaClick}
+                onEditTitleChange={setEditTitle}
+                onEditTitleCommit={updateTitle}
+                onEditTitleCancel={() => {
+                  setEditingId(null);
+                  setEditTitle("");
+                }}
+                onDueDateChange={updateDueDate}
+                onDelete={deleteTask}
+              />
+            ))}
           </div>
         )}
       </div>
