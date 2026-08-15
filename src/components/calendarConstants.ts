@@ -23,3 +23,8 @@ export function formatDuration(minutes: number): string {
   const m = minutes % 60;
   return m ? `${h}h ${m}min` : `${h}h`;
 }
+
+export const EVENT_TYPE_DEFAULT_DURATION: Record<"work" | "meeting", number> = {
+  work: 60,
+  meeting: 30,
+};

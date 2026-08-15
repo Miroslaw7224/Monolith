@@ -33,8 +33,8 @@ test.describe("Task Management", () => {
     await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
     await expect(page.getByText(originalTitle)).toBeVisible({ timeout: 10000 });
 
-    // Single click opens detail modal (after ~280ms)
-    await page.getByText(originalTitle).first().click();
+    // Double click opens detail modal
+    await page.getByText(originalTitle).first().dblclick();
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 
     // Update title in the modal (.fill replaces existing value)

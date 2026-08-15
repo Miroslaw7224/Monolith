@@ -31,6 +31,7 @@ interface CalendarViewProps {
   onEndSession?: () => void | Promise<void>;
   sessionEndError?: string | null;
   clearSessionEndError?: () => void;
+  onOpenTaskDeadline?: (taskId: string) => void;
 }
 
 export function CalendarView({
@@ -44,6 +45,7 @@ export function CalendarView({
   onEndSession,
   sessionEndError = null,
   clearSessionEndError,
+  onOpenTaskDeadline,
 }: CalendarViewProps) {
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -135,6 +137,10 @@ export function CalendarView({
   };
 
   const handleOpenEdit = (ev: CalendarEvent) => {
+    if (ev.type === "task_deadline") {
+      onOpenTaskDeadline?.(ev.id.replace(/^task:/, ""));
+      return;
+    }
     setEditingEvent(ev);
     setAddDate(null);
     setSaveError(null);
@@ -362,6 +368,7 @@ export function CalendarView({
                       duration_minutes: editingEvent.duration_minutes,
                       title: editingEvent.title,
                       tags: editingEvent.tags,
+                      type: editingEvent.type === "meeting" ? "meeting" : "work",
                     }
                   : addDate
                     ? {
@@ -370,6 +377,7 @@ export function CalendarView({
                         duration_minutes: 60,
                         title: "",
                         tags: [],
+                        type: "work",
                       }
                     : undefined
               }

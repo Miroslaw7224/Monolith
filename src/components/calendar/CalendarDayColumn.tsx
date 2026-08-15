@@ -1,5 +1,5 @@
 import React from "react";
-import { Pencil, Square } from "lucide-react";
+import { Pencil, Square, Bell, Flag } from "lucide-react";
 import type { CalendarEvent, CalendarEventSegment } from "./calendarUtils";
 import { assignLanes, getOverlapCounts, CALENDAR_MAX_STACK } from "./calendarUtils";
 import { formatDuration } from "../calendarConstants";
@@ -81,7 +81,10 @@ export function CalendarDayColumn({
           const heightPct = 100 / stackSize - 2;
           const topPct = lane * (100 / stackSize);
           const ev = seg.source;
-          const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}`;
+          const isMeeting = ev.type === "meeting";
+          const isDeadline = ev.type === "task_deadline";
+          const typeSuffix = isDeadline ? " · Task deadline" : isMeeting ? " · Meeting" : "";
+          const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}${typeSuffix}`;
           return (
             <div
               key={seg.segmentKey}
@@ -90,7 +93,9 @@ export function CalendarDayColumn({
                 e.stopPropagation();
                 onEventClick(ev);
               }}
-              className="absolute rounded overflow-hidden cursor-pointer border border-white/50 shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80"
+              className={`absolute rounded overflow-hidden cursor-pointer shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80 ${
+                isDeadline ? "border-2 border-dashed border-white/80" : "border border-white/50"
+              }`}
               style={{
                 left: leftPx,
                 width: Math.max(24, widthPx),
@@ -100,13 +105,21 @@ export function CalendarDayColumn({
               }}
               title={titleTip}
             >
+              {isMeeting && (
+                <Bell className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />
+              )}
+              {isDeadline && (
+                <Flag className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />
+              )}
               <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
                 {ev.title}
               </span>
-              <Pencil
-                className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
-                aria-hidden
-              />
+              {!isDeadline && (
+                <Pencil
+                  className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
+                  aria-hidden
+                />
+              )}
             </div>
           );
         })}

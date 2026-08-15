@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, Search } from "lucide-react";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskColumn } from "./tasks/TaskColumn";
-import { matchTaskSearch, parseTaskInput } from "./tasks/taskInputUtils";
+import { matchTaskSearch, normalizeTaskFields, parseTaskInput } from "./tasks/taskInputUtils";
 import {
   computeTaskOrderAfterDrop,
   TASK_STATUSES,
@@ -13,8 +13,9 @@ import {
 export interface Task {
   id: string;
   title: string;
+  link: string;
   description: string;
-  status: "todo" | "in_progress" | "done";
+  status: "todo" | "in_progress" | "to_review" | "done";
   due_date: string | null;
   priority: number | null;
   order?: number;
@@ -59,7 +60,15 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     apiFetch("/api/tasks")
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled) setTasks(Array.isArray(data) ? data : []);
+        if (!cancelled) {
+          const list = Array.isArray(data) ? data : [];
+          setTasks(
+            list.map((task: Task) => {
+              const { link, description } = normalizeTaskFields(task);
+              return { ...task, link, description };
+            })
+          );
+        }
       })
       .catch(() => {
         if (!cancelled) setTasks([]);
@@ -85,28 +94,34 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     }
   }, [detailTaskId, tasks]);
 
-  const handleTitleAreaClick = (task: Task) => {
+  const clearTitleClickPending = () => {
     const p = titleClickPendingRef.current;
-    if (p && p.taskId === task.id) {
-      clearTimeout(p.timer);
-      titleClickPendingRef.current = null;
-      setEditingId(task.id);
-      setEditTitle(task.title);
-      return;
-    }
     if (p) {
       clearTimeout(p.timer);
       titleClickPendingRef.current = null;
     }
+  };
+
+  const handleTitleAreaClick = (task: Task) => {
+    clearTitleClickPending();
     const timer = setTimeout(() => {
       titleClickPendingRef.current = null;
-      setDetailTaskId(task.id);
+      setEditingId(task.id);
+      setEditTitle(task.title);
     }, 280);
     titleClickPendingRef.current = { taskId: task.id, timer };
   };
 
+  const handleTitleAreaDoubleClick = (task: Task) => {
+    clearTitleClickPending();
+    setEditingId(null);
+    setEditTitle("");
+    setDetailTaskId(task.id);
+  };
+
   const saveTaskDetail = async (payload: {
     title: string;
+    link: string;
     description: string;
     status: Task["status"];
     due_date: string | null;
@@ -118,6 +133,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: payload.title,
+          link: payload.link,
           description: payload.description,
           status: payload.status,
           due_date: payload.due_date,
@@ -129,6 +145,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
             ? {
                 ...x,
                 title: payload.title,
+                link: payload.link,
                 description: payload.description,
                 status: payload.status,
                 due_date: payload.due_date,
@@ -142,16 +159,21 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   };
 
   const addTask = async () => {
-    const { title, description } = parseTaskInput(newTitle);
+    const { title, link, description } = parseTaskInput(newTitle);
     if (!title) return;
     try {
       const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title, link, description }),
       });
       const task = await res.json();
-      setTasks((prev) => [task, ...prev]);
+      const { link: normalizedLink, description: normalizedDescription } =
+        normalizeTaskFields(task);
+      setTasks((prev) => [
+        { ...task, link: normalizedLink, description: normalizedDescription },
+        ...prev,
+      ]);
       setNewTitle("");
     } catch (err) {
       console.error("Add task failed", err);
@@ -280,6 +302,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     addPlaceholder: (t.tasksNewPlaceholder as string) ?? "New task...",
     todo: (t.tasksTodo as string) ?? "To do",
     inProgress: (t.tasksInProgress as string) ?? "In progress",
+    toReview: (t.tasksToReview as string) ?? "To review",
     done: (t.tasksDone as string) ?? "Done",
     noTasks: (t.tasksNoTasks as string) ?? "No tasks. Add your first.",
     startDateLabel: (t.tasksStartDateLabel as string) ?? "Start",
@@ -291,12 +314,16 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   const columnLabels: Record<TaskStatus, string> = {
     todo: labels.todo,
     in_progress: labels.inProgress,
+    to_review: labels.toReview,
     done: labels.done,
   };
 
   const cardLabels = {
     startDateLabel: labels.startDateLabel,
     deadlineLabel: labels.deadlineLabel,
+    showMore: (count: number) =>
+      ((t.tasksShowMore as string) ?? "Show {count} more").replace("{count}", String(count)),
+    showLess: (t.tasksShowLess as string) ?? "Show less",
   };
 
   return (
@@ -342,7 +369,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
         ) : filteredTasks.length === 0 ? (
           <p className="text-[var(--text3)] font-medium text-base">{labels.noSearchResults}</p>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-w-0 w-full content-start">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-w-0 w-full content-start">
             {TASK_STATUSES.map((status) => (
               <TaskColumn
                 key={status}
@@ -350,6 +377,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
                 title={columnLabels[status]}
                 tasks={tasksByStatus(filteredTasks, status)}
                 lang={lang}
+                collapseEnabled={!isSearching}
                 isDragOverColumn={dragOverColumn === status && dragOverTaskId === null}
                 dragTaskId={dragTaskId}
                 dragOverTaskId={dragOverTaskId}
@@ -371,6 +399,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
                 onDragEnd={handleDragEnd}
                 onDropOnTask={handleDropOnTask}
                 onTitleAreaClick={handleTitleAreaClick}
+                onTitleAreaDoubleClick={handleTitleAreaDoubleClick}
                 onEditTitleChange={setEditTitle}
                 onEditTitleCommit={updateTitle}
                 onEditTitleCancel={() => {

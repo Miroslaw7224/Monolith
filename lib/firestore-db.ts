@@ -435,7 +435,7 @@ export async function getCalendarEvents(
   options?: { startDate?: string; endDate?: string }
 ): Promise<CalendarEventRecord[]> {
   const snap = await calendarEventsCol(userId).get();
-  let list = snap.docs.map((d) => {
+  let list = snap.docs.map((d): CalendarEventRecord => {
     const data = d.data();
     const createdAt =
       data.createdAt ??
@@ -548,8 +548,9 @@ export async function deleteCalendarEvent(userId: string, eventId: string): Prom
 export type TaskRecord = {
   id: string;
   title: string;
+  link: string;
   description: string;
-  status: "todo" | "in_progress" | "done";
+  status: "todo" | "in_progress" | "to_review" | "done";
   due_date: string | null;
   priority: number | null;
   order?: number;
@@ -580,6 +581,7 @@ export async function getTasks(userId: string): Promise<TaskRecord[]> {
     return {
       id: d.id,
       title: data.title ?? "",
+      link: data.link ?? "",
       description: data.description ?? "",
       status: (data.status as TaskRecord["status"]) ?? "todo",
       due_date: data.due_date ?? null,
@@ -606,6 +608,7 @@ export async function createTask(
   userId: string,
   data: {
     title: string;
+    link?: string;
     description?: string;
     status?: TaskRecord["status"];
     due_date?: string | null;
@@ -614,6 +617,7 @@ export async function createTask(
 ): Promise<TaskRecord> {
   const ref = await tasksCol(userId).add({
     title: data.title ?? "",
+    link: data.link ?? "",
     description: data.description ?? "",
     status: data.status ?? "todo",
     due_date: data.due_date ?? null,
@@ -627,6 +631,7 @@ export async function createTask(
   return {
     id: ref.id,
     title: d.title ?? "",
+    link: d.link ?? "",
     description: d.description ?? "",
     status: (d.status as TaskRecord["status"]) ?? "todo",
     due_date: d.due_date ?? null,
@@ -644,6 +649,7 @@ export async function updateTask(
   taskId: string,
   data: Partial<{
     title: string;
+    link: string;
     description: string;
     status: TaskRecord["status"];
     due_date: string | null;
@@ -653,6 +659,7 @@ export async function updateTask(
 ): Promise<void> {
   const update: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
   if (data.title !== undefined) update.title = data.title;
+  if (data.link !== undefined) update.link = data.link;
   if (data.description !== undefined) update.description = data.description;
   if (data.status !== undefined) update.status = data.status;
   if (data.due_date !== undefined) update.due_date = data.due_date;

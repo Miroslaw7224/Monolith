@@ -3,12 +3,12 @@ import { ExternalLink } from "lucide-react";
 import { isHttpUrl, normalizeUrl } from "./taskInputUtils";
 
 interface TaskDescriptionLinkProps {
-  description: string;
+  link: string;
   className?: string;
 }
 
-export function TaskDescriptionLink({ description, className }: TaskDescriptionLinkProps) {
-  const trimmed = description.trim();
+export function TaskDescriptionLink({ link, className }: TaskDescriptionLinkProps) {
+  const trimmed = link.trim();
   if (!trimmed || !isHttpUrl(trimmed)) return null;
 
   const href = normalizeUrl(trimmed);

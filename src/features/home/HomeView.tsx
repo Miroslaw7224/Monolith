@@ -183,7 +183,9 @@ export default function HomeView({
   const todayTasks = tasks.filter(
     (n) => n.due_date && n.due_date.startsWith(today) && n.status !== "done"
   );
-  const upcomingEvents = events.filter((n) => n.date && n.date >= today && n.date <= limit48h);
+  const upcomingEvents = events.filter(
+    (n) => n.date && n.date >= today && n.date <= limit48h && !n.id.startsWith("task:")
+  );
 
   const goToTab = (tab: PlanningTab) => {
     setPlanningTab(tab);

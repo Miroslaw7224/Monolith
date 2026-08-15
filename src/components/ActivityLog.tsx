@@ -65,10 +65,12 @@ export function ActivityLog({
         if (!cancelled)
           setEvents(
             Array.isArray(data)
-              ? data.sort(
-                  (a: CalendarEvent, b: CalendarEvent) =>
-                    a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
-                )
+              ? data
+                  .filter((ev: CalendarEvent) => !ev.id.startsWith("task:"))
+                  .sort(
+                    (a: CalendarEvent, b: CalendarEvent) =>
+                      a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
+                  )
               : []
           );
       })

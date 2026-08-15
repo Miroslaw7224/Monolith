@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
-import { CALENDAR_COLORS, DURATION_OPTIONS, formatDuration } from "./calendarConstants";
+import {
+  CALENDAR_COLORS,
+  DURATION_OPTIONS,
+  EVENT_TYPE_DEFAULT_DURATION,
+  formatDuration,
+} from "./calendarConstants";
 import { addCalendarDays } from "./calendar/calendarUtils";
 
 export interface CalendarEventFormData {
@@ -9,6 +14,7 @@ export interface CalendarEventFormData {
   title: string;
   tags: string[];
   color: string;
+  type: "work" | "meeting";
 }
 
 interface CalendarEventFormProps {
@@ -33,6 +39,7 @@ export function CalendarEventForm({
   submitLabel = "Add",
 }: CalendarEventFormProps) {
   const [date, setDate] = useState(initial?.date ?? "");
+  const [eventType, setEventType] = useState<"work" | "meeting">(initial?.type ?? "work");
   const [startMinutes, setStartMinutes] = useState(
     initial?.start_minutes != null ? Math.round(initial.start_minutes / 15) * 15 : 9 * 60
   );
@@ -81,6 +88,7 @@ export function CalendarEventForm({
       title: title.trim(),
       tags,
       color,
+      type: eventType,
     });
   };
 
@@ -109,6 +117,23 @@ export function CalendarEventForm({
           className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
           required
         />
+      </div>
+      <div>
+        <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">
+          Event type
+        </label>
+        <select
+          value={eventType}
+          onChange={(e) => {
+            const next = e.target.value as "work" | "meeting";
+            setEventType(next);
+            setDurationMinutes(EVENT_TYPE_DEFAULT_DURATION[next]);
+          }}
+          className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
+        >
+          <option value="work">Work session</option>
+          <option value="meeting">Meeting</option>
+        </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>

@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { Task } from "../TasksSection";
 import type { TaskStatus } from "./taskOrderUtils";
+import { getVisibleColumnTasks } from "./taskOrderUtils";
 import { TaskCard } from "./TaskCard";
 
 interface TaskColumnProps {
@@ -8,6 +10,7 @@ interface TaskColumnProps {
   title: string;
   tasks: Task[];
   lang: "en" | "pl";
+  collapseEnabled: boolean;
   isDragOverColumn: boolean;
   dragTaskId: string | null;
   dragOverTaskId: string | null;
@@ -17,6 +20,8 @@ interface TaskColumnProps {
   labels: {
     startDateLabel: string;
     deadlineLabel: string;
+    showMore: (count: number) => string;
+    showLess: string;
   };
   formatDate: (iso: string | null | undefined) => string;
   onColumnDragOver: (status: TaskStatus) => void;
@@ -26,6 +31,7 @@ interface TaskColumnProps {
   onDragEnd: () => void;
   onDropOnTask: (taskId: string, columnStatus: TaskStatus) => void;
   onTitleAreaClick: (task: Task) => void;
+  onTitleAreaDoubleClick: (task: Task) => void;
   onEditTitleChange: (value: string) => void;
   onEditTitleCommit: (taskId: string) => void;
   onEditTitleCancel: () => void;
@@ -38,6 +44,7 @@ export function TaskColumn({
   title,
   tasks,
   lang,
+  collapseEnabled,
   isDragOverColumn,
   dragTaskId,
   dragOverTaskId,
@@ -53,12 +60,20 @@ export function TaskColumn({
   onDragEnd,
   onDropOnTask,
   onTitleAreaClick,
+  onTitleAreaDoubleClick,
   onEditTitleChange,
   onEditTitleCommit,
   onEditTitleCancel,
   onDueDateChange,
   onDelete,
 }: TaskColumnProps) {
+  const [expanded, setExpanded] = useState(false);
+  const { visibleTasks, hiddenCount, isCollapsed, canCollapse } = getVisibleColumnTasks(
+    tasks,
+    expanded,
+    collapseEnabled
+  );
+
   return (
     <div
       className={[
@@ -83,7 +98,7 @@ export function TaskColumn({
         <span className="ml-2 text-[var(--text3)] font-normal normal-case">{tasks.length}</span>
       </h3>
       <ul className="space-y-1 flex-1">
-        {tasks.map((task) => (
+        {visibleTasks.map((task) => (
           <TaskCard
             key={task.id}
             task={task}
@@ -101,6 +116,7 @@ export function TaskColumn({
             onDragEnd={onDragEnd}
             onDropOnTask={(taskId) => onDropOnTask(taskId, status)}
             onTitleAreaClick={onTitleAreaClick}
+            onTitleAreaDoubleClick={onTitleAreaDoubleClick}
             onEditTitleChange={onEditTitleChange}
             onEditTitleCommit={onEditTitleCommit}
             onEditTitleCancel={onEditTitleCancel}
@@ -109,6 +125,26 @@ export function TaskColumn({
           />
         ))}
       </ul>
+      {isCollapsed ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--accent)] bg-[var(--accent-bg)] hover:bg-[var(--accent-border)]/30 transition-colors"
+        >
+          <ChevronDown className="w-3.5 h-3.5" aria-hidden />
+          {labels.showMore(hiddenCount)}
+        </button>
+      ) : null}
+      {expanded && canCollapse ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--text2)] bg-[var(--bg3)] hover:bg-[var(--border)] transition-colors"
+        >
+          <ChevronUp className="w-3.5 h-3.5" aria-hidden />
+          {labels.showLess}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -374,6 +374,7 @@ export default function PlanowanieView({
               onEndSession={handleEndSession}
               sessionEndError={sessionEndError}
               clearSessionEndError={() => setSessionEndError(null)}
+              onOpenTaskDeadline={() => setPlanningTab("tasks")}
             />
           ) : planningTab === "activity" ? (
             <ActivityLog apiFetch={apiFetch} lang={lang} t={t} userTags={userTags} />

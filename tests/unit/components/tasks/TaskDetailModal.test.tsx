@@ -10,6 +10,7 @@ afterEach(() => cleanup());
 const fakeTask = {
   id: "task-1",
   title: "Napisać testy",
+  link: "https://example.com",
   description: "Opis zadania",
   status: "todo" as const,
   due_date: null,
@@ -23,6 +24,8 @@ const fakeT = {
   calendarCancel: "Zamknij",
   tasksDetailSave: "Zapisz",
   tasksDetailSaving: "…",
+  tasksDetailLinkLabel: "Link",
+  tasksDetailLinkPlaceholder: "https://…",
   tasksDetailNoteLabel: "Notatka",
   tasksDetailNotePlaceholder: "",
   tasksDetailTitleFieldLabel: "Tytuł",
@@ -30,6 +33,7 @@ const fakeT = {
   tasksDetailStatusLabel: "Status",
   tasksTodo: "Do zrobienia",
   tasksInProgress: "W trakcie",
+  tasksToReview: "Do sprawdzenia",
   tasksDone: "Zrobione",
   tasksDeadlineLabel: "Termin",
 };
@@ -44,11 +48,12 @@ describe("TaskDetailModal", () => {
     vi.clearAllMocks();
   });
 
-  it("renders task title and description", () => {
+  it("renders task title, link and note", () => {
     render(
       <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
     );
     expect(screen.getByDisplayValue("Napisać testy")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Opis zadania")).toBeInTheDocument();
   });
 
@@ -106,7 +111,7 @@ describe("TaskDetailModal", () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: "Nowy tytuł" }));
   });
 
-  it("calls onSave with current description when saved", async () => {
+  it("calls onSave with current link and note when saved", async () => {
     const user = userEvent.setup();
     render(
       <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
@@ -118,6 +123,7 @@ describe("TaskDetailModal", () => {
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Napisać testy",
+        link: "https://example.com",
         description: "Opis zadania",
         status: "todo",
         due_date: null,

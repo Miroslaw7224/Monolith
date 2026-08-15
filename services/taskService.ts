@@ -9,6 +9,7 @@ export async function createTask(
   userId: string,
   data: {
     title: string;
+    link?: string;
     description?: string;
     status?: TaskRecord["status"];
     due_date?: string | null;
@@ -23,6 +24,7 @@ export async function updateTask(
   id: string,
   data: Partial<{
     title: string;
+    link: string;
     description: string;
     status: TaskRecord["status"];
     due_date: string | null;

@@ -2,27 +2,58 @@ import { describe, expect, it } from "vitest";
 import {
   isHttpUrl,
   matchTaskSearch,
+  normalizeTaskFields,
   normalizeUrl,
   parseTaskInput,
 } from "@/src/components/tasks/taskInputUtils";
 
 describe("parseTaskInput", () => {
-  it("uses first line as title and second as description", () => {
-    expect(parseTaskInput("Review dla Jacka\nhttps://github.com/org/repo/pull/471")).toEqual({
+  it("uses first line as title, second as link, rest as note", () => {
+    expect(
+      parseTaskInput("Review dla Jacka\nhttps://github.com/org/repo/pull/471\nDodatkowy kontekst")
+    ).toEqual({
       title: "Review dla Jacka",
-      description: "https://github.com/org/repo/pull/471",
+      link: "https://github.com/org/repo/pull/471",
+      description: "Dodatkowy kontekst",
     });
   });
 
   it("ignores empty lines", () => {
     expect(parseTaskInput("  Tytuł  \n\n  https://example.com  ")).toEqual({
       title: "Tytuł",
-      description: "https://example.com",
+      link: "https://example.com",
+      description: "",
     });
   });
 
-  it("returns empty title for blank input", () => {
-    expect(parseTaskInput("   \n  ")).toEqual({ title: "", description: "" });
+  it("returns empty fields for blank input", () => {
+    expect(parseTaskInput("   \n  ")).toEqual({ title: "", link: "", description: "" });
+  });
+});
+
+describe("normalizeTaskFields", () => {
+  it("moves legacy URL-only description into link", () => {
+    expect(
+      normalizeTaskFields({
+        link: "",
+        description: "https://github.com/org/repo/pull/471",
+      })
+    ).toEqual({
+      link: "https://github.com/org/repo/pull/471",
+      description: "",
+    });
+  });
+
+  it("keeps separate link and note", () => {
+    expect(
+      normalizeTaskFields({
+        link: "https://example.com",
+        description: "Notatka",
+      })
+    ).toEqual({
+      link: "https://example.com",
+      description: "Notatka",
+    });
   });
 });
 
@@ -53,7 +84,8 @@ describe("normalizeUrl", () => {
 describe("matchTaskSearch", () => {
   const task = {
     title: "Review dla Jacka",
-    description: "https://github.com/org/repo/pull/471",
+    link: "https://github.com/org/repo/pull/471",
+    description: "Kontekst zadania",
   };
 
   it("matches empty query", () => {
@@ -66,12 +98,16 @@ describe("matchTaskSearch", () => {
     expect(matchTaskSearch(task, "Review")).toBe(true);
   });
 
-  it("matches word in description/link", () => {
+  it("matches word in link", () => {
     expect(matchTaskSearch(task, "github")).toBe(true);
     expect(matchTaskSearch(task, "471")).toBe(true);
   });
 
-  it("matches multiple words across title and description", () => {
+  it("matches word in note", () => {
+    expect(matchTaskSearch(task, "kontekst")).toBe(true);
+  });
+
+  it("matches multiple words across title and link", () => {
     expect(matchTaskSearch(task, "review jacka")).toBe(true);
     expect(matchTaskSearch(task, "jacka github")).toBe(true);
   });

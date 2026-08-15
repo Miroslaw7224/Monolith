@@ -10,12 +10,14 @@ const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
 const mockCreateCalendarEvent = vi.hoisted(() => vi.fn());
 const mockUpdateCalendarEvent = vi.hoisted(() => vi.fn());
 const mockDeleteCalendarEvent = vi.hoisted(() => vi.fn());
+const mockGetTasks = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../lib/firestore-db.js", () => ({
   getCalendarEvents: (...args: unknown[]) => mockGetCalendarEvents(...args),
   createCalendarEvent: (...args: unknown[]) => mockCreateCalendarEvent(...args),
   updateCalendarEvent: (...args: unknown[]) => mockUpdateCalendarEvent(...args),
   deleteCalendarEvent: (...args: unknown[]) => mockDeleteCalendarEvent(...args),
+  getTasks: (...args: unknown[]) => mockGetTasks(...args),
 }));
 
 describe("calendarService", () => {
@@ -24,6 +26,8 @@ describe("calendarService", () => {
     mockCreateCalendarEvent.mockReset();
     mockUpdateCalendarEvent.mockReset();
     mockDeleteCalendarEvent.mockReset();
+    mockGetTasks.mockReset();
+    mockGetTasks.mockResolvedValue([]);
   });
 
   describe("getCalendarEvents", () => {
@@ -37,6 +41,7 @@ describe("calendarService", () => {
           title: "Meeting",
           tags: [],
           color: "#3B82F6",
+          type: "work" as const,
         },
       ];
       mockGetCalendarEvents.mockResolvedValue(events);
@@ -50,6 +55,76 @@ describe("calendarService", () => {
       mockGetCalendarEvents.mockRejectedValue(new Error("DB error"));
 
       await expect(getCalendarEvents("user-1")).rejects.toThrow("DB error");
+    });
+
+    it("given a task with a due_date in range and status not done, when getCalendarEvents is called, then includes a task_deadline pseudo-event", async () => {
+      mockGetCalendarEvents.mockResolvedValue([]);
+      mockGetTasks.mockResolvedValue([
+        {
+          id: "t1",
+          title: "Finish report",
+          description: "",
+          status: "todo",
+          due_date: "2025-02-20",
+          priority: null,
+        },
+      ]);
+
+      const result = await getCalendarEvents("user-1", {
+        startDate: "2025-02-01",
+        endDate: "2025-02-28",
+      });
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: "task:t1",
+          date: "2025-02-20",
+          title: "Finish report",
+          type: "task_deadline",
+        }),
+      ]);
+    });
+
+    it("given a task with status done, when getCalendarEvents is called, then excludes it from results", async () => {
+      mockGetCalendarEvents.mockResolvedValue([]);
+      mockGetTasks.mockResolvedValue([
+        {
+          id: "t1",
+          title: "Finish report",
+          description: "",
+          status: "done",
+          due_date: "2025-02-20",
+          priority: null,
+        },
+      ]);
+
+      const result = await getCalendarEvents("user-1", {
+        startDate: "2025-02-01",
+        endDate: "2025-02-28",
+      });
+
+      expect(result).toEqual([]);
+    });
+
+    it("given a task due_date outside the requested range, when getCalendarEvents is called, then excludes it from results", async () => {
+      mockGetCalendarEvents.mockResolvedValue([]);
+      mockGetTasks.mockResolvedValue([
+        {
+          id: "t1",
+          title: "Finish report",
+          description: "",
+          status: "todo",
+          due_date: "2025-03-15",
+          priority: null,
+        },
+      ]);
+
+      const result = await getCalendarEvents("user-1", {
+        startDate: "2025-02-01",
+        endDate: "2025-02-28",
+      });
+
+      expect(result).toEqual([]);
     });
   });
 

@@ -9,6 +9,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   let body: {
     title?: string;
+    link?: string;
     description?: string;
     status?: string;
     due_date?: string | null;
@@ -20,12 +21,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { title, description, status, due_date, priority, order } = body;
+  const { title, link, description, status, due_date, priority, order } = body;
   try {
     await taskService.updateTask(auth.uid, id, {
       title,
+      link,
       description,
-      status: status as "todo" | "in_progress" | "done" | undefined,
+      status: status as "todo" | "in_progress" | "to_review" | "done" | undefined,
       due_date: due_date ?? undefined,
       priority:
         priority !== undefined

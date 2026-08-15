@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   let body: {
     title?: string;
+    link?: string;
     description?: string;
     status?: string;
     due_date?: string | null;
@@ -29,15 +30,16 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const { title, description, status, due_date, priority } = body;
+  const { title, link, description, status, due_date, priority } = body;
   if (!title || typeof title !== "string") {
     return NextResponse.json({ error: "title required" }, { status: 400 });
   }
   try {
     const task = await taskService.createTask(auth.uid, {
       title,
+      link: link ?? "",
       description: description ?? "",
-      status: (status ?? "todo") as "todo" | "in_progress" | "done",
+      status: (status ?? "todo") as "todo" | "in_progress" | "to_review" | "done",
       due_date: due_date ?? null,
       priority: priority !== undefined && priority !== null ? Number(priority) : null,
     });

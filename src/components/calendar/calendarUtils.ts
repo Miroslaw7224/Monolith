@@ -6,6 +6,7 @@ export interface CalendarEvent {
   title: string;
   tags: string[];
   color: string;
+  type: "work" | "meeting" | "task_deadline";
   created_at?: string;
 }
 

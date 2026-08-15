@@ -22,6 +22,7 @@ interface TaskCardProps {
   onDragEnd: () => void;
   onDropOnTask: (taskId: string) => void;
   onTitleAreaClick: (task: Task) => void;
+  onTitleAreaDoubleClick: (task: Task) => void;
   onEditTitleChange: (value: string) => void;
   onEditTitleCommit: (taskId: string) => void;
   onEditTitleCancel: () => void;
@@ -45,6 +46,7 @@ export function TaskCard({
   onDragEnd,
   onDropOnTask,
   onTitleAreaClick,
+  onTitleAreaDoubleClick,
   onEditTitleChange,
   onEditTitleCommit,
   onEditTitleCancel,
@@ -109,6 +111,10 @@ export function TaskCard({
             <button
               type="button"
               onClick={() => onTitleAreaClick(task)}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                onTitleAreaDoubleClick(task);
+              }}
               className={[
                 "w-full text-left text-sm font-medium flex items-center gap-2 min-w-0",
                 isDone ? "text-[var(--text3)]" : "text-[var(--text)]",
@@ -117,11 +123,11 @@ export function TaskCard({
               <span className={["truncate flex-1 min-w-0", isDone ? "line-through" : ""].join(" ")}>
                 {task.title}
               </span>
-              {Boolean(task.description?.trim()) ? (
+              {Boolean(task.link?.trim()) ? (
                 <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" aria-hidden />
               ) : null}
             </button>
-            <TaskDescriptionLink description={task.description} className="mt-0.5" />
+            <TaskDescriptionLink link={task.link} className="mt-0.5" />
           </div>
         )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--text3)]">

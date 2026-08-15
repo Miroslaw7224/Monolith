@@ -1,11 +1,12 @@
-export function parseTaskInput(raw: string): { title: string; description: string } {
+export function parseTaskInput(raw: string): { title: string; link: string; description: string } {
   const lines = raw
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
   const title = lines[0] ?? "";
-  const description = lines.slice(1).join("\n").trim();
-  return { title, description };
+  const link = lines[1] ?? "";
+  const description = lines.slice(2).join("\n").trim();
+  return { title, link, description };
 }
 
 export function isHttpUrl(value: string): boolean {
@@ -29,14 +30,31 @@ export function normalizeUrl(value: string): string {
   return `https://${trimmed}`;
 }
 
+export function normalizeTaskFields(task: { link?: string | null; description?: string | null }): {
+  link: string;
+  description: string;
+} {
+  let link = task.link?.trim() ?? "";
+  let description = task.description?.trim() ?? "";
+  if (!link && description) {
+    const firstLine = description.split(/\r?\n/)[0]?.trim() ?? "";
+    const rest = description.split(/\r?\n/).slice(1).join("\n").trim();
+    if (firstLine && isHttpUrl(firstLine) && description === firstLine) {
+      link = firstLine;
+      description = rest;
+    }
+  }
+  return { link, description };
+}
+
 export function matchTaskSearch(
-  task: { title: string; description: string },
+  task: { title: string; link: string; description: string },
   query: string
 ): boolean {
   const trimmed = query.trim().toLowerCase();
   if (!trimmed) return true;
 
-  const haystack = `${task.title}\n${task.description}`.toLowerCase();
+  const haystack = `${task.title}\n${task.link}\n${task.description}`.toLowerCase();
   const words = trimmed.split(/\s+/).filter(Boolean);
   return words.every((word) => haystack.includes(word));
 }
