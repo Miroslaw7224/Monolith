@@ -13,7 +13,8 @@ import {
   type OnBeforeDelete,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Board, BoardFrame } from "@/src/features/board/boardTypes";
+import type { Board, BoardBox, BoardFrame } from "@/src/features/board/boardTypes";
+import { boxChanged, withMembership } from "@/src/features/board/boardLayout";
 import {
   addFrame,
   addTile,
@@ -118,6 +119,17 @@ function deleteIdsFromNodes(deleted: Node[]): string[] {
 
 type ResizeParams = { x: number; y: number; width: number; height: number };
 
+export function resizeFrameBoard(board: Board, id: string, box: BoardBox): Board | null {
+  const frame = board.frames.find((item) => item.id === id);
+  if (!frame || !boxChanged(frame, box)) return null;
+  const frames = board.frames.map((item) => (item.id === id ? { ...item, ...box } : item));
+  return { ...board, frames, tiles: withMembership(board.tiles, frames) };
+}
+
+function boardsEqual(a: Board, b: Board): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 function persistDraggedNodes(board: Board, dragged: Node[]): Board | null {
   let next = board;
   let changed = false;
@@ -171,6 +183,8 @@ function CanvasInner({
 }) {
   const flow = useReactFlow();
   const paneRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef(board);
+  const deleteEmitScheduledRef = useRef(false);
   const [naming, setNaming] = useState<{ id: string | null; title: string } | null>(null);
   const [pending, setPending] = useState<{
     copy: { title: string; lines: string[] };
@@ -189,7 +203,7 @@ function CanvasInner({
     },
     onRemoveEdge: (id: string) => onChange(removeEdge(board, id)),
     onResizeFrame: (id: string, params: ResizeParams) => {
-      const next = placeFrame(board, id, {
+      const next = resizeFrameBoard(board, id, {
         x: params.x,
         y: params.y,
         w: params.width,
@@ -209,6 +223,25 @@ function CanvasInner({
   const initial = buildGraph(board, actions);
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+
+  useEffect(() => {
+    boardRef.current = board;
+  }, [board]);
+
+  const applyDeleteMutation = useCallback(
+    (mutate: (current: Board) => Board) => {
+      const next = mutate(boardRef.current);
+      if (boardsEqual(boardRef.current, next)) return;
+      boardRef.current = next;
+      if (deleteEmitScheduledRef.current) return;
+      deleteEmitScheduledRef.current = true;
+      queueMicrotask(() => {
+        deleteEmitScheduledRef.current = false;
+        onChange(boardRef.current);
+      });
+    },
+    [onChange]
+  );
 
   useEffect(() => {
     const next = buildGraph(board, actions);
@@ -281,12 +314,13 @@ function CanvasInner({
           onNodesDelete={(deleted) => {
             const ids = deleteIdsFromNodes(deleted);
             if (ids.length === 0) return;
-            onChange(applyDelete(board, ids));
+            applyDeleteMutation((current) => applyDelete(current, ids));
           }}
           onEdgesDelete={(deleted) => {
             if (deleted.length === 0) return;
-            const next = deleted.reduce((current, edge) => removeEdge(current, edge.id), board);
-            onChange(next);
+            applyDeleteMutation((current) =>
+              deleted.reduce((currentBoard, edge) => removeEdge(currentBoard, edge.id), current)
+            );
           }}
           onConnect={(connection) => {
             if (!connection.source || !connection.target) return;
