@@ -6,13 +6,19 @@ export type FrameNodeData = {
   frame: BoardFrame;
   onRename: (id: string) => void;
   onDelete: (id: string) => void;
+  onResizeEnd?: (params: { x: number; y: number; width: number; height: number }) => void;
 };
 export type FrameFlowNode = Node<FrameNodeData, "frame">;
 
 export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
   return (
     <>
-      <NodeResizer isVisible={selected} minWidth={200} minHeight={120} />
+      <NodeResizer
+        isVisible={selected}
+        minWidth={200}
+        minHeight={120}
+        onResizeEnd={(_event, params) => data.onResizeEnd?.(params)}
+      />
       <div className="h-full w-full rounded-xl border border-dashed border-[var(--border)]">
         <button
           type="button"

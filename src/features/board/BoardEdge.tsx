@@ -37,7 +37,10 @@ export function BoardEdge({
           <button
             type="button"
             aria-label="delete-edge"
-            style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+              pointerEvents: "all",
+            }}
             className="nodrag nopan"
             onClick={() => data?.onRemove(id)}
           >

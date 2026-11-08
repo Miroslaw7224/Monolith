@@ -55,6 +55,8 @@ function buildGraph(
     onDelete: (id: string) => void;
     onRename: (id: string) => void;
     onRemoveEdge: (id: string) => void;
+    onResizeFrame: (id: string, params: ResizeParams) => void;
+    onResizeTile: (id: string, frameId: string | null, params: ResizeParams) => void;
   }
 ) {
   const frames = new Map(board.frames.map((frame) => [frame.id, frame]));
@@ -64,7 +66,12 @@ function buildGraph(
     position: { x: frame.x, y: frame.y },
     zIndex: -1,
     style: { width: frame.w, height: frame.h },
-    data: { frame, onRename: actions.onRename, onDelete: actions.onDelete },
+    data: {
+      frame,
+      onRename: actions.onRename,
+      onDelete: actions.onDelete,
+      onResizeEnd: (params: ResizeParams) => actions.onResizeFrame(frame.id, params),
+    },
   }));
   const tileNodes: TileFlowNode[] = board.tiles.map((tile) => {
     const frame = tile.frame ? frames.get(tile.frame) : undefined;
@@ -74,7 +81,11 @@ function buildGraph(
       parentId: frame ? frame.id : undefined,
       position: frame ? { x: tile.x - frame.x, y: tile.y - frame.y } : { x: tile.x, y: tile.y },
       style: { width: tile.w, height: tile.h },
-      data: { tile, onDelete: actions.onDelete },
+      data: {
+        tile,
+        onDelete: actions.onDelete,
+        onResizeEnd: (params: ResizeParams) => actions.onResizeTile(tile.id, tile.frame, params),
+      },
     };
   });
   const edges: BoardFlowEdge[] = board.edges.map((edge) => ({
@@ -91,6 +102,50 @@ function buildGraph(
 function absoluteOrigin(node: Node, frames: BoardFrame[]) {
   const frame = frames.find((item) => item.id === node.parentId);
   return frame ? { x: node.position.x + frame.x, y: node.position.y + frame.y } : node.position;
+}
+
+function deleteIdsFromNodes(deleted: Node[]): string[] {
+  const frameIds = new Set(deleted.filter((node) => node.type === "frame").map((node) => node.id));
+  return deleted
+    .filter((node) => {
+      if (node.type === "frame") return true;
+      if (node.type !== "tile") return false;
+      if (node.parentId && frameIds.has(node.parentId) && !node.selected) return false;
+      return true;
+    })
+    .map((node) => node.id);
+}
+
+type ResizeParams = { x: number; y: number; width: number; height: number };
+
+function persistDraggedNodes(board: Board, dragged: Node[]): Board | null {
+  let next = board;
+  let changed = false;
+  for (const node of dragged.filter((item) => item.type === "frame")) {
+    const width = node.measured?.width ?? Number(node.style?.width ?? 0);
+    const height = node.measured?.height ?? Number(node.style?.height ?? 0);
+    const placed = placeFrame(next, node.id, {
+      x: node.position.x,
+      y: node.position.y,
+      w: width,
+      h: height,
+    });
+    if (placed) {
+      next = placed;
+      changed = true;
+    }
+  }
+  for (const node of dragged.filter((item) => item.type === "tile")) {
+    const width = node.measured?.width ?? Number(node.style?.width ?? 0);
+    const height = node.measured?.height ?? Number(node.style?.height ?? 0);
+    const origin = absoluteOrigin(node, next.frames);
+    const placed = placeTile(next, node.id, { ...origin, w: width, h: height });
+    if (placed) {
+      next = placed;
+      changed = true;
+    }
+  }
+  return changed ? next : null;
 }
 
 function CanvasInner({
@@ -133,6 +188,23 @@ function CanvasInner({
       if (frame) setNaming({ id, title: frame.title });
     },
     onRemoveEdge: (id: string) => onChange(removeEdge(board, id)),
+    onResizeFrame: (id: string, params: ResizeParams) => {
+      const next = placeFrame(board, id, {
+        x: params.x,
+        y: params.y,
+        w: params.width,
+        h: params.height,
+      });
+      if (next) onChange(next);
+    },
+    onResizeTile: (id: string, frameId: string | null, params: ResizeParams) => {
+      const frame = frameId ? board.frames.find((item) => item.id === frameId) : undefined;
+      const origin = frame
+        ? { x: params.x + frame.x, y: params.y + frame.y }
+        : { x: params.x, y: params.y };
+      const next = placeTile(board, id, { ...origin, w: params.width, h: params.height });
+      if (next) onChange(next);
+    },
   };
   const initial = buildGraph(board, actions);
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
@@ -167,9 +239,7 @@ function CanvasInner({
 
   const onBeforeDelete: OnBeforeDelete = useCallback(
     async ({ nodes: deleted }) => {
-      const ids = deleted
-        .filter((node) => node.type === "tile" || node.type === "frame")
-        .map((node) => node.id);
+      const ids = deleteIdsFromNodes(deleted);
       if (ids.length === 0) return true;
       return confirmDelete(ids);
     },
@@ -208,14 +278,16 @@ function CanvasInner({
           defaultViewport={stored ?? { x: 0, y: 0, zoom: 0.75 }}
           onMoveEnd={(_event, viewport: BoardViewport) => storeViewport(userId, viewport)}
           onBeforeDelete={onBeforeDelete}
-          onNodesDelete={(deleted) =>
-            onChange(
-              applyDelete(
-                board,
-                deleted.map((node) => node.id)
-              )
-            )
-          }
+          onNodesDelete={(deleted) => {
+            const ids = deleteIdsFromNodes(deleted);
+            if (ids.length === 0) return;
+            onChange(applyDelete(board, ids));
+          }}
+          onEdgesDelete={(deleted) => {
+            if (deleted.length === 0) return;
+            const next = deleted.reduce((current, edge) => removeEdge(current, edge.id), board);
+            onChange(next);
+          }}
           onConnect={(connection) => {
             if (!connection.source || !connection.target) return;
             const next = connectTiles(board, connection.source, connection.target);
@@ -226,19 +298,8 @@ function CanvasInner({
             const next = reconnectEdge(board, edge.id, connection.source, connection.target);
             if (next) onChange(next);
           }}
-          onNodeDragStop={(_event, node) => {
-            const width = node.measured?.width ?? Number(node.style?.width ?? 0);
-            const height = node.measured?.height ?? Number(node.style?.height ?? 0);
-            const origin = absoluteOrigin(node, board.frames);
-            const next =
-              node.type === "tile"
-                ? placeTile(board, node.id, { ...origin, w: width, h: height })
-                : placeFrame(board, node.id, {
-                    x: node.position.x,
-                    y: node.position.y,
-                    w: width,
-                    h: height,
-                  });
+          onNodeDragStop={(_event, _node, dragged) => {
+            const next = persistDraggedNodes(board, dragged);
             if (next) onChange(next);
           }}
           onNodeDoubleClick={(_event, node) => {
