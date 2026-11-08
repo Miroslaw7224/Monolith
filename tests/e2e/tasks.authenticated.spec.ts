@@ -7,8 +7,8 @@ test.describe("Task Management", () => {
 
     // Navigate to Tasks tab
     await page.getByRole("button", { name: /^(Zadania|Tasks)$/ }).click();
-    // Wait for the inline task input to appear
-    await expect(page.getByPlaceholder(/nowe zadanie|new task/i)).toBeVisible({
+    // Wait for the title input to appear
+    await expect(page.getByPlaceholder(/nazwa zadania|task name/i)).toBeVisible({
       timeout: 15000,
     });
   });
@@ -16,11 +16,9 @@ test.describe("Task Management", () => {
   test("creates a new task and it appears in the list", async ({ page }) => {
     const taskTitle = `E2E Test Task ${Date.now()}`;
 
-    // Add task using the inline input + Dodaj/Add button
-    await page.getByPlaceholder(/nowe zadanie|new task/i).fill(taskTitle);
+    await page.getByPlaceholder(/nazwa zadania|task name/i).fill(taskTitle);
     await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
 
-    // Task should appear in the list
     await expect(page.getByText(taskTitle)).toBeVisible({ timeout: 10000 });
   });
 
@@ -28,21 +26,17 @@ test.describe("Task Management", () => {
     const originalTitle = `Edit Test ${Date.now()}`;
     const updatedTitle = `Updated ${Date.now()}`;
 
-    // Create a task first using inline input
-    await page.getByPlaceholder(/nowe zadanie|new task/i).fill(originalTitle);
+    await page.getByPlaceholder(/nazwa zadania|task name/i).fill(originalTitle);
     await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
     await expect(page.getByText(originalTitle)).toBeVisible({ timeout: 10000 });
 
-    // Double click opens detail modal
     await page.getByText(originalTitle).first().dblclick();
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
 
-    // Update title in the modal (.fill replaces existing value)
     const titleInput = page.getByRole("textbox", { name: /tytuł|title/i });
     await titleInput.fill(updatedTitle);
     await page.getByRole("button", { name: /^(Zapisz|Save)$/i }).click();
 
-    // Verify updated title appears in the task list (API save completes)
     await expect(page.locator("li", { hasText: updatedTitle })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(originalTitle)).toHaveCount(0, { timeout: 10000 });
   });
@@ -50,15 +44,40 @@ test.describe("Task Management", () => {
   test("deletes a task", async ({ page }) => {
     const taskTitle = `Delete Test ${Date.now()}`;
 
-    // Create a task first
-    await page.getByPlaceholder(/nowe zadanie|new task/i).fill(taskTitle);
+    await page.getByPlaceholder(/nazwa zadania|task name/i).fill(taskTitle);
     await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
     await expect(page.getByText(taskTitle)).toBeVisible({ timeout: 10000 });
 
-    // Click the delete button (aria-label="Usuń"/"Delete") on the task row
     const taskRow = page.locator("li", { hasText: taskTitle });
     await taskRow.getByLabel(/usuń|delete/i).click();
 
     await expect(page.getByText(taskTitle)).not.toBeVisible({ timeout: 10000 });
+  });
+
+  test("creates a template and uses it to add a task", async ({ page }) => {
+    const stamp = Date.now();
+    const templateLabel = `Tpl Review ${stamp}`;
+    const templateTitle = `Review PR ${stamp}`;
+    const taskLink = `https://example.com/pr/${stamp}`;
+
+    await page.getByRole("button", { name: /zarządzaj szablonami|manage templates/i }).click();
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+
+    await modal.getByPlaceholder(/nazwa szablonu|template name/i).fill(templateLabel);
+    await modal.getByPlaceholder(/domyślna nazwa|default task name/i).fill(templateTitle);
+    await modal.getByRole("button", { name: /dodaj szablon|add template/i }).click();
+    await expect(modal.getByText(templateLabel)).toBeVisible({ timeout: 10000 });
+
+    await page.keyboard.press("Escape");
+    await expect(modal).not.toBeVisible({ timeout: 5000 });
+
+    await page.locator("#new-task-template").selectOption({ label: templateLabel });
+    await expect(page.getByPlaceholder(/nazwa zadania|task name/i)).toHaveValue(templateTitle);
+
+    await page.getByPlaceholder(/https/i).fill(taskLink);
+    await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
+
+    await expect(page.getByText(templateTitle)).toBeVisible({ timeout: 10000 });
   });
 });

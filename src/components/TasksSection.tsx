@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Search } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Plus, Search, Settings2 } from "lucide-react";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { TaskTemplatesModal, type TaskTemplate } from "./TaskTemplatesModal";
 import { TaskColumn } from "./tasks/TaskColumn";
-import { matchTaskSearch, normalizeTaskFields, parseTaskInput } from "./tasks/taskInputUtils";
+import { matchTaskSearch, normalizeTaskFields } from "./tasks/taskInputUtils";
 import {
   computeTaskOrderAfterDrop,
   TASK_STATUSES,
@@ -34,7 +35,11 @@ interface TasksSectionProps {
 export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newTitle, setNewTitle] = useState("");
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskLink, setNewTaskLink] = useState("");
+  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -42,6 +47,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
+  const linkInputRef = useRef<HTMLInputElement>(null);
   const titleClickPendingRef = useRef<{
     taskId: string;
     timer: ReturnType<typeof setTimeout>;
@@ -53,6 +59,16 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US");
   };
+
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/task-templates");
+      const data = await res.json();
+      setTemplates(Array.isArray(data) ? data : []);
+    } catch {
+      setTemplates([]);
+    }
+  }, [apiFetch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +96,10 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
       cancelled = true;
     };
   }, [apiFetch]);
+
+  useEffect(() => {
+    void fetchTemplates();
+  }, [fetchTemplates]);
 
   useEffect(() => {
     return () => {
@@ -159,13 +179,14 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   };
 
   const addTask = async () => {
-    const { title, link, description } = parseTaskInput(newTitle);
+    const title = newTaskTitle.trim();
+    const link = newTaskLink.trim();
     if (!title) return;
     try {
       const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, link, description }),
+        body: JSON.stringify({ title, link, description: "" }),
       });
       const task = await res.json();
       const { link: normalizedLink, description: normalizedDescription } =
@@ -174,17 +195,40 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
         { ...task, link: normalizedLink, description: normalizedDescription },
         ...prev,
       ]);
-      setNewTitle("");
+      setNewTaskTitle("");
+      setNewTaskLink("");
+      setSelectedTemplateId("");
     } catch (err) {
       console.error("Add task failed", err);
     }
   };
 
-  const handleNewTaskKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void addTask();
+  const applyTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    const tpl = templates.find((x) => x.id === templateId);
+    if (!tpl) return;
+    setNewTaskTitle(tpl.title);
+    setNewTaskLink(tpl.link ?? "");
+    if (!(tpl.link ?? "").trim()) {
+      requestAnimationFrame(() => linkInputRef.current?.focus());
     }
+  };
+
+  const handleNewTaskTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (newTaskLink.trim()) {
+      void addTask();
+    } else {
+      linkInputRef.current?.focus();
+    }
+  };
+
+  const handleNewTaskLinkKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    void addTask();
   };
 
   const updateTitle = async (id: string) => {
@@ -299,7 +343,13 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   };
 
   const labels = {
-    addPlaceholder: (t.tasksNewPlaceholder as string) ?? "New task...",
+    titlePlaceholder: (t.tasksNewTitlePlaceholder as string) ?? "Task name…",
+    titleField: (t.tasksDetailTitleFieldLabel as string) ?? "Title",
+    linkLabel: (t.tasksDetailLinkLabel as string) ?? "Link",
+    linkPlaceholder: (t.tasksDetailLinkPlaceholder as string) ?? "https://…",
+    templateLabel: (t.tasksTemplateLabel as string) ?? "Template",
+    templateNone: (t.tasksTemplateNone as string) ?? "No template",
+    manageTemplates: (t.tasksManageTemplates as string) ?? "Manage templates",
     todo: (t.tasksTodo as string) ?? "To do",
     inProgress: (t.tasksInProgress as string) ?? "In progress",
     toReview: (t.tasksToReview as string) ?? "To review",
@@ -329,24 +379,83 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
       <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="max-w-2xl flex gap-2 items-start">
-          <textarea
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={handleNewTaskKeyDown}
-            placeholder={labels.addPlaceholder}
-            rows={2}
-            className="flex-1 px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] resize-y min-h-[3.25rem]"
-          />
+        <div className="max-w-3xl flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+            <div className="sm:w-44 flex-shrink-0">
+              <label
+                htmlFor="new-task-template"
+                className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
+              >
+                {labels.templateLabel}
+              </label>
+              <select
+                id="new-task-template"
+                value={selectedTemplateId}
+                onChange={(e) => applyTemplate(e.target.value)}
+                className="w-full px-3 py-3 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
+              >
+                <option value="">{labels.templateNone}</option>
+                {templates.map((tpl) => (
+                  <option key={tpl.id} value={tpl.id}>
+                    {tpl.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-0">
+              <label
+                htmlFor="new-task-title"
+                className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
+              >
+                {labels.titleField}
+              </label>
+              <input
+                id="new-task-title"
+                type="text"
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onKeyDown={handleNewTaskTitleKeyDown}
+                placeholder={labels.titlePlaceholder}
+                className="w-full px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] outline-none"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <label
+                htmlFor="new-task-link"
+                className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
+              >
+                {labels.linkLabel}
+              </label>
+              <input
+                id="new-task-link"
+                ref={linkInputRef}
+                type="url"
+                value={newTaskLink}
+                onChange={(e) => setNewTaskLink(e.target.value)}
+                onKeyDown={handleNewTaskLinkKeyDown}
+                placeholder={labels.linkPlaceholder}
+                className="w-full px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => void addTask()}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--accent)] text-white rounded-xl text-base font-semibold flex-shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              {(t.tasksAdd as string) ?? "Add"}
+            </button>
+          </div>
           <button
-            onClick={addTask}
-            className="flex items-center gap-2 px-4 py-3 bg-[var(--accent)] text-white rounded-xl text-base font-semibold"
+            type="button"
+            onClick={() => setTemplatesModalOpen(true)}
+            className="self-start flex items-center gap-2 text-sm text-[var(--text2)] hover:text-[var(--accent)] transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            {(t.tasksAdd as string) ?? "Add"}
+            <Settings2 className="w-4 h-4" />
+            {labels.manageTemplates}
           </button>
         </div>
-        <div className="max-w-2xl mt-3 relative">
+        <div className="max-w-3xl mt-3 relative">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text3)] pointer-events-none"
             aria-hidden
@@ -419,6 +528,13 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
         t={t}
         onClose={() => setDetailTaskId(null)}
         onSave={saveTaskDetail}
+      />
+      <TaskTemplatesModal
+        isOpen={templatesModalOpen}
+        onClose={() => setTemplatesModalOpen(false)}
+        apiFetch={apiFetch}
+        t={t}
+        onTemplatesChange={() => void fetchTemplates()}
       />
     </div>
   );

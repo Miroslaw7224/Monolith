@@ -13,7 +13,7 @@ test.describe("Dashboard (zalogowany)", () => {
     });
 
     await page.getByRole("button", { name: /^(Zadania|Tasks)$/ }).click();
-    await expect(page.getByPlaceholder(/nowe zadanie|new task/i)).toBeVisible({
+    await expect(page.getByPlaceholder(/nazwa zadania|task name/i)).toBeVisible({
       timeout: 15000,
     });
 
