@@ -29,3 +29,6 @@ blob-report/
 
 # Claude Code
 .superpowers/
+
+# Local git worktrees
+.worktrees/
