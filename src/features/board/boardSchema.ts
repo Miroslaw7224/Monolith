@@ -59,7 +59,9 @@ export const BoardBodySchema = z
 export function parseBoard(input: unknown): Board {
   const result = BoardBodySchema.safeParse(input);
   if (!result.success) {
-    const tooSmall = result.error.issues.find((issue) => issue.code === "too_small");
+    const tooSmall = result.error.issues.find(
+      (issue) => issue.code === "too_small" && issue.origin === "number"
+    );
     const message = tooSmall
       ? "Tile or frame is too small"
       : (result.error.issues[0]?.message ?? "Invalid board");

@@ -26,6 +26,13 @@ describe("parseBoard", () => {
     expect(() => parseBoard({ tiles: [{ ...tile, w: 159 }], frames: [], edges: [] })).toThrow(
       /too small|160/
     );
+    const emptyIdBoard = () => parseBoard({ tiles: [{ ...tile, id: "" }], frames: [], edges: [] });
+    expect(emptyIdBoard).toThrow(DomainError);
+    try {
+      emptyIdBoard();
+    } catch (e) {
+      expect((e as DomainError).message).not.toMatch(/too small/);
+    }
     expect(() =>
       parseBoard({
         tiles: [tile],
@@ -46,12 +53,17 @@ describe("parseBoard", () => {
   });
 
   it("rejects a blank frame title", () => {
-    expect(() =>
+    const blankFrameTitle = () =>
       parseBoard({
         tiles: [],
         frames: [{ id: "f", title: "   ", x: 0, y: 0, w: 200, h: 120 }],
         edges: [],
-      })
-    ).toThrow(DomainError);
+      });
+    expect(blankFrameTitle).toThrow(DomainError);
+    try {
+      blankFrameTitle();
+    } catch (e) {
+      expect((e as DomainError).message).not.toMatch(/too small/);
+    }
   });
 });
