@@ -74,6 +74,10 @@ export function mindMapsCol(userId: string) {
   return db().collection(COLLECTION_USERS).doc(String(userId)).collection("mindMaps");
 }
 
+export function boardDoc(userId: string) {
+  return db().collection(COLLECTION_USERS).doc(String(userId)).collection("board").doc("main");
+}
+
 export function resourcesCol(userId: string, noteId: string) {
   return notesCol(userId).doc(noteId).collection("resources");
 }
