@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Board } from "@/src/features/board/boardTypes";
 import { BoardList } from "@/src/features/board/BoardList";
@@ -16,6 +16,8 @@ const board: Board = {
   ],
   edges: [],
 };
+
+afterEach(() => cleanup());
 
 describe("BoardList", () => {
   it("groups tiles under frames and hides the loose section when it is empty", () => {
