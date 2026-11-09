@@ -9,11 +9,14 @@ import {
   Maximize2,
   Minimize2,
   Plus,
+  Redo2,
   RotateCcw,
+  Search,
   Sparkles,
   Trash2,
-  MoreHorizontal,
-  GripVertical,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
   Loader2,
   ArrowLeft,
 } from "lucide-react";
@@ -25,12 +28,16 @@ import {
   deleteNodeKeepChildren,
   findNode,
   insertNodeAbove,
+  insertSiblingAfter,
   leafCount,
   mapAllNodes,
   mapNode,
   moveNodeUnder,
+  moveSibling,
   removeNode,
 } from "@/src/lib/mindMapUtils";
+import { findLabelMatches, revealMatches } from "@/src/features/mind-maps/mindMapNav";
+import { useMindMapDocument } from "@/src/features/mind-maps/useMindMapDocument";
 import { NoteEditor } from "@/src/components/NoteEditor";
 import { MindMapTree } from "@/src/features/mind-maps/MindMapTree";
 import type { translations } from "@/src/translations";
@@ -38,15 +45,28 @@ import type { translations } from "@/src/translations";
 type AINodeResult = { label: string; description: string };
 type T = (typeof translations)["en"];
 
-const ROW_H = 38;
-const GAP_H = 8;
-const CONN = 24;
 const DEFAULT_NOTES_PANEL_H = 224; // tailwind h-56 (~14rem) -> 224px
 const MIN_NOTES_PANEL_H = 120;
 const MAX_NOTES_PANEL_H = 520;
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
+}
+
+function zoomAt(
+  current: { scale: number; x: number; y: number },
+  factor: number,
+  clientX: number,
+  clientY: number,
+  viewport: HTMLElement
+) {
+  const scale = clamp(current.scale * factor, 0.25, 2.5);
+  const rect = viewport.getBoundingClientRect();
+  const originX = clientX - rect.left;
+  const originY = clientY - rect.top;
+  const contentX = (originX - current.x) / current.scale;
+  const contentY = (originY - current.y) / current.scale;
+  return { scale, x: originX - contentX * scale, y: originY - contentY * scale };
 }
 
 function isNonEmptyString(v: unknown): v is string {
@@ -240,7 +260,9 @@ export function MindMapsTab({
           <MindMapEditor
             apiFetch={apiFetch}
             map={selectedMap}
-            onChanged={setSelectedMap}
+            onChanged={(next) => {
+              setSelectedMap((current) => (current?.id === next.id ? next : current));
+            }}
             onRefreshList={refreshList}
             t={t}
           />
@@ -374,8 +396,20 @@ function MindMapEditor({
   onRefreshList: () => Promise<void>;
   t: T;
 }) {
-  const [rootNode, setRootNode] = useState<MindMapNode>(map.rootNode);
-  const [colWidths, setColWidths] = useState<Record<number, number>>(map.colWidths ?? {});
+  const doc = useMindMapDocument({ map, apiFetch, onChanged, onRefreshList });
+  const {
+    rootNode,
+    colWidths,
+    undo,
+    redo,
+    previewColWidth,
+    commitColWidths,
+    savePhase,
+    lastSavedAt,
+    canUndo,
+    canRedo,
+    retrySave,
+  } = doc;
 
   const [selId, setSelId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -389,22 +423,29 @@ function MindMapEditor({
   const [isAiImportOpen, setIsAiImportOpen] = useState(false);
   const [exportToMapNodeId, setExportToMapNodeId] = useState<string | null>(null);
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [matchCursor, setMatchCursor] = useState(0);
+  const [view, setView] = useState({ scale: 1, x: 24, y: 24 });
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
 
   const [notesPanelH, setNotesPanelH] = useState<number>(DEFAULT_NOTES_PANEL_H);
   const notesResizingRef = useRef<null | { startY: number; startH: number }>(null);
-
   const resizingRef = useRef<null | { depth: number; startX: number; startW: number }>(null);
-  const saveTimerRef = useRef<number | null>(null);
-  const unmountedRef = useRef(false);
 
   const selectedNode = useMemo(() => (selId ? findNode(rootNode, selId) : null), [rootNode, selId]);
+  const matches = useMemo(() => findLabelMatches(rootNode, query), [rootNode, query]);
+  const activeMatchId = matches.length > 0 ? matches[matchCursor % matches.length] : null;
+  const highlightedIds = useMemo(() => new Set(matches), [matches]);
+  const displayRoot = useMemo(
+    () => (query.trim() ? revealMatches(rootNode, highlightedIds) : rootNode),
+    [highlightedIds, query, rootNode]
+  );
 
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-    setRootNode(map.rootNode);
-    setColWidths(map.colWidths ?? {});
     setSelId(null);
     setEditId(null);
     setCtxId(null);
@@ -415,6 +456,9 @@ function MindMapEditor({
     setAiImportParentId(null);
     setIsAiImportOpen(false);
     setExportToMapNodeId(null);
+    setQuery("");
+    setMatchCursor(0);
+    setView({ scale: 1, x: 24, y: 24 });
     // Important: only reset editor-local UI when switching to a different map.
     // Autosave updates `map.rootNode` / `map.colWidths` via `onChanged`, and resetting
     // local selection/edit state on every autosave makes the "preview" / UI disappear.
@@ -422,12 +466,72 @@ function MindMapEditor({
   /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
-    unmountedRef.current = false;
-    return () => {
-      unmountedRef.current = true;
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest("input, textarea, [contenteditable='true']")
+      ) {
+        return;
+      }
+      const meta = event.metaKey || event.ctrlKey;
+      if (!meta) return;
+      if (event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        undo();
+      } else if (event.key.toLowerCase() === "z" || event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redo();
+      }
     };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      if (event.ctrlKey || event.metaKey) {
+        const factor = event.deltaY < 0 ? 1.1 : 0.9;
+        setView((current) => zoomAt(current, factor, event.clientX, event.clientY, viewport));
+        return;
+      }
+      setView((current) => ({
+        ...current,
+        x: current.x - event.deltaX,
+        y: current.y - event.deltaY,
+      }));
+    };
+    viewport.addEventListener("wheel", onWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", onWheel);
   }, []);
+
+  useEffect(() => {
+    if (!selId) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const el = viewport.querySelector(`[data-mindmap-node="${CSS.escape(selId)}"]`);
+    if (!(el instanceof HTMLElement)) return;
+    const frame = viewport.getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    const margin = 32;
+    const outside =
+      box.left < frame.left + margin ||
+      box.right > frame.right - margin ||
+      box.top < frame.top + margin ||
+      box.bottom > frame.bottom - margin;
+    if (!outside) return;
+    const dx = frame.left + frame.width / 2 - (box.left + box.width / 2);
+    const dy = frame.top + frame.height / 2 - (box.top + box.height / 2);
+    setView((current) => ({ ...current, x: current.x + dx, y: current.y + dy }));
+  }, [selId, activeMatchId]);
+
+  useEffect(() => {
+    if (!query.trim() || !activeMatchId) return;
+    setSelId(activeMatchId);
+  }, [activeMatchId, query]);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -466,54 +570,6 @@ function MindMapEditor({
     [colWidths]
   );
 
-  const scheduleSave = useCallback(
-    (nextRoot: MindMapNode, nextColWidths: Record<number, number>) => {
-      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = window.setTimeout(async () => {
-        setIsSaving(true);
-        try {
-          const res = await apiFetch(`/api/mind-maps/${map.id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rootNode: nextRoot,
-              colWidths: nextColWidths,
-              title: nextRoot.label,
-            }),
-          });
-          if (!res.ok) return;
-          setLastSavedAt(Date.now());
-          onChanged({
-            ...map,
-            rootNode: nextRoot,
-            colWidths: nextColWidths,
-            title: nextRoot.label,
-          });
-          await onRefreshList();
-        } finally {
-          if (!unmountedRef.current) setIsSaving(false);
-        }
-      }, 1500);
-    },
-    [apiFetch, map, onChanged, onRefreshList]
-  );
-
-  const applyTree = useCallback(
-    (nextRoot: MindMapNode) => {
-      setRootNode(nextRoot);
-      scheduleSave(nextRoot, colWidths);
-    },
-    [colWidths, scheduleSave]
-  );
-
-  const applyColWidths = useCallback(
-    (next: Record<number, number>) => {
-      setColWidths(next);
-      scheduleSave(rootNode, next);
-    },
-    [rootNode, scheduleSave]
-  );
-
   useEffect(() => {
     function onDocClick() {
       if (ctxId) setCtxId(null);
@@ -528,14 +584,14 @@ function MindMapEditor({
       if (!r) return;
       const dx = e.clientX - r.startX;
       const nextW = clamp(r.startW + dx, MIN_COL_W, MAX_COL_W);
-      setColWidths((prev) => ({ ...prev, [r.depth]: nextW }));
+      previewColWidth(r.depth, nextW);
     }
     function onUp() {
       if (!resizingRef.current) return;
       resizingRef.current = null;
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      applyColWidths({ ...colWidths });
+      commitColWidths();
     }
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
@@ -543,7 +599,7 @@ function MindMapEditor({
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
-  }, [applyColWidths, colWidths]);
+  }, [previewColWidth, commitColWidths]);
 
   const startResize = useCallback(
     (e: React.MouseEvent, depth: number) => {
@@ -557,74 +613,125 @@ function MindMapEditor({
   );
 
   const resetWidths = useCallback(() => {
-    applyColWidths({});
-  }, [applyColWidths]);
+    doc.applyColWidths({});
+  }, [doc]);
 
   const collapseAll = useCallback(() => {
-    const next = mapAllNodes(rootNode, (n) =>
-      n.id === "root" ? n : { ...n, collapsed: n.children.length > 0 }
+    doc.updateTree(
+      (root) =>
+        mapAllNodes(root, (n) =>
+          n.id === "root" ? n : { ...n, collapsed: n.children.length > 0 }
+        ),
+      { kind: "view" }
     );
-    applyTree(next);
-  }, [applyTree, rootNode]);
+  }, [doc]);
 
   const expandAll = useCallback(() => {
-    const next = mapAllNodes(rootNode, (n) => ({ ...n, collapsed: false }));
-    applyTree(next);
-  }, [applyTree, rootNode]);
+    doc.updateTree((root) => mapAllNodes(root, (n) => ({ ...n, collapsed: false })), {
+      kind: "view",
+    });
+  }, [doc]);
 
   const toggleCollapsed = useCallback(
     (id: string) => {
-      const next = mapNode(rootNode, id, (n) => ({ ...n, collapsed: !n.collapsed }));
-      applyTree(next);
+      doc.updateTree((root) => mapNode(root, id, (n) => ({ ...n, collapsed: !n.collapsed })), {
+        kind: "view",
+      });
     },
-    [applyTree, rootNode]
+    [doc]
   );
 
   const commitLabel = useCallback(
     (id: string, nextLabel: string) => {
       const trimmed = nextLabel.trim();
-      if (!trimmed) return;
-      const next = mapNode(rootNode, id, (n) => ({ ...n, label: trimmed }));
       setEditId(null);
-      applyTree(next);
+      if (!trimmed) return;
+      doc.updateTree(
+        (root) => {
+          const current = findNode(root, id);
+          if (!current || current.label === trimmed) return root;
+          return mapNode(root, id, (n) => ({ ...n, label: trimmed }));
+        },
+        { kind: "structure" }
+      );
     },
-    [applyTree, rootNode]
+    [doc]
   );
 
   const addChild = useCallback(
     (parentId: string) => {
       const nid = nanoid();
-      const next = mapNode(rootNode, parentId, (n) => ({
-        ...n,
-        collapsed: false,
-        children: [
-          ...n.children,
-          { id: nid, label: "Nowy węzeł", note: "", collapsed: false, children: [] },
-        ],
-      }));
+      doc.updateTree(
+        (root) =>
+          mapNode(root, parentId, (n) => ({
+            ...n,
+            collapsed: false,
+            children: [
+              ...n.children,
+              {
+                id: nid,
+                label: t.mindMapsNewNode as string,
+                note: "",
+                collapsed: false,
+                children: [],
+              },
+            ],
+          })),
+        { kind: "structure" }
+      );
       setSelId(nid);
       setEditId(nid);
-      applyTree(next);
     },
-    [applyTree, rootNode]
+    [doc, t]
+  );
+
+  const addSibling = useCallback(
+    (siblingId: string) => {
+      if (siblingId === "root") return;
+      const nid = nanoid();
+      doc.updateTree(
+        (root) =>
+          insertSiblingAfter(root, siblingId, {
+            id: nid,
+            label: t.mindMapsNewNode as string,
+            note: "",
+            collapsed: false,
+            children: [],
+          }),
+        { kind: "structure" }
+      );
+      setSelId(nid);
+      setEditId(nid);
+    },
+    [doc, t]
+  );
+
+  const reorderSibling = useCallback(
+    (id: string, delta: -1 | 1) => {
+      doc.updateTree((root) => moveSibling(root, id, delta), { kind: "structure" });
+    },
+    [doc]
   );
 
   const insertAbove = useCallback(
     (childId: string) => {
       const nid = nanoid();
-      const next = insertNodeAbove(rootNode, childId, {
-        id: nid,
-        label: "Nowa kategoria",
-        note: "",
-        collapsed: false,
-        children: [],
-      });
+      doc.updateTree(
+        (root) =>
+          insertNodeAbove(root, childId, {
+            id: nid,
+            label: t.mindMapsNewCategory as string,
+            note: "",
+            collapsed: false,
+            children: [],
+          }),
+        { kind: "structure" }
+      );
       setCtxId(null);
       setSelId(nid);
       setEditId(nid);
-      applyTree(next);
     },
-    [applyTree, rootNode]
+    [doc, t]
   );
 
   const requestDelete = useCallback(
@@ -638,12 +745,14 @@ function MindMapEditor({
 
   const confirmDelete = useCallback(
     (id: string, keepChildren: boolean) => {
-      const next = keepChildren ? deleteNodeKeepChildren(rootNode, id) : removeNode(rootNode, id);
       if (selId === id) setSelId(null);
       setDeleteNodeId(null);
-      applyTree(next);
+      doc.updateTree(
+        (root) => (keepChildren ? deleteNodeKeepChildren(root, id) : removeNode(root, id)),
+        { kind: "structure" }
+      );
     },
-    [applyTree, rootNode, selId]
+    [doc, selId]
   );
 
   const onDragStart = useCallback((id: string) => {
@@ -661,16 +770,19 @@ function MindMapEditor({
   const onDrop = useCallback(
     (targetId: string) => {
       if (dragId && targetId && dragId !== targetId) {
-        const next = moveNodeUnder(rootNode, dragId, targetId);
-        if (next !== rootNode) {
-          const expanded = mapNode(next, targetId, (n) => ({ ...n, collapsed: false }));
-          applyTree(expanded);
-        }
+        doc.updateTree(
+          (root) => {
+            const next = moveNodeUnder(root, dragId, targetId);
+            if (next === root) return root;
+            return mapNode(next, targetId, (n) => ({ ...n, collapsed: false }));
+          },
+          { kind: "structure" }
+        );
       }
       setDragId(null);
       setDropId(null);
     },
-    [applyTree, dragId, rootNode]
+    [doc, dragId]
   );
 
   const onDragEnd = useCallback(() => {
@@ -686,25 +798,28 @@ function MindMapEditor({
   const acceptAI = useCallback(
     (parentId: string, result: AINodeResult) => {
       const nid = nanoid();
-      const next = mapNode(rootNode, parentId, (n) => ({
-        ...n,
-        collapsed: false,
-        children: [
-          ...n.children,
-          {
-            id: nid,
-            label: result.label,
-            note: result.description,
+      doc.updateTree(
+        (root) =>
+          mapNode(root, parentId, (n) => ({
+            ...n,
             collapsed: false,
-            children: [],
-          },
-        ],
-      }));
+            children: [
+              ...n.children,
+              {
+                id: nid,
+                label: result.label,
+                note: result.description,
+                collapsed: false,
+                children: [],
+              },
+            ],
+          })),
+        { kind: "structure" }
+      );
       setAiParentId(null);
       setSelId(nid);
-      applyTree(next);
     },
-    [applyTree, rootNode]
+    [doc]
   );
 
   const cloneWithNewNodeIds = useCallback((node: MindMapNode): MindMapNode => {
@@ -729,11 +844,15 @@ function MindMapEditor({
       const clonedChildren = importedChildren.map((c) => cloneWithNewNodeIds(c));
       if (clonedChildren.length === 0) return;
 
-      const next = mapNode(rootNode, parentId, (n) => ({
-        ...n,
-        collapsed: false,
-        children: [...n.children, ...clonedChildren],
-      }));
+      doc.updateTree(
+        (root) =>
+          mapNode(root, parentId, (n) => ({
+            ...n,
+            collapsed: false,
+            children: [...n.children, ...clonedChildren],
+          })),
+        { kind: "structure" }
+      );
 
       setAiImportParentId(null);
       setIsAiImportOpen(false);
@@ -744,28 +863,24 @@ function MindMapEditor({
 
       setSelId(clonedChildren[0].id);
       setEditId(clonedChildren[0].id);
-      applyTree(next);
     },
-    [
-      applyTree,
-      cloneWithNewNodeIds,
-      rootNode,
-      setAiImportParentId,
-      setIsAiImportOpen,
-      setAiParentId,
-      setCtxId,
-      setDragId,
-      setDropId,
-    ]
+    [cloneWithNewNodeIds, doc]
   );
 
   const updateSelectedNote = useCallback(
     (html: string) => {
       if (!selId) return;
-      const next = mapNode(rootNode, selId, (n) => ({ ...n, note: html }));
-      applyTree(next);
+      const nodeId = selId;
+      doc.updateTree(
+        (root) => {
+          const current = findNode(root, nodeId);
+          if (!current || current.note === html) return root;
+          return mapNode(root, nodeId, (n) => ({ ...n, note: html }));
+        },
+        { kind: "note", nodeId, at: Date.now() }
+      );
     },
-    [applyTree, rootNode, selId]
+    [doc, selId]
   );
 
   return (
@@ -827,14 +942,175 @@ function MindMapEditor({
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto p-6">
-          <p className="text-xs text-[var(--text3)] mb-3 max-w-2xl">
+        <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--surface)] flex items-center gap-2 flex-wrap">
+          <label className="relative flex-1 min-w-40 max-w-xs">
+            <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text3)]" />
+            <input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setMatchCursor(0);
+              }}
+              placeholder={t.mindMapsSearchPlaceholder as string}
+              className="w-full h-9 pl-8 pr-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text)] outline-none"
+            />
+          </label>
+          <span className="text-xs text-[var(--text3)] min-w-16">
+            {query.trim()
+              ? matches.length
+                ? `${(matchCursor % matches.length) + 1}/${matches.length}`
+                : (t.mindMapsSearchNone as string)
+              : ""}
+          </span>
+          <button
+            type="button"
+            className="h-9 px-2 rounded-lg border border-[var(--border)] text-sm"
+            onClick={() =>
+              setMatchCursor((cursor) => (matches.length ? cursor - 1 + matches.length : 0))
+            }
+            disabled={matches.length === 0}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            className="h-9 px-2 rounded-lg border border-[var(--border)] text-sm"
+            onClick={() => setMatchCursor((cursor) => (matches.length ? cursor + 1 : 0))}
+            disabled={matches.length === 0}
+          >
+            ↓
+          </button>
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              title={t.mindMapsUndo as string}
+              disabled={!canUndo}
+              onClick={undo}
+              className="h-9 w-9 rounded-lg border border-[var(--border)] inline-flex items-center justify-center disabled:opacity-40"
+            >
+              <Undo2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              title={t.mindMapsRedo as string}
+              disabled={!canRedo}
+              onClick={redo}
+              className="h-9 w-9 rounded-lg border border-[var(--border)] inline-flex items-center justify-center disabled:opacity-40"
+            >
+              <Redo2 className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              title={t.mindMapsZoomOut as string}
+              onClick={() => {
+                const viewport = viewportRef.current;
+                setView((current) =>
+                  viewport
+                    ? zoomAt(
+                        current,
+                        1 / 1.1,
+                        viewport.getBoundingClientRect().left + viewport.clientWidth / 2,
+                        viewport.getBoundingClientRect().top + viewport.clientHeight / 2,
+                        viewport
+                      )
+                    : { ...current, scale: clamp(current.scale / 1.1, 0.25, 2.5) }
+                );
+              }}
+              className="h-9 w-9 rounded-lg border border-[var(--border)] inline-flex items-center justify-center"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <span className="text-xs w-12 text-center text-[var(--text2)]">
+              {Math.round(view.scale * 100)}%
+            </span>
+            <button
+              type="button"
+              title={t.mindMapsZoomIn as string}
+              onClick={() => {
+                const viewport = viewportRef.current;
+                setView((current) =>
+                  viewport
+                    ? zoomAt(
+                        current,
+                        1.1,
+                        viewport.getBoundingClientRect().left + viewport.clientWidth / 2,
+                        viewport.getBoundingClientRect().top + viewport.clientHeight / 2,
+                        viewport
+                      )
+                    : { ...current, scale: clamp(current.scale * 1.1, 0.25, 2.5) }
+                );
+              }}
+              className="h-9 w-9 rounded-lg border border-[var(--border)] inline-flex items-center justify-center"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              title={t.mindMapsFit as string}
+              onClick={() => {
+                const viewport = viewportRef.current;
+                const content = contentRef.current;
+                if (!viewport || !content) return;
+                const pad = 32;
+                const scale = clamp(
+                  Math.min(
+                    (viewport.clientWidth - pad) / Math.max(content.offsetWidth, 1),
+                    (viewport.clientHeight - pad) / Math.max(content.offsetHeight, 1)
+                  ),
+                  0.25,
+                  2.5
+                );
+                setView({
+                  scale,
+                  x: (viewport.clientWidth - content.offsetWidth * scale) / 2,
+                  y: (viewport.clientHeight - content.offsetHeight * scale) / 2,
+                });
+              }}
+              className="h-9 px-3 rounded-lg border border-[var(--border)] text-sm font-semibold"
+            >
+              {t.mindMapsFit as string}
+            </button>
+          </div>
+        </div>
+        <div
+          ref={viewportRef}
+          className="flex-1 min-h-0 overflow-hidden relative cursor-grab"
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            const target = event.target;
+            if (target instanceof HTMLElement && target.closest("[data-mindmap-node]")) return;
+            const startX = event.clientX;
+            const startY = event.clientY;
+            const origin = viewRef.current;
+            const onMove = (move: PointerEvent) => {
+              setView({
+                ...origin,
+                x: origin.x + move.clientX - startX,
+                y: origin.y + move.clientY - startY,
+              });
+            };
+            const onUp = () => {
+              window.removeEventListener("pointermove", onMove);
+              window.removeEventListener("pointerup", onUp);
+            };
+            window.addEventListener("pointermove", onMove);
+            window.addEventListener("pointerup", onUp);
+          }}
+        >
+          <p className="absolute left-4 top-3 z-10 text-xs text-[var(--text3)] max-w-md pointer-events-none">
             {t.mindMapsDragReparentHint as string}
           </p>
-          <div className="inline-flex min-w-max items-center">
+          <div
+            ref={contentRef}
+            className="inline-flex min-w-max items-center"
+            style={{
+              transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+              transformOrigin: "0 0",
+            }}
+          >
             <MindMapTree
               mode="edit"
-              rootNode={rootNode}
+              rootNode={displayRoot}
               getColW={getColW}
               startResize={startResize}
               t={t}
@@ -843,6 +1119,8 @@ function MindMapEditor({
               ctxId={ctxId}
               dragId={dragId}
               dropId={dropId}
+              highlightedIds={highlightedIds}
+              activeMatchId={activeMatchId}
               onSelect={(id) => {
                 setCtxId(null);
                 setSelId(id);
@@ -850,11 +1128,13 @@ function MindMapEditor({
               onToggleCollapsed={toggleCollapsed}
               onStartEdit={(id) => {
                 setCtxId(null);
-                setEditId(id);
+                setEditId(id || null);
               }}
               onCommitLabel={commitLabel}
               onToggleCtx={(id) => setCtxId((prev) => (prev === id ? null : id))}
               onAddChild={addChild}
+              onAddSibling={addSibling}
+              onReorderSibling={reorderSibling}
               onAddChildAIImport={(parentId) => {
                 setAiImportParentId(parentId);
                 setIsAiImportOpen(true);
@@ -877,7 +1157,7 @@ function MindMapEditor({
 
         <div
           style={{ height: notesPanelH }}
-          className="border-t border-[var(--border)] bg-[var(--surface)] flex overflow-hidden relative"
+          className="border-t border-[var(--border)] bg-[var(--surface)] flex flex-col sm:flex-row overflow-hidden relative"
         >
           <div
             role="separator"
@@ -905,55 +1185,25 @@ function MindMapEditor({
               setNotesPanelH(nextH);
             }}
           />
-          <div className="w-60 flex-shrink-0 border-r border-[var(--border)] p-4 min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="w-full sm:w-60 sm:flex-shrink-0 border-b sm:border-b-0 sm:border-r border-[var(--border)] p-4 min-h-0 max-h-28 sm:max-h-none overflow-y-auto overflow-x-hidden">
             {!selectedNode ? (
               <div className="h-full flex items-center justify-center text-sm text-[var(--text3)] font-semibold text-center">
                 {t.mindMapsClickNodeHint as string}
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
-                    {t.mindMapsSelectedNode as string}
-                  </div>
-                  <div className="font-bold truncate">{selectedNode.label}</div>
-                  <div className="text-xs text-[var(--text3)]">
-                    {(t.mindMapsItemsCount as string).replace(
-                      "{n}",
-                      String(selectedNode.children.length)
-                    )}
-                  </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
+                  {t.mindMapsSelectedNode as string}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => addChild(selectedNode.id)}
-                  className="px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-[var(--text)] text-sm font-semibold hover:bg-[var(--bg3)] inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  {t.mindMapsAddChild as string}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAiImportParentId(selectedNode.id);
-                    setIsAiImportOpen(true);
-                    setCtxId(null);
-                  }}
-                  className="px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-[var(--text)] text-sm font-semibold hover:bg-[var(--bg3)] inline-flex items-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4 text-sky-700" />
-                  {t.mindMapsAIImportTreeAdd as string}
-                </button>
-                {selectedNode.id !== "root" && (
-                  <button
-                    type="button"
-                    onClick={() => insertAbove(selectedNode.id)}
-                    className="px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-[var(--text)] text-sm font-semibold hover:bg-[var(--bg3)] inline-flex items-center gap-2"
-                  >
-                    <ChevronRight className="w-4 h-4 rotate-180" />
-                    {t.mindMapsInsertAbove as string}
-                  </button>
-                )}
+                <div className="font-bold whitespace-normal break-words" title={selectedNode.label}>
+                  {selectedNode.label}
+                </div>
+                <div className="text-xs text-[var(--text3)]">
+                  {(t.mindMapsItemsCount as string).replace(
+                    "{n}",
+                    String(selectedNode.children.length)
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -982,14 +1232,34 @@ function MindMapEditor({
 
       <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center gap-3 text-xs text-[var(--text3)]">
         <div className="inline-flex items-center gap-2">
-          {isSaving ? (
+          {savePhase === "saving" ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <div
+              className={[
+                "w-2 h-2 rounded-full",
+                savePhase === "error"
+                  ? "bg-red-500"
+                  : savePhase === "pending"
+                    ? "bg-amber-500"
+                    : "bg-emerald-500",
+              ].join(" ")}
+            />
           )}
           <span className="font-semibold">
-            {isSaving ? (t.mindMapsSaving as string) : (t.mindMapsSaved as string)}
+            {savePhase === "saving"
+              ? (t.mindMapsSaving as string)
+              : savePhase === "pending"
+                ? (t.mindMapsUnsaved as string)
+                : savePhase === "error"
+                  ? (t.mindMapsSaveError as string)
+                  : (t.mindMapsSaved as string)}
           </span>
+          {savePhase === "error" ? (
+            <button type="button" className="underline font-semibold" onClick={retrySave}>
+              {t.mindMapsRetry as string}
+            </button>
+          ) : null}
           {lastSavedAt ? <span>· {new Date(lastSavedAt).toLocaleTimeString()}</span> : null}
         </div>
       </div>

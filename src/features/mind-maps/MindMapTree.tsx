@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
   ChevronRight,
   FolderInput,
   GripVertical,
-  Loader2,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -15,12 +14,18 @@ import {
 } from "lucide-react";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
 import { DEFAULT_COL_W, MAX_COL_W, MIN_COL_W } from "@/src/features/mind-maps/mindMapTypes";
-import { leafCount, mapNode } from "@/src/lib/mindMapUtils";
+import {
+  CONN,
+  GAP_H,
+  branchColor,
+  nodeBoxHeight,
+  subtreeHeight,
+} from "@/src/features/mind-maps/mindMapLayout";
+import { arrowAction } from "@/src/features/mind-maps/mindMapNav";
+import { mapNode } from "@/src/lib/mindMapUtils";
 import type { translations } from "@/src/translations";
 
-const ROW_H = 42;
-const GAP_H = 8;
-const CONN = 24;
+const EMPTY_MATCHES: ReadonlySet<string> = new Set();
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -54,6 +59,10 @@ export type MindMapTreeEditableProps = {
   onDragOver: (id: string) => void;
   onDrop: (targetId: string) => void;
   onDragEnd: () => void;
+  onAddSibling?: (id: string) => void;
+  onReorderSibling?: (id: string, delta: -1 | 1) => void;
+  highlightedIds?: ReadonlySet<string>;
+  activeMatchId?: string | null;
 };
 
 export type MindMapTreeReadOnlyProps = {
@@ -80,36 +89,124 @@ export function MindMapTree(props: MindMapTreeProps) {
     );
   }
 
+  return <MindMapTreeEdit {...props} />;
+}
+
+function MindMapTreeEdit(props: MindMapTreeEditableProps) {
+  const treeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (props.editId || !props.selId) return;
+    const rootEl = treeRef.current;
+    if (!rootEl) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && !rootEl.contains(active)) return;
+    const el = rootEl.querySelector(`[data-mindmap-node="${CSS.escape(props.selId)}"]`);
+    if (!(el instanceof HTMLElement) || el === active) return;
+    if (
+      active instanceof HTMLElement &&
+      active.closest("input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
+    el.focus({ preventScroll: true });
+  }, [props.editId, props.selId]);
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (
+      props.editId ||
+      event.metaKey ||
+      event.ctrlKey ||
+      (event.altKey && !event.key.startsWith("Arrow"))
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest("input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
+    const selected = props.selId;
+    if (!selected) {
+      if (event.key.startsWith("Arrow")) {
+        event.preventDefault();
+        props.onSelect(props.rootNode.id);
+      }
+      return;
+    }
+
+    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+      event.preventDefault();
+      props.onReorderSibling?.(selected, event.key === "ArrowUp" ? -1 : 1);
+      return;
+    }
+    if (event.key === "Tab") {
+      event.preventDefault();
+      props.onAddChild(selected);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      props.onAddSibling?.(selected);
+      return;
+    }
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      props.onRequestDelete(selected);
+      return;
+    }
+    if (
+      event.key === "ArrowUp" ||
+      event.key === "ArrowDown" ||
+      event.key === "ArrowLeft" ||
+      event.key === "ArrowRight"
+    ) {
+      event.preventDefault();
+      const action = arrowAction(props.rootNode, selected, event.key);
+      if (action.type === "select") props.onSelect(action.id);
+      if (action.type === "expand" || action.type === "collapse")
+        props.onToggleCollapsed(action.id);
+    }
+  };
+
   return (
-    <TreeLevel
-      mode="edit"
-      node={props.rootNode}
-      isRoot
-      depth={0}
-      t={props.t}
-      getColW={props.getColW}
-      startResize={props.startResize}
-      selId={props.selId}
-      editId={props.editId}
-      ctxId={props.ctxId}
-      dragId={props.dragId}
-      dropId={props.dropId}
-      onSelect={props.onSelect}
-      onToggleCollapsed={props.onToggleCollapsed}
-      onStartEdit={props.onStartEdit}
-      onCommitLabel={props.onCommitLabel}
-      onToggleCtx={props.onToggleCtx}
-      onAddChild={props.onAddChild}
-      onAddChildAIImport={props.onAddChildAIImport}
-      onInsertAbove={props.onInsertAbove}
-      onRequestDelete={props.onRequestDelete}
-      onOpenAI={props.onOpenAI}
-      onExportToOtherMap={props.onExportToOtherMap}
-      onDragStart={props.onDragStart}
-      onDragOver={props.onDragOver}
-      onDrop={props.onDrop}
-      onDragEnd={props.onDragEnd}
-    />
+    <div ref={treeRef} role="tree" aria-label={props.rootNode.label} onKeyDown={onKeyDown}>
+      <TreeLevel
+        mode="edit"
+        node={props.rootNode}
+        isRoot
+        depth={0}
+        t={props.t}
+        getColW={props.getColW}
+        startResize={props.startResize}
+        selId={props.selId}
+        editId={props.editId}
+        ctxId={props.ctxId}
+        dragId={props.dragId}
+        dropId={props.dropId}
+        highlightedIds={props.highlightedIds ?? EMPTY_MATCHES}
+        activeMatchId={props.activeMatchId ?? null}
+        onSelect={props.onSelect}
+        onToggleCollapsed={props.onToggleCollapsed}
+        onStartEdit={props.onStartEdit}
+        onCommitLabel={props.onCommitLabel}
+        onToggleCtx={props.onToggleCtx}
+        onAddChild={props.onAddChild}
+        onAddChildAIImport={props.onAddChildAIImport}
+        onInsertAbove={props.onInsertAbove}
+        onRequestDelete={props.onRequestDelete}
+        onOpenAI={props.onOpenAI}
+        onExportToOtherMap={props.onExportToOtherMap}
+        onDragStart={props.onDragStart}
+        onDragOver={props.onDragOver}
+        onDrop={props.onDrop}
+        onDragEnd={props.onDragEnd}
+        onAddSibling={props.onAddSibling ?? (() => {})}
+        onReorderSibling={props.onReorderSibling ?? (() => {})}
+      />
+    </div>
   );
 }
 
@@ -128,11 +225,9 @@ function MindMapTreeReadOnly({
   const getColW = useCallback(() => fixedW, [fixedW]);
   const [localRoot, setLocalRoot] = useState<MindMapNode>(rootNode);
 
-  // Keep a stable preview after analysis; if caller passes a new root, refresh local state.
-  useMemo(() => {
+  useEffect(() => {
     setLocalRoot(rootNode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rootNode.id]);
+  }, [rootNode]);
 
   const toggleCollapsed = useCallback(
     (id: string) => {
@@ -171,6 +266,10 @@ function MindMapTreeReadOnly({
       onDragOver={() => {}}
       onDrop={() => {}}
       onDragEnd={() => {}}
+      onAddSibling={() => {}}
+      onReorderSibling={() => {}}
+      highlightedIds={EMPTY_MATCHES}
+      activeMatchId={null}
     />
   );
 }
@@ -203,26 +302,36 @@ function TreeLevel(props: {
   onDragOver: (id: string) => void;
   onDrop: (targetId: string) => void;
   onDragEnd: () => void;
+  onAddSibling: (id: string) => void;
+  onReorderSibling: (id: string, delta: -1 | 1) => void;
+  highlightedIds: ReadonlySet<string>;
+  activeMatchId: string | null;
+  branchColor?: string;
 }) {
-  const { node, isRoot, depth } = props;
-  const lc = leafCount(node);
-  const totalH = lc * ROW_H + (lc - 1) * GAP_H;
+  const { node, depth, getColW, branchColor: color } = props;
   const hasKids = node.children.length > 0 && !node.collapsed;
-
-  const firstLC = hasKids ? leafCount(node.children[0]) : 1;
-  const lastLC = hasKids ? leafCount(node.children[node.children.length - 1]) : 1;
-  const vTop = hasKids ? (firstLC * ROW_H + (firstLC - 1) * GAP_H) / 2 : 0;
-  const vBot = hasKids ? totalH - (lastLC * ROW_H + (lastLC - 1) * GAP_H) / 2 : 0;
-  const vH = hasKids ? Math.max(0, vBot - vTop) : 0;
-  const half = CONN / 2;
+  const pillH = nodeBoxHeight(node.label, getColW(depth));
+  const line = color ?? "var(--border)";
 
   if (!hasKids) {
     return (
-      <div style={{ height: ROW_H }} className="flex items-center">
+      <div style={{ height: pillH }} className="flex items-center">
         <NodePill {...props} />
       </div>
     );
   }
+
+  const childHeights = node.children.map((child) => subtreeHeight(child, depth + 1, getColW));
+  const childrenSum = childHeights.reduce(
+    (sum, height, index) => sum + height + (index > 0 ? GAP_H : 0),
+    0
+  );
+  const totalH = Math.max(pillH, childrenSum);
+  const offset = (totalH - childrenSum) / 2;
+  const vTop = offset + childHeights[0] / 2;
+  const vBot = offset + childrenSum - childHeights[childHeights.length - 1] / 2;
+  const vH = Math.max(0, vBot - vTop);
+  const half = CONN / 2;
 
   return (
     <div style={{ height: totalH }} className="flex items-center">
@@ -230,30 +339,35 @@ function TreeLevel(props: {
 
       <div style={{ width: CONN, height: totalH }} className="relative flex-shrink-0">
         <div
-          style={{ width: half, height: 1, left: 0, top: "50%" }}
-          className="absolute -translate-y-1/2 bg-[var(--border)]"
+          style={{ width: half, height: 1, left: 0, top: "50%", background: line }}
+          className="absolute -translate-y-1/2"
         />
         <div
-          style={{ width: 1, height: vH, left: half, top: vTop }}
-          className="absolute bg-[var(--border)]"
+          style={{ width: 1, height: vH, left: half, top: vTop, background: line }}
+          className="absolute"
         />
       </div>
 
-      <div style={{ height: totalH }} className="flex flex-col">
-        {node.children.map((c, i) => {
-          const clc = leafCount(c);
-          const slotH = clc * ROW_H + (clc - 1) * GAP_H;
+      <div style={{ height: totalH, paddingTop: offset }} className="flex flex-col">
+        {node.children.map((child, index) => {
+          const childColor = depth === 0 ? branchColor(index) : color;
           return (
             <div
-              key={c.id}
-              style={{ height: slotH, marginTop: i > 0 ? GAP_H : 0 }}
+              key={child.id}
+              style={{ height: childHeights[index], marginTop: index > 0 ? GAP_H : 0 }}
               className="flex items-center"
             >
               <div
-                style={{ width: half, height: 1 }}
-                className="bg-[var(--border)] flex-shrink-0"
+                style={{ width: half, height: 1, background: childColor ?? "var(--border)" }}
+                className="flex-shrink-0"
               />
-              <TreeLevel {...props} node={c} isRoot={false} depth={depth + 1} />
+              <TreeLevel
+                {...props}
+                node={child}
+                isRoot={false}
+                depth={depth + 1}
+                branchColor={childColor}
+              />
             </div>
           );
         })}
@@ -290,6 +404,9 @@ function NodePill({
   onDragOver,
   onDrop,
   onDragEnd,
+  highlightedIds,
+  activeMatchId,
+  branchColor: color,
 }: {
   mode: "edit" | "readOnly";
   node: MindMapNode;
@@ -318,13 +435,22 @@ function NodePill({
   onDragOver: (id: string) => void;
   onDrop: (targetId: string) => void;
   onDragEnd: () => void;
+  onAddSibling: (id: string) => void;
+  onReorderSibling: (id: string, delta: -1 | 1) => void;
+  highlightedIds: ReadonlySet<string>;
+  activeMatchId: string | null;
+  branchColor?: string;
 }) {
   const hasKids = node.children.length > 0;
   const colW = getColW(depth);
+  const boxH = nodeBoxHeight(node.label, colW);
   const editing = mode === "edit" && node.id === editId;
   const sel = mode === "edit" && node.id === selId;
   const isDrag = mode === "edit" && node.id === dragId;
   const isDrop = mode === "edit" && node.id === dropId;
+  const isMatch = highlightedIds.has(node.id);
+  const isActiveMatch = activeMatchId === node.id;
+  const skipBlurCommit = useRef(false);
 
   return (
     <div
@@ -357,13 +483,26 @@ function NodePill({
         e.stopPropagation();
         if (mode === "edit") onSelect(node.id);
       }}
-      style={{ width: colW, height: ROW_H }}
+      role="treeitem"
+      data-mindmap-node={node.id}
+      tabIndex={mode === "edit" ? (sel ? 0 : -1) : undefined}
+      aria-selected={mode === "edit" ? sel : undefined}
+      aria-expanded={hasKids ? !node.collapsed : undefined}
+      aria-level={depth + 1}
+      style={{
+        width: colW,
+        minHeight: boxH,
+        borderLeftWidth: color ? 3 : undefined,
+        borderLeftColor: color,
+      }}
       className={[
         "group relative flex items-center gap-2 px-2.5 rounded-xl border transition-colors select-none",
         "bg-[var(--surface)] border-[var(--border)] hover:bg-[var(--bg2)]",
         sel ? "border-[var(--accent)] bg-[var(--bg2)]" : "",
         isDrop ? "border-emerald-400 bg-emerald-50" : "",
         isDrag ? "opacity-40" : "",
+        isMatch ? "ring-2 ring-amber-300" : "",
+        isActiveMatch ? "ring-2 ring-amber-500" : "",
       ].join(" ")}
     >
       {mode === "edit" && !isRoot ? (
@@ -403,13 +542,23 @@ function NodePill({
             defaultValue={node.label}
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              if (e.key === "Enter") onCommitLabel(node.id, (e.target as HTMLInputElement).value);
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                skipBlurCommit.current = true;
+                onCommitLabel(node.id, (e.target as HTMLInputElement).value);
+              }
               if (e.key === "Escape") {
                 e.preventDefault();
+                e.stopPropagation();
+                skipBlurCommit.current = true;
                 onStartEdit("");
               }
             }}
-            onBlur={(e) => onCommitLabel(node.id, e.currentTarget.value)}
+            onBlur={(e) => {
+              if (skipBlurCommit.current) return;
+              onCommitLabel(node.id, e.currentTarget.value);
+            }}
             className="w-full h-8 px-2 rounded-lg border border-[var(--accent)] bg-[var(--surface)] text-sm text-[var(--text)] outline-none"
           />
         ) : (
@@ -422,13 +571,14 @@ function NodePill({
               onStartEdit(node.id);
             }}
             className={[
-              "w-full text-left truncate text-sm",
+              "w-full text-left whitespace-normal break-words line-clamp-3 text-sm leading-[18px]",
               isRoot
                 ? "font-bold text-[var(--accent)]"
                 : hasKids
                   ? "font-semibold text-[var(--text)]"
                   : "text-[var(--text)]",
             ].join(" ")}
+            title={node.label}
           >
             {node.label}
           </button>
@@ -589,7 +739,3 @@ function NodePill({
     </div>
   );
 }
-
-// Keep these exports referenced in the file to avoid tree-shaking surprises in dev hot reload.
-// (No runtime impact; also helps prevent unused-import lints in some setups.)
-export const __MindMapTreeDevOnly = { Loader2 };
