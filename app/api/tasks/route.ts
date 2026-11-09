@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
+import { parseBody } from "@/lib/parseBody";
+import { CreateTaskBodySchema } from "@/lib/validation/tasks";
 import * as taskService from "@/services/taskService";
 
 export async function GET(request: NextRequest) {
@@ -17,30 +19,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await getAuthUserId(request);
   if (auth instanceof NextResponse) return auth;
-  let body: {
-    title?: string;
-    link?: string;
-    description?: string;
-    status?: string;
-    due_date?: string | null;
-    priority?: string | null;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const { title, link, description, status, due_date, priority } = body;
-  if (!title || typeof title !== "string") {
-    return NextResponse.json({ error: "title required" }, { status: 400 });
-  }
+
+  const parsed = await parseBody(request, CreateTaskBodySchema);
+  if (parsed.success === false) return parsed.response;
+
+  const { title, link, description, status, due_date, priority } = parsed.data;
   try {
     const task = await taskService.createTask(auth.uid, {
-      title,
-      link: link ?? "",
-      description: description ?? "",
+      title: title as string,
+      link: (link ?? "") as string,
+      description: (description ?? "") as string,
       status: (status ?? "todo") as "todo" | "in_progress" | "to_review" | "done",
-      due_date: due_date ?? null,
+      due_date: (due_date ?? null) as string | null,
       priority: priority !== undefined && priority !== null ? Number(priority) : null,
     });
     return NextResponse.json(task);

@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import type { TaskRecord } from "@/lib/firestore-db";
 import * as firestoreDb from "@/lib/firestore-db";
 
@@ -16,6 +17,9 @@ export async function createTask(
     priority?: number | null;
   }
 ) {
+  if (!data.title || typeof data.title !== "string") {
+    throw new DomainError("title required");
+  }
   return firestoreDb.createTask(userId, data);
 }
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
+import { parseBody } from "@/lib/parseBody";
+import { CreateTaskTemplateBodySchema } from "@/lib/validation/taskTemplates";
 import * as taskTemplateService from "@/services/taskTemplateService";
 
 export async function GET(request: NextRequest) {
@@ -17,27 +19,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await getAuthUserId(request);
   if (auth instanceof NextResponse) return auth;
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const { label, title, link } = body as {
-    label?: string;
-    title?: string;
-    link?: string;
-  };
-  if (!label || typeof label !== "string" || !label.trim()) {
-    return NextResponse.json({ error: "label required" }, { status: 400 });
-  }
-  if (!title || typeof title !== "string" || !title.trim()) {
-    return NextResponse.json({ error: "title required" }, { status: 400 });
-  }
+
+  const parsed = await parseBody(request, CreateTaskTemplateBodySchema);
+  if (parsed.success === false) return parsed.response;
+
+  const { label, title, link } = parsed.data;
   try {
     const created = await taskTemplateService.createTaskTemplate(auth.uid, {
-      label: label.trim(),
-      title: title.trim(),
+      label: (label as string).trim(),
+      title: (title as string).trim(),
       link: typeof link === "string" ? link.trim() : "",
     });
     return NextResponse.json(created);

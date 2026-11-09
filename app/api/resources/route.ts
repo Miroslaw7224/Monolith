@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
 import { parseBody } from "@/lib/parseBody";
-import { CreateResourceBodySchema } from "@/src/components/resources/resourceTypes";
+import { CreateResourceBodySchema } from "@/lib/validation/resources";
 import * as resourceService from "@/services/resourceService";
 
 export async function GET(request: NextRequest) {

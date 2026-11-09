@@ -1,5 +1,14 @@
+import { DomainError } from "@/lib/errors";
 import * as firestoreDb from "@/lib/firestore-db";
 import type { CalendarEvent } from "@/types/records";
+
+const DURATION_MULTIPLE_OF_15 = "duration_minutes must be a multiple of 15";
+
+function assertDurationMultipleOf15(durationMinutes: number | null | undefined): void {
+  if (durationMinutes !== undefined && durationMinutes !== null && durationMinutes % 15 !== 0) {
+    throw new DomainError(DURATION_MULTIPLE_OF_15);
+  }
+}
 
 const TASK_DEADLINE_START_MINUTES = 23 * 60 + 30; // 23:30 — a fixed end-of-day slot
 const TASK_DEADLINE_DURATION_MINUTES = 30;
@@ -55,6 +64,7 @@ export async function createCalendarEvent(
     type?: "work" | "meeting";
   }
 ) {
+  assertDurationMultipleOf15(data.duration_minutes);
   return firestoreDb.createCalendarEvent(userId, data);
 }
 
@@ -71,6 +81,7 @@ export async function updateCalendarEvent(
     type: "work" | "meeting";
   }>
 ) {
+  assertDurationMultipleOf15(data.duration_minutes);
   return firestoreDb.updateCalendarEvent(userId, id, data);
 }
 

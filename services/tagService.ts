@@ -1,3 +1,4 @@
+import { DomainError } from "@/lib/errors";
 import * as firestoreDb from "@/lib/firestore-db";
 
 export async function getUserTags(userId: string) {
@@ -8,6 +9,9 @@ export async function createUserTag(
   userId: string,
   data: { tag: string; title: string; color?: string }
 ) {
+  if (!data.tag || typeof data.tag !== "string" || !data.tag.trim()) {
+    throw new DomainError("tag required");
+  }
   return firestoreDb.createUserTag(userId, data);
 }
 
