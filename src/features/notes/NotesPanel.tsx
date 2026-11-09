@@ -1,8 +1,13 @@
-import React from "react";
+import React, { type ComponentProps } from "react";
+import dynamic from "next/dynamic";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/src/lib/cn";
-import { NoteEditor } from "@/src/components/NoteEditor";
 import type { Note } from "./useNotesData";
+
+const NoteEditor = dynamic<ComponentProps<typeof import("@/src/components/NoteEditor").NoteEditor>>(
+  () => import("@/src/components/NoteEditor").then((mod) => mod.NoteEditor),
+  { loading: () => <div className="min-h-[60vh]" /> }
+);
 
 export interface NotesPanelProps {
   notes: Note[];

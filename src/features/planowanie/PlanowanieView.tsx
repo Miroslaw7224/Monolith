@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
+import dynamic from "next/dynamic";
 import { Send, Loader2 } from "lucide-react";
 import { cn } from "@/src/lib/cn";
 import {
@@ -14,7 +15,6 @@ import {
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { CalendarView } from "@/src/components/CalendarView";
 import { TasksSection } from "@/src/components/TasksSection";
-import { ActivityLog } from "@/src/components/ActivityLog";
 import { TagsSection, type UserTag } from "@/src/components/TagsSection";
 import { ResourceSection } from "@/src/components/ResourceSection";
 import {
@@ -34,6 +34,13 @@ import {
 import type { translations } from "@/src/translations";
 
 type TranslationsEn = (typeof translations)["en"];
+
+const ActivityLog = dynamic<
+  ComponentProps<typeof import("@/src/components/ActivityLog").ActivityLog>
+>(
+  () => import("@/src/components/ActivityLog").then((mod) => mod.ActivityLog),
+  { loading: () => <div className="flex-1 min-h-[24rem]" /> }
+);
 
 function planAskResponseText(data: { text?: string; error?: unknown }): string {
   if (data.text) return data.text;

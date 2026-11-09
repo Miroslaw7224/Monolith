@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ComponentProps } from "react";
+import dynamic from "next/dynamic";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
-import { NoteEditor } from "@/src/components/NoteEditor";
 import { clamp } from "@/src/features/mind-maps/mindMapClamp";
 import type { translations } from "@/src/translations";
+
+const NoteEditor = dynamic<ComponentProps<typeof import("@/src/components/NoteEditor").NoteEditor>>(
+  () => import("@/src/components/NoteEditor").then((mod) => mod.NoteEditor),
+  { loading: () => <div className="h-full min-h-[8rem]" /> }
+);
 
 type T = (typeof translations)["en"];
 
