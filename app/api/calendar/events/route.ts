@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   const auth = await getAuthUserId(request);
   if (auth instanceof NextResponse) return auth;
 
-  const parsed = await parseBody(request, CreateCalendarEventBodySchema);
+  const parsed = await parseBody(request, CreateCalendarEventBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
   const { date, start_minutes, duration_minutes, title, tags, color, type } = parsed.data;

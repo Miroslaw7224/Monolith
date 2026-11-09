@@ -10,7 +10,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (auth instanceof NextResponse) return auth;
   const { id } = await params;
 
-  const parsed = await parseBody(request, NoteBodySchema);
+  const parsed = await parseBody(request, NoteBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
   const { title, content } = parsed.data;

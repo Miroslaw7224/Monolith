@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   const auth = await getAuthUserId(request);
   if (auth instanceof NextResponse) return auth;
 
-  const parsed = await parseBody(request, CreateTagBodySchema);
+  const parsed = await parseBody(request, CreateTagBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
   const { tag, title, color } = parsed.data;

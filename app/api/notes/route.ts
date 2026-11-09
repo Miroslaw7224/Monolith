@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   const auth = await getAuthUserId(request);
   if (auth instanceof NextResponse) return auth;
 
-  const parsed = await parseBody(request, NoteBodySchema);
+  const parsed = await parseBody(request, NoteBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
   const { title, content } = parsed.data;
