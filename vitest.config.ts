@@ -13,7 +13,7 @@ export default defineConfig({
     clearMocks: true,
     resetMocks: true,
     passWithNoTests: true,
-    exclude: ["**/node_modules/**", "**/dist/**", "**/tests/integration/**", "**/tests/e2e/**"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/tests/integration/**", "**/tests/e2e/**", "**/.worktrees/**"],
   },
   coverage: {
     provider: "v8",
