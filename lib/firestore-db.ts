@@ -852,3 +852,21 @@ export async function updateTaskTemplate(
 export async function deleteTaskTemplate(userId: string, templateId: string): Promise<void> {
   await taskTemplatesCol(userId).doc(templateId).delete();
 }
+
+// --- Agent audit log (what the local LLM agent did) ---
+
+export type AgentLogEntry = {
+  tool: string;
+  args: Record<string, unknown>;
+  ok: boolean;
+  summary: string;
+  source: "chat" | "confirm";
+};
+
+function agentLogCol(userId: string) {
+  return db().collection(COLLECTION_USERS).doc(String(userId)).collection("agent_log");
+}
+
+export async function addAgentLogEntry(userId: string, entry: AgentLogEntry): Promise<void> {
+  await agentLogCol(userId).add({ ...entry, createdAt: FieldValue.serverTimestamp() });
+}
