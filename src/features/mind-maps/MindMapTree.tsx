@@ -1,30 +1,15 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
-import {
-  ArrowUp,
-  ChevronRight,
-  FolderInput,
-  GripVertical,
-  Loader2,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Sparkles,
-  X,
-} from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
 import { DEFAULT_COL_W, MAX_COL_W, MIN_COL_W } from "@/src/features/mind-maps/mindMapTypes";
-import { leafCount, mapNode } from "@/src/lib/mindMapUtils";
+import { arrowAction } from "@/src/features/mind-maps/mindMapNav";
+import { TreeLevel } from "@/src/features/mind-maps/TreeLevel";
+import { mapNode } from "@/src/lib/mindMapUtils";
+import { clamp } from "@/src/features/mind-maps/mindMapClamp";
 import type { translations } from "@/src/translations";
 
-const ROW_H = 42;
-const GAP_H = 8;
-const CONN = 24;
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+const EMPTY_MATCHES: ReadonlySet<string> = new Set();
 
 export type MindMapTreeEditableProps = {
   mode: "edit";
@@ -54,6 +39,10 @@ export type MindMapTreeEditableProps = {
   onDragOver: (id: string) => void;
   onDrop: (targetId: string) => void;
   onDragEnd: () => void;
+  onAddSibling?: (id: string) => void;
+  onReorderSibling?: (id: string, delta: -1 | 1) => void;
+  highlightedIds?: ReadonlySet<string>;
+  activeMatchId?: string | null;
 };
 
 export type MindMapTreeReadOnlyProps = {
@@ -80,36 +69,124 @@ export function MindMapTree(props: MindMapTreeProps) {
     );
   }
 
+  return <MindMapTreeEdit {...props} />;
+}
+
+function MindMapTreeEdit(props: MindMapTreeEditableProps) {
+  const treeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (props.editId || !props.selId) return;
+    const rootEl = treeRef.current;
+    if (!rootEl) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && !rootEl.contains(active)) return;
+    const el = rootEl.querySelector(`[data-mindmap-node="${CSS.escape(props.selId)}"]`);
+    if (!(el instanceof HTMLElement) || el === active) return;
+    if (
+      active instanceof HTMLElement &&
+      active.closest("input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
+    el.focus({ preventScroll: true });
+  }, [props.editId, props.selId]);
+
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (
+      props.editId ||
+      event.metaKey ||
+      event.ctrlKey ||
+      (event.altKey && !event.key.startsWith("Arrow"))
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.closest("input, textarea, [contenteditable='true']")
+    ) {
+      return;
+    }
+    const selected = props.selId;
+    if (!selected) {
+      if (event.key.startsWith("Arrow")) {
+        event.preventDefault();
+        props.onSelect(props.rootNode.id);
+      }
+      return;
+    }
+
+    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+      event.preventDefault();
+      props.onReorderSibling?.(selected, event.key === "ArrowUp" ? -1 : 1);
+      return;
+    }
+    if (event.key === "Tab") {
+      event.preventDefault();
+      props.onAddChild(selected);
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      props.onAddSibling?.(selected);
+      return;
+    }
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      props.onRequestDelete(selected);
+      return;
+    }
+    if (
+      event.key === "ArrowUp" ||
+      event.key === "ArrowDown" ||
+      event.key === "ArrowLeft" ||
+      event.key === "ArrowRight"
+    ) {
+      event.preventDefault();
+      const action = arrowAction(props.rootNode, selected, event.key);
+      if (action.type === "select") props.onSelect(action.id);
+      if (action.type === "expand" || action.type === "collapse")
+        props.onToggleCollapsed(action.id);
+    }
+  };
+
   return (
-    <TreeLevel
-      mode="edit"
-      node={props.rootNode}
-      isRoot
-      depth={0}
-      t={props.t}
-      getColW={props.getColW}
-      startResize={props.startResize}
-      selId={props.selId}
-      editId={props.editId}
-      ctxId={props.ctxId}
-      dragId={props.dragId}
-      dropId={props.dropId}
-      onSelect={props.onSelect}
-      onToggleCollapsed={props.onToggleCollapsed}
-      onStartEdit={props.onStartEdit}
-      onCommitLabel={props.onCommitLabel}
-      onToggleCtx={props.onToggleCtx}
-      onAddChild={props.onAddChild}
-      onAddChildAIImport={props.onAddChildAIImport}
-      onInsertAbove={props.onInsertAbove}
-      onRequestDelete={props.onRequestDelete}
-      onOpenAI={props.onOpenAI}
-      onExportToOtherMap={props.onExportToOtherMap}
-      onDragStart={props.onDragStart}
-      onDragOver={props.onDragOver}
-      onDrop={props.onDrop}
-      onDragEnd={props.onDragEnd}
-    />
+    <div ref={treeRef} role="tree" aria-label={props.rootNode.label} onKeyDown={onKeyDown}>
+      <TreeLevel
+        mode="edit"
+        node={props.rootNode}
+        isRoot
+        depth={0}
+        t={props.t}
+        getColW={props.getColW}
+        startResize={props.startResize}
+        selId={props.selId}
+        editId={props.editId}
+        ctxId={props.ctxId}
+        dragId={props.dragId}
+        dropId={props.dropId}
+        highlightedIds={props.highlightedIds ?? EMPTY_MATCHES}
+        activeMatchId={props.activeMatchId ?? null}
+        onSelect={props.onSelect}
+        onToggleCollapsed={props.onToggleCollapsed}
+        onStartEdit={props.onStartEdit}
+        onCommitLabel={props.onCommitLabel}
+        onToggleCtx={props.onToggleCtx}
+        onAddChild={props.onAddChild}
+        onAddChildAIImport={props.onAddChildAIImport}
+        onInsertAbove={props.onInsertAbove}
+        onRequestDelete={props.onRequestDelete}
+        onOpenAI={props.onOpenAI}
+        onExportToOtherMap={props.onExportToOtherMap}
+        onDragStart={props.onDragStart}
+        onDragOver={props.onDragOver}
+        onDrop={props.onDrop}
+        onDragEnd={props.onDragEnd}
+        onAddSibling={props.onAddSibling ?? (() => {})}
+        onReorderSibling={props.onReorderSibling ?? (() => {})}
+      />
+    </div>
   );
 }
 
@@ -128,11 +205,9 @@ function MindMapTreeReadOnly({
   const getColW = useCallback(() => fixedW, [fixedW]);
   const [localRoot, setLocalRoot] = useState<MindMapNode>(rootNode);
 
-  // Keep a stable preview after analysis; if caller passes a new root, refresh local state.
-  useMemo(() => {
+  useEffect(() => {
     setLocalRoot(rootNode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rootNode.id]);
+  }, [rootNode]);
 
   const toggleCollapsed = useCallback(
     (id: string) => {
@@ -171,425 +246,10 @@ function MindMapTreeReadOnly({
       onDragOver={() => {}}
       onDrop={() => {}}
       onDragEnd={() => {}}
+      onAddSibling={() => {}}
+      onReorderSibling={() => {}}
+      highlightedIds={EMPTY_MATCHES}
+      activeMatchId={null}
     />
   );
 }
-
-function TreeLevel(props: {
-  mode: "edit" | "readOnly";
-  node: MindMapNode;
-  isRoot: boolean;
-  depth: number;
-  t: (typeof translations)["en"];
-  getColW: (depth: number) => number;
-  startResize: (e: React.MouseEvent, depth: number) => void;
-  selId: string | null;
-  editId: string | null;
-  ctxId: string | null;
-  dragId: string | null;
-  dropId: string | null;
-  onSelect: (id: string) => void;
-  onToggleCollapsed: (id: string) => void;
-  onStartEdit: (id: string) => void;
-  onCommitLabel: (id: string, next: string) => void;
-  onToggleCtx: (id: string) => void;
-  onAddChild: (parentId: string) => void;
-  onAddChildAIImport: (parentId: string) => void;
-  onInsertAbove: (childId: string) => void;
-  onRequestDelete: (id: string) => void;
-  onOpenAI: (parentId: string) => void;
-  onExportToOtherMap: (nodeId: string) => void;
-  onDragStart: (id: string) => void;
-  onDragOver: (id: string) => void;
-  onDrop: (targetId: string) => void;
-  onDragEnd: () => void;
-}) {
-  const { node, isRoot, depth } = props;
-  const lc = leafCount(node);
-  const totalH = lc * ROW_H + (lc - 1) * GAP_H;
-  const hasKids = node.children.length > 0 && !node.collapsed;
-
-  const firstLC = hasKids ? leafCount(node.children[0]) : 1;
-  const lastLC = hasKids ? leafCount(node.children[node.children.length - 1]) : 1;
-  const vTop = hasKids ? (firstLC * ROW_H + (firstLC - 1) * GAP_H) / 2 : 0;
-  const vBot = hasKids ? totalH - (lastLC * ROW_H + (lastLC - 1) * GAP_H) / 2 : 0;
-  const vH = hasKids ? Math.max(0, vBot - vTop) : 0;
-  const half = CONN / 2;
-
-  if (!hasKids) {
-    return (
-      <div style={{ height: ROW_H }} className="flex items-center">
-        <NodePill {...props} />
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ height: totalH }} className="flex items-center">
-      <NodePill {...props} />
-
-      <div style={{ width: CONN, height: totalH }} className="relative flex-shrink-0">
-        <div
-          style={{ width: half, height: 1, left: 0, top: "50%" }}
-          className="absolute -translate-y-1/2 bg-[var(--border)]"
-        />
-        <div
-          style={{ width: 1, height: vH, left: half, top: vTop }}
-          className="absolute bg-[var(--border)]"
-        />
-      </div>
-
-      <div style={{ height: totalH }} className="flex flex-col">
-        {node.children.map((c, i) => {
-          const clc = leafCount(c);
-          const slotH = clc * ROW_H + (clc - 1) * GAP_H;
-          return (
-            <div
-              key={c.id}
-              style={{ height: slotH, marginTop: i > 0 ? GAP_H : 0 }}
-              className="flex items-center"
-            >
-              <div
-                style={{ width: half, height: 1 }}
-                className="bg-[var(--border)] flex-shrink-0"
-              />
-              <TreeLevel {...props} node={c} isRoot={false} depth={depth + 1} />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function NodePill({
-  mode,
-  node,
-  isRoot,
-  depth,
-  t,
-  getColW,
-  startResize,
-  selId,
-  editId,
-  ctxId,
-  dragId,
-  dropId,
-  onSelect,
-  onToggleCollapsed,
-  onStartEdit,
-  onCommitLabel,
-  onToggleCtx,
-  onAddChild,
-  onAddChildAIImport,
-  onInsertAbove,
-  onRequestDelete,
-  onOpenAI,
-  onExportToOtherMap,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
-}: {
-  mode: "edit" | "readOnly";
-  node: MindMapNode;
-  isRoot: boolean;
-  depth: number;
-  t: (typeof translations)["en"];
-  getColW: (depth: number) => number;
-  startResize: (e: React.MouseEvent, depth: number) => void;
-  selId: string | null;
-  editId: string | null;
-  ctxId: string | null;
-  dragId: string | null;
-  dropId: string | null;
-  onSelect: (id: string) => void;
-  onToggleCollapsed: (id: string) => void;
-  onStartEdit: (id: string) => void;
-  onCommitLabel: (id: string, next: string) => void;
-  onToggleCtx: (id: string) => void;
-  onAddChild: (parentId: string) => void;
-  onAddChildAIImport: (parentId: string) => void;
-  onInsertAbove: (childId: string) => void;
-  onRequestDelete: (id: string) => void;
-  onOpenAI: (parentId: string) => void;
-  onExportToOtherMap: (nodeId: string) => void;
-  onDragStart: (id: string) => void;
-  onDragOver: (id: string) => void;
-  onDrop: (targetId: string) => void;
-  onDragEnd: () => void;
-}) {
-  const hasKids = node.children.length > 0;
-  const colW = getColW(depth);
-  const editing = mode === "edit" && node.id === editId;
-  const sel = mode === "edit" && node.id === selId;
-  const isDrag = mode === "edit" && node.id === dragId;
-  const isDrop = mode === "edit" && node.id === dropId;
-
-  return (
-    <div
-      title={mode === "edit" && !isRoot ? (t.mindMapsDragReparentHint as string) : undefined}
-      draggable={mode === "edit" && !isRoot}
-      onDragStart={(e) => {
-        if (mode !== "edit") return;
-        if (isRoot) {
-          e.preventDefault();
-          return;
-        }
-        onDragStart(node.id);
-        e.dataTransfer.effectAllowed = "move";
-        e.stopPropagation();
-      }}
-      onDragOver={(e) => {
-        if (mode !== "edit") return;
-        e.preventDefault();
-        e.stopPropagation();
-        onDragOver(node.id);
-      }}
-      onDrop={(e) => {
-        if (mode !== "edit") return;
-        e.preventDefault();
-        e.stopPropagation();
-        onDrop(node.id);
-      }}
-      onDragEnd={() => (mode === "edit" ? onDragEnd() : undefined)}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (mode === "edit") onSelect(node.id);
-      }}
-      style={{ width: colW, height: ROW_H }}
-      className={[
-        "group relative flex items-center gap-2 px-2.5 rounded-xl border transition-colors select-none",
-        "bg-[var(--surface)] border-[var(--border)] hover:bg-[var(--bg2)]",
-        sel ? "border-[var(--accent)] bg-[var(--bg2)]" : "",
-        isDrop ? "border-emerald-400 bg-emerald-50" : "",
-        isDrag ? "opacity-40" : "",
-      ].join(" ")}
-    >
-      {mode === "edit" && !isRoot ? (
-        <div className="text-[var(--text3)] opacity-0 group-hover:opacity-100 transition-opacity">
-          <GripVertical className="w-4 h-4" />
-        </div>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (hasKids) onToggleCollapsed(node.id);
-        }}
-        className={[
-          "w-6 h-6 rounded-lg flex items-center justify-center text-[var(--text2)]",
-          hasKids ? "hover:bg-[var(--bg3)]" : "opacity-0 pointer-events-none",
-        ].join(" ")}
-        title={
-          hasKids
-            ? node.collapsed
-              ? (t.mindMapsExpand as string)
-              : (t.mindMapsCollapse as string)
-            : ""
-        }
-      >
-        <ChevronRight
-          className={["w-4 h-4 transition-transform", node.collapsed ? "" : "rotate-90"].join(" ")}
-        />
-      </button>
-
-      <div className="min-w-0 flex-1">
-        {editing ? (
-          <input
-            autoFocus
-            defaultValue={node.label}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onCommitLabel(node.id, (e.target as HTMLInputElement).value);
-              if (e.key === "Escape") {
-                e.preventDefault();
-                onStartEdit("");
-              }
-            }}
-            onBlur={(e) => onCommitLabel(node.id, e.currentTarget.value)}
-            className="w-full h-8 px-2 rounded-lg border border-[var(--accent)] bg-[var(--surface)] text-sm text-[var(--text)] outline-none"
-          />
-        ) : (
-          <button
-            type="button"
-            onDoubleClick={(e) => {
-              if (mode !== "edit") return;
-              e.preventDefault();
-              e.stopPropagation();
-              onStartEdit(node.id);
-            }}
-            className={[
-              "w-full text-left truncate text-sm",
-              isRoot
-                ? "font-bold text-[var(--accent)]"
-                : hasKids
-                  ? "font-semibold text-[var(--text)]"
-                  : "text-[var(--text)]",
-            ].join(" ")}
-          >
-            {node.label}
-          </button>
-        )}
-      </div>
-
-      {Boolean(node.note) && !editing ? (
-        <div className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" />
-      ) : null}
-
-      {mode === "edit" && !editing ? (
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleCtx(node.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleCtx(node.id);
-              }
-            }}
-            className="w-7 h-7 rounded-lg hover:bg-[var(--bg3)] text-[var(--text2)] inline-flex items-center justify-center"
-            title={t.mindMapsMenu as string}
-            aria-haspopup="menu"
-            aria-expanded={ctxId === node.id}
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
-        </div>
-      ) : null}
-
-      {mode === "edit" && ctxId === node.id ? (
-        <div
-          className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-56 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-lg p-2"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleCtx(node.id);
-            }
-          }}
-          role="menu"
-          tabIndex={-1}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onAddChild(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <Plus className="w-4 h-4 text-emerald-700" />
-            {t.mindMapsAddChild as string}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onAddChildAIImport(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <Sparkles className="w-4 h-4 text-sky-700" />
-            {t.mindMapsAIImportTreeAdd as string}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onOpenAI(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <Sparkles className="w-4 h-4 text-sky-700" />
-            {(t.mindMapsAIAddTitle as string).replace(/^✦\s*/, "")}
-          </button>
-
-          <div className="my-1 h-px bg-[var(--border)]" />
-
-          {!isRoot ? (
-            <button
-              type="button"
-              onClick={() => {
-                onToggleCtx(node.id);
-                onInsertAbove(node.id);
-              }}
-              className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-              role="menuitem"
-            >
-              <ArrowUp className="w-4 h-4 text-[var(--text2)]" />
-              {t.mindMapsInsertAbove as string}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onStartEdit(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <Pencil className="w-4 h-4 text-[var(--text2)]" />
-            {t.mindMapsRename as string}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onExportToOtherMap(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <FolderInput className="w-4 h-4 text-[var(--text2)]" />
-            {t.mindMapsExportToOtherMap as string}
-          </button>
-
-          {!isRoot ? <div className="my-1 h-px bg-[var(--border)]" /> : null}
-
-          {!isRoot ? (
-            <button
-              type="button"
-              onClick={() => {
-                onToggleCtx(node.id);
-                onRequestDelete(node.id);
-              }}
-              className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-red-50 text-red-700 inline-flex items-center gap-2"
-              role="menuitem"
-            >
-              <X className="w-4 h-4" />
-              {t.mindMapsDeleteNode as string}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {mode === "edit" ? (
-        <div
-          onMouseDown={(e) => startResize(e, depth)}
-          className="absolute right-0 top-0 h-full w-3 cursor-col-resize opacity-0 hover:opacity-100 transition-opacity"
-          title={t.mindMapsResizeColTitle as string}
-        >
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded bg-[var(--border)]" />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-// Keep these exports referenced in the file to avoid tree-shaking surprises in dev hot reload.
-// (No runtime impact; also helps prevent unused-import lints in some setups.)
-export const __MindMapTreeDevOnly = { Loader2 };

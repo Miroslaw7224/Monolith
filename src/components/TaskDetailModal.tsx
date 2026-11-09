@@ -11,6 +11,7 @@ export interface TaskDetailModalProps {
   onClose: () => void;
   onSave: (payload: {
     title: string;
+    link: string;
     description: string;
     status: Task["status"];
     due_date: string | null;
@@ -19,6 +20,7 @@ export interface TaskDetailModalProps {
 
 export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetailModalProps) {
   const [title, setTitle] = useState("");
+  const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<Task["status"]>("todo");
   const [dueDate, setDueDate] = useState("");
@@ -34,6 +36,7 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
     if (syncedIdRef.current === task.id) return;
     syncedIdRef.current = task.id;
     setTitle(task.title);
+    setLink(task.link ?? "");
     setDescription(task.description ?? "");
     setStatus(task.status);
     setDueDate(task.due_date ?? "");
@@ -46,6 +49,7 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
     try {
       await onSave({
         title: trimmed,
+        link: link.trim(),
         description: description.trim(),
         status,
         due_date: dueDate.trim() === "" ? null : dueDate.trim(),
@@ -59,6 +63,8 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
 
   const closeLabel = (t.calendarCancel as string) ?? "Close";
   const saveLabel = (t.tasksDetailSave as string) ?? "Save";
+  const linkLabel = (t.tasksDetailLinkLabel as string) ?? "Link";
+  const linkPlaceholder = (t.tasksDetailLinkPlaceholder as string) ?? "";
   const noteLabel = (t.tasksDetailNoteLabel as string) ?? "Note";
   const notePlaceholder = (t.tasksDetailNotePlaceholder as string) ?? "";
   const titleLabel = (t.tasksDetailTitleFieldLabel as string) ?? "Title";
@@ -68,6 +74,7 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
   const statusOptions: { value: Task["status"]; label: string }[] = [
     { value: "todo", label: (t.tasksTodo as string) ?? "To do" },
     { value: "in_progress", label: (t.tasksInProgress as string) ?? "In progress" },
+    { value: "to_review", label: (t.tasksToReview as string) ?? "To review" },
     { value: "done", label: (t.tasksDone as string) ?? "Done" },
   ];
 
@@ -118,6 +125,23 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="task-detail-link"
+              className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
+            >
+              {linkLabel}
+            </label>
+            <input
+              id="task-detail-link"
+              type="url"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder={linkPlaceholder}
               className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
             />
           </div>

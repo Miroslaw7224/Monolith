@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { vi, describe, it, expect, afterEach } from "vitest";
 
 // Mock @tiptap/core — must be before component import (hoisted by vitest)
@@ -79,6 +79,10 @@ vi.mock("@tiptap/extension-font-family", () => ({
   default: { configure: () => ({}) },
   FontFamily: { configure: () => ({}) },
 }));
+vi.mock("@tiptap/pm/model", () => ({
+  Fragment: { from: (x: unknown) => x, empty: null },
+  Slice: { maxOpen: (x: unknown) => x },
+}));
 
 import { NoteEditor } from "@/src/components/NoteEditor";
 
@@ -144,8 +148,41 @@ describe("NoteEditor", () => {
     expect(screen.getByTitle("Czcionka")).toBeInTheDocument();
   });
 
-  it("renders color section", () => {
+  it("renders color picker button", () => {
     render(<NoteEditor content="" onContentChange={vi.fn()} />);
-    expect(screen.getByTitle("Kolor")).toBeInTheDocument();
+    expect(screen.getByTitle("Kolor tekstu")).toBeInTheDocument();
+  });
+
+  it("shows 'Kolor' label on color button when no color is set", () => {
+    render(<NoteEditor content="" onContentChange={vi.fn()} />);
+    expect(screen.getByText("Kolor")).toBeInTheDocument();
+  });
+
+  it("opens color dropdown on button click", () => {
+    render(<NoteEditor content="" onContentChange={vi.fn()} />);
+    const colorContainer = screen.getByTitle("Kolor tekstu");
+    const toggleButton = colorContainer.querySelector("button")!;
+    fireEvent.click(toggleButton);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByText("Domyślny")).toBeInTheDocument();
+  });
+
+  it("closes color dropdown after selecting a color", () => {
+    render(<NoteEditor content="" onContentChange={vi.fn()} />);
+    const colorContainer = screen.getByTitle("Kolor tekstu");
+    const toggleButton = colorContainer.querySelector("button")!;
+    fireEvent.click(toggleButton);
+    const colorBtn = screen.getByText("#000000").closest("button")!;
+    fireEvent.click(colorBtn);
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("closes color dropdown after clicking 'Domyślny'", () => {
+    render(<NoteEditor content="" onContentChange={vi.fn()} />);
+    const colorContainer = screen.getByTitle("Kolor tekstu");
+    const toggleButton = colorContainer.querySelector("button")!;
+    fireEvent.click(toggleButton);
+    fireEvent.click(screen.getByText("Domyślny"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 });

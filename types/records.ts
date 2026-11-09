@@ -1,0 +1,116 @@
+import type { Timestamp } from "firebase-admin/firestore";
+
+export type DocumentRecord = {
+  id: string;
+  name: string;
+  content: string;
+  type: string;
+  created_at?: string;
+  createdAt?: Timestamp;
+};
+
+export type NoteRecord = {
+  id: string;
+  title: string;
+  content: string;
+  created_at?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type ChunkRecord = {
+  id: string;
+  content: string;
+  documentId?: string;
+  noteId?: string;
+  sourceName?: string;
+  noteTitle?: string;
+};
+
+export interface NoteResourceRecord {
+  id: string;
+  noteId?: string; // opcjonalne – zasoby są na poziomie użytkownika, nie notatki
+  userId: string;
+  description: string;
+  url: string;
+  title: string;
+  thumbnailUrl?: string;
+  tags: string[];
+  isFavorite?: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** Stored events are work | meeting; createCalendarEvent does not persist task_deadline. */
+export type CalendarEventRecord = {
+  id: string;
+  date: string; // YYYY-MM-DD (date-only, user's day)
+  start_minutes: number;
+  duration_minutes: number;
+  title: string;
+  tags: string[];
+  color: string;
+  type: "work" | "meeting";
+  created_at?: string;
+  createdAt?: Timestamp;
+};
+
+/** API and UI calendar event; task_deadline is synthesized by calendarService and is not a Firestore write. */
+export type CalendarEvent = Omit<CalendarEventRecord, "type" | "createdAt"> & {
+  type: "work" | "meeting" | "task_deadline";
+};
+
+export type TaskRecord = {
+  id: string;
+  title: string;
+  link: string;
+  description: string;
+  status: "todo" | "in_progress" | "to_review" | "done";
+  due_date: string | null;
+  priority: number | null;
+  order?: number;
+  created_at?: string;
+  updated_at?: string;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
+};
+
+export type UserTagRecord = {
+  id: string;
+  tag: string;
+  title: string;
+  color?: string;
+  created_at?: string;
+  createdAt?: Timestamp;
+};
+
+export type TaskTemplateRecord = {
+  id: string;
+  label: string;
+  title: string;
+  link: string;
+  created_at?: string;
+  createdAt?: Timestamp;
+};
+
+export interface MindMap {
+  id: string;
+  userId: string;
+  title: string;
+  rootNode: MindMapNode;
+  /** Column widths in px per depth level. */
+  colWidths: Record<number, number>;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
+export interface MindMapNode {
+  /** Unique within a mind map (use nanoid()). */
+  id: string;
+  label: string;
+  /** Rich text (TipTap JSON or HTML depending on editor implementation). */
+  note: string;
+  /** UI state persisted in the document. */
+  collapsed: boolean;
+  children: MindMapNode[];
+}

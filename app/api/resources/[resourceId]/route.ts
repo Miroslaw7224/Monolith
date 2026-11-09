@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
 import { parseBody } from "@/lib/parseBody";
-import { UpdateResourceBodySchema } from "@/src/components/resources/resourceTypes";
+import { UpdateResourceBodySchema } from "@/lib/validation/resources";
 import * as resourceService from "@/services/resourceService";
 
 export async function PUT(

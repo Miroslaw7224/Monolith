@@ -19,18 +19,57 @@ vi.mock("motion/react", () => ({
 beforeEach(() => cleanup());
 
 test("renders logout button when open", () => {
-  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} onLogout={vi.fn()} lang="pl" />);
+  render(
+    <MobileMoreDrawer
+      isOpen={true}
+      onClose={vi.fn()}
+      onLogout={vi.fn()}
+      lang="pl"
+      onSelectTab={vi.fn()}
+    />
+  );
   expect(screen.getByText("Wyloguj")).toBeInTheDocument();
 });
 
 test("calls onClose when backdrop clicked", () => {
   const onClose = vi.fn();
-  render(<MobileMoreDrawer isOpen={true} onClose={onClose} onLogout={vi.fn()} lang="pl" />);
+  render(
+    <MobileMoreDrawer
+      isOpen={true}
+      onClose={onClose}
+      onLogout={vi.fn()}
+      lang="pl"
+      onSelectTab={vi.fn()}
+    />
+  );
   fireEvent.click(screen.getByTestId("drawer-backdrop"));
   expect(onClose).toHaveBeenCalled();
 });
 
 test("does not render content when closed", () => {
-  render(<MobileMoreDrawer isOpen={false} onClose={vi.fn()} onLogout={vi.fn()} lang="pl" />);
+  render(
+    <MobileMoreDrawer
+      isOpen={false}
+      onClose={vi.fn()}
+      onLogout={vi.fn()}
+      lang="pl"
+      onSelectTab={vi.fn()}
+    />
+  );
   expect(screen.queryByText("Wyloguj")).not.toBeInTheDocument();
+});
+
+test("calls onSelectTab for resources", () => {
+  const onSelectTab = vi.fn();
+  render(
+    <MobileMoreDrawer
+      isOpen={true}
+      onClose={vi.fn()}
+      onLogout={vi.fn()}
+      lang="pl"
+      onSelectTab={onSelectTab}
+    />
+  );
+  fireEvent.click(screen.getByText("Zasoby"));
+  expect(onSelectTab).toHaveBeenCalledWith("resources");
 });

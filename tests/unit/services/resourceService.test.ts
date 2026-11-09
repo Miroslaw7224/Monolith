@@ -42,7 +42,7 @@ describe("resourceService", () => {
 
   describe("addResource", () => {
     it("fetches metadata and delegates to Firestore", async () => {
-      const saved: NoteResourceRecord = {
+      const saved = {
         id: "r1",
         userId: "u1",
         description: "d",
@@ -50,7 +50,7 @@ describe("resourceService", () => {
         title: "Page Title",
         thumbnailUrl: "https://x/img.png",
         tags: ["a"],
-      };
+      } as NoteResourceRecord;
       mockAdd.mockResolvedValue(saved);
 
       const result = await addResource("u1", {
@@ -109,7 +109,7 @@ describe("resourceService", () => {
   });
 
   describe("searchResources", () => {
-    const samples: NoteResourceRecord[] = [
+    const samples = [
       {
         id: "1",
         userId: "u1",
@@ -126,7 +126,7 @@ describe("resourceService", () => {
         title: "Vue guide",
         tags: ["framework"],
       },
-    ];
+    ] as NoteResourceRecord[];
 
     it("returns all when keywords empty", async () => {
       mockGetAll.mockResolvedValue(samples);

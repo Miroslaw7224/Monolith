@@ -47,19 +47,6 @@ function getFirestore(): admin.firestore.Firestore {
 }
 
 /**
- * Check if Firestore is configured (env vars or credentials file present, or emulator).
- */
-export function isFirestoreConfigured(): boolean {
-  if (process.env.FIRESTORE_EMULATOR_HOST) return true;
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) return true;
-  return !!(
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY
-  );
-}
-
-/**
  * Get Firebase Auth (for migration script: createUser, getUserByEmail, etc.).
  * Ensures Admin is initialized (via getFirestore).
  */

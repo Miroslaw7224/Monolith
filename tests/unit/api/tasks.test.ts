@@ -28,6 +28,7 @@ const fakeTask = {
   userId: "user-1",
   title: "Napisać testy",
   description: "",
+  link: "",
   status: "todo" as const,
   due_date: null,
   priority: null,

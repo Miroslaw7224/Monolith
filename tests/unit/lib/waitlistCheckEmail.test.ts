@@ -16,7 +16,7 @@ describe("lib/waitlistCheckEmail", () => {
   it("parseWaitlistCheckEmailParam rejects empty", () => {
     const r = parseWaitlistCheckEmailParam(null);
     expect(r.ok).toBe(false);
-    if (!r.ok) {
+    if (r.ok === false) {
       expect(r.status).toBe(400);
       expect(r.body.error).toContain("email");
     }
@@ -26,7 +26,7 @@ describe("lib/waitlistCheckEmail", () => {
   it("parseWaitlistCheckEmailParam rejects invalid format", () => {
     const r = parseWaitlistCheckEmailParam("bad");
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.body.allowed).toBe(false);
+    if (r.ok === false) expect(r.body.allowed).toBe(false);
   });
 
   it("parseWaitlistCheckEmailParam normalizes email to lower case", () => {

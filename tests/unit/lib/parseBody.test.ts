@@ -27,7 +27,7 @@ describe("lib/parseBody", () => {
     const result = await parseBody(req, schema);
 
     expect(result.success).toBe(false);
-    if (!result.success) {
+    if (result.success === false) {
       expect(result.response.status).toBe(400);
       const body = await result.response.json();
       expect(body.error).toBeDefined();
@@ -45,7 +45,7 @@ describe("lib/parseBody", () => {
     const result = await parseBody(req, schema);
 
     expect(result.success).toBe(false);
-    if (!result.success) {
+    if (result.success === false) {
       expect(result.response.status).toBe(400);
       const body = await result.response.json();
       expect(body.details).toBeDefined();

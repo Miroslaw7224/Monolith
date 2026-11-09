@@ -7,11 +7,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Brain, Loader2 } from "lucide-react";
 import { getFirebaseAuth } from "./lib/firebase-client";
 import { translations } from "@/src/translations";
-import WiedzaView from "@/src/features/wiedza/WiedzaView";
 import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
 import HomeView from "@/src/features/home/HomeView";
 import { MobileNav } from "@/src/components/layout/MobileNav";
 import { MobileMoreDrawer } from "@/src/components/layout/MobileMoreDrawer";
+import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -55,7 +55,8 @@ export default function App({ authenticated = false }: AppProps = {}) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [authError, setAuthError] = useState("");
-  const [appMode, setAppMode] = useState<"home" | "wiedza" | "planowanie">("home");
+  const [appMode, setAppMode] = useState<"home" | "planowanie">("home");
+  const [planningTab, setPlanningTab] = useState<PlanningTab>("tasks");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
   const [checkingWaitlist, setCheckingWaitlist] = useState(false);
@@ -311,19 +312,8 @@ export default function App({ authenticated = false }: AppProps = {}) {
           setIsSidebarOpen={setIsSidebarOpen}
           appMode={appMode}
           setAppMode={setAppMode}
-          onLogout={handleLogout}
-          setLang={setLang}
-        />
-      ) : appMode === "wiedza" ? (
-        <WiedzaView
-          user={user}
-          apiFetch={apiFetch}
-          lang={lang}
-          t={t}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          appMode={appMode}
-          setAppMode={setAppMode}
+          planningTab={planningTab}
+          setPlanningTab={setPlanningTab}
           onLogout={handleLogout}
           setLang={setLang}
         />
@@ -337,6 +327,8 @@ export default function App({ authenticated = false }: AppProps = {}) {
           setIsSidebarOpen={setIsSidebarOpen}
           appMode={appMode}
           setAppMode={setAppMode}
+          planningTab={planningTab}
+          setPlanningTab={setPlanningTab}
           onLogout={handleLogout}
           setLang={setLang}
         />
@@ -344,6 +336,8 @@ export default function App({ authenticated = false }: AppProps = {}) {
       <MobileNav
         appMode={appMode}
         setAppMode={setAppMode}
+        planningTab={planningTab}
+        setPlanningTab={setPlanningTab}
         lang={lang}
         onMoreOpen={() => setMoreDrawerOpen(true)}
       />
@@ -352,6 +346,11 @@ export default function App({ authenticated = false }: AppProps = {}) {
         onClose={() => setMoreDrawerOpen(false)}
         onLogout={handleLogout}
         lang={lang}
+        onSelectTab={(tab) => {
+          setPlanningTab(tab);
+          setAppMode("planowanie");
+          setMoreDrawerOpen(false);
+        }}
       />
     </div>
   );

@@ -1,14 +1,9 @@
 import React, { useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { CALENDAR_COLORS } from "./calendarConstants";
+import type { UserTagRecord } from "@/types/records";
 
-export interface UserTag {
-  id: string;
-  tag: string;
-  title: string;
-  color?: string;
-  created_at?: string;
-}
+export type UserTag = Omit<UserTagRecord, "createdAt">;
 
 type TranslationDict = Record<string, string | string[]>;
 

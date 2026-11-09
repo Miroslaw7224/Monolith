@@ -14,17 +14,7 @@ import { formatDuration, CALENDAR_COLORS } from "./calendarConstants";
 import type { UserTag } from "./TagsSection";
 import { eventMinutesInInclusiveRange } from "@/lib/calendarRange";
 import type { ActiveSession } from "@/src/lib/activeSession";
-
-export interface CalendarEvent {
-  id: string;
-  date: string;
-  start_minutes: number;
-  duration_minutes: number;
-  title: string;
-  tags: string[];
-  color: string;
-  created_at?: string;
-}
+import type { CalendarEvent } from "@/types/records";
 
 type TranslationDict = Record<string, string | string[]>;
 
@@ -65,10 +55,12 @@ export function ActivityLog({
         if (!cancelled)
           setEvents(
             Array.isArray(data)
-              ? data.sort(
-                  (a: CalendarEvent, b: CalendarEvent) =>
-                    a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
-                )
+              ? data
+                  .filter((ev: CalendarEvent) => !ev.id.startsWith("task:"))
+                  .sort(
+                    (a: CalendarEvent, b: CalendarEvent) =>
+                      a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
+                  )
               : []
           );
       })

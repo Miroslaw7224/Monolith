@@ -2,7 +2,7 @@
 
 ## Status
 
-Zaakceptowany, **wdrożony** (luty 2026)
+Częściowo unieważniony — moduł Wiedza został usunięty z aplikacji; Planowanie (kalendarz, zadania, tagi, notatki, zasoby, mapy myśli) pozostaje jako główny i jedyny moduł funkcjonalny obok Home. Dokument zachowany jako zapis historycznej decyzji o rozdzieleniu modułów.
 
 ## Kontekst
 

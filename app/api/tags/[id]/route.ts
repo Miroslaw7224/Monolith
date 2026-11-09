@@ -1,19 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
+import { parseBody } from "@/lib/parseBody";
+import { UpdateTagBodySchema } from "@/lib/validation/tags";
 import * as tagService from "@/services/tagService";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await getAuthUserId(request);
   if (auth instanceof NextResponse) return auth;
   const { id } = await params;
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const { tag, title, color } = body as { tag?: string; title?: string; color?: string };
+
+  const parsed = await parseBody(request, UpdateTagBodySchema, { details: false });
+  if (parsed.success === false) return parsed.response;
+
+  const { tag, title, color } = parsed.data;
   try {
     await tagService.updateUserTag(auth.uid, id, {
       tag: typeof tag === "string" ? tag.trim() : undefined,

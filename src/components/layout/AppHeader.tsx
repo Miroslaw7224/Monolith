@@ -9,8 +9,6 @@ import { cn } from "@/src/lib/cn";
 import { ThemeToggle } from "@/src/components/theme/ThemeToggle";
 
 export interface AppHeaderTranslations {
-  modeWiedza: string;
-  modePlanowanie: string;
   brainActive: string;
   searchPlaceholder: string;
   feedback: string;
@@ -19,18 +17,10 @@ export interface AppHeaderTranslations {
 export interface AppHeaderProps {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
-  appMode: "home" | "wiedza" | "planowanie";
-  setAppMode: (mode: "home" | "wiedza" | "planowanie") => void;
   t: AppHeaderTranslations;
 }
 
-export function AppHeader({
-  isSidebarOpen,
-  setIsSidebarOpen,
-  appMode,
-  setAppMode,
-  t,
-}: AppHeaderProps) {
+export function AppHeader({ isSidebarOpen, setIsSidebarOpen, t }: AppHeaderProps) {
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   return (
     <>
@@ -44,30 +34,6 @@ export function AppHeader({
               className={cn("w-5 h-5 transition-transform", isSidebarOpen && "rotate-180")}
             />
           </button>
-          <div className="hidden md:flex bg-[var(--toggle-bg)] p-1 rounded-xl border border-[var(--border)]">
-            <button
-              onClick={() => setAppMode("wiedza")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all",
-                appMode === "wiedza"
-                  ? "bg-[var(--surface)] shadow-[var(--shadow-sm)] text-[var(--text)]"
-                  : "text-[var(--text2)] hover:text-[var(--text)]"
-              )}
-            >
-              {t.modeWiedza}
-            </button>
-            <button
-              onClick={() => setAppMode("planowanie")}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-semibold transition-all",
-                appMode === "planowanie"
-                  ? "bg-[var(--surface)] shadow-[var(--shadow-sm)] text-[var(--text)]"
-                  : "text-[var(--text2)] hover:text-[var(--text)]"
-              )}
-            >
-              {t.modePlanowanie}
-            </button>
-          </div>
           <div className="hidden md:flex items-center gap-2 ml-2">
             <div className="w-2 h-2 bg-[var(--green)] rounded-full animate-pulse" />
             <span className="text-sm font-semibold text-[var(--text)]">{t.brainActive}</span>

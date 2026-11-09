@@ -1,29 +1,11 @@
 import * as firestoreDb from "@/lib/firestore-db";
 import * as tagService from "@/services/tagService";
 import { generateContent } from "@/lib/gemini";
+import { formatYmd, weekRangeMonSun } from "@/lib/dateRef";
 
 const RAG_PLAN_MODEL = "gemini-2.5-flash";
 
 const PLAN_EVENT_DAY_RADIUS = 60;
-
-function formatYmd(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/** Monday–Sunday (local), for "this week" in prompts */
-function weekRangeMonSun(now: Date): { start: string; end: string } {
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dow = d.getDay(); // 0 Sun … 6 Sat
-  const daysFromMonday = (dow + 6) % 7;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - daysFromMonday);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { start: formatYmd(monday), end: formatYmd(sunday) };
-}
 
 const SYSTEM_INSTRUCTION_PL = `Jesteś asystentem planowania. Masz listę wpisów kalendarza użytkownika (data, godzina, czas w min, tytuł, tagi).
 W każdej wiadomości podana jest lista istniejących tagów użytkownika. Gdy użytkownik podaje tag (np. #vibe coding, #Vibe Coding), użyj DOKŁADNIE nazwy z tej listy (dopasowanie bez względu na wielkość liter). Jeśli użytkownik poda tag, którego nie ma na liście (np. zupełnie nowy temat), wpisz go w JSON tak jak podał; system zapyta wtedy, czy dodać nowy tag.

@@ -1,0 +1,537 @@
+import { DEFAULT_COL_W, MAX_COL_W, MIN_COL_W } from "@/src/features/mind-maps/mindMapTypes";
+
+export const MIND_MAP_EXPORT_CSS = `
+:root{
+  --bg:#0d0d0f;
+  --bg2:#131316;
+  --bg3:#1a1a1f;
+  --surface:#1e1e24;
+  --border:rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.12);
+  --text:#f0eee8;
+  --text2:rgba(240,238,232,0.55);
+  --text3:rgba(240,238,232,0.28);
+  --accent:#7c6dff;
+  --accent2:#a395ff;
+  --accent-bg:rgba(124,109,255,0.1);
+  --accent-border:rgba(124,109,255,0.25);
+  --green:#34d399;
+  --note-dot:#0ea5e9;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#fafaf8;
+    --bg2:#f4f3f0;
+    --bg3:#eeecea;
+    --surface:#ffffff;
+    --border:rgba(0,0,0,0.07);
+    --border2:rgba(0,0,0,0.12);
+    --text:#111110;
+    --text2:rgba(17,17,16,0.55);
+    --text3:rgba(17,17,16,0.3);
+    --accent:#5b4fff;
+    --accent2:#4338ca;
+    --accent-bg:rgba(91,79,255,0.06);
+    --accent-border:rgba(91,79,255,0.2);
+    --green:#059669;
+    --note-dot:#0369a1;
+  }
+}
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+#header{
+  padding:16px 24px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-shrink:0;
+}
+#header span{
+  font-weight:700;
+  color:var(--text);
+  font-size:16px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tbtn{
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text2);
+  font-weight:600;
+  font-size:13px;
+  border-radius:12px;
+  padding:10px 12px;
+  cursor:pointer;
+  transition: background .15s, border-color .15s;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.tbtn:hover{ background:var(--bg2); }
+.tbtn:active{ transform: translateY(0.5px); }
+#header .tbar{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+
+#tree{
+  padding:24px;
+  overflow:auto;
+  flex:1;
+  min-height:0;
+}
+#panel{
+  height:224px; /* ~h-56 from Tailwind (14rem) */
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  display:flex;
+  overflow:hidden;
+}
+#panel-left{
+  width:240px; /* w-60 */
+  flex-shrink:0;
+  border-right:1px solid var(--border);
+  padding:16px;
+  overflow:hidden;
+}
+#panel-right{
+  flex:1;
+  min-width:0;
+  padding:16px;
+  overflow:auto;
+}
+.panel-hint{
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  color:var(--text3);
+  font-weight:700;
+  text-align:center;
+  padding:8px;
+}
+.panel-sec-title{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  color:var(--text3);
+  font-weight:800;
+  margin-bottom:10px;
+}
+#selected-node-title{
+  font-weight:700;
+  font-size:14px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.panel-count{
+  margin-top:6px;
+  font-size:12px;
+  color:var(--text3);
+}
+.notes{
+  font-size:13px;
+  line-height:1.6;
+}
+.notes p{ margin:0 0 12px; }
+.notes p:last-child{ margin-bottom:0; }
+.notes ul,.notes ol{ padding-left:20px; margin:0 0 12px; }
+.notes ul:last-child,.notes ol:last-child{ margin-bottom:0; }
+.notes li{ margin:0 0 6px; }
+.notes li:last-child{ margin-bottom:0; }
+.notes code{
+  background:var(--bg3);
+  padding:2px 6px;
+  border-radius:8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size:12px;
+}
+
+.node-pill{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 10px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  transition: background .15s, border-color .15s;
+  user-select:none;
+  flex-shrink:0;
+}
+.node-pill:hover{ background:var(--bg2); }
+.node-pill.selected{
+  border-color:var(--accent);
+  background:var(--bg2);
+}
+.chev-btn{
+  width:24px;
+  height:24px;
+  border:none;
+  background:transparent;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text2);
+  padding:0;
+  flex-shrink:0;
+  cursor:pointer;
+}
+.chev-btn.hasKids:hover{ background:var(--bg3); }
+.chev-btn.noKids{
+  opacity:0;
+  pointer-events:none;
+  cursor:default;
+}
+.chev-svg{
+  width:12px;
+  height:12px;
+  display:block;
+  transition: transform .15s;
+  color: currentColor;
+}
+.node-label{
+  width:100%;
+  text-align:left;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:14px;
+}
+.node-label.root{
+  font-weight:800;
+  color:var(--accent);
+}
+.node-label.branch{
+  font-weight:700;
+  color:var(--text);
+}
+.node-label.leaf{
+  font-weight:400;
+  color:var(--text);
+}
+.note-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:var(--note-dot);
+  flex-shrink:0;
+}
+.resize-handle{
+  position:absolute;
+  right:0;
+  top:0;
+  height:100%;
+  width:12px;
+  cursor:col-resize;
+  opacity:0;
+  transition: opacity .15s;
+}
+.node-pill:hover .resize-handle{ opacity:1; }
+.resize-bar{
+  position:absolute;
+  right:5px;
+  top:50%;
+  transform: translateY(-50%);
+  width:2px;
+  height:22px;
+  border-radius:2px;
+  background:var(--border2);
+}
+`;
+
+function buildMindMapExportJs(rootJson: string, colWidthsJson: string): string {
+  return `
+  const ROW_H = 38;
+  const GAP_H = 8;
+  const CONN = 24;
+  const DEFAULT_COL_W = ${DEFAULT_COL_W};
+  const MIN_COL_W = ${MIN_COL_W};
+  const MAX_COL_W = ${MAX_COL_W};
+
+  let T = ${rootJson};
+  let colWidths = ${colWidthsJson};
+  let selId = null;
+  const ROOT_ID = T?.id;
+
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+  function esc(s){
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function findNode(root, id){
+    if (!root) return null;
+    if (root.id === id) return root;
+    for (const c of (root.children || [])) {
+      const f = findNode(c, id);
+      if (f) return f;
+    }
+    return null;
+  }
+
+  function leafCount(node){
+    if (!node) return 1;
+    if (!node.children || node.children.length === 0 || node.collapsed) return 1;
+    return node.children.reduce((sum, c) => sum + leafCount(c), 0);
+  }
+
+  function getColW(depth){
+    const w = (colWidths && typeof colWidths[depth] === "number") ? colWidths[depth] : DEFAULT_COL_W;
+    return clamp(w, MIN_COL_W, MAX_COL_W);
+  }
+
+  function makePill(node, isRoot, depth){
+    const colW = getColW(depth);
+    const sel = selId === node.id;
+    const hasKids = (node.children && node.children.length > 0);
+
+    const lblType = isRoot ? "root" : hasKids ? "branch" : "leaf";
+    const rot = node.collapsed ? 0 : 90;
+    const dot = node.note ? '<div class="note-dot"></div>' : "";
+
+    return \`
+      <div class="node-pill\${sel ? " selected" : ""}"
+        data-id="\${node.id}"
+        data-depth="\${depth}"
+        style="width:\${colW}px;height:\${ROW_H}px"
+        onclick="selNode(this.dataset.id, event)">
+        <button type="button"
+          class="chev-btn \${hasKids ? "hasKids" : "noKids"}"
+          onclick="event.preventDefault(); event.stopPropagation(); togColl(this.closest('.node-pill').dataset.id, event)">
+          <svg class="chev-svg" viewBox="0 0 6 9" fill="none" aria-hidden="true"
+            style="transform: rotate(\${rot}deg);">
+            <path d="M1 1l4 3.5L1 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div class="node-label \${lblType}" title="\${esc(node.label)}">\${esc(node.label)}</div>
+        \${dot}
+        <div class="resize-handle" data-depth="\${depth}" onmousedown="startResize(event, \${depth}); event.stopPropagation();" title="Resize column">
+          <div class="resize-bar"></div>
+        </div>
+      </div>
+    \`;
+  }
+
+  function renderLevel(node, isRoot, depth){
+    const lc = leafCount(node);
+    const totalH = lc * ROW_H + (lc - 1) * GAP_H;
+    const hasKids = node.children && node.children.length > 0 && !node.collapsed;
+
+    const pill = makePill(node, isRoot, depth);
+    if (!hasKids) {
+      return \`<div style="height:\${ROW_H}px;display:flex;align-items:center">\${pill}</div>\`;
+    }
+
+    const firstLC = leafCount(node.children[0]);
+    const lastLC = leafCount(node.children[node.children.length - 1]);
+    const vTop = (firstLC * ROW_H + (firstLC - 1) * GAP_H) / 2;
+    const vBot = totalH - (lastLC * ROW_H + (lastLC - 1) * GAP_H) / 2;
+    const vH = Math.max(0, vBot - vTop);
+    const half = CONN / 2;
+
+    const kidsHTML = node.children.map((c, i) => {
+      const clc = leafCount(c);
+      const slotH = clc * ROW_H + (clc - 1) * GAP_H;
+      const mt = i > 0 ? \`margin-top:\${GAP_H}px\` : "";
+      return \`
+        <div style="height:\${slotH}px;\${mt};display:flex;align-items:center">
+          <div style="width:\${half}px;height:1px;background:var(--border);flex-shrink:0"></div>
+          \${renderLevel(c, false, depth + 1)}
+        </div>
+      \`;
+    }).join("");
+
+    return \`
+      <div style="height:\${totalH}px;display:flex;align-items:center">
+        \${pill}
+        <div style="width:\${CONN}px;flex-shrink:0;height:\${totalH}px;position:relative">
+          <div style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:\${half}px;height:1px;background:var(--border)"></div>
+          <div style="position:absolute;left:\${half}px;top:\${vTop}px;width:1px;height:\${vH}px;background:var(--border)"></div>
+        </div>
+        <div style="height:\${totalH}px;display:flex;flex-direction:column">\${kidsHTML}</div>
+      </div>
+    \`;
+  }
+
+  function renderPanel(){
+    const panel = document.getElementById("panel");
+    if (!panel) return;
+    if (!selId) {
+      panel.innerHTML = "Kliknij węzeł aby zobaczyć notatki";
+      return;
+    }
+    const node = findNode(T, selId);
+    if (!node) {
+      panel.innerHTML = "Kliknij węzeł aby zobaczyć notatki";
+      return;
+    }
+
+    const notesHTML = node.note ? node.note : "";
+    panel.innerHTML = \`
+      <div id="panel-left">
+        <div class="panel-sec-title">Wybrany węzeł</div>
+        <div id="selected-node-title" title="\${esc(node.label)}">\${esc(node.label)}</div>
+        <div class="panel-count">\${(node.children && node.children.length) ? node.children.length : 0} elementów</div>
+      </div>
+      <div id="panel-right">
+        <div class="panel-sec-title" style="margin-bottom:12px;">Notatki</div>
+        <div class="notes" id="notes">\${notesHTML || ""}</div>
+        \${notesHTML ? "" : '<div class="panel-count" style="margin-top:0; color: var(--text3);">Brak notatek</div>'}
+      </div>
+    \`;
+  }
+
+  function render(){
+    const tree = document.getElementById("tree");
+    if (!tree) return;
+    tree.innerHTML = \`
+      <div style="display:inline-flex;align-items:center;min-width:max-content">
+        \${renderLevel(T, true, 0)}
+      </div>
+    \`;
+    renderPanel();
+  }
+
+  function togColl(id, e){
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!id) return;
+    function rec(n){
+      if (!n) return false;
+      if (n.id === id) {
+        if (n.children && n.children.length > 0) n.collapsed = !n.collapsed;
+        return true;
+      }
+      for (const c of (n.children || [])) {
+        if (rec(c)) return true;
+      }
+      return false;
+    }
+    rec(T);
+    render();
+  }
+
+  function collapseAll(){
+    function rec(n){
+      if (!n) return;
+      if (n.id === ROOT_ID) { n.collapsed = false; }
+      else { n.collapsed = (n.children && n.children.length > 0); }
+      (n.children || []).forEach(rec);
+    }
+    rec(T);
+    render();
+  }
+
+  function expandAll(){
+    function rec(n){
+      if (!n) return;
+      n.collapsed = false;
+      (n.children || []).forEach(rec);
+    }
+    rec(T);
+    render();
+  }
+
+  function selNode(id, e){
+    if (e && e.stopPropagation) e.stopPropagation();
+    selId = id;
+    render();
+  }
+
+  // Resize logic (per-depth column widths)
+  let resizing = null;
+  function startResize(e, depth){
+    if (!e) return;
+    e.preventDefault();
+    e.stopPropagation();
+    resizing = { depth, startX: e.clientX, startW: getColW(depth) };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    // Ensure the handle doesn't capture further pointer events.
+    document.querySelectorAll(\`.resize-handle[data-depth="\${depth}"]\`).forEach((el) => el.classList.add("active"));
+  }
+
+  document.addEventListener("mousemove", (e) => {
+    if (!resizing) return;
+    const dx = e.clientX - resizing.startX;
+    const nextW = clamp(resizing.startW + dx, MIN_COL_W, MAX_COL_W);
+    if (!colWidths) colWidths = {};
+    colWidths[resizing.depth] = nextW;
+
+    document.querySelectorAll(\`.node-pill[data-depth="\${resizing.depth}"]\`).forEach((el) => {
+      el.style.width = nextW + "px";
+    });
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (!resizing) return;
+    resizing = null;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+    render();
+  });
+
+  // Expose globals for inline handlers
+  window.togColl = togColl;
+  window.collapseAll = collapseAll;
+  window.expandAll = expandAll;
+  window.selNode = selNode;
+  window.startResize = startResize;
+
+  // Init
+  render();
+`;
+}
+
+export function buildMindMapExportHtmlDocument(
+  title: string,
+  rootJson: string,
+  colWidthsJson: string,
+): string {
+  const css = MIND_MAP_EXPORT_CSS;
+  const js = buildMindMapExportJs(rootJson, colWidthsJson);
+
+  return `<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+  <style>${css}</style>
+</head>
+<body>
+  <div id="header">
+    <span>${title}</span>
+    <div class="tbar">
+      <button class="tbtn" onclick="collapseAll()">Zwiń wszystko</button>
+      <button class="tbtn" onclick="expandAll()">Rozwiń wszystko</button>
+    </div>
+  </div>
+  <div id="tree"></div>
+  <div id="panel">Kliknij węzeł aby zobaczyć notatki</div>
+  <script>
+${js}
+  </script>
+</body>
+</html>`;
+}

@@ -5,12 +5,12 @@ import { StartSessionModal } from "./StartSessionModal";
 import { CALENDAR_COLORS } from "./calendarConstants";
 import {
   type CalendarEvent,
-  getDaysInMonth,
   MONTH_NAMES,
   DAY_NAMES,
   expandEventToSegments,
 } from "./calendar/calendarUtils";
 import { CalendarDayColumn } from "./calendar/CalendarDayColumn";
+import { useCalendarData } from "./calendar/useCalendarData";
 import type { UserTag } from "./TagsSection";
 import type { ActiveSession } from "@/src/lib/activeSession";
 
@@ -31,6 +31,7 @@ interface CalendarViewProps {
   onEndSession?: () => void | Promise<void>;
   sessionEndError?: string | null;
   clearSessionEndError?: () => void;
+  onOpenTaskDeadline?: (taskId: string) => void;
 }
 
 export function CalendarView({
@@ -44,12 +45,21 @@ export function CalendarView({
   onEndSession,
   sessionEndError = null,
   clearSessionEndError,
+  onOpenTaskDeadline,
 }: CalendarViewProps) {
   const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    viewYear,
+    viewMonth,
+    events,
+    setEvents,
+    loading,
+    days,
+    startDate,
+    endDate,
+    handlePrevMonth,
+    handleNextMonth,
+  } = useCalendarData(apiFetch, refreshTrigger);
   const [modalOpen, setModalOpen] = useState(false);
   const [startSessionModalOpen, setStartSessionModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
@@ -70,28 +80,6 @@ export function CalendarView({
   }, []);
 
   const monthLabel = MONTH_NAMES[lang][viewMonth];
-  const days = getDaysInMonth(viewYear, viewMonth);
-  const startDate = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-01`;
-  const endDate = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(days.length).padStart(2, "0")}`;
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    apiFetch(`/api/calendar/events?startDate=${startDate}&endDate=${endDate}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) setEvents(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setEvents([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [startDate, endDate, apiFetch, refreshTrigger]);
 
   const eventSegments = useMemo(() => events.flatMap((e) => expandEventToSegments(e)), [events]);
 
@@ -109,24 +97,6 @@ export function CalendarView({
     }
   }
 
-  const handlePrevMonth = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
-  };
-
   const handleOpenAdd = (date: string) => {
     setAddDate(date);
     setEditingEvent(null);
@@ -135,6 +105,10 @@ export function CalendarView({
   };
 
   const handleOpenEdit = (ev: CalendarEvent) => {
+    if (ev.type === "task_deadline") {
+      onOpenTaskDeadline?.(ev.id.replace(/^task:/, ""));
+      return;
+    }
     setEditingEvent(ev);
     setAddDate(null);
     setSaveError(null);
@@ -362,6 +336,7 @@ export function CalendarView({
                       duration_minutes: editingEvent.duration_minutes,
                       title: editingEvent.title,
                       tags: editingEvent.tags,
+                      type: editingEvent.type === "meeting" ? "meeting" : "work",
                     }
                   : addDate
                     ? {
@@ -370,6 +345,7 @@ export function CalendarView({
                         duration_minutes: 60,
                         title: "",
                         tags: [],
+                        type: "work",
                       }
                     : undefined
               }

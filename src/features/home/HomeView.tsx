@@ -17,15 +17,24 @@ import {
   type AppSidebarTranslations,
 } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
+import {
+  PlanowanieSidebarContent,
+  type PlanningTab,
+} from "@/src/features/planowanie/PlanowanieSidebarContent";
 
 type T = (typeof translations)["en"];
 
-interface KnowledgeNode {
+interface HomeTask {
   id: string;
-  type: "note" | "task" | "resource" | "chat" | "document" | "event";
   title: string;
-  content: string;
-  dueDate?: string;
+  status: string;
+  due_date?: string | null;
+}
+
+interface HomeEvent {
+  id: string;
+  title: string;
+  date: string;
 }
 
 interface HomeViewProps {
@@ -35,8 +44,10 @@ interface HomeViewProps {
   t: T;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
-  appMode: "home" | "wiedza" | "planowanie";
-  setAppMode: (mode: "home" | "wiedza" | "planowanie") => void;
+  appMode: "home" | "planowanie";
+  setAppMode: (mode: "home" | "planowanie") => void;
+  planningTab: PlanningTab;
+  setPlanningTab: (tab: PlanningTab) => void;
   onLogout: () => void;
   setLang: (lang: "en" | "pl") => void;
 }
@@ -60,10 +71,16 @@ export default function HomeView({
   setIsSidebarOpen,
   appMode,
   setAppMode,
+  planningTab,
+  setPlanningTab,
   onLogout,
   setLang,
 }: HomeViewProps) {
-  const [nodes, setNodes] = useState<KnowledgeNode[]>([]);
+  const [tasks, setTasks] = useState<HomeTask[]>([]);
+  const [events, setEvents] = useState<HomeEvent[]>([]);
+  const [notesCount, setNotesCount] = useState(0);
+  const [resourcesCount, setResourcesCount] = useState(0);
+  const [mindMapsCount, setMindMapsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [userTags, setUserTags] = useState<UserTag[]>([]);
   const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
@@ -71,10 +88,33 @@ export default function HomeView({
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch("/api/knowledge/nodes")
-      .then((r) => r.json())
-      .then((data) => setNodes(Array.isArray(data) ? data : []))
-      .catch(() => setNodes([]))
+    const today = todayISO();
+    const limit48h = in48hISO();
+    setLoading(true);
+    Promise.all([
+      apiFetch("/api/tasks")
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+      apiFetch(`/api/calendar/events?startDate=${today}&endDate=${limit48h}`)
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+      apiFetch("/api/notes")
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+      apiFetch("/api/resources")
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+      apiFetch("/api/mind-maps")
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+    ])
+      .then(([tasksData, eventsData, notesData, resourcesData, mindMapsData]) => {
+        setTasks(Array.isArray(tasksData) ? tasksData : []);
+        setEvents(Array.isArray(eventsData) ? eventsData : []);
+        setNotesCount(Array.isArray(notesData) ? notesData.length : 0);
+        setResourcesCount(Array.isArray(resourcesData) ? resourcesData.length : 0);
+        setMindMapsCount(Array.isArray(mindMapsData) ? mindMapsData.length : 0);
+      })
       .finally(() => setLoading(false));
   }, [apiFetch]);
 
@@ -120,7 +160,7 @@ export default function HomeView({
         body: JSON.stringify({
           date: dateStr,
           start_minutes: startMinutes,
-          duration_minutes: durationMinutes,
+          duration_minutes: Math.max(15, durationMinutes),
           title: activeSession.title,
           tags: activeSession.tags,
           color: activeSession.color,
@@ -140,13 +180,17 @@ export default function HomeView({
   const today = todayISO();
   const limit48h = in48hISO();
 
-  const todayTasks = nodes.filter(
-    (n) => n.type === "task" && n.dueDate && n.dueDate.startsWith(today)
+  const todayTasks = tasks.filter(
+    (n) => n.due_date && n.due_date.startsWith(today) && n.status !== "done"
   );
-  const upcomingEvents = nodes.filter(
-    (n) => n.type === "event" && n.dueDate && n.dueDate >= today && n.dueDate <= limit48h
+  const upcomingEvents = events.filter(
+    (n) => n.date && n.date >= today && n.date <= limit48h && !n.id.startsWith("task:")
   );
-  const notesCount = nodes.filter((n) => n.type === "note").length;
+
+  const goToTab = (tab: PlanningTab) => {
+    setPlanningTab(tab);
+    setAppMode("planowanie");
+  };
 
   const greeting = `${t.homeGreeting}, ${user?.name?.split(" ")[0] ?? ""}`;
   const dateStr = new Date().toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {
@@ -173,41 +217,58 @@ export default function HomeView({
         onLogout={onLogout}
         documentsCount={0}
         t={sidebarT}
-        onGoHome={() => setAppMode("home")}
-        activeMode={appMode}
       >
-        {null}
+        <PlanowanieSidebarContent
+          planningTab={planningTab}
+          setPlanningTab={setPlanningTab}
+          activeMode={appMode}
+          onGoHome={() => setAppMode("home")}
+          onSelectTab={goToTab}
+          modePlanowanie={t.modePlanowanie}
+          tabHome={t.tabHome}
+          tabCalendar={t.tabCalendar}
+          tabActivity={t.tabActivity}
+          tabTasks={t.tabTasks}
+          tabTags={t.tabTags}
+          tabNotes={t.notesTab}
+          tabResources={(t.tabResources as string) ?? "Zasoby"}
+          tabMindMaps={(t.tabMindMaps as string) ?? "Mapy myśli"}
+        />
       </AppSidebar>
 
       <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
         <AppHeader
           isSidebarOpen={isSidebarOpen}
           setIsSidebarOpen={setIsSidebarOpen}
-          appMode={appMode}
-          setAppMode={setAppMode}
           t={{
-            modeWiedza: t.modeWiedza,
-            modePlanowanie: t.modePlanowanie,
             brainActive: t.brainActive,
             searchPlaceholder: t.searchPlaceholder,
             feedback: t.feedback,
           }}
         />
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[var(--bg)]">
-          {/* Greeting */}
           <div>
             <h2 className="text-xl font-bold text-[var(--text)]">{greeting} 👋</h2>
             <p className="text-sm text-[var(--text2)] mt-1">{dateStr}</p>
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
               { label: t.homeTodayTasks, value: todayTasks.length, color: "var(--accent)" },
               { label: t.homeUpcoming, value: upcomingEvents.length, color: "var(--green)" },
               {
                 label: lang === "pl" ? "Notatki" : "Notes",
                 value: notesCount,
+                color: "var(--text2)",
+              },
+              {
+                label: t.tabResources,
+                value: resourcesCount,
+                color: "var(--text2)",
+              },
+              {
+                label: t.tabMindMaps,
+                value: mindMapsCount,
                 color: "var(--text2)",
               },
             ].map(({ label, value, color }) => (
@@ -223,14 +284,13 @@ export default function HomeView({
             ))}
           </div>
 
-          {/* Today's tasks */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)]">
                 {t.homeTodayTasks}
               </h3>
               <button
-                onClick={() => setAppMode("planowanie")}
+                onClick={() => goToTab("tasks")}
                 className="text-xs text-[var(--accent)] hover:underline"
               >
                 {t.homeShowAll}
@@ -249,14 +309,13 @@ export default function HomeView({
                   >
                     <div className="w-4 h-4 rounded border-2 border-[var(--accent)] flex-shrink-0" />
                     <span className="text-sm text-[var(--text)] flex-1">{task.title}</span>
-                    <span className="text-xs text-[var(--accent)]">{task.dueDate}</span>
+                    <span className="text-xs text-[var(--accent)]">{task.due_date}</span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
 
-          {/* Upcoming events */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)] mb-3">
               {t.homeUpcoming}
@@ -274,24 +333,23 @@ export default function HomeView({
                   >
                     <div className="w-2 h-2 rounded-full bg-[var(--green)] flex-shrink-0" />
                     <span className="text-sm text-[var(--text)] flex-1">{ev.title}</span>
-                    <span className="text-xs text-[var(--text2)]">{ev.dueDate}</span>
+                    <span className="text-xs text-[var(--text2)]">{ev.date}</span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
 
-          {/* Quick actions */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)] mb-3">
               {t.homeQuickActions}
             </h3>
             <div className="flex flex-wrap gap-2">
               {[
-                { label: t.homeAddNote, action: () => setAppMode("wiedza") },
-                { label: t.homeAddTask, action: () => setAppMode("planowanie") },
-                { label: t.homeAskAI, action: () => setAppMode("wiedza") },
-                { label: t.homeSearch, action: () => setAppMode("wiedza") },
+                { label: t.homeAddNote, action: () => goToTab("notes") },
+                { label: t.homeAddTask, action: () => goToTab("tasks") },
+                { label: t.tabMindMaps, action: () => goToTab("mindmaps") },
+                { label: t.tabResources, action: () => goToTab("resources") },
               ].map(({ label, action }) => (
                 <button
                   key={label}
@@ -304,7 +362,6 @@ export default function HomeView({
             </div>
           </div>
 
-          {/* Activity log */}
           <div>
             <ActivityLog
               apiFetch={apiFetch}
@@ -316,6 +373,8 @@ export default function HomeView({
               onEndSession={handleEndSession}
             />
           </div>
+
+          {sessionEndError && <p className="text-sm text-red-500">{sessionEndError}</p>}
 
           {sessionModalOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

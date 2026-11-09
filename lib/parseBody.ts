@@ -7,7 +7,8 @@ import { z, ZodSchema } from "zod";
  */
 export async function parseBody<T>(
   request: Request,
-  schema: ZodSchema<T>
+  schema: ZodSchema<T>,
+  options?: { details?: boolean }
 ): Promise<{ success: true; data: T } | { success: false; response: NextResponse }> {
   let raw: unknown;
   try {
@@ -31,11 +32,13 @@ export async function parseBody<T>(
       ? "Validation failed"
       : "Invalid request body");
 
+  const body =
+    options?.details === false
+      ? { error: message }
+      : { error: message, details: firstError.fieldErrors };
+
   return {
     success: false,
-    response: NextResponse.json(
-      { error: message, details: firstError.fieldErrors },
-      { status: 400 }
-    ),
+    response: NextResponse.json(body, { status: 400 }),
   };
 }

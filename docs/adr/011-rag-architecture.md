@@ -2,7 +2,7 @@
 
 ## Status
 
-Zaakceptowany
+Unieważniony — moduł Wiedza (RAG, chat po dokumentach) został usunięty z aplikacji. Dokument zachowany jako zapis historycznej decyzji.
 
 ## Kontekst
 
