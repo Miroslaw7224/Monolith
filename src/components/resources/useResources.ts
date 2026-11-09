@@ -1,5 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import type { NoteResource, TranslationDict } from "./resourceTypes";
+import {
+  collectResourceTags,
+  filterResourcesBySearch,
+  filterResourcesByTags,
+  sortResourcesByFavorite,
+} from "./resourceFilters";
 import { parseMultipleBlocks } from "./resourceParsing";
 
 export interface UseResourcesLabels {
@@ -155,31 +161,15 @@ export function useResources(
 
   const labels = useMemo(() => resolveLabels(t), [t]);
 
-  const allTags = useMemo(
-    () => [...new Set(resources.flatMap((r) => r.tags || []))].sort(),
-    [resources]
-  );
+  const allTags = useMemo(() => collectResourceTags(resources), [resources]);
 
-  const filteredResources = useMemo(() => {
-    let list = resources;
-    if (selectedTags.length > 0) {
-      list = list.filter((r) => (r.tags || []).some((tag) => selectedTags.includes(tag)));
-    }
-    const q = searchQuery.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (r) =>
-          (r.title ?? "").toLowerCase().includes(q) ||
-          (r.description ?? "").toLowerCase().includes(q) ||
-          (r.url ?? "").toLowerCase().includes(q)
-      );
-    }
-    return [...list].sort((a, b) => {
-      const aFav = a.isFavorite === true ? 1 : 0;
-      const bFav = b.isFavorite === true ? 1 : 0;
-      return bFav - aFav;
-    });
-  }, [resources, selectedTags, searchQuery]);
+  const filteredResources = useMemo(
+    () =>
+      sortResourcesByFavorite(
+        filterResourcesBySearch(filterResourcesByTags(resources, selectedTags), searchQuery)
+      ),
+    [resources, selectedTags, searchQuery]
+  );
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
