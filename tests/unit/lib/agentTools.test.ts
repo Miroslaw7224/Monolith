@@ -33,7 +33,7 @@ describe("agent tool framework", () => {
   it("executeTool returns a readable error for invalid args", async () => {
     const res = await executeTool([echo], "u1", "echo", {});
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toContain("text");
+    if (res.ok === false) expect(res.error).toContain("text");
   });
 
   it("executeTool passes userId and parsed args to run", async () => {

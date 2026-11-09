@@ -58,7 +58,7 @@ describe("calendarTools", () => {
       tags: ["Nowy"],
     });
     expect(res.ok).toBe(false);
-    if (!res.ok) {
+    if (res.ok === false) {
       expect(res.error).toContain("Nowy");
       expect(res.error).toContain("Praca");
     }
@@ -81,7 +81,7 @@ describe("calendarTools", () => {
       title: "x",
     });
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error).toContain("update_task");
+    if (res.ok === false) expect(res.error).toContain("update_task");
     expect(mockUpdateEvent).not.toHaveBeenCalled();
   });
 

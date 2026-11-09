@@ -28,7 +28,7 @@ export async function executeTool(
   const tool = tools.find((t) => t.name === name);
   if (!tool) return { ok: false, error: `Unknown tool: ${name}` };
   const validated = validateToolArgs(tool, rawArgs);
-  if (!validated.ok) return validated;
+  if (validated.ok === false) return { ok: false, error: validated.error };
   try {
     return await tool.run(userId, validated.args);
   } catch (err) {

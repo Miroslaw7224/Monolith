@@ -7,7 +7,7 @@ describe("lib/uploadFormFile", () => {
     const fd = new FormData();
     const r = await parseUploadFormFile(fd);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.response.status).toBe(400);
+    if (r.ok === false) expect(r.response.status).toBe(400);
 
     fd.set("file", "string-not-file");
     const r2 = await parseUploadFormFile(fd);
