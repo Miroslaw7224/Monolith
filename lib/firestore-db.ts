@@ -74,10 +74,6 @@ export function mindMapsCol(userId: string) {
   return db().collection(COLLECTION_USERS).doc(String(userId)).collection("mindMaps");
 }
 
-export function resourcesCol(userId: string, noteId: string) {
-  return notesCol(userId).doc(noteId).collection("resources");
-}
-
 function userResourcesCol(userId: string) {
   return db().collection(COLLECTION_USERS).doc(String(userId)).collection("resources");
 }
@@ -342,90 +338,6 @@ export async function updateResourceInFirestore(
   if (data.tags !== undefined) updateData.tags = Array.isArray(data.tags) ? data.tags : [];
   if (data.isFavorite !== undefined) updateData.isFavorite = data.isFavorite;
   await userResourcesCol(userId).doc(resourceId).update(updateData);
-}
-
-// --- Legacy: subkolekcja notatki (nie używane przy nowym API; zostawione na ewentualną migrację) ---
-
-export async function getResourcesByNoteFromFirestore(
-  userId: string,
-  noteId: string
-): Promise<NoteResourceRecord[]> {
-  const snap = await resourcesCol(userId, noteId).orderBy("createdAt", "desc").get();
-  return snap.docs.map((d) => {
-    const data = d.data();
-    return {
-      id: d.id,
-      noteId: data.noteId ?? noteId,
-      userId: data.userId ?? userId,
-      description: data.description ?? "",
-      url: data.url ?? "",
-      title: data.title ?? "",
-      thumbnailUrl: data.thumbnailUrl,
-      tags: Array.isArray(data.tags) ? data.tags : [],
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
-    };
-  });
-}
-
-export async function _deleteResourceFromNoteFirestore(
-  userId: string,
-  noteId: string,
-  resourceId: string
-): Promise<void> {
-  await resourcesCol(userId, noteId).doc(resourceId).delete();
-}
-
-export type ChunkWithSource = {
-  content: string;
-  source_name?: string;
-  note_title?: string;
-  documentId?: string;
-  noteId?: string;
-};
-
-export async function getChunksForSearch(
-  userId: string,
-  keywords: string[],
-  limitCount: number = 5
-): Promise<ChunkWithSource[]> {
-  const snap = await chunksCol(userId).get();
-  let docs = snap.docs.map((d) => ({
-    id: d.id,
-    ...d.data(),
-  })) as { id: string; content: string; documentId?: string; noteId?: string }[];
-
-  if (keywords.length > 0) {
-    docs = docs.filter((d) =>
-      keywords.some((k) => (d.content ?? "").toLowerCase().includes(k.toLowerCase()))
-    );
-  }
-  docs = docs.slice(0, limitCount);
-
-  const docIds = [...new Set(docs.map((d) => d.documentId).filter(Boolean))] as string[];
-  const noteIds = [...new Set(docs.map((d) => d.noteId).filter(Boolean))] as string[];
-
-  const namesByDoc: Record<string, string> = {};
-  const namesByNote: Record<string, string> = {};
-
-  for (const id of docIds) {
-    const ref = documentsCol(userId).doc(id);
-    const s = await ref.get();
-    if (s.exists) namesByDoc[id] = (s.data()?.name as string) ?? "";
-  }
-  for (const id of noteIds) {
-    const ref = notesCol(userId).doc(id);
-    const s = await ref.get();
-    if (s.exists) namesByNote[id] = (s.data()?.title as string) ?? "";
-  }
-
-  return docs.map((d) => ({
-    content: d.content,
-    source_name: d.documentId ? namesByDoc[d.documentId] : undefined,
-    note_title: d.noteId ? namesByNote[d.noteId] : undefined,
-    documentId: d.documentId,
-    noteId: d.noteId,
-  }));
 }
 
 // --- Calendar events ---

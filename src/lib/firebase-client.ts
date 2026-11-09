@@ -42,7 +42,3 @@ export function getFirebaseAuth(): Auth {
   }
   return auth;
 }
-
-export function isFirebaseConfigured(): boolean {
-  return !!(firebaseConfig.apiKey && firebaseConfig.authDomain);
-}
