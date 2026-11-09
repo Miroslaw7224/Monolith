@@ -2,22 +2,7 @@ import { z } from "zod";
 
 export type TranslationDict = Record<string, string | string[]>;
 
-/** Schema for a single resource (API/Firestore shape). */
-export const NoteResourceSchema = z.object({
-  id: z.string(),
-  noteId: z.string().optional(),
-  userId: z.string(),
-  description: z.string(),
-  url: z.string().url(),
-  title: z.string(),
-  thumbnailUrl: z.string().optional(),
-  tags: z.array(z.string()),
-  isFavorite: z.boolean().optional(),
-  createdAt: z.unknown(),
-  updatedAt: z.unknown(),
-});
-
-export type NoteResource = z.infer<typeof NoteResourceSchema>;
+export type { NoteResourceRecord as NoteResource } from "@/types/records";
 
 /** Result of parsing a single block (Opis:/Description: ... URL: ... Tagi:/Tags: ...). */
 export const ParsedResourceBlockSchema = z.object({

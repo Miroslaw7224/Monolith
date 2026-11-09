@@ -1,11 +1,7 @@
 import { useState, useCallback } from "react";
+import type { NoteRecord } from "@/types/records";
 
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string;
-}
+export type Note = NoteRecord;
 
 export interface UseNotesDataResult {
   notes: Note[];

@@ -1,62 +1,29 @@
 import { getFirestore } from "@/lib/firebase-admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { eventOverlapsInclusiveRange } from "@/lib/calendarRange";
+import type {
+  DocumentRecord,
+  NoteRecord,
+  ChunkRecord,
+  NoteResourceRecord,
+  CalendarEventRecord,
+  TaskRecord,
+  UserTagRecord,
+  TaskTemplateRecord,
+} from "@/types/records";
+
+export type {
+  DocumentRecord,
+  NoteRecord,
+  ChunkRecord,
+  NoteResourceRecord,
+  CalendarEventRecord,
+  TaskRecord,
+  UserTagRecord,
+  TaskTemplateRecord,
+};
 
 const COLLECTION_USERS = "users";
-
-export type DocumentRecord = {
-  id: string;
-  name: string;
-  content: string;
-  type: string;
-  created_at?: string;
-  createdAt?: Timestamp;
-};
-
-export type NoteRecord = {
-  id: string;
-  title: string;
-  content: string;
-  created_at?: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-};
-
-export type ChunkRecord = {
-  id: string;
-  content: string;
-  documentId?: string;
-  noteId?: string;
-  sourceName?: string;
-  noteTitle?: string;
-};
-
-export interface NoteResourceRecord {
-  id: string;
-  noteId?: string; // opcjonalne – zasoby są na poziomie użytkownika, nie notatki
-  userId: string;
-  description: string;
-  url: string;
-  title: string;
-  thumbnailUrl?: string;
-  tags: string[];
-  isFavorite?: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-export type CalendarEventRecord = {
-  id: string;
-  date: string; // YYYY-MM-DD (date-only, user's day)
-  start_minutes: number;
-  duration_minutes: number;
-  title: string;
-  tags: string[];
-  color: string;
-  type: "work" | "meeting";
-  created_at?: string;
-  createdAt?: Timestamp;
-};
 
 function db() {
   return getFirestore();
@@ -457,21 +424,6 @@ export async function deleteCalendarEvent(userId: string, eventId: string): Prom
 
 // --- Tasks (to-do) ---
 
-export type TaskRecord = {
-  id: string;
-  title: string;
-  link: string;
-  description: string;
-  status: "todo" | "in_progress" | "to_review" | "done";
-  due_date: string | null;
-  priority: number | null;
-  order?: number;
-  created_at?: string;
-  updated_at?: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-};
-
 function tasksCol(userId: string) {
   return db().collection(COLLECTION_USERS).doc(String(userId)).collection("tasks");
 }
@@ -596,15 +548,6 @@ export async function deleteTask(userId: string, taskId: string): Promise<void> 
 
 // --- User tags (tag name + default title for calendar entries) ---
 
-export type UserTagRecord = {
-  id: string;
-  tag: string;
-  title: string;
-  color?: string;
-  created_at?: string;
-  createdAt?: Timestamp;
-};
-
 function userTagsCol(userId: string) {
   return db().collection(COLLECTION_USERS).doc(String(userId)).collection("user_tags");
 }
@@ -679,15 +622,6 @@ export async function deleteUserTag(userId: string, tagId: string): Promise<void
 }
 
 // --- Task templates (reusable title/link presets for quick task creation) ---
-
-export type TaskTemplateRecord = {
-  id: string;
-  label: string;
-  title: string;
-  link: string;
-  created_at?: string;
-  createdAt?: Timestamp;
-};
 
 function taskTemplatesCol(userId: string) {
   return db().collection(COLLECTION_USERS).doc(String(userId)).collection("task_templates");

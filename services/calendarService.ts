@@ -1,20 +1,11 @@
 import * as firestoreDb from "@/lib/firestore-db";
+import type { CalendarEvent } from "@/types/records";
 
 const TASK_DEADLINE_START_MINUTES = 23 * 60 + 30; // 23:30 — a fixed end-of-day slot
 const TASK_DEADLINE_DURATION_MINUTES = 30;
 const TASK_DEADLINE_COLOR = "#6B7280";
 
-export interface CalendarEventWithType {
-  id: string;
-  date: string;
-  start_minutes: number;
-  duration_minutes: number;
-  title: string;
-  tags: string[];
-  color: string;
-  type: "work" | "meeting" | "task_deadline";
-  created_at?: string;
-}
+export type CalendarEventWithType = CalendarEvent;
 
 function taskDueDateInRange(
   dueDate: string,

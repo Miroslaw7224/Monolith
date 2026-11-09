@@ -6,18 +6,7 @@ import { TaskColumn } from "./tasks/TaskColumn";
 import { useTasksBoard } from "./tasks/useTasksBoard";
 import { TASK_STATUSES, tasksByStatus, type TaskStatus } from "./tasks/taskOrderUtils";
 
-export interface Task {
-  id: string;
-  title: string;
-  link: string;
-  description: string;
-  status: "todo" | "in_progress" | "to_review" | "done";
-  due_date: string | null;
-  priority: number | null;
-  order?: number;
-  created_at?: string;
-  updated_at?: string;
-}
+export type { TaskRecord as Task } from "@/types/records";
 
 type TranslationDict = Record<string, string | string[]>;
 

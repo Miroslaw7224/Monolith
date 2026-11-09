@@ -14,17 +14,7 @@ import { formatDuration, CALENDAR_COLORS } from "./calendarConstants";
 import type { UserTag } from "./TagsSection";
 import { eventMinutesInInclusiveRange } from "@/lib/calendarRange";
 import type { ActiveSession } from "@/src/lib/activeSession";
-
-export interface CalendarEvent {
-  id: string;
-  date: string;
-  start_minutes: number;
-  duration_minutes: number;
-  title: string;
-  tags: string[];
-  color: string;
-  created_at?: string;
-}
+import type { CalendarEvent } from "@/types/records";
 
 type TranslationDict = Record<string, string | string[]>;
 

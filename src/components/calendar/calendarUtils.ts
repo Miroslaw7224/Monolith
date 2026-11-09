@@ -1,14 +1,6 @@
-export interface CalendarEvent {
-  id: string;
-  date: string;
-  start_minutes: number;
-  duration_minutes: number;
-  title: string;
-  tags: string[];
-  color: string;
-  type: "work" | "meeting" | "task_deadline";
-  created_at?: string;
-}
+import type { CalendarEvent } from "@/types/records";
+
+export type { CalendarEvent };
 
 /** Row in the day grid (one event may produce several segments across midnights). */
 export interface CalendarEventSegment {
