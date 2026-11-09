@@ -23,13 +23,10 @@ import {
 } from "@/src/features/mind-maps/mindMapLayout";
 import { arrowAction } from "@/src/features/mind-maps/mindMapNav";
 import { mapNode } from "@/src/lib/mindMapUtils";
+import { clamp } from "@/src/features/mind-maps/mindMapClamp";
 import type { translations } from "@/src/translations";
 
 const EMPTY_MATCHES: ReadonlySet<string> = new Set();
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
 
 export type MindMapTreeEditableProps = {
   mode: "edit";
