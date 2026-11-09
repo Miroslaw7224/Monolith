@@ -17,6 +17,10 @@ import { TasksSection } from "@/src/components/TasksSection";
 import { ActivityLog } from "@/src/components/ActivityLog";
 import { TagsSection, type UserTag } from "@/src/components/TagsSection";
 import { ResourceSection } from "@/src/components/ResourceSection";
+import {
+  AgentPendingActions,
+  type PendingAgentAction,
+} from "@/src/components/AgentPendingActions";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
 import { useNotesData, type Note } from "@/src/features/notes/useNotesData";
@@ -83,6 +87,9 @@ export default function PlanowanieView({
   const [planAskPendingMessage, setPlanAskPendingMessage] = useState<string | null>(null);
   const [planAskUnknownTags, setPlanAskUnknownTags] = useState<string[]>([]);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
+  const [agentEnabled, setAgentEnabled] = useState(false);
+  const [agentPending, setAgentPending] = useState<PendingAgentAction[]>([]);
+  const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const [userTags, setUserTags] = useState<UserTag[]>([]);
   const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
@@ -169,6 +176,23 @@ export default function PlanowanieView({
     void fetchTags();
   }, [fetchTags]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch("/api/agent/status");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setAgentEnabled(Boolean(data.enabled));
+      } catch {
+        // agent stays disabled
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiFetch]);
+
   const handleSaveNote = async () => {
     if (!selectedNote) return;
     try {
@@ -210,6 +234,13 @@ export default function PlanowanieView({
     setPlanningTab(tab);
   };
 
+  const applyAgentChanges = (changed: string[]) => {
+    if (changed.includes("calendar")) setCalendarRefreshKey((k) => k + 1);
+    if (changed.includes("tasks") || changed.includes("mindmaps")) {
+      setDataRefreshKey((k) => k + 1);
+    }
+  };
+
   const handlePlanAsk = async () => {
     const message = planAskInput.trim();
     if (!message || planAskLoading) return;
@@ -219,10 +250,12 @@ export default function PlanowanieView({
     setPlanAskUnknownTags([]);
     setPlanAskPendingMessage(null);
     try {
-      const res = await apiFetch("/api/plan/ask", {
+      const res = await apiFetch(agentEnabled ? "/api/agent/chat" : "/api/plan/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, lang }),
+        body: JSON.stringify(
+          agentEnabled ? { message, lang, history: messages.slice(-12) } : { message, lang }
+        ),
       });
       const data = await res.json();
       const text = planAskResponseText(data);
@@ -236,6 +269,10 @@ export default function PlanowanieView({
       if (data.created) {
         setCalendarRefreshKey((k) => k + 1);
       }
+      if (agentEnabled) {
+        setAgentPending(Array.isArray(data.pending) ? data.pending : []);
+        if (Array.isArray(data.changed)) applyAgentChanges(data.changed);
+      }
     } catch {
       const errorMsg =
         lang === "pl" ? "Nie udało się przetworzyć zapytania." : "Failed to process request.";
@@ -245,6 +282,34 @@ export default function PlanowanieView({
     } finally {
       setPlanAskLoading(false);
     }
+  };
+
+  const handleAgentConfirm = async (action: PendingAgentAction) => {
+    setPlanAskLoading(true);
+    try {
+      const res = await apiFetch("/api/agent/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool: action.tool, args: action.args }),
+      });
+      const data = await res.json();
+      const text = data.message ?? data.error ?? "…";
+      setMessages((prev) => [...prev, { role: "assistant" as const, content: text }].slice(-20));
+      setAgentPending((prev) => prev.filter((p) => p.id !== action.id));
+      if (Array.isArray(data.changed)) applyAgentChanges(data.changed);
+    } catch {
+      const errorMsg =
+        lang === "pl" ? "Nie udało się wykonać akcji." : "Failed to run the action.";
+      setMessages((prev) => [...prev, { role: "assistant" as const, content: errorMsg }].slice(-20));
+    } finally {
+      setPlanAskLoading(false);
+    }
+  };
+
+  const handleAgentCancel = (action: PendingAgentAction) => {
+    setAgentPending((prev) => prev.filter((p) => p.id !== action.id));
+    const text = lang === "pl" ? "Anulowano." : "Cancelled.";
+    setMessages((prev) => [...prev, { role: "assistant" as const, content: text }].slice(-20));
   };
 
   const handlePlanAskAddTagAndRetry = async () => {
@@ -410,13 +475,14 @@ export default function PlanowanieView({
           ) : planningTab === "mindmaps" ? (
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
               <MindMapsTab
+                key={`maps-${dataRefreshKey}`}
                 apiFetch={apiFetch}
                 title={(t.tabMindMaps as string) ?? "Mapy myśli"}
                 t={t}
               />
             </div>
           ) : (
-            <TasksSection apiFetch={apiFetch} lang={lang} t={t} />
+            <TasksSection key={`tasks-${dataRefreshKey}`} apiFetch={apiFetch} lang={lang} t={t} />
           )}
         </div>
 
@@ -446,6 +512,13 @@ export default function PlanowanieView({
                 </div>
               )}
             </div>
+            <AgentPendingActions
+              pending={agentPending}
+              busy={planAskLoading}
+              lang={lang}
+              onConfirm={handleAgentConfirm}
+              onCancel={handleAgentCancel}
+            />
             {planAskUnknownTags.length > 0 && (
               <button
                 type="button"
