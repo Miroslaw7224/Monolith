@@ -5,12 +5,12 @@ import { StartSessionModal } from "./StartSessionModal";
 import { CALENDAR_COLORS } from "./calendarConstants";
 import {
   type CalendarEvent,
-  getDaysInMonth,
   MONTH_NAMES,
   DAY_NAMES,
   expandEventToSegments,
 } from "./calendar/calendarUtils";
 import { CalendarDayColumn } from "./calendar/CalendarDayColumn";
+import { useCalendarData } from "./calendar/useCalendarData";
 import type { UserTag } from "./TagsSection";
 import type { ActiveSession } from "@/src/lib/activeSession";
 
@@ -48,10 +48,18 @@ export function CalendarView({
   onOpenTaskDeadline,
 }: CalendarViewProps) {
   const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    viewYear,
+    viewMonth,
+    events,
+    setEvents,
+    loading,
+    days,
+    startDate,
+    endDate,
+    handlePrevMonth,
+    handleNextMonth,
+  } = useCalendarData(apiFetch, refreshTrigger);
   const [modalOpen, setModalOpen] = useState(false);
   const [startSessionModalOpen, setStartSessionModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
@@ -72,28 +80,6 @@ export function CalendarView({
   }, []);
 
   const monthLabel = MONTH_NAMES[lang][viewMonth];
-  const days = getDaysInMonth(viewYear, viewMonth);
-  const startDate = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-01`;
-  const endDate = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(days.length).padStart(2, "0")}`;
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    apiFetch(`/api/calendar/events?startDate=${startDate}&endDate=${endDate}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) setEvents(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (!cancelled) setEvents([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [startDate, endDate, apiFetch, refreshTrigger]);
 
   const eventSegments = useMemo(() => events.flatMap((e) => expandEventToSegments(e)), [events]);
 
@@ -110,24 +96,6 @@ export function CalendarView({
       colorIndex++;
     }
   }
-
-  const handlePrevMonth = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
-  };
 
   const handleOpenAdd = (date: string) => {
     setAddDate(date);
