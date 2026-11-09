@@ -45,3 +45,12 @@ Struktura frontendu (komponenty, hooki, podfoldery `resources/` i `calendar/`) j
     - Lista linków w Firestore (`users/{userId}/resources`), filtr po tagach + wyszukiwarka (tytuł, opis, URL).
     - Pasek **Ulubionych stron** (kafelki z faviconami), akcje: **Ulubione | Open link | Copy URL | Delete**, modal edycji. Ulubione (`isFavorite`) zapisywane w Firestore, sortowane na górę.
   - Pasek Plan AI z historią rozmowy.
+
+## Lokalny agent (Ollama)
+
+Czat w Planowaniu może działać na lokalnym modelu przez Ollamę i zarządzać zadaniami, kalendarzem i mapami myśli. Usuwanie zawsze wymaga potwierdzenia w UI, a każda akcja trafia do logu `users/{uid}/agent_log`.
+
+1. Zainstaluj Ollamę i pobierz model z obsługą narzędzi: `ollama pull qwen2.5:7b-instruct` (alternatywy: `qwen3:8b`, `llama3.1:8b`).
+2. W `.env.local` na komputerze lokalnym ustaw `OLLAMA_BASE_URL=http://localhost:11434`. Na Vercel **nie ustawiaj** tych zmiennych — agent jest tam wyłączony, a czat używa Gemini.
+3. Uruchom `npm run dev` (port 3100). Obie instancje (lokalna i Vercel) używają tego samego Firebase, więc zmiany widać w obu.
+4. Aplikacja w WSL, a Ollama w Windowsie: ustaw `OLLAMA_BASE_URL` na adres hosta Windows i uruchom Ollamę z `OLLAMA_HOST=0.0.0.0`.
