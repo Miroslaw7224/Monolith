@@ -62,8 +62,9 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 - Kody wyjścia: 0 ok, 1 nie znaleziono pomocnika, 2 pomocnik czeka na zgodę (`blocked`), 3 timeout.
 - Komenda `/consult <agy|cursor|both> <zadanie>` robi to samo.
 - NIE używaj `agy -p ...` ani `cursor-agent -p ...` przez Basha: to osobne procesy bez kontekstu sesji.
-- Pomocnicy działają w `~/projects/Brain_7224` (katalog nadrzędny); w prompcie podawaj ścieżki względem tego
-  katalogu (`Second_brain/...`).
+- Pomocnicy działają w `~/projects/Brain_7224/Second_brain`; w prompcie podawaj ścieżki względem tego katalogu,
+  a do NEXUS przez `../NEXUS/...` (oba mają odczyt NEXUS). Uprawnienia komend cursora są w globalnym
+  `~/.cursor/cli-config.json` (`Brain_7224/.cursor/cli.json` nie jest wczytywany z tego katalogu).
 - Pomocnicy nie widzą tej rozmowy: w prompcie podawaj cel, ścieżki, ograniczenia i oczekiwany format odpowiedzi.
 - Jeśli pomocnik jest `blocked` (czeka na zgodę), nie zatwierdzaj za użytkownika; poproś go o kliknięcie w panelu.
 

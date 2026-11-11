@@ -163,16 +163,21 @@ import os, re, sys
 text = sys.stdin.read()
 lines = text.splitlines()
 nonce = os.environ["NONCE"]
-idx = max((i for i, l in enumerate(lines) if nonce in l), default=-1)
+# pierwsze wystąpienie nonce = koniec echa promptu (pomocnik bywa, że powtarza nonce na końcu odpowiedzi)
+idx = next((i for i, l in enumerate(lines) if nonce in l), -1)
 lines = lines[idx + 1:] if idx >= 0 else lines
 mark = max((i for i, l in enumerate(lines) if "=== WYNIK ===" in l), default=-1)
 if mark >= 0:
     lines = lines[mark + 1:]
+# usuń powtórzony nonce z treści odpowiedzi
+lines = [re.sub(r"\s*\(?" + re.escape(nonce) + r"\)?", "", l) for l in lines]
 def footer(l):
     s = l.strip()
     return (not s or set(s) <= set("─▄▀> →-") or "for shortcuts" in s
-            or "Add a follow-up" in s or s.startswith("Auto") or s.startswith("~/")
-            or re.search(r"·\s*[\d.]+%\s*$", s) is not None)
+            or "Add a follow-up" in s or "esc to cancel" in s
+            or s.startswith("Auto") or s.startswith("~/")
+            or re.search(r"·\s*[\d.]+%\s*$", s) is not None
+            or re.search(r"·\s*(low|medium|high)\s*$", s) is not None)
 while lines and footer(lines[-1]): lines.pop()
 while lines and not lines[0].strip(): lines.pop(0)
 limit = int(os.environ.get("MAXLINES") or 0)
