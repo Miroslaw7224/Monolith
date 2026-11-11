@@ -150,6 +150,27 @@ Propozycje z burzy mózgów z `agy` i `cursor`. Nie są jeszcze zatwierdzonym za
 | **Dziennik pracy agentów**          | Każde zadanie zlecone agentom (`ask-helper`, sesje Claude Code) zostawia wpis JSONL przy projekcie: kto, co, wynik. Uzupełnia stan na żywo z Herdr (§8) o historię.                                 | 3    | M     |
 | **Radar blokad**                    | Szuka wspólnych blokerów w `state.md` / `bugs.md` wielu projektów (ta sama osoba, API, decyzja) i pokazuje, który jeden ruch odblokuje kilka projektów.                                             | 4    | M     |
 
+### 6.6 Podział na karty (decyzja 2026-11-11)
+
+Aplikacja dzieli się na 8 kart. Wzorcem wizualnym są makiety w `docs/mockups/karty/` (`index.html`, `STYLEGUIDE.md`, `tokens.css`); zestawienie z obecnym kodem jest w `docs/mockups/karty/STAN-W-KODZIE.md`.
+
+| Skrót | Karta     | Zawartość                                                                      | Etap specu | Punkt wyjścia w kodzie                                 |
+| ----- | --------- | ------------------------------------------------------------------------------ | ---------- | ------------------------------------------------------ |
+| Alt+1 | Kokpit    | spotkania dnia, aktywne tematy z Save State, kolejka na dziś, inbox, rytuał    | 2          | `src/features/home/HomeView.tsx`                       |
+| Alt+2 | Kalendarz | miesiąc / tydzień / agenda, planer slotów, brief i action items                | 2          | `src/components/CalendarView.tsx`                      |
+| Alt+3 | Zadania   | wspólna lista z projektów, energia Deep / Quick, filtry, Teraz/Następne/Icebox | 1–2        | `src/components/TasksSection.tsx`, `useTasksBoard.ts`  |
+| Alt+4 | Projekty  | rejestr, karta projektu z §6.1                                                 | 1          | brak (nowa, na `lib/nexus/`)                           |
+| Alt+5 | Notatki   | notatki Markdown, [[wiki]], backlinks, wyszukiwarka decyzji                    | 0–1        | `src/components/NoteEditor.tsx`, `src/features/notes/` |
+| Alt+6 | Płótno    | tablica (xyflow) i mapy myśli                                                  | 0          | `src/features/board/`, `src/features/mind-maps/`       |
+| Alt+7 | Arsenał   | skille i prompty, zasoby, kursy, baza rozwiązań bugów                          | 3          | `src/components/ResourceSection.tsx`                   |
+| Alt+8 | Mapa      | graf zależności, radar blokad, agenci z Herdr                                  | 4          | brak (nowa)                                            |
+
+- **Szkielet** (wspólny dla kart): pasek kart po lewej z numerami 1–8 i akcentem aktywnej karty, `Alt+1…8` przełącza karty, `Ctrl+K` otwiera paletę poleceń. Pasek stanu (projekt, vault, branch) dochodzi, gdy istnieje `lib/nexus/`.
+- **Szkielet nie zależy od danych.** Nie dotyka Firebase ani vaulta, więc można go wdrożyć przed etapem 0 albo po nim. Na start pasek kart steruje istniejącym stanem widoków (`appMode` / `planningTab`); karty bez kodu (Projekty, Mapa) pokazują zaślepkę z numerem etapu.
+- **Przenoszenie kart pojedynczo.** Każda karta po kolei dostaje swój motyw (`data-card`, zmienne z `tokens.css`) i układ z makiety. Dopóki karta nie jest przeniesiona, wygląda jak dziś: globalne zmienne aplikacji (`--bg`, `--accent`) nie są nadpisywane, szkielet używa tylko akcentów `--c-<karta>`.
+- **Stary pasek boczny i nawigacja mobilna** zostają do czasu przeniesienia wszystkich kart. Telefon jest poza zakresem (§10), więc pasek kart jest tylko na desktopie.
+- **Skróty:** `Alt+cyfra` jest sprawdzane po `event.code` (niezależnie od układu klawiatury) i ignorowane przy wciśniętym Ctrl, aby nie łapać AltGr z polskiej klawiatury. Ryzyko: Chrome na Linuksie zajmuje `Alt+1…8` do przełączania kart przeglądarki; w przeglądarce z Windows (aplikacja w WSL) skrót jest wolny.
+
 ## 7. Etapy wdrożenia
 
 Każdy etap dostaje osobny spec, plan i wdrożenie.
@@ -163,6 +184,8 @@ Każdy etap dostaje osobny spec, plan i wdrożenie.
 2. **Kokpit Dnia.**
 3. **Arsenał.**
 4. **Mapa zależności** i opcjonalnie integracja z Herdr.
+
+**Szkielet kart** (§6.6: pasek kart, `Alt+1…8`, `Ctrl+K`) nie zależy od danych i może wejść przed etapem 0 albo po nim. Plan: `docs/superpowers/plans/2026-11-11-karty-szkielet.md`.
 
 Podejście do mostu: adapter plików w aplikacji (opcja A). Indeks z file watcherem (B) dokładany dopiero, gdy wydajność tego wymaga. Serwer MCP dla NEXUS (C) jako późniejsze opakowanie, aby UI i agenci zapisywali tym samym sposobem. Moduł `lib/nexus/` ma czyste granice, aby to umożliwić.
 

@@ -1,7 +1,7 @@
 # Monolith: podział na karty i makiety, plan
 
 Data: 2026-11-11
-Status: kroki 1–6 zrobione (8 kart, index.html, opublikowane); czeka bramka 6 i krok 7 (spec §6.6 + plan wdrożenia)
+Status: kroki 1–7 zrobione (makiety, spec §6.6, plan `2026-11-11-karty-szkielet.md`)
 Powiązany spec: `docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md` (§6, D8)
 
 ## 1. Cel
