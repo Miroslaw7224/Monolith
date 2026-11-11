@@ -1,0 +1,219 @@
+/* Szkielet kart: akcenty i pasek z docs/mockups/karty/ (tokens.css, shell.css). */
+:root {
+  --c-kokpit: #ff9f1c;
+  --c-kalendarz: #ff3b1f;
+  --c-zadania: #b6ff2e;
+  --c-projekty: #3d95ff;
+  --c-notatki: #f3ff3a;
+  --c-plotno: #22d3ee;
+  --c-arsenal: #b47bff;
+  --c-mapa: #ff2bd6;
+  --shell-bg: #0d0d10;
+  --shell-line: #26262c;
+  --shell-text: #e8e8ec;
+  --shell-muted: #9a9aa6;
+  --shell-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.card-rail {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .card-rail {
+    flex: 0 0 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 0;
+    background: var(--shell-bg);
+    border-right: 1px solid var(--shell-line);
+    color: var(--shell-text);
+    z-index: 2;
+  }
+}
+
+.card-rail__logo {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  display: grid;
+  place-items: center;
+  font: 700 15px/1 var(--font-mono);
+  border: 1px solid var(--shell-line);
+  border-radius: 10px;
+}
+
+.card-rail__item {
+  --c: var(--shell-muted);
+  position: relative;
+  width: 60px;
+  padding: 7px 0 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  color: var(--shell-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s var(--shell-ease),
+    color 0.15s var(--shell-ease);
+}
+
+.card-rail__item:hover {
+  background: #18181d;
+  color: var(--shell-text);
+}
+
+.card-rail__item:focus-visible,
+.card-rail__cmd:focus-visible {
+  outline: 2px solid var(--c, var(--shell-text));
+  outline-offset: 2px;
+}
+
+.card-rail__num {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font: 600 13px/1 var(--font-mono);
+  border: 1px solid var(--shell-line);
+  border-radius: 8px;
+}
+
+.card-rail__label {
+  font-size: 10px;
+  letter-spacing: 0.2px;
+}
+
+.card-rail__item[aria-current="page"] {
+  color: var(--shell-text);
+}
+
+.card-rail__item[aria-current="page"] .card-rail__num {
+  background: var(--c);
+  border-color: var(--c);
+  color: #0d0d10;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--c) 60%, transparent);
+}
+
+.card-rail__item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--c);
+}
+
+.card-rail__spacer {
+  flex: 1;
+}
+
+.card-rail__cmd {
+  width: 44px;
+  height: 32px;
+  border: 1px solid var(--shell-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--shell-muted);
+  font: 500 11px/1 var(--font-mono);
+  cursor: pointer;
+}
+
+.card-rail__cmd:hover {
+  color: var(--shell-text);
+}
+
+.card-palette__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh 16px 16px;
+  background: rgba(5, 5, 8, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.card-palette {
+  width: min(560px, 100%);
+  background: #16171a;
+  border: 1px solid var(--shell-line);
+  border-radius: 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  color: var(--shell-text);
+  overflow: hidden;
+}
+
+.card-palette__input {
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--shell-line);
+  color: var(--shell-text);
+  font-size: 15px;
+  outline: none;
+}
+
+.card-palette__list {
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+}
+
+.card-palette__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.card-palette__item[aria-selected="true"] {
+  background: #24252b;
+}
+
+.card-palette__kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--shell-line);
+  border-radius: 6px;
+  color: var(--shell-muted);
+  font: 500 11px/1.4 var(--font-mono);
+}
+
+.card-palette__empty {
+  padding: 9px 10px;
+  color: var(--shell-muted);
+  font-size: 14px;
+}
+
+.card-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  color: var(--text2);
+  text-align: center;
+}
+
+.card-placeholder__title {
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 700;
+}

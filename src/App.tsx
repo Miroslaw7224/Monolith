@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Brain, Loader2 } from "lucide-react";
 import { getFirebaseAuth } from "./lib/firebase-client";
 import { translations } from "@/src/translations";
@@ -11,7 +11,12 @@ import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
 import HomeView from "@/src/features/home/HomeView";
 import { MobileNav } from "@/src/components/layout/MobileNav";
 import { MobileMoreDrawer } from "@/src/components/layout/MobileMoreDrawer";
-import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import { useCardNavigation } from "@/src/features/cards/useCardNavigation";
+import { useCardHotkeys } from "@/src/features/cards/useCardHotkeys";
+import { CardRail } from "@/src/features/cards/CardRail";
+import { CommandPalette } from "@/src/features/cards/CommandPalette";
+import { CardPlaceholder } from "@/src/features/cards/CardPlaceholder";
+import { buildCardCommands } from "@/src/features/cards/cards";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -55,8 +60,13 @@ export default function App({ authenticated = false }: AppProps = {}) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [authError, setAuthError] = useState("");
-  const [appMode, setAppMode] = useState<"home" | "planowanie">("home");
-  const [planningTab, setPlanningTab] = useState<PlanningTab>("tasks");
+  const { appMode, setAppMode, planningTab, setPlanningTab, placeholder, activeCard, selectCard } =
+    useCardNavigation();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const openPalette = useCallback(() => setPaletteOpen(true), []);
+  const closePalette = useCallback(() => setPaletteOpen(false), []);
+  const cardCommands = useMemo(() => buildCardCommands(selectCard), [selectCard]);
+  useCardHotkeys({ onSelectCard: selectCard, onOpenPalette: openPalette, disabled: paletteOpen });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
   const [checkingWaitlist, setCheckingWaitlist] = useState(false);
@@ -301,8 +311,14 @@ export default function App({ authenticated = false }: AppProps = {}) {
   }
 
   return (
-    <div className="flex h-screen bg-[var(--bg)] text-[var(--text)] font-sans overflow-hidden">
-      {appMode === "home" ? (
+    <div
+      className="flex h-screen bg-[var(--bg)] text-[var(--text)] font-sans overflow-hidden"
+      data-card={activeCard}
+    >
+      <CardRail activeCard={activeCard} onSelect={selectCard} onOpenPalette={openPalette} />
+      {placeholder ? (
+        <CardPlaceholder cardId={placeholder} />
+      ) : appMode === "home" ? (
         <HomeView
           user={user}
           apiFetch={apiFetch}
@@ -352,6 +368,7 @@ export default function App({ authenticated = false }: AppProps = {}) {
           setMoreDrawerOpen(false);
         }}
       />
+      {paletteOpen && <CommandPalette commands={cardCommands} onClose={closePalette} />}
     </div>
   );
 }
