@@ -18,15 +18,16 @@ Etat i projekty własne to ten sam typ obiektu, różniący się etykietą wła�
 
 ## 2. Podjęte decyzje
 
-| # | Decyzja | Wybór |
-|---|---------|-------|
-| D1 | Źródło prawdy | Pliki vaulta NEXUS (Markdown/YAML) |
-| D2 | Gdzie działa | Tylko lokalnie. Second Brain schodzi z Vercela, Firebase zostaje odpięty |
-| D3 | Dane z etatu | Pełne dane, tylko lokalnie, w ignorowanej przez git strefie `Vault/Work/` |
-| D4 | Magazyn danych aplikacji | Wszystko w plikach vaulta (bez SQLite i bez Firestore) |
-| D5 | Kopia zapasowa | Prywatne repo GitHub `Miroslaw7224/NEXUS` dla danych poza `Vault/Work/`. Dla `Vault/Work/` osobny, lokalny backup |
-| D6 | Kierunek produktu | Narzędzie osobiste. Landing, waitlista, regulamin i polityka prywatności są do usunięcia lub uśpienia |
-| D7 | Kolejność prac | Najpierw odpięcie Firebase i Vercela (etap 0), potem karta projektu, kokpit dnia, arsenał, mapa |
+| #   | Decyzja                  | Wybór                                                                                                                                                    |
+| --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Źródło prawdy            | Pliki vaulta NEXUS (Markdown/YAML)                                                                                                                       |
+| D2  | Gdzie działa             | Tylko lokalnie. Second Brain schodzi z Vercela, Firebase zostaje odpięty                                                                                 |
+| D3  | Dane z etatu             | Pełne dane, tylko lokalnie, w ignorowanej przez git strefie `Vault/Work/`                                                                                |
+| D4  | Magazyn danych aplikacji | Wszystko w plikach vaulta (bez SQLite i bez Firestore)                                                                                                   |
+| D5  | Kopia zapasowa           | Prywatne repo GitHub `Miroslaw7224/NEXUS` dla danych poza `Vault/Work/`. Dla `Vault/Work/` osobny, lokalny backup                                        |
+| D6  | Kierunek produktu        | Narzędzie osobiste. Landing, waitlista, regulamin i polityka prywatności są do usunięcia lub uśpienia                                                    |
+| D7  | Kolejność prac           | Najpierw odpięcie Firebase i Vercela (etap 0), potem karta projektu, kokpit dnia, arsenał, mapa                                                          |
+| D8  | Nazwa aplikacji          | **Monolith** (zamiast „Second Brain”): jedno prywatne, lokalne źródło prawdy dla etatu, projektów i wiedzy. Zmiana nazwy w kodzie i UI to osobne zadanie |
 
 ## 3. Stan obecny (wyjściowy)
 
@@ -91,16 +92,29 @@ Vault NEXUS jest śledzony przez git z remote na GitHubie, więc dane etatu nie 
 ## 6. Moduły (docelowy zakres funkcjonalny)
 
 ### 6.1 Karta projektu (etap 1)
+
 Wspólny szablon dla etatu i projektów własnych.
+
 - **Metryczka:** nazwa, typ (etat / własny / biblioteka), status (Active, On Hold, Blocked, Maintenance), pasek postępu kamienia milowego.
 - **Save State** (`state.md`): ostatni branch i środowisko, ostatni bloker, następny mały krok (wejście w projekt w 2 minuty), ważne linki (repo, Jira/Trello, Figma, Dev/Prod, dokumentacja).
 - **Tablica zadań** (`tasks.md`): Teraz / Następne / Icebox. Przy zadaniach z pracy pole na link lub ID ticketa.
 - **Kontekst dla AI** (`ai-context.md` lub składany z `index.md`): architektura, stack, zasady kodowania, kopiowany jednym kliknięciem.
+- **Paczka kontekstu dla agenta** (rozbudowa przycisku „kopiuj”): jednym kliknięciem składa w locie blok Markdown dla nowej sesji AI, z budżetem długości (ok. 4 tys. tokenów). Zawartość:
+  1. zasady projektu (`ai-context.md` lub wyciąg z `index.md`),
+  2. Save State ze `state.md` (branch, bloker, następny krok),
+  3. zmiany w kodzie: `git status`, ostatnie 5 commitów, `git diff --stat` (nie pełny diff),
+  4. sekcja „Teraz” z `tasks.md` i otwarte bugi z `bugs.md`,
+  5. 2–3 ostatnie wpisy z `devlog.md`.
+
+  Git jest tylko odczytywany. Dla `owner: work` obowiązuje ostrzeżenie z sekcji 5. Później (koszt M): szablony per rola (review / implementacja / debug) z innym zestawem sekcji i podglądem przed skopiowaniem.
+
 - **Dziennik decyzji** (`devlog.md`): data, co ustalono i dlaczego.
 - **Świeżość danych:** karta pokazuje `last_worked` i `state_confidence`, aby stale dane (jak `focus.md` z maja) były widoczne.
 
 ### 6.2 Kokpit Dnia (etap 2)
+
 Ekran startowy.
+
 - **Oś czasu spotkań:** godziny, tytuł, tag projektu, przycisk linku (Meet/Teams/Zoom/Discord), brief przed spotkaniem (2–3 punkty plus powiązane zadania), pole na action items po spotkaniu.
 - **Aktywne punkty skupienia:** 2–3 rozgrzebane tematy, każdy z jednym zdaniem z Save State. Limit 2–3 aktywnych projektów naraz.
 - **Kolejka zadań na dziś:** wspólna lista z wielu projektów, oznaczenie energii (Deep Work / Quick Win).
@@ -108,14 +122,33 @@ Ekran startowy.
 - **Przegląd tygodnia:** AI zestawia sesje, commity i zamknięte zadania, użytkownik wybiera focus (dla `owner: work` tylko lokalna Ollama).
 
 ### 6.3 Arsenał (etap 3)
+
 - **Katalog skilli i narzędzi AI:** przy każdym zebrane prompty/reguły/snippety/konfiguracje agentów oraz powiązane projekty (praca i prywatne).
 - **Kursy:** tytuł, link, postęp (moduł x z y), notatki z lekcji, **action items** powiązane z projektem („wdrożyć ten wzorzec w projekcie X"), możliwość dodania zadania do karty projektu bezpośrednio z widoku kursu.
 - **Koszty AI** (opcjonalnie): tokeny i API per projekt.
 
 ### 6.4 Mapa projektów i zależności (etap 4)
+
 - **Węzły:** aplikacje, systemy z etatu, biblioteki, skrypty, szablony, bazy danych.
 - **Relacje:** twarda zależność (bloker), współdzielenie zasobów (komponent/prompt do ponownego użycia), przepływ danych. Wykorzystuje dane z `tech-stack-wspolny.md`.
 - **Opcjonalnie: „agenci na żywo" z Herdr** (patrz sekcja 8).
+
+### 6.5 Pomysły z burzy mózgów (backlog, 2026-11-11)
+
+Propozycje z burzy mózgów z `agy` i `cursor`. Nie są jeszcze zatwierdzonym zakresem: każdy pomysł trafia do speca swojego etapu dopiero po decyzji. Koszt: S / M / L.
+
+| Pomysł                              | Co robi                                                                                                                                                                                             | Etap | Koszt |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ----- |
+| **Save State z gita**               | Przy wyjściu z projektu ostatni branch, commit i zmienione pliki same trafiają do `state.md`; ręcznie dopisuje się tylko „następny krok”. Ogranicza starzenie się danych ręcznych (jak `focus.md`). | 1    | S     |
+| **Wykrywacz porzuconych projektów** | Projekt bez commitu i zmian w plikach przez ponad 14 dni (próg w konfiguracji) wymaga decyzji: Icebox albo domknięcie. Rozwija `state_confidence` z §6.1.                                           | 1    | S     |
+| **Wyszukiwarka decyzji**            | Przeszukuje `devlog.md` we wszystkich projektach (data, tag, „dlaczego”).                                                                                                                           | 1    | S     |
+| **Rytuał zamknięcia dnia**          | Wieczorem krótki zapis: co domknięte, co otwarte, jeden punkt zaczepienia na jutro (wpis w `Sessions/` i `Inbox/inbox.md`). Jutrzejszy kokpit pokazuje go na górze.                                 | 2    | S     |
+| ~~**Przełącznik praca/życie**~~     | **Odrzucone 2026-11-11:** etat nie jest wykonywany na tym PC, więc praca i życie się nie mieszają.                                                                                                  | —    | —     |
+| **Planer slotów**                   | Na podstawie kalendarza i pól `[energy::]` w `tasks.md` proponuje 1–3 okna Deep Work / Quick Win w wolnych godzinach dnia.                                                                          | 2    | M     |
+| **Raport na daily / tygodniowy**    | Streszcza `devlog.md`, zamknięte zadania i commity do 3 punktów (dzień albo tydzień). Rozszerza przegląd tygodnia z §6.2; dla `owner: work` tylko lokalna Ollama.                                   | 2    | M     |
+| **Wspólna baza rozwiązań bugów**    | Łączy wpisy z `bugs.md` z różnych projektów i podpowiada wcześniejsze rozwiązania przy powtarzających się problemach ze stackiem. Bez mieszania treści `owner: work` z zewnętrznym AI.              | 3    | M     |
+| **Dziennik pracy agentów**          | Każde zadanie zlecone agentom (`ask-helper`, sesje Claude Code) zostawia wpis JSONL przy projekcie: kto, co, wynik. Uzupełnia stan na żywo z Herdr (§8) o historię.                                 | 3    | M     |
+| **Radar blokad**                    | Szuka wspólnych blokerów w `state.md` / `bugs.md` wielu projektów (ta sama osoba, API, decyzja) i pokazuje, który jeden ruch odblokuje kilka projektów.                                             | 4    | M     |
 
 ## 7. Etapy wdrożenia
 
@@ -126,7 +159,7 @@ Każdy etap dostaje osobny spec, plan i wdrożenie.
    - Warstwa plikowa `lib/nexus/` pod istniejącymi funkcjami `services/`.
    - Usunięcie auth, waitlisty, stron prawnych, zależności Firebase. Zdjęcie aplikacji z Vercela dopiero po weryfikacji migracji.
    - Dodanie `Vault/Work/` do `.gitignore` NEXUS i kontroli `git check-ignore`.
-1. **Karta projektu** (Save State, kontekst dla AI, devlog, etykieta Firma/Moje).
+1. **Karta projektu** (Save State, kontekst dla AI z paczką kontekstu dla agenta, devlog, etykieta Firma/Moje).
 2. **Kokpit Dnia.**
 3. **Arsenał.**
 4. **Mapa zależności** i opcjonalnie integracja z Herdr.

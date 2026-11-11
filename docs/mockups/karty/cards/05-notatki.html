@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="pl" data-card="notatki" data-project="gen-podsum-ai" data-branch="fix/gp-001-porty">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notatki · Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Oxanium:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Exo+2:wght@500;700&family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;800&family=Chakra+Petch:wght@500;700&display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../shell.css">
+<style>
+  /* --- Notatki: holo-notatnik i baza decyzji (prefiks .not-) --- */
+  :root {
+    --not-code-bg: #111215;
+    --not-mark-bg: var(--highlight, #f3ff3a);
+    --not-mark-ink: #0b0b0c;
+  }
+
+  /* kafle statystyk notatek */
+  .not-tiles { --cols: 4; margin-bottom: var(--s-5); }
+  .not-tiles .tile__value { font-size: var(--fs-2xl); }
+
+  /* układ trzykolumnowy */
+  .not-layout {
+    display: grid; grid-template-columns: 250px minmax(0, 1fr) 300px; gap: var(--s-4); align-items: start;
+  }
+
+  /* LEWA KOLUMNA: DRZEWO I LISTA */
+  .not-sidebar {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-3);
+  }
+  .not-sidebar__head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+    padding: var(--s-1) var(--s-2);
+  }
+  .not-sidebar__title {
+    font: 700 var(--fs-sm)/1.2 var(--font-display); text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin: 0;
+  }
+  .not-sidebar__title b { color: var(--text); }
+
+  /* drzewo folderów */
+  .not-tree { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+  .not-folder { display: flex; flex-direction: column; gap: 2px; }
+  .not-folder__name {
+    display: flex; align-items: center; justify-content: space-between;
+    font: 600 var(--fs-xs)/1.3 var(--font-mono); color: var(--muted);
+    padding: 4px var(--s-2); border-radius: var(--r-sm); text-transform: uppercase; letter-spacing: .8px;
+    cursor: pointer; user-select: none;
+  }
+  .not-folder__name:hover { color: var(--text); background: var(--surface-2); }
+  .not-files { list-style: none; margin: 0; padding: 0 0 0 var(--s-3); display: flex; flex-direction: column; gap: 2px; }
+  .not-file {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+    padding: 5px var(--s-2); border-radius: var(--r-sm); font-size: var(--fs-xs); color: var(--text);
+    text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  .not-file:hover { background: var(--surface-2); }
+  .not-file--active {
+    background: var(--accent-soft); color: var(--accent-text); font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .not-file__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* tagi */
+  .not-tags-sec { border-top: 1px solid var(--line); padding-top: var(--s-3); }
+  .not-tags-title {
+    font: 600 10px/1 var(--font-mono); color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; margin: 0 0 var(--s-2);
+  }
+  .not-tags-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  /* ŚRODKOWA KOLUMNA: EDYTOR I PODGLĄD MARKDOWN */
+  .not-editor-wrap {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .not-toolbar {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+    padding: var(--s-2) var(--s-4); border-bottom: 1px solid var(--line); background: var(--surface-2);
+  }
+  .not-toolbar__path {
+    font: 500 var(--fs-xs)/1.2 var(--font-mono); color: var(--muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .not-toolbar__path b { color: var(--text); }
+  .not-toolbar__tools { display: flex; align-items: center; gap: var(--s-2); }
+
+  /* arkusz notatki: szeroki margines w stylu holo-notatnik */
+  .not-sheet {
+    padding: var(--s-5) var(--s-6); max-width: 820px; width: 100%; margin: 0 auto;
+    color: var(--text); font-family: var(--font-body); line-height: 1.7;
+  }
+  .not-frontmatter {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: var(--s-3); margin-bottom: var(--s-4); font: 400 var(--fs-xs)/1.5 var(--font-mono);
+  }
+  .not-frontmatter__top {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+    color: var(--accent-text); font-weight: 600;
+  }
+  .not-h1 {
+    font: 700 var(--fs-2xl)/1.2 var(--font-display); color: var(--text);
+    margin: var(--s-4) 0 var(--s-3); letter-spacing: -.3px;
+  }
+  .not-h2 {
+    font: 600 var(--fs-lg)/1.3 var(--font-display); color: var(--text);
+    margin: var(--s-4) 0 var(--s-2); border-bottom: 1px solid var(--line); padding-bottom: 4px;
+  }
+  .not-p { margin: 0 0 var(--s-3); font-size: var(--fs-sm); }
+
+  /* neonowy żółty zakreślacz */
+  .not-mark {
+    background: var(--not-mark-bg); color: var(--not-mark-ink);
+    padding: 1px 5px; border-radius: 3px; font-weight: 600;
+    box-shadow: 0 0 12px var(--glow);
+  }
+
+  /* link [[wiki]] */
+  .not-wiki {
+    font-family: var(--font-mono); font-size: 0.9em; font-weight: 600;
+    color: var(--accent-text); text-decoration: none; border-bottom: 1px dashed var(--accent);
+    padding: 0 2px;
+  }
+  .not-wiki:hover { background: var(--accent-soft); }
+
+  /* blok kodu */
+  .not-codeblock {
+    background: var(--not-code-bg); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: var(--s-3) var(--s-4); font: 400 var(--fs-xs)/1.5 var(--font-mono);
+    color: var(--text); margin: var(--s-3) 0; overflow-x: auto;
+  }
+  .not-list { margin: 0 0 var(--s-3); padding-left: 20px; font-size: var(--fs-sm); }
+  .not-list li { margin: 4px 0; }
+
+  /* PRAWA KOLUMNA: METADANE, BACKLINKI I DECYZJE */
+  .not-meta-col { display: flex; flex-direction: column; gap: var(--s-4); }
+  .not-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: var(--s-3) var(--s-4);
+  }
+  .not-card__head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+    margin-bottom: var(--s-3); padding-bottom: var(--s-2); border-bottom: 1px solid var(--line);
+  }
+  .not-card__title {
+    font: 600 var(--fs-xs)/1 var(--font-mono); text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin: 0;
+  }
+  .not-card__title b { color: var(--text); }
+
+  /* metadane */
+  .not-kv {
+    display: grid; grid-template-columns: 88px 1fr; gap: 6px var(--s-2);
+    font-size: var(--fs-xs); margin: 0;
+  }
+  .not-kv dt { font-family: var(--font-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .not-kv dd { margin: 0; font-family: var(--font-mono); color: var(--text); word-break: break-all; }
+
+  /* linki zwrotne */
+  .not-backlinks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+  .not-backlink-item {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: var(--s-2) var(--s-3); display: flex; flex-direction: column; gap: 2px;
+    font-size: var(--fs-xs);
+  }
+  .not-backlink-item:hover { border-color: var(--accent); }
+  .not-backlink-item a { color: var(--text); font-weight: 500; text-decoration: none; }
+  .not-backlink-item span { font-family: var(--font-mono); color: var(--muted); font-size: 11px; }
+
+  /* wyszukiwarka decyzji w devlogach */
+  .not-decisions { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+  .not-decision-item {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: var(--s-2) var(--s-3); display: flex; flex-direction: column; gap: 3px;
+    font-size: var(--fs-xs);
+  }
+  .not-decision-item__meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font: 500 11px/1 var(--font-mono); color: var(--muted);
+  }
+  .not-decision-item__prj { color: var(--accent-text); font-weight: 600; }
+  .not-decision-item__title { font-weight: 600; color: var(--text); line-height: 1.3; }
+  .not-decision-item__why { color: var(--muted); font-family: var(--font-mono); line-height: 1.35; }
+  .not-decision-item__why b { color: var(--text); font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="app">
+<main class="view">
+
+  <header class="view-head">
+    <div>
+      <p class="view-head__eyebrow">Alt+5 · Notatki</p>
+      <h1 class="view-head__title">Baza wiedzy i notatki</h1>
+      <p class="view-head__sub">Środa, 11 listopada 2026 · 142 notatki w vault · aktywna: Decyzja: porty V2 w Gen Podsum AI</p>
+    </div>
+    <div class="view-head__actions">
+      <button class="btn" data-toast="Nowa notatka w Inbox (atrapa)">+ Nowa notatka</button>
+      <button class="btn btn--primary" data-toast="Notatka zapisana w vault (atrapa)">Zapisz (Ctrl+S)</button>
+    </div>
+  </header>
+
+  <!-- kafle statystyk notatek -->
+  <section class="tiles not-tiles" aria-label="Statystyki bazy wiedzy">
+    <div class="tile tile--accent" data-src="Vault/ · statystyki">
+      <span class="tile__label">Notatki w bazie</span>
+      <span class="tile__value">142</span>
+      <span class="tile__meta">8 katalogów głównych</span>
+    </div>
+    <div class="tile" data-src="Vault/ · zmodyfikowane">
+      <span class="tile__label">Zmienione dziś</span>
+      <span class="tile__value">4</span>
+      <span class="tile__meta">ostatnia zmiana 09:22</span>
+    </div>
+    <div class="tile" data-src="Projects/*/devlog.md · decyzje">
+      <span class="tile__label">Decyzje w devlogach</span>
+      <span class="tile__value">28</span>
+      <span class="tile__meta">ze wszystkich 7 projektów</span>
+    </div>
+    <div class="tile" data-src="Inbox/inbox.md · elementy">
+      <span class="tile__label">Do segregacji (Inbox)</span>
+      <span class="tile__value">5</span>
+      <span class="tile__meta">3 myśli · 2 linki techniczne</span>
+    </div>
+  </section>
+
+  <!-- główny układ 3-kolumnowy -->
+  <div class="not-layout">
+
+    <!-- LEWA KOLUMNA: DRZEWO NOTATEK -->
+    <aside class="not-sidebar" aria-labelledby="not-tree-h" data-src="Vault/ · tree">
+      <div class="not-sidebar__head">
+        <h2 class="not-sidebar__title" id="not-tree-h"><b>Pliki</b> · Markdown</h2>
+        <span class="chip">vault</span>
+      </div>
+
+      <input class="input" placeholder="Szukaj notatki (Ctrl+P)..." aria-label="Filtruj notatki">
+
+      <ul class="not-tree">
+
+        <!-- Folder Knowledge -->
+        <li class="not-folder">
+          <div class="not-folder__name">
+            <span>▾ Knowledge/</span>
+            <span class="muted">42</span>
+          </div>
+          <ul class="not-files">
+            <li>
+              <a class="not-file" href="#" data-toast="Otwarto wzorce-agentowe.md">
+                <span class="not-file__name">wzorce-agentowe.md</span>
+              </a>
+            </li>
+            <li>
+              <a class="not-file" href="#" data-toast="Otwarto architektura-promptow.md">
+                <span class="not-file__name">architektura-promptow.md</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Folder Projects -->
+        <li class="not-folder">
+          <div class="not-folder__name">
+            <span>▾ Projects/</span>
+            <span class="muted">64</span>
+          </div>
+          <ul class="not-files">
+            <li>
+              <!-- Aktywna notatka -->
+              <a class="not-file not-file--active" href="#" aria-current="page">
+                <span class="not-file__name">decyzja-porty-v2.md</span>
+              </a>
+            </li>
+            <li>
+              <a class="not-file" href="#" data-toast="Otwarto stan-integracji-vite.md">
+                <span class="not-file__name">stan-integracji-vite.md</span>
+              </a>
+            </li>
+            <li>
+              <a class="not-file" href="#" data-toast="Otwarto code-sensei-complexity.md">
+                <span class="not-file__name">code-sensei-complexity.md</span>
+              </a>
+            </li>
+            <li>
+              <a class="not-file" href="#" data-toast="Otwarto second-brain-karty.md">
+                <span class="not-file__name">second-brain-karty.md</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Folder Inbox -->
+        <li class="not-folder">
+          <div class="not-folder__name">
+            <span>▸ Inbox/</span>
+            <span class="muted">5</span>
+          </div>
+        </li>
+
+        <!-- Folder Sessions -->
+        <li class="not-folder">
+          <div class="not-folder__name">
+            <span>▸ Sessions/</span>
+            <span class="muted">31</span>
+          </div>
+        </li>
+
+      </ul>
+
+      <!-- Tagi -->
+      <div class="not-tags-sec" data-src="Vault/ · tags">
+        <h3 class="not-tags-title">Popularne tagi</h3>
+        <div class="not-tags-wrap">
+          <button class="chip chip--accent" aria-pressed="true">#architektura</button>
+          <button class="chip" aria-pressed="false">#decyzje</button>
+          <button class="chip" aria-pressed="false">#gen-podsum-ai</button>
+          <button class="chip" aria-pressed="false">#save-state</button>
+          <button class="chip" aria-pressed="false">#prompting</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ŚRODKOWA KOLUMNA: EDYTOR I PODGLĄD MARKDOWN -->
+    <main class="not-editor-col" data-src="Projects/gen-podsum-ai/decyzja-porty-v2.md">
+      <div class="not-editor-wrap">
+
+        <div class="not-toolbar">
+          <div class="not-toolbar__path">
+            <span>Projects/gen-podsum-ai/</span><b>decyzja-porty-v2.md</b>
+          </div>
+          <div class="not-toolbar__tools">
+            <span class="chip chip--ok">zsynchronizowany</span>
+            <div class="tabs" role="tablist">
+              <button class="tabs__btn" role="tab" aria-selected="true">Podgląd</button>
+              <button class="tabs__btn" role="tab" aria-selected="false">Edycja</button>
+              <button class="tabs__btn" role="tab" aria-selected="false">Split</button>
+            </div>
+          </div>
+        </div>
+
+        <article class="not-sheet">
+
+          <!-- Frontmatter -->
+          <div class="not-frontmatter" data-src="Projects/gen-podsum-ai/decyzja-porty-v2.md · frontmatter">
+            <div class="not-frontmatter__top">
+              <span>--- FRONTMATTER ---</span>
+              <span>Obsidian / Nexus Format</span>
+            </div>
+            <div>data: 2026-11-10</div>
+            <div>projekt: gen-podsum-ai</div>
+            <div>status: zatwierdzone</div>
+            <div>tagi: [architektura, gen-podsum-ai, decyzje]</div>
+          </div>
+
+          <h1 class="not-h1">Decyzja: rozdzielenie i konfiguracja portów V2 w Gen Podsum AI</h1>
+
+          <p class="not-p">
+            W trakcie testów integracji klienta webowego z backendem API wystąpiła kolizja procesów nasłuchujących.
+            <mark class="not-mark">Ustalono sztywne rozdzielenie portów: backend API otrzymuje port 5000, natomiast frontend deweloperski Vite działa na porcie 5173</mark>,
+            co eliminuje wzajemne blokowanie usług w skryptach startowych.
+          </p>
+
+          <h2 class="not-h2">Kontekst problemu i objawy</h2>
+          <ul class="not-list">
+            <li>Domyślna konfiguracja serwera uruchamiała proces na porcie 5001, podczas gdy plik start_v2.bat wymuszał port 5000.</li>
+            <li>Frontend zgłaszał błąd odmowy połączenia z adresem localhost, co blokowało ticket <a class="not-wiki" href="#" data-toast="Otwarto zadanie GP-001">[[GP-001 porty V2]]</a>.</li>
+            <li>Brak spójnego przypisania portów utrudniał weryfikację potoku testowego end-to-end.</li>
+          </ul>
+
+          <h2 class="not-h2">Podjęta decyzja techniczna</h2>
+          <p class="not-p">
+            Zamiast dynamicznego wyboru portu w kodzie serwera, przyjęto zasadę jawnej deklaracji w zmiennych środowiskowych oraz przygotowano skrypt łączony:
+          </p>
+
+          <div class="not-codeblock">
+<code># start_v2.bat (skrypt uruchomieniowy projektu)
+start powershell -NoExit -Command "cd server; $env:PORT=5000; npm run start"
+start powershell -NoExit -Command "cd client; npm run dev"</code>
+          </div>
+
+          <h2 class="not-h2">Powiązane wpisy i konsekwencje</h2>
+          <p class="not-p">
+            Wdrożenie tej zmiany wymaga zaktualizowania pliku stanu <a class="not-wiki" href="#" data-toast="Otwarto state.md">[[Projects/gen-podsum-ai/state.md]]</a>
+            oraz odblokowuje kolejne zadanie w kolejce: <a class="not-wiki" href="#" data-toast="Otwarto zadanie GP-002">[[GP-002 test end-to-end V2]]</a>.
+            Zasada rozdzielania portów deweloperskich została również dodana do notatki ogólnej <a class="not-wiki" href="#" data-toast="Otwarto wzorce-agentowe.md">[[Knowledge/wzorce-agentowe.md]]</a>.
+          </p>
+
+        </article>
+      </div>
+    </main>
+
+    <!-- PRAWA KOLUMNA: METADANE, BACKLINKI I WYSZUKIWARKA DECYZJI -->
+    <aside class="not-meta-col" aria-label="Szczegóły i powiązania notatki">
+
+      <!-- Metadane notatki -->
+      <section class="not-card" data-src="Projects/gen-podsum-ai/decyzja-porty-v2.md · metadane">
+        <div class="not-card__head">
+          <h3 class="not-card__title"><b>Metadane</b> · plik</h3>
+          <span class="chip">Markdown</span>
+        </div>
+        <dl class="not-kv">
+          <dt>Projekt</dt>
+          <dd><b>gen-podsum-ai</b></dd>
+          <dt>Utworzono</dt>
+          <dd>2026-11-10 17:40</dd>
+          <dt>Zmieniono</dt>
+          <dd>Dziś, 09:22</dd>
+          <dt>Rozmiar</dt>
+          <dd>2.4 KB (410 słów)</dd>
+          <dt>Tagi</dt>
+          <dd>#architektura #decyzje</dd>
+        </dl>
+      </section>
+
+      <!-- Linki zwrotne (Backlinks) -->
+      <section class="not-card" data-src="Vault/ · backlinks">
+        <div class="not-card__head">
+          <h3 class="not-card__title"><b>Linki zwrotne</b> (3)</h3>
+          <span class="chip">backlinks</span>
+        </div>
+        <ul class="not-backlinks">
+          <li class="not-backlink-item">
+            <a href="#" data-toast="Otwarto devlog projektu gen-podsum-ai">Projects/gen-podsum-ai/devlog.md</a>
+            <span>wpis z dnia 10 listopada 2026</span>
+          </li>
+          <li class="not-backlink-item">
+            <a href="#" data-toast="Otwarto zadania projektu gen-podsum-ai">Projects/gen-podsum-ai/tasks.md</a>
+            <span>zadanie GP-001 porty V2</span>
+          </li>
+          <li class="not-backlink-item">
+            <a href="#" data-toast="Otwarto wzorce-agentowe.md">Knowledge/wzorce-agentowe.md</a>
+            <span>sekcja: izolacja portów lokalnych</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Wyszukiwarka decyzji we wszystkich devlogach -->
+      <section class="not-card" data-src="Projects/*/devlog.md · decyzje">
+        <div class="not-card__head">
+          <h3 class="not-card__title"><b>Baza decyzji</b> · devlogi</h3>
+          <span class="chip">7 projektów</span>
+        </div>
+
+        <input class="input" style="height: 32px; font-size: var(--fs-xs)" placeholder="Szukaj decyzji we wszystkich devlogach..." value="porty" aria-label="Szukaj decyzji">
+
+        <ul class="not-decisions">
+          <li class="not-decision-item">
+            <div class="not-decision-item__meta">
+              <span class="not-decision-item__prj">gen-podsum-ai</span>
+              <span>10 lis 2026</span>
+            </div>
+            <div class="not-decision-item__title">Ujednolicenie PORT=5000 w start_v2.bat</div>
+            <div class="not-decision-item__why"><b>Dlaczego:</b> Eliminacja konfliktu z serwerem deweloperskim Vite.</div>
+          </li>
+
+          <li class="not-decision-item">
+            <div class="not-decision-item__meta">
+              <span class="not-decision-item__prj">code-sensei</span>
+              <span>06 lis 2026</span>
+            </div>
+            <div class="not-decision-item__title">Przeniesienie bazy wektorowej na port 6333</div>
+            <div class="not-decision-item__why"><b>Dlaczego:</b> Usunięcie kolizji z lokalną bazą danych PostgreSQL.</div>
+          </li>
+
+          <li class="not-decision-item">
+            <div class="not-decision-item__meta">
+              <span class="not-decision-item__prj">tester-ai</span>
+              <span>02 lis 2026</span>
+            </div>
+            <div class="not-decision-item__title">Statyczny port 8080 dla serwera atrap HTTP</div>
+            <div class="not-decision-item__why"><b>Dlaczego:</b> Powtarzalność uruchamiania testów w środowisku CI.</div>
+          </li>
+        </ul>
+      </section>
+
+    </aside>
+
+  </div>
+
+</main>
+</div>
+<script src="../shell.js"></script>
+</body>
+</html>

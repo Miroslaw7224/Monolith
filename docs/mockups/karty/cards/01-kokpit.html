@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="pl" data-card="kokpit" data-project="gen-podsum-ai" data-branch="fix/gp-001-porty">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kokpit · Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Oxanium:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Exo+2:wght@500;700&family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;800&family=Chakra+Petch:wght@500;700&display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../shell.css">
+<style>
+  /* --- Kokpit: centrum dowodzenia (prefiks .kp-) --- */
+  .kp-anchor {
+    display: flex; align-items: center; gap: var(--s-4);
+    padding: var(--s-3) var(--s-4); margin-bottom: var(--s-5);
+    border-radius: var(--r-md);
+    background: linear-gradient(90deg, var(--accent-soft), transparent 70%);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .kp-anchor__label { font: 600 var(--fs-xs)/1 var(--font-mono); letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent-text); white-space: nowrap; }
+  .kp-anchor__text { flex: 1; }
+  .kp-anchor__text b { font-weight: 600; }
+
+  .kp-clock { font: 600 var(--fs-3xl)/1 var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -2px; color: var(--accent-text); text-shadow: 0 0 24px var(--glow); }
+  .kp-clock small { font-size: var(--fs-md); letter-spacing: 0; color: var(--muted); text-shadow: none; margin-left: var(--s-2); }
+
+  .kp-tiles { --cols: 5; margin-bottom: var(--s-5); }
+  .kp-tiles .tile { position: relative; overflow: hidden; }
+  .kp-tiles .tile__value { font-size: var(--fs-2xl); }
+  .kp-tiles .tile::after { content: ""; position: absolute; right: 12px; top: 12px; width: 6px; height: 6px; border-radius: 1px; background: var(--line); }
+  .kp-tiles .tile--accent::after { background: var(--accent); box-shadow: 0 0 10px var(--glow); }
+
+  .kp-grid { display: grid; grid-template-columns: 1.05fr 1.35fr 1fr; gap: var(--s-4); align-items: start; }
+
+  /* oś czasu spotkań */
+  .kp-tl { list-style: none; margin: 0; padding: 0; position: relative; }
+  .kp-tl::before { content: ""; position: absolute; left: 59.5px; top: 6px; bottom: 6px; width: 1px; background: var(--line); }
+  .kp-tl__item { display: grid; grid-template-columns: 44px 16px 1fr; gap: 0 var(--s-2); padding: var(--s-2) 0; align-items: start; }
+  .kp-tl__time { font: 500 var(--fs-sm)/1.4 var(--font-mono); color: var(--muted); text-align: right; }
+  .kp-tl__node { width: 9px; height: 9px; margin: 5px auto 0; border-radius: 50%; background: var(--surface); border: 2px solid var(--muted); position: relative; z-index: 1; }
+  .kp-tl__body { min-width: 0; }
+  .kp-tl__title { font-weight: 600; }
+  .kp-tl__meta { display: flex; gap: var(--s-2); align-items: center; margin-top: 4px; flex-wrap: wrap; }
+  .kp-tl__item--done { opacity: .55; }
+  .kp-tl__item--next .kp-tl__node { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 12px var(--glow); }
+  .kp-tl__item--next .kp-tl__time { color: var(--accent-text); }
+  .kp-tl__now { display: grid; grid-template-columns: 44px 16px 1fr; gap: 0 var(--s-2); align-items: center; margin: 2px 0; }
+  .kp-tl__now span:first-child { font: 600 var(--fs-xs)/1 var(--font-mono); color: var(--accent-text); text-align: right; }
+  .kp-tl__now i { height: 2px; grid-column: 2 / 4; background: linear-gradient(90deg, var(--accent), transparent); box-shadow: 0 0 8px var(--glow); }
+  .kp-tl__slot { margin: var(--s-1) 0; padding: var(--s-2) var(--s-3); border: 1px dashed var(--line); border-radius: var(--r-sm); font-size: var(--fs-sm); color: var(--muted); }
+  .kp-tl__slot b { color: var(--text); font-weight: 500; }
+  .kp-brief { margin-top: var(--s-2); padding: var(--s-3); border-radius: var(--r-sm); background: var(--surface-2); font-size: var(--fs-sm); }
+  .kp-brief ul { margin: var(--s-1) 0 0; padding-left: 18px; }
+  .kp-brief li { margin: 2px 0; }
+  .kp-brief__label { font: 600 10px/1 var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
+
+  /* punkty skupienia */
+  .kp-focus { display: flex; flex-direction: column; gap: var(--s-3); }
+  .kp-topic { padding: var(--s-4); }
+  .kp-topic__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+  .kp-topic__name { font: 700 var(--fs-lg)/1.2 var(--font-display); margin: 0; }
+  .kp-topic__next { margin: var(--s-3) 0; font-size: var(--fs-lg); line-height: 1.4; }
+  .kp-topic__next::before { content: "→ "; color: var(--accent-text); font-weight: 700; }
+  .kp-kv { display: grid; grid-template-columns: auto 1fr; gap: 4px var(--s-4); font-size: var(--fs-sm); margin: 0; }
+  .kp-kv dt { color: var(--muted); font-family: var(--font-mono); font-size: var(--fs-xs); padding-top: 2px; text-transform: uppercase; letter-spacing: .8px; }
+  .kp-kv dd { margin: 0; font-family: var(--font-mono); }
+  .kp-topic__foot { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-4); }
+  .kp-topic__foot .btn--primary { margin-left: auto; }
+  .kp-empty { border: 1px dashed var(--line); border-radius: var(--r-lg); padding: var(--s-4); color: var(--muted); display: flex; justify-content: space-between; align-items: center; font-size: var(--fs-sm); background: transparent; }
+
+  /* kolejka i inbox */
+  .kp-queue .list__item { padding: var(--s-2) var(--s-1); }
+  .kp-capture { display: flex; gap: var(--s-2); margin-bottom: var(--s-3); }
+  .kp-inbox .list__item { gap: var(--s-2); }
+  .kp-type { font: 600 10px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .6px; width: 40px; color: var(--muted); }
+  .kp-week { margin-top: var(--s-4); display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .kp-week__day { text-align: center; font: 500 10px/1 var(--font-mono); color: var(--muted); }
+  .kp-week__bar { height: 34px; border-radius: 4px; background: var(--surface-2); position: relative; overflow: hidden; margin-bottom: 4px; }
+  .kp-week__bar span { position: absolute; left: 0; right: 0; bottom: 0; height: var(--v); background: color-mix(in srgb, var(--accent) 70%, transparent); }
+  .kp-week__day--today .kp-week__bar { outline: 1px solid var(--accent); }
+  .kp-week__day--today { color: var(--accent-text); }
+</style>
+</head>
+<body>
+<div class="app">
+<main class="view">
+
+  <!-- punkt zaczepienia z wczorajszego rytuału zamknięcia dnia -->
+  <div class="kp-anchor" data-src="Inbox/inbox.md · #jutro (rytuał zamknięcia)">
+    <span class="kp-anchor__label">Zaczep z wczoraj</span>
+    <span class="kp-anchor__text">Porty V2 w Gen Podsum AI: <b>zmień domyślny PORT w <span class="mono">server.js</span> na 5000 i odpal <span class="mono">start_v2.ps1</span></b>.</span>
+    <button class="btn btn--sm" data-toast="Otwarto Gen Podsum AI w Projektach (atrapa)">Wejdź w temat</button>
+  </div>
+
+  <header class="view-head">
+    <div>
+      <p class="view-head__eyebrow">Alt+1 · Kokpit</p>
+      <h1 class="view-head__title">Środa, 11 listopada</h1>
+      <p class="view-head__sub">3 spotkania · 2 okna Deep Work</p>
+    </div>
+    <div class="row" style="--gap: var(--s-5)">
+      <div class="kp-clock" aria-label="Godzina">09:48<small>tydz. 46</small></div>
+      <div class="view-head__actions">
+        <button class="btn btn--primary" data-toast="Rytuał zamknięcia dnia (atrapa)">Zamknij dzień</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="tiles kp-tiles" aria-label="Liczby dnia">
+    <div class="tile tile--accent" data-src="kalendarz · dziś">
+      <span class="tile__label">Następne spotkanie</span>
+      <span class="tile__value">10:30</span>
+      <span class="tile__meta">za 42 min · przegląd tygodnia</span>
+    </div>
+    <div class="tile" data-src="Projects/*/tasks.md · Teraz">
+      <span class="tile__label">Zadania na dziś</span>
+      <span class="tile__value">7</span>
+      <span class="tile__meta">2 deep · 5 quick</span>
+    </div>
+    <div class="tile" data-src="Inbox/inbox.md">
+      <span class="tile__label">Inbox</span>
+      <span class="tile__value">5</span>
+      <span class="tile__meta">do segregacji wieczorem</span>
+    </div>
+    <div class="tile" data-src="focus.md · active (limit 3)">
+      <span class="tile__label">Aktywne tematy</span>
+      <span class="tile__value">2<span class="muted" style="font-size: var(--fs-lg)"> / 3</span></span>
+      <span class="tile__meta">jedno wolne miejsce</span>
+    </div>
+    <div class="tile" data-src="git log (tylko odczyt)">
+      <span class="tile__label">Commity dziś</span>
+      <span class="tile__value">4</span>
+      <span class="tile__meta">2 projekty</span>
+    </div>
+  </section>
+
+  <div class="kp-grid">
+
+    <!-- oś czasu spotkań -->
+    <section class="panel" aria-labelledby="kp-tl-h">
+      <div class="panel__head">
+        <h2 class="panel__title" id="kp-tl-h"><b>Dziś</b> · oś czasu</h2>
+        <span class="chip">08–18</span>
+      </div>
+      <ol class="kp-tl">
+        <li class="kp-tl__item kp-tl__item--done">
+          <span class="kp-tl__time">08:30</span><span class="kp-tl__node"></span>
+          <div class="kp-tl__body">
+            <div class="kp-tl__title">Etat · daily</div>
+            <div class="kp-tl__meta"><span class="chip">etat</span><span class="muted" style="font-size: var(--fs-xs)">szczegóły ukryte poza godzinami</span></div>
+          </div>
+        </li>
+        <li class="kp-tl__item"><span></span><span></span>
+          <div class="kp-tl__slot" data-src="planer slotów: kalendarz + [energy::]">Okno <b>09:00–10:15</b> · proponowane: <span class="energy energy--deep">deep</span> GP-001 porty V2</div>
+        </li>
+        <li class="kp-tl__now"><span>teraz</span><i></i></li>
+        <li class="kp-tl__item kp-tl__item--next" data-src="kalendarz · wydarzenie + brief">
+          <span class="kp-tl__time">10:30</span><span class="kp-tl__node"></span>
+          <div class="kp-tl__body">
+            <div class="kp-tl__title">Przegląd tygodnia</div>
+            <div class="kp-tl__meta">
+              <span class="chip chip--accent">nexus</span>
+              <span class="muted mono" style="font-size: var(--fs-xs)">30 min</span>
+              <button class="btn btn--sm" data-toast="Otwieram link do spotkania (atrapa)">Dołącz ↗</button>
+            </div>
+            <div class="kp-brief">
+              <div class="kp-brief__label">Brief</div>
+              <ul>
+                <li>Wybrać focus na tydzień 47 (max 3 projekty)</li>
+                <li>English Agent: decyzja o weryfikacji fiszek A1–C2</li>
+                <li>Powiązane: <span class="mono">GP-002</span>, README portfolio</li>
+              </ul>
+            </div>
+          </div>
+        </li>
+        <li class="kp-tl__item">
+          <span class="kp-tl__time">13:00</span><span class="kp-tl__node"></span>
+          <div class="kp-tl__body">
+            <div class="kp-tl__title">Konsultacja: Tester AI, DoD</div>
+            <div class="kp-tl__meta"><span class="chip">tester-ai</span><span class="muted mono" style="font-size: var(--fs-xs)">45 min · Discord</span></div>
+          </div>
+        </li>
+        <li class="kp-tl__item"><span></span><span></span>
+          <div class="kp-tl__slot">Okno <b>14:00–16:30</b> · proponowane: <span class="energy energy--deep">deep</span> weryfikacja fiszek</div>
+        </li>
+        <li class="kp-tl__item">
+          <span class="kp-tl__time">17:30</span><span class="kp-tl__node"></span>
+          <div class="kp-tl__body">
+            <div class="kp-tl__title">Spacer, bez ekranu</div>
+            <div class="kp-tl__meta"><span class="chip">życie</span></div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- aktywne punkty skupienia -->
+    <section class="kp-focus" aria-labelledby="kp-focus-h">
+      <div class="panel__head" style="margin-bottom: 0">
+        <h2 class="panel__title" id="kp-focus-h"><b>Punkty skupienia</b> · Save State</h2>
+        <span class="muted mono" style="font-size: var(--fs-xs)">limit 3</span>
+      </div>
+
+      <article class="panel panel--active kp-topic" data-src="Projects/gen-podsum-ai/state.md">
+        <div class="kp-topic__head">
+          <h3 class="kp-topic__name">Gen Podsum AI</h3>
+          <span class="row"><span class="chip chip--danger">bloker</span><span class="chip">własny</span></span>
+        </div>
+        <p class="kp-topic__next" data-src="state.md · next_step">Ujednolicić port V2: <span class="mono">server.js</span> słucha na 5001, skrypt startowy zakłada 5000.</p>
+        <dl class="kp-kv">
+          <dt>branch</dt><dd class="accent">fix/gp-001-porty</dd>
+          <dt>bloker</dt><dd>GP-002: frontend nie łączy się z backendem</dd>
+          <dt>ostatnio</dt><dd>wczoraj 21:40 · <span class="chip chip--ok" style="height: 18px" data-src="state_confidence">pewne</span></dd>
+        </dl>
+        <div class="kp-topic__foot">
+          <span class="chip" data-src="tasks.md · Teraz">Teraz: 2</span>
+          <span class="chip" data-src="bugs.md">bugi: 2</span>
+          <button class="btn btn--sm btn--ghost" data-toast="Skopiowano paczkę kontekstu (~3,8 tys. tokenów)">Kopiuj kontekst</button>
+          <button class="btn btn--sm btn--primary" data-toast="Wejście w projekt (atrapa)">Wejdź</button>
+        </div>
+      </article>
+
+      <article class="panel kp-topic" data-src="Projects/english-agent/state.md">
+        <div class="kp-topic__head">
+          <h3 class="kp-topic__name">English Agent</h3>
+          <span class="row"><span class="chip chip--ok">aktywny</span><span class="chip">własny</span></span>
+        </div>
+        <p class="kp-topic__next">Przejrzeć fiszki poziomu B2 (zestaw 3 z 6) i oznaczyć błędne tłumaczenia.</p>
+        <dl class="kp-kv">
+          <dt>branch</dt><dd class="accent">main</dd>
+          <dt>bloker</dt><dd class="muted">brak</dd>
+          <dt>ostatnio</dt><dd>6 dni temu · <span class="chip chip--warn" style="height: 18px">do sprawdzenia</span></dd>
+        </dl>
+        <div class="kp-topic__foot">
+          <span class="chip">Teraz: 1</span>
+          <span class="chip">refaktor: 1</span>
+          <button class="btn btn--sm btn--ghost" data-toast="Skopiowano paczkę kontekstu (~2,9 tys. tokenów)">Kopiuj kontekst</button>
+          <button class="btn btn--sm" data-toast="Wejście w projekt (atrapa)">Wejdź</button>
+        </div>
+      </article>
+
+      <button class="kp-empty" type="button" data-toast="Wybór trzeciego tematu (atrapa)">
+        <span>Wolne miejsce na trzeci temat</span><span class="kbd">+</span>
+      </button>
+    </section>
+
+    <!-- kolejka i inbox -->
+    <div class="stack">
+      <section class="panel kp-queue" aria-labelledby="kp-q-h" data-src="Projects/*/tasks.md · [energy::] [due::]">
+        <div class="panel__head">
+          <h2 class="panel__title" id="kp-q-h"><b>Kolejka</b> · dziś</h2>
+          <div class="row" style="--gap: 4px">
+            <button class="chip" aria-pressed="true">wszystko</button>
+            <button class="chip" aria-pressed="false">deep</button>
+            <button class="chip" aria-pressed="false">quick</button>
+          </div>
+        </div>
+        <ul class="list">
+          <li class="list__item"><input class="check" type="checkbox" checked aria-label="zrobione">
+            <span class="list__main"><span class="list__title" style="text-decoration: line-through; color: var(--muted)">Odtworzyć GP-001 lokalnie</span><span class="list__meta">gen-podsum-ai</span></span>
+            <span class="energy energy--quick">quick</span></li>
+          <li class="list__item"><input class="check" type="checkbox" aria-label="zrobione">
+            <span class="list__main"><span class="list__title">Naprawić GP-001: porty V2</span><span class="list__meta">gen-podsum-ai · high</span></span>
+            <span class="energy energy--deep">deep</span></li>
+          <li class="list__item"><input class="check" type="checkbox" aria-label="zrobione">
+            <span class="list__main"><span class="list__title">GP-002: test end-to-end V2</span><span class="list__meta">gen-podsum-ai · high</span></span>
+            <span class="energy energy--deep">deep</span></li>
+          <li class="list__item"><input class="check" type="checkbox" aria-label="zrobione">
+            <span class="list__main"><span class="list__title">README portfolio: 4 → 7 projektów</span><span class="list__meta">portfolio</span></span>
+            <span class="energy energy--quick">quick</span></li>
+          <li class="list__item"><input class="check" type="checkbox" aria-label="zrobione">
+            <span class="list__main"><span class="list__title">Sprawdzić linki w portfolio</span><span class="list__meta">portfolio</span></span>
+            <span class="energy energy--quick">quick</span></li>
+        </ul>
+      </section>
+
+      <section class="panel kp-inbox" aria-labelledby="kp-in-h">
+        <div class="panel__head">
+          <h2 class="panel__title" id="kp-in-h"><b>Inbox</b></h2>
+          <span class="kbd">Alt+I</span>
+        </div>
+        <form class="kp-capture" onsubmit="event.preventDefault(); sbToast('Dodano do inboxu (atrapa)'); this.reset();">
+          <input class="input" placeholder="Myśl, link, snippet albo bug…" aria-label="Szybki zapis" data-src="zapis → Inbox/inbox.md">
+          <button class="btn btn--icon btn--primary" aria-label="Dodaj">+</button>
+        </form>
+        <ul class="list">
+          <li class="list__item"><span class="kp-type">link</span><span class="list__main"><span class="list__title">Artykuł o vitest browser mode</span></span></li>
+          <li class="list__item"><span class="kp-type">bug</span><span class="list__main"><span class="list__title">Code Sensei: pusty stan listy bez komunikatu</span></span></li>
+          <li class="list__item"><span class="kp-type">myśl</span><span class="list__main"><span class="list__title">Radar blokad jako widok w Mapie</span></span></li>
+        </ul>
+        <div class="kp-week" aria-label="Aktywność tygodnia" data-src="Sessions/ + git log · przegląd tygodnia">
+          <div class="kp-week__day"><div class="kp-week__bar"><span style="--v: 40%"></span></div>pn</div>
+          <div class="kp-week__day"><div class="kp-week__bar"><span style="--v: 75%"></span></div>wt</div>
+          <div class="kp-week__day kp-week__day--today"><div class="kp-week__bar"><span style="--v: 30%"></span></div>śr</div>
+          <div class="kp-week__day"><div class="kp-week__bar"></div>cz</div>
+          <div class="kp-week__day"><div class="kp-week__bar"></div>pt</div>
+          <div class="kp-week__day"><div class="kp-week__bar"></div>sb</div>
+          <div class="kp-week__day"><div class="kp-week__bar"></div>nd</div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</main>
+</div>
+<script src="../shell.js"></script>
+</body>
+</html>

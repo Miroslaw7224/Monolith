@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pl" data-card="kalendarz" data-project="nexus">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalendarz · Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Oxanium:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Exo+2:wght@500;700&family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;800&family=Chakra+Petch:wght@500;700&display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../shell.css">
+<style>
+  /* --- Kalendarz: język Kokpitu + siatka godzin (prefiks .kal-) --- */
+  :root { --kal-hour: 52px; --kal-etat: #2a2c32; --kal-etat-ink: #c4c6ce; --kal-prj: #8a9bd8; }
+
+  .kal-title { font: 700 var(--fs-2xl)/1.05 var(--font-display); margin: 0; letter-spacing: -.3px; }
+  .kal-title em { font-style: normal; color: var(--accent-text); }
+  .kal-tiles { --cols: 4; margin-bottom: var(--s-5); }
+  .kal-tiles .tile__value { font-size: var(--fs-2xl); }
+  .kal-layout { display: grid; grid-template-columns: 1fr 340px; gap: var(--s-4); align-items: start; }
+
+  /* tydzień */
+  .kal-week { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  .kal-days { display: grid; grid-template-columns: 56px repeat(7, 1fr); border-bottom: 1px solid var(--line); }
+  .kal-day-h { padding: var(--s-3) var(--s-2) var(--s-2); border-left: 1px solid var(--line); }
+  .kal-day-h span { display: block; font: 500 var(--fs-xs)/1 var(--font-mono); text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+  .kal-day-h b { font: 600 var(--fs-xl)/1.3 var(--font-mono); font-variant-numeric: tabular-nums; }
+  .kal-day-h--today span, .kal-day-h--today b { color: var(--accent-text); }
+  .kal-day-h--today b { text-shadow: 0 0 18px var(--glow); }
+
+  .kal-body { display: grid; grid-template-columns: 56px repeat(7, 1fr); }
+  .kal-hours span { display: block; height: var(--kal-hour); font: 500 var(--fs-xs)/1 var(--font-mono); color: var(--muted); text-align: right; padding: 4px var(--s-2) 0 0; }
+  .kal-col { position: relative; border-left: 1px solid var(--line); height: calc(var(--kal-hour) * 10);
+    background: repeating-linear-gradient(180deg, transparent 0 calc(var(--kal-hour) - 1px), color-mix(in srgb, var(--line) 60%, transparent) calc(var(--kal-hour) - 1px) var(--kal-hour)); }
+  .kal-col--weekend { background-color: rgba(0, 0, 0, .18); }
+  .kal-col--today { background-color: rgba(255, 255, 255, .025); }
+
+  .kal-ev {
+    position: absolute; left: 4px; right: 4px;
+    top: calc((var(--start) - 8) * var(--kal-hour) + 1px);
+    height: calc(var(--len) * var(--kal-hour) - 3px);
+    padding: 4px 8px; overflow: hidden; border-radius: var(--r-sm);
+    font-size: var(--fs-xs); line-height: 1.3;
+    background: var(--surface-2); border: 1px solid var(--line); border-left: 3px solid var(--kal-prj, #6b8cff);
+    cursor: pointer;
+  }
+  .kal-ev b { display: block; font-weight: 600; font-size: 12px; }
+  .kal-ev time { font-family: var(--font-mono); color: var(--muted); }
+  .kal-ev--etat { background: repeating-linear-gradient(135deg, var(--kal-etat) 0 6px, var(--surface) 6px 12px); border-left-color: var(--muted); color: var(--kal-etat-ink); }
+  .kal-ev--kurs { border-left-color: var(--ok); }
+  .kal-ev--slot { background: transparent; border: 1px dashed var(--muted); color: var(--muted); }
+  .kal-ev--slot b { color: var(--text); }
+  .kal-ev--done { opacity: .5; }
+  .kal-ev--short { padding-top: 2px; padding-bottom: 0; white-space: nowrap; text-overflow: ellipsis; }
+  .kal-ev--short b { display: inline; }
+  .kal-ev--sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 18px -4px var(--glow); background: var(--accent-soft); }
+  .kal-now { position: absolute; left: 0; right: 0; top: calc((9.8 - 8) * var(--kal-hour)); height: 2px; background: var(--accent); box-shadow: 0 0 10px var(--glow); z-index: 2; }
+  .kal-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+  /* mini miesiąc */
+  .kal-mini { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font: 500 var(--fs-xs)/1 var(--font-mono); }
+  .kal-mini span { padding: 7px 0; border-radius: var(--r-sm); }
+  .kal-mini .h { color: var(--muted); text-transform: uppercase; }
+  .kal-mini .o { color: color-mix(in srgb, var(--muted) 50%, transparent); }
+  .kal-mini .w { background: var(--surface-2); }
+  .kal-mini .t { background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 0 12px var(--glow); }
+  .kal-mini .e { position: relative; }
+  .kal-mini .e::after { content: ""; position: absolute; left: 50%; bottom: 2px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--muted); }
+
+  /* szczegóły wydarzenia */
+  .kal-detail__title { font: 700 var(--fs-xl)/1.15 var(--font-display); margin: var(--s-2) 0 var(--s-3); }
+  .kal-sec { margin-top: var(--s-4); padding: var(--s-3); border-radius: var(--r-sm); background: var(--surface-2); }
+  .kal-sec h4 { margin: 0 0 var(--s-2); font: 600 10px/1 var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); }
+  .kal-sec ol { margin: 0; padding-left: 18px; font-size: var(--fs-sm); }
+  .kal-sec li { margin: 3px 0; }
+  .kal-ai .list__item { padding: 6px 0; font-size: var(--fs-sm); }
+  .kal-ai .list__item:hover { background: transparent; }
+  .kal-slots .list__item { font-size: var(--fs-sm); }
+
+  /* agenda i miesiąc (zakładki) */
+  .kal-agenda { display: grid; grid-template-columns: 120px 1fr; }
+  .kal-agenda__day { padding: var(--s-4); border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--muted); }
+  .kal-agenda__day b { display: block; font: 600 var(--fs-2xl)/1 var(--font-mono); color: var(--text); }
+  .kal-agenda__items { padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .kal-month { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .kal-month div { min-height: 96px; padding: var(--s-2); border-left: 1px solid var(--line); border-top: 1px solid var(--line); font-size: var(--fs-xs); }
+  .kal-month b { font: 600 var(--fs-md)/1 var(--font-mono); display: block; margin-bottom: 4px; }
+  .kal-month .t { background: var(--accent-soft); }
+  .kal-month .t b { color: var(--accent-text); }
+  .kal-month .pill { display: block; margin-top: 3px; padding: 1px 5px; border-radius: 4px; border-left: 2px solid var(--kal-prj); background: var(--surface-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kal-month .pill--etat { background: var(--kal-etat); color: var(--kal-etat-ink); border-left-color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+<main class="view">
+
+  <header class="view-head">
+    <div>
+      <p class="view-head__eyebrow">Alt+2 · Kalendarz</p>
+      <h1 class="kal-title">Listopad 2026 <span class="muted">· tydzień 46</span></h1>
+      <p class="view-head__sub">9–15 listopada · etat i projekty w jednym planie</p>
+    </div>
+    <div class="view-head__actions">
+      <button class="btn btn--icon btn--ghost" aria-label="Poprzedni tydzień">‹</button>
+      <button class="btn">Dziś</button>
+      <button class="btn btn--icon btn--ghost" aria-label="Następny tydzień">›</button>
+      <div class="tabs" role="tablist" data-group="kal">
+        <button class="tabs__btn" role="tab" data-tab="month" aria-selected="false">Miesiąc</button>
+        <button class="tabs__btn" role="tab" data-tab="week" aria-selected="true">Tydzień</button>
+        <button class="tabs__btn" role="tab" data-tab="agenda" aria-selected="false">Agenda</button>
+      </div>
+      <button class="btn btn--primary" data-toast="Nowe wydarzenie (atrapa)">+ Wydarzenie</button>
+    </div>
+  </header>
+
+
+  <section class="tiles kal-tiles" aria-label="Liczby tygodnia">
+    <div class="tile tile--accent" data-src="kalendarz · dziś">
+      <span class="tile__label">Dziś</span>
+      <span class="tile__value">3</span>
+      <span class="tile__meta">spotkania · następne 10:30</span>
+    </div>
+    <div class="tile" data-src="kalendarz · tydzień">
+      <span class="tile__label">Spotkania w tygodniu</span>
+      <span class="tile__value">14</span>
+      <span class="tile__meta">5 etat · 9 projekty i życie</span>
+    </div>
+    <div class="tile" data-src="planer slotów">
+      <span class="tile__label">Okna Deep Work</span>
+      <span class="tile__value">5<span class="muted" style="font-size: var(--fs-lg)"> h 45</span></span>
+      <span class="tile__meta">3 okna zaproponowane</span>
+    </div>
+    <div class="tile" data-src="Meetings/*.md · action items">
+      <span class="tile__label">Action items</span>
+      <span class="tile__value">2</span>
+      <span class="tile__meta">otwarte po spotkaniach</span>
+    </div>
+  </section>
+
+  <div class="kal-layout">
+    <div>
+      <!-- widok tygodnia -->
+      <section class="kal-week" data-tab-group="kal" data-tab="week" aria-label="Tydzień 46" data-src="kalendarz (ICS / Google) · tydzień">
+        <div class="kal-days">
+          <div></div>
+          <div class="kal-day-h"><span>pon</span><b>9</b></div>
+          <div class="kal-day-h"><span>wt</span><b>10</b></div>
+          <div class="kal-day-h kal-day-h--today"><span>śr · dziś</span><b>11</b></div>
+          <div class="kal-day-h"><span>czw</span><b>12</b></div>
+          <div class="kal-day-h"><span>pt</span><b>13</b></div>
+          <div class="kal-day-h kal-day-h--weekend"><span>sob</span><b>14</b></div>
+          <div class="kal-day-h kal-day-h--weekend"><span>nd</span><b>15</b></div>
+        </div>
+        <div class="kal-body">
+          <div class="kal-hours"><span>08</span><span>09</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span></div>
+
+          <div class="kal-col">
+            <div class="kal-ev kal-ev--etat kal-ev--done kal-ev--short" style="--start: 8.5; --len: .5"><b>Etat · daily</b></div>
+            <div class="kal-ev kal-ev--done" style="--start: 14; --len: 2"><b>Deep Work: fiszki B1</b><time>14:00–16:00</time><br>english-agent</div>
+          </div>
+          <div class="kal-col">
+            <div class="kal-ev kal-ev--etat kal-ev--done kal-ev--short" style="--start: 8.5; --len: .5"><b>Etat · daily</b></div>
+            <div class="kal-ev kal-ev--etat kal-ev--done" style="--start: 10; --len: 2"><b>Etat · blok pracy</b><time>10:00–12:00</time></div>
+            <div class="kal-ev kal-ev--done" style="--start: 15; --len: 1.5"><b>Code Sensei: przegląd UI</b><time>15:00–16:30</time></div>
+          </div>
+          <div class="kal-col kal-col--today">
+            <div class="kal-now" aria-label="Teraz 09:48"></div>
+            <div class="kal-ev kal-ev--etat kal-ev--done kal-ev--short" style="--start: 8.5; --len: .5"><b>Etat · daily</b></div>
+            <div class="kal-ev kal-ev--slot" style="--start: 9; --len: 1.25" data-src="planer slotów"><b>Okno Deep Work</b>GP-001 porty V2</div>
+            <div class="kal-ev kal-ev--sel kal-ev--short" style="--start: 10.5; --len: .5"><b>Przegląd tygodnia</b></div>
+            <div class="kal-ev" style="--start: 13; --len: .75"><b>Konsultacja: Tester AI</b><time>13:00–13:45</time></div>
+            <div class="kal-ev kal-ev--slot" style="--start: 14; --len: 2.5"><b>Okno Deep Work</b>weryfikacja fiszek A1–C2</div>
+            <div class="kal-ev kal-ev--kurs kal-ev--short" style="--start: 17.5; --len: .5"><b>Spacer</b></div>
+          </div>
+          <div class="kal-col">
+            <div class="kal-ev kal-ev--etat kal-ev--short" style="--start: 8.5; --len: .5"><b>Etat · daily</b></div>
+            <div class="kal-ev kal-ev--etat" style="--start: 10; --len: 2"><b>Etat · warsztat</b><time>10:00–12:00</time></div>
+            <div class="kal-ev" style="--start: 15; --len: 1"><b>Portfolio: README</b><time>15:00–16:00</time></div>
+          </div>
+          <div class="kal-col">
+            <div class="kal-ev kal-ev--etat kal-ev--short" style="--start: 8.5; --len: .5"><b>Etat · daily</b></div>
+            <div class="kal-ev" style="--start: 12; --len: 1"><b>Mentoring</b><time>12:00–13:00</time></div>
+            <div class="kal-ev kal-ev--slot" style="--start: 14; --len: 2"><b>Okno Quick Win</b>linki portfolio</div>
+          </div>
+          <div class="kal-col kal-col--weekend">
+            <div class="kal-ev kal-ev--kurs" style="--start: 10; --len: 2"><b>Kurs: Next.js App Router</b><time>moduł 5 z 9</time></div>
+          </div>
+          <div class="kal-col kal-col--weekend"></div>
+        </div>
+      </section>
+
+      <!-- widok miesiąca -->
+      <section class="kal-week" data-tab-group="kal" data-tab="month" hidden aria-label="Listopad 2026">
+        <div class="kal-days" style="grid-template-columns: repeat(7, 1fr)">
+          <div class="kal-day-h"><span>pon</span></div><div class="kal-day-h"><span>wt</span></div><div class="kal-day-h"><span>śr</span></div><div class="kal-day-h"><span>czw</span></div><div class="kal-day-h"><span>pt</span></div><div class="kal-day-h"><span>sob</span></div><div class="kal-day-h"><span>nd</span></div>
+        </div>
+        <div class="kal-month">
+          <div class="muted"><b>26</b></div><div class="muted"><b>27</b></div><div class="muted"><b>28</b></div><div class="muted"><b>29</b></div><div class="muted"><b>30</b></div><div class="muted"><b>31</b></div><div><b>1</b></div>
+          <div><b>2</b><span class="pill pill--etat">daily</span></div><div><b>3</b><span class="pill pill--etat">daily</span><span class="pill">English Agent</span></div><div><b>4</b><span class="pill pill--etat">daily</span></div><div><b>5</b><span class="pill pill--etat">daily</span></div><div><b>6</b><span class="pill">Przegląd tyg.</span></div><div><b>7</b></div><div><b>8</b><span class="pill">Kurs Next.js</span></div>
+          <div><b>9</b><span class="pill pill--etat">daily</span><span class="pill">Deep Work</span></div><div><b>10</b><span class="pill pill--etat">daily</span><span class="pill">Code Sensei</span></div><div class="t"><b>11</b><span class="pill">Przegląd tyg.</span><span class="pill">Tester AI</span></div><div><b>12</b><span class="pill pill--etat">warsztat</span></div><div><b>13</b><span class="pill">Mentoring</span></div><div><b>14</b><span class="pill">Kurs Next.js</span></div><div><b>15</b></div>
+          <div><b>16</b></div><div><b>17</b></div><div><b>18</b><span class="pill">Przegląd tyg.</span></div><div><b>19</b></div><div><b>20</b></div><div><b>21</b></div><div><b>22</b></div>
+          <div><b>23</b></div><div><b>24</b></div><div><b>25</b><span class="pill">Przegląd tyg.</span></div><div><b>26</b></div><div><b>27</b></div><div><b>28</b></div><div><b>29</b></div>
+        </div>
+      </section>
+
+      <!-- agenda -->
+      <section class="kal-week" data-tab-group="kal" data-tab="agenda" hidden aria-label="Agenda">
+        <div class="kal-agenda">
+          <div class="kal-agenda__day"><b>11</b>środa · dziś</div>
+          <ul class="list kal-agenda__items">
+            <li class="list__item"><span class="mono muted">10:30</span><span class="list__main"><span class="list__title">Przegląd tygodnia</span><span class="list__meta">nexus · 30 min</span></span><span class="chip chip--accent">brief</span></li>
+            <li class="list__item"><span class="mono muted">13:00</span><span class="list__main"><span class="list__title">Konsultacja: Tester AI, DoD</span><span class="list__meta">tester-ai · Discord</span></span></li>
+            <li class="list__item"><span class="mono muted">17:30</span><span class="list__main"><span class="list__title">Spacer, bez ekranu</span></span></li>
+          </ul>
+          <div class="kal-agenda__day"><b>12</b>czwartek</div>
+          <ul class="list kal-agenda__items">
+            <li class="list__item"><span class="mono muted">10:00</span><span class="list__main"><span class="list__title">Etat · warsztat</span><span class="list__meta">etat</span></span></li>
+            <li class="list__item"><span class="mono muted">15:00</span><span class="list__main"><span class="list__title">Portfolio: README</span><span class="list__meta">portfolio</span></span></li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- panel boczny -->
+    <aside class="stack">
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title"><b>Listopad</b></h2>
+          <span class="muted mono" style="font-size: var(--fs-xs)">tydz. 44–48</span>
+        </div>
+        <div class="kal-mini">
+          <span class="h">pn</span><span class="h">wt</span><span class="h">śr</span><span class="h">cz</span><span class="h">pt</span><span class="h">sb</span><span class="h">nd</span>
+          <span class="o">26</span><span class="o">27</span><span class="o">28</span><span class="o">29</span><span class="o">30</span><span class="o">31</span><span>1</span>
+          <span>2</span><span class="e">3</span><span>4</span><span>5</span><span class="e">6</span><span>7</span><span class="e">8</span>
+          <span class="w e">9</span><span class="w e">10</span><span class="t">11</span><span class="w e">12</span><span class="w e">13</span><span class="w e">14</span><span class="w">15</span>
+          <span>16</span><span>17</span><span class="e">18</span><span>19</span><span>20</span><span>21</span><span>22</span>
+          <span>23</span><span>24</span><span class="e">25</span><span>26</span><span>27</span><span>28</span><span>29</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Wybrane wydarzenie" data-src="wydarzenie + Meetings/<data>-<slug>.md">
+        <div class="row"><span class="chip chip--accent">10:30–11:00</span><span class="chip">nexus</span></div>
+        <h3 class="kal-detail__title">Przegląd tygodnia</h3>
+        <div class="row"><button class="btn btn--sm" data-toast="Otwieram Discord (atrapa)">Dołącz ↗</button><button class="btn btn--sm btn--ghost" data-toast="Notatka ze spotkania (atrapa)">Notatka</button></div>
+        <div class="kal-sec">
+          <h4>Brief</h4>
+          <ol data-src="brief: devlog.md + tasks.md powiązanych projektów">
+            <li>Wybrać focus na tydzień 47, najwyżej 3 projekty.</li>
+            <li>English Agent: jak zweryfikować fiszki A1–C2.</li>
+            <li>Powiązane zadania: GP-002, README portfolio.</li>
+          </ol>
+        </div>
+        <div class="kal-sec kal-ai">
+          <h4>Action items</h4>
+          <ul class="list" data-src="action items → tasks.md projektu">
+            <li class="list__item"><input class="check" type="checkbox" aria-label="zrobione"><span class="list__main">Dopisać focus tygodnia do <span class="mono">focus.md</span></span></li>
+            <li class="list__item"><input class="check" type="checkbox" aria-label="zrobione"><span class="list__main">Zadanie: plan weryfikacji fiszek</span></li>
+          </ul>
+          <input class="input" style="margin-top: var(--s-2)" placeholder="+ action item, Enter dodaje do projektu">
+        </div>
+      </section>
+
+      <section class="panel kal-slots" data-src="planer slotów: wolne okna + [energy::]">
+        <div class="panel__head">
+          <h2 class="panel__title"><b>Planer slotów</b> · dziś</h2>
+        </div>
+        <ul class="list">
+          <li class="list__item"><span class="mono">09:00</span><span class="list__main"><span class="list__title">GP-001 porty V2</span><span class="list__meta">1 h 15 min</span></span><span class="energy energy--deep">deep</span></li>
+          <li class="list__item"><span class="mono">11:00</span><span class="list__main"><span class="list__title">Linki w portfolio</span><span class="list__meta">45 min</span></span><span class="energy energy--quick">quick</span></li>
+          <li class="list__item"><span class="mono">14:00</span><span class="list__main"><span class="list__title">Weryfikacja fiszek A1–C2</span><span class="list__meta">2 h 30 min</span></span><span class="energy energy--deep">deep</span></li>
+        </ul>
+        <button class="btn btn--sm" style="margin-top: var(--s-3)" data-toast="Zablokowano 3 okna w kalendarzu (atrapa)">Zablokuj okna w kalendarzu</button>
+      </section>
+    </aside>
+  </div>
+
+</main>
+</div>
+<script src="../shell.js"></script>
+</body>
+</html>
