@@ -17,7 +17,7 @@ Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 | Szybki inbox                    | BRAK          |                                                                                       |
 | Rytuał zamknięcia dnia / zaczep | BRAK          |                                                                                       |
 | Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                |
-| Ctrl+K i Alt+1…8                | BRAK          |                                                                                       |
+| Ctrl+K i Alt+1…8                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet           |
 
 ## 2. Kalendarz (`src/components/CalendarView.tsx`)
 

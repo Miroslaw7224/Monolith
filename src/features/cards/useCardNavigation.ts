@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
 import { type AppMode, type CardId, cardForView, cardFromHash, getCard } from "./cards";
 
@@ -46,7 +46,12 @@ export function useCardNavigation(): CardNavigation {
 
   const activeCard = placeholder ?? cardForView(appMode, planningTab);
 
+  // Hash czytamy tylko raz: w StrictMode efekty biegną dwa razy, a drugi odczyt
+  // trafiłby już na hash nadpisany przez efekt poniżej.
+  const hashApplied = useRef(false);
   useEffect(() => {
+    if (hashApplied.current) return;
+    hashApplied.current = true;
     const fromHash = cardFromHash(window.location.hash);
     if (fromHash) selectCard(fromHash);
   }, [selectCard]);

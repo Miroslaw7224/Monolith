@@ -74,3 +74,14 @@ describe("CommandPalette", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 });
+
+test("po zamknięciu przywraca fokus na poprzednim elemencie", () => {
+  const trigger = document.createElement("button");
+  document.body.append(trigger);
+  trigger.focus();
+  const { unmount } = render(<CommandPalette commands={cmds()} onClose={vi.fn()} />);
+  expect(screen.getByLabelText("Polecenie")).toHaveFocus();
+  unmount();
+  expect(trigger).toHaveFocus();
+  trigger.remove();
+});

@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, test, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useCardNavigation } from "@/src/features/cards/useCardNavigation";
@@ -58,5 +59,12 @@ describe("useCardNavigation", () => {
     window.history.replaceState(null, "", "/dashboard#xyz");
     const { result } = renderHook(() => useCardNavigation());
     expect(result.current.activeCard).toBe("kokpit");
+  });
+
+  test("hash z adresu przeżywa podwójne efekty React.StrictMode", () => {
+    window.history.replaceState(null, "", "/dashboard#arsenal");
+    const { result } = renderHook(() => useCardNavigation(), { wrapper: React.StrictMode });
+    expect(result.current.activeCard).toBe("arsenal");
+    expect(window.location.hash).toBe("#arsenal");
   });
 });

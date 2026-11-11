@@ -66,7 +66,11 @@ export default function App({ authenticated = false }: AppProps = {}) {
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
   const cardCommands = useMemo(() => buildCardCommands(selectCard), [selectCard]);
-  useCardHotkeys({ onSelectCard: selectCard, onOpenPalette: openPalette, disabled: paletteOpen });
+  useCardHotkeys({
+    onSelectCard: selectCard,
+    onOpenPalette: openPalette,
+    disabled: paletteOpen || (!authenticated && !user),
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
   const [checkingWaitlist, setCheckingWaitlist] = useState(false);

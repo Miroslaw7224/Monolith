@@ -15,7 +15,9 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   const shown = filterCommands(commands, query);
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     inputRef.current?.focus();
+    return () => previouslyFocused?.focus?.();
   }, []);
 
   const run = (cmd: PaletteCommand | undefined) => {
@@ -24,7 +26,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
     cmd.run();
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
       onClose();
@@ -48,7 +50,13 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="card-palette" role="dialog" aria-modal="true" aria-label="Paleta poleceń">
+      <div
+        className="card-palette"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Paleta poleceń"
+        onKeyDown={onKeyDown}
+      >
         <input
           ref={inputRef}
           className="card-palette__input"
@@ -59,7 +67,6 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
             setQuery(e.target.value);
             setSelected(0);
           }}
-          onKeyDown={onKeyDown}
         />
         <ul className="card-palette__list" role="listbox" aria-label="Polecenia">
           {shown.map((cmd, i) => (
