@@ -1,0 +1,68 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import { type AppMode, type CardId, cardForView, cardFromHash, getCard } from "./cards";
+
+export interface CardNavigation {
+  appMode: AppMode;
+  setAppMode: (mode: AppMode) => void;
+  planningTab: PlanningTab;
+  setPlanningTab: (tab: PlanningTab) => void;
+  placeholder: CardId | null;
+  activeCard: CardId;
+  selectCard: (id: CardId) => void;
+}
+
+export function useCardNavigation(): CardNavigation {
+  const [appMode, setAppModeRaw] = useState<AppMode>("home");
+  const [planningTab, setPlanningTabRaw] = useState<PlanningTab>("tasks");
+  const [placeholder, setPlaceholder] = useState<CardId | null>(null);
+
+  const setAppMode = useCallback((mode: AppMode) => {
+    setPlaceholder(null);
+    setAppModeRaw(mode);
+  }, []);
+
+  const setPlanningTab = useCallback((tab: PlanningTab) => {
+    setPlaceholder(null);
+    setPlanningTabRaw(tab);
+  }, []);
+
+  const selectCard = useCallback((id: CardId) => {
+    const { target } = getCard(id);
+    if (target.kind === "placeholder") {
+      setPlaceholder(id);
+      return;
+    }
+    setPlaceholder(null);
+    if (target.kind === "home") {
+      setAppModeRaw("home");
+    } else {
+      setAppModeRaw("planowanie");
+      setPlanningTabRaw(target.tab);
+    }
+  }, []);
+
+  const activeCard = placeholder ?? cardForView(appMode, planningTab);
+
+  useEffect(() => {
+    const fromHash = cardFromHash(window.location.hash);
+    if (fromHash) selectCard(fromHash);
+  }, [selectCard]);
+
+  useEffect(() => {
+    const url = `${window.location.pathname}${window.location.search}#${activeCard}`;
+    window.history.replaceState(window.history.state, "", url);
+  }, [activeCard]);
+
+  return {
+    appMode,
+    setAppMode,
+    planningTab,
+    setPlanningTab,
+    placeholder,
+    activeCard,
+    selectCard,
+  };
+}
