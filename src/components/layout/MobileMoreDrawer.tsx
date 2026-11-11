@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { LogOut, Link, Briefcase, Tag, Map } from "lucide-react";
+import { LogOut, Link, Briefcase, Tag, Map, LayoutDashboard } from "lucide-react";
 import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
 
 interface MobileMoreDrawerProps {
@@ -48,6 +48,12 @@ export function MobileMoreDrawer({
       icon: <Map className="w-5 h-5" />,
       labelPl: "Mapy myśli",
       labelEn: "Mind Maps",
+    },
+    {
+      id: "board",
+      icon: <LayoutDashboard className="w-5 h-5" />,
+      labelPl: "Tablica",
+      labelEn: "Board",
     },
   ];
 

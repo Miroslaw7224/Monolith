@@ -233,6 +233,7 @@ export default function HomeView({
           tabNotes={t.notesTab}
           tabResources={(t.tabResources as string) ?? "Zasoby"}
           tabMindMaps={(t.tabMindMaps as string) ?? "Mapy myśli"}
+          tabBoard={(t.tabBoard as string) ?? "Tablica"}
         />
       </AppSidebar>
 

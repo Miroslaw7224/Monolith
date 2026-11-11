@@ -73,3 +73,18 @@ test("calls onSelectTab for resources", () => {
   fireEvent.click(screen.getByText("Zasoby"));
   expect(onSelectTab).toHaveBeenCalledWith("resources");
 });
+
+test("calls onSelectTab for the board", () => {
+  const onSelectTab = vi.fn();
+  render(
+    <MobileMoreDrawer
+      isOpen={true}
+      onClose={vi.fn()}
+      onLogout={vi.fn()}
+      lang="pl"
+      onSelectTab={onSelectTab}
+    />
+  );
+  fireEvent.click(screen.getByText("Tablica"));
+  expect(onSelectTab).toHaveBeenCalledWith("board");
+});

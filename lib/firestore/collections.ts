@@ -22,6 +22,10 @@ export function mindMapsCol(userId: string) {
   return userCollection(userId, "mindMaps");
 }
 
+export function boardDoc(userId: string) {
+  return userCollection(userId, "board").doc("main");
+}
+
 export function userResourcesCol(userId: string) {
   return userCollection(userId, "resources");
 }

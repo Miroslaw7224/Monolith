@@ -9,7 +9,7 @@ export type {
   TaskTemplateRecord,
 } from "@/types/records";
 
-export { mindMapsCol } from "@/lib/firestore/collections";
+export { mindMapsCol, boardDoc } from "@/lib/firestore/collections";
 export { getDocuments, createDocument, deleteDocument } from "@/lib/firestore/documents";
 export { getNotes, createNote, updateNote, deleteNote } from "@/lib/firestore/notes";
 export { addChunks, deleteChunksByDocument, deleteChunksByNote } from "@/lib/firestore/chunks";

@@ -1,5 +1,15 @@
 import React from "react";
-import { Home, Calendar, Briefcase, ListTodo, Tag, FileText, Link, Network } from "lucide-react";
+import {
+  Home,
+  Calendar,
+  Briefcase,
+  ListTodo,
+  Tag,
+  FileText,
+  Link,
+  Network,
+  LayoutDashboard,
+} from "lucide-react";
 import { cn } from "@/src/lib/cn";
 
 export type PlanningTab =
@@ -9,7 +19,8 @@ export type PlanningTab =
   | "calendar"
   | "tags"
   | "resources"
-  | "mindmaps";
+  | "mindmaps"
+  | "board";
 
 export interface PlanowanieSidebarContentProps {
   planningTab: PlanningTab;
@@ -26,6 +37,7 @@ export interface PlanowanieSidebarContentProps {
   tabNotes: string;
   tabResources: string;
   tabMindMaps: string;
+  tabBoard: string;
 }
 
 export function PlanowanieSidebarContent({
@@ -42,6 +54,7 @@ export function PlanowanieSidebarContent({
   tabNotes,
   tabResources,
   tabMindMaps,
+  tabBoard,
 }: PlanowanieSidebarContentProps) {
   const tabClass = (active: boolean) =>
     cn(
@@ -118,6 +131,14 @@ export function PlanowanieSidebarContent({
         >
           <Network className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm font-medium">{tabMindMaps}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectTab("board")}
+          className={tabClass(isTabActive("board"))}
+        >
+          <LayoutDashboard className="w-5 h-5 flex-shrink-0" />
+          <span className="text-sm font-medium">{tabBoard}</span>
         </button>
       </div>
     </div>

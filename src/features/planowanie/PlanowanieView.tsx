@@ -22,6 +22,7 @@ import {
   type PendingAgentAction,
 } from "@/src/components/AgentPendingActions";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
+import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
 import { useNotesData, type Note } from "@/src/features/notes/useNotesData";
 import { PlanowanieSidebarContent, type PlanningTab } from "./PlanowanieSidebarContent";
@@ -381,6 +382,7 @@ export default function PlanowanieView({
       tabNotes={t.notesTab}
       tabResources={(t.tabResources as string) ?? "Zasoby"}
       tabMindMaps={(t.tabMindMaps as string) ?? "Mapy myśli"}
+      tabBoard={(t.tabBoard as string) ?? "Tablica"}
     />
   );
 
@@ -486,6 +488,34 @@ export default function PlanowanieView({
                 apiFetch={apiFetch}
                 title={(t.tabMindMaps as string) ?? "Mapy myśli"}
                 t={t}
+              />
+            </div>
+          ) : planningTab === "board" ? (
+            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
+              <BoardTab
+                apiFetch={apiFetch}
+                userId={user?.id ?? ""}
+                lang={lang}
+                labels={{
+                  canvas: t.boardCanvas as string,
+                  list: t.boardList as string,
+                  saveFailed: t.boardSaveFailed as string,
+                  loadFailed: t.boardLoadFailed as string,
+                  retry: t.boardRetry as string,
+                  outside: t.boardOutside as string,
+                  tileTitle: t.boardTileTitle as string,
+                  tileNote: t.boardTileNote as string,
+                  close: t.boardClose as string,
+                }}
+                canvasLabels={{
+                  addTile: t.boardAddTile as string,
+                  addFrame: t.boardAddFrame as string,
+                  newTile: t.boardNewTile as string,
+                  frameName: t.boardFrameName as string,
+                  save: t.boardSave as string,
+                  cancel: t.boardCancel as string,
+                  delete: t.boardDelete as string,
+                }}
               />
             </div>
           ) : (
