@@ -176,7 +176,7 @@ def footer(l):
     return (not s or set(s) <= set("─▄▀> →-") or "for shortcuts" in s
             or "Add a follow-up" in s or "esc to cancel" in s
             or s.startswith("Auto") or s.startswith("~/")
-            or re.search(r"·\s*[\d.]+%\s*$", s) is not None
+            or re.search(r"·\s*[\d.]+%(\s*·.*)?$", s) is not None
             or re.search(r"·\s*(low|medium|high)\s*$", s) is not None)
 while lines and footer(lines[-1]): lines.pop()
 while lines and not lines[0].strip(): lines.pop(0)
