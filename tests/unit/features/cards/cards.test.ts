@@ -1,0 +1,83 @@
+import { describe, test, expect } from "vitest";
+import {
+  CARDS,
+  getCard,
+  cardByHotkey,
+  cardForView,
+  cardFromHash,
+  filterCommands,
+} from "@/src/features/cards/cards";
+
+describe("CARDS", () => {
+  test("ma 8 kart z klawiszami 1..8 w kolejności", () => {
+    expect(CARDS.map((c) => c.hotkey)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(CARDS.map((c) => c.id)).toEqual([
+      "kokpit",
+      "kalendarz",
+      "zadania",
+      "projekty",
+      "notatki",
+      "plotno",
+      "arsenal",
+      "mapa",
+    ]);
+  });
+
+  test("projekty i mapa to zaślepki", () => {
+    expect(getCard("projekty").target).toEqual({ kind: "placeholder", stage: "etap 1" });
+    expect(getCard("mapa").target).toEqual({ kind: "placeholder", stage: "etap 4" });
+  });
+});
+
+describe("cardByHotkey", () => {
+  test("zwraca kartę dla 1..8 i undefined poza zakresem", () => {
+    expect(cardByHotkey(3)?.id).toBe("zadania");
+    expect(cardByHotkey(9)).toBeUndefined();
+    expect(cardByHotkey(0)).toBeUndefined();
+  });
+});
+
+describe("cardForView", () => {
+  test("home to kokpit niezależnie od zakładki", () => {
+    expect(cardForView("home", "notes")).toBe("kokpit");
+  });
+
+  test("zakładki planowania mapują się na karty", () => {
+    expect(cardForView("planowanie", "calendar")).toBe("kalendarz");
+    expect(cardForView("planowanie", "tasks")).toBe("zadania");
+    expect(cardForView("planowanie", "notes")).toBe("notatki");
+    expect(cardForView("planowanie", "board")).toBe("plotno");
+    expect(cardForView("planowanie", "mindmaps")).toBe("plotno");
+    expect(cardForView("planowanie", "resources")).toBe("arsenal");
+    expect(cardForView("planowanie", "tags")).toBe("arsenal");
+    expect(cardForView("planowanie", "activity")).toBe("kokpit");
+  });
+});
+
+describe("cardFromHash", () => {
+  test("rozpoznaje znane karty z # i bez", () => {
+    expect(cardFromHash("#notatki")).toBe("notatki");
+    expect(cardFromHash("mapa")).toBe("mapa");
+  });
+
+  test("zwraca null dla pustego i nieznanego", () => {
+    expect(cardFromHash("")).toBeNull();
+    expect(cardFromHash("#settings")).toBeNull();
+  });
+});
+
+describe("filterCommands", () => {
+  const cmds = [
+    { id: "a", label: "Przejdź: Płótno", run: () => {} },
+    { id: "b", label: "Przejdź: Arsenał", run: () => {} },
+  ];
+
+  test("pusta fraza zwraca wszystko", () => {
+    expect(filterCommands(cmds, "  ")).toHaveLength(2);
+  });
+
+  test("ignoruje wielkość liter i polskie znaki", () => {
+    expect(filterCommands(cmds, "PLOTNO").map((c) => c.id)).toEqual(["a"]);
+    expect(filterCommands(cmds, "arsenal").map((c) => c.id)).toEqual(["b"]);
+  });
+});
