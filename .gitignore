@@ -15,7 +15,6 @@ tsconfig.tsbuildinfo
 # Local / IDE
 .cursor/
 .claude/
-.agents/
 # SQLite DB (local data; do not commit)
 brain.db
 
