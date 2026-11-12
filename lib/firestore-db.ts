@@ -1,7 +1,6 @@
 export type {
   DocumentRecord,
   NoteRecord,
-  ChunkRecord,
   NoteResourceRecord,
   CalendarEventRecord,
   TaskRecord,
@@ -9,9 +8,8 @@ export type {
   TaskTemplateRecord,
 } from "@/types/records";
 
-export { getDocuments, createDocument, deleteDocument } from "@/lib/firestore/documents";
-export { getNotes, createNote, updateNote, deleteNote } from "@/lib/firestore/notes";
-export { addChunks, deleteChunksByDocument, deleteChunksByNote } from "@/lib/firestore/chunks";
+export { getDocuments, createDocument, deleteDocument } from "@/lib/nexus/repos/documents";
+export { getNotes, createNote, updateNote, deleteNote } from "@/lib/nexus/repos/notes";
 export {
   addResourceToFirestore,
   getResourcesFromFirestore,
@@ -44,5 +42,5 @@ export {
   createMindMap,
   saveMindMap,
   deleteMindMap,
-} from "@/lib/firestore/mindMaps";
-export { getBoard, saveBoard } from "@/lib/firestore/board";
+} from "@/lib/nexus/repos/mindMaps";
+export { getBoard, saveBoard } from "@/lib/nexus/repos/board";

@@ -10,6 +10,7 @@ import { Color } from "@tiptap/extension-color";
 import { FontFamily } from "@tiptap/extension-font-family";
 import { Fragment, Slice } from "@tiptap/pm/model";
 import { twMerge } from "tailwind-merge";
+import { htmlToMarkdown, markdownToHtml } from "@/lib/markdown/html-markdown";
 import { FontSize } from "./noteEditorExtensions";
 import { NoteEditorToolbar } from "./NoteEditorToolbar";
 
@@ -19,30 +20,41 @@ export function NoteEditor({
   placeholder,
   className,
   variant = "default",
+  format = "html",
 }: {
   content: string;
-  onContentChange: (html: string) => void;
+  /** HTML w trybie `html`, Markdown w trybie `markdown`. */
+  onContentChange: (value: string) => void;
   placeholder?: string;
   className?: string;
   /** W ograniczonej wysokości (np. panel mapy myśli): pasek przewijania w treści zamiast obcinania. */
   variant?: "default" | "panel";
+  /**
+   * `markdown`: `content` i `onContentChange` operują na Markdownie, a edytor ma tylko formatowanie,
+   * które Markdown zapisze (notatki). `html` (domyślnie): bez zmian (notatki węzłów map myśli).
+   */
+  format?: "html" | "markdown";
 }) {
+  const markdown = format === "markdown";
+  const toEditorHtml = (value: string) => (markdown ? markdownToHtml(value) : value) || "<p></p>";
   const proseClass =
     variant === "panel"
       ? "prose prose-lg max-w-none outline-none px-3 py-2 text-[var(--text)] leading-relaxed"
       : "prose prose-lg max-w-none min-h-[60vh] outline-none px-0 py-0 text-[var(--text)] leading-relaxed";
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Underline,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TextStyle,
-      Color,
-      FontFamily.configure({ types: ["textStyle"] }),
-      FontSize,
-    ],
-    content: content || "<p></p>",
+    extensions: markdown
+      ? [StarterKit.configure({ underline: false })]
+      : [
+          StarterKit,
+          Underline,
+          TextAlign.configure({ types: ["heading", "paragraph"] }),
+          TextStyle,
+          Color,
+          FontFamily.configure({ types: ["textStyle"] }),
+          FontSize,
+        ],
+    content: toEditorHtml(content),
     editorProps: {
       attributes: {
         class: proseClass,
@@ -71,18 +83,27 @@ export function NoteEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      onContentChange(editor.getHTML());
+      onContentChange(markdown ? htmlToMarkdown(editor.getHTML()) : editor.getHTML());
     },
     immediatelyRender: false,
   });
 
   useEffect(() => {
     if (!editor) return;
+    if (markdown) {
+      // Porównanie na poziomie Markdown: własny zapis edytora nie resetuje kursora; edytor w fokusie
+      // nigdy nie jest nadpisywany z zewnątrz (zmiana notatki remontuje komponent przez `key`).
+      if (!editor.isFocused && htmlToMarkdown(editor.getHTML()) !== content) {
+        editor.commands.setContent(toEditorHtml(content), { emitUpdate: false });
+      }
+      return;
+    }
     const current = editor.getHTML();
     const normalized = content || "<p></p>";
     if (current !== normalized) {
       editor.commands.setContent(normalized, { emitUpdate: false });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content, editor]);
 
   if (!editor) {
@@ -109,7 +130,7 @@ export function NoteEditor({
         className
       )}
     >
-      <NoteEditorToolbar editor={editor} />
+      <NoteEditorToolbar editor={editor} format={format} />
       {variant === "panel" ? (
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <EditorContent editor={editor} />

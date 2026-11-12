@@ -5,11 +5,13 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 const STORE = "lib/nexus/yaml-store.ts";
-const REPOS = ["common", "tags", "taskTemplates", "resources"].map(
+const REPOS = ["common", "tags", "taskTemplates", "resources", "notes", "documents"].map(
   (name) => `lib/nexus/repos/${name}.ts`
 );
 const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
-const FILE_REPOS = ["tasks", "calendarEvents"].map((name) => `lib/nexus/repos/${name}.ts`);
+const FILE_REPOS = ["tasks", "calendarEvents", "markdown-dir", "mindMaps", "board"].map(
+  (name) => `lib/nexus/repos/${name}.ts`
+);
 const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
@@ -60,23 +62,35 @@ describe("0c-2 / 0c-3 static guards", () => {
     };
     walk("lib/nexus");
     expect(importers.sort()).toEqual(
-      [STORE, "lib/nexus/repos/calendarEvents.ts", "lib/nexus/repos/tasks.ts"].sort()
+      [
+        STORE,
+        "lib/nexus/repos/board.ts",
+        "lib/nexus/repos/calendarEvents.ts",
+        "lib/nexus/repos/markdown-dir.ts",
+        "lib/nexus/repos/mindMaps.ts",
+        "lib/nexus/repos/tasks.ts",
+      ].sort()
     );
   });
 
-  it("old Firestore repositories and collection helpers are gone", () => {
-    for (const name of ["tags", "taskTemplates", "resources", "tasks", "calendar"]) {
-      expect(fs.existsSync(path.join(ROOT, `lib/firestore/${name}.ts`)), name).toBe(false);
-    }
-    expect(read("lib/firestore/collections.ts")).not.toMatch(
-      /userTagsCol|taskTemplatesCol|userResourcesCol|tasksCol|calendarEventsCol/
-    );
+  it("the old Firestore directory is gone", () => {
+    expect(fs.existsSync(path.join(ROOT, "lib/firestore"))).toBe(false);
   });
 
-  it("the barrel points the five groups at lib/nexus/repos", () => {
+  it("the barrel points every collection at lib/nexus/repos", () => {
     const barrel = read("lib/firestore-db.ts");
-    expect(barrel).not.toMatch(/lib\/firestore\/(tags|taskTemplates|resources|tasks|calendar)/);
-    for (const name of ["tags", "taskTemplates", "resources", "tasks", "calendarEvents"]) {
+    expect(barrel).not.toMatch(/lib\/firestore\//);
+    for (const name of [
+      "tags",
+      "taskTemplates",
+      "resources",
+      "tasks",
+      "calendarEvents",
+      "notes",
+      "documents",
+      "mindMaps",
+      "board",
+    ]) {
       expect(barrel).toContain(`@/lib/nexus/repos/${name}`);
     }
   });

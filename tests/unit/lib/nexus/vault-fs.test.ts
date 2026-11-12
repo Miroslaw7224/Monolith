@@ -7,6 +7,7 @@ import { ConflictError, DomainError } from "@/lib/errors";
 import { VaultConfigError } from "@/lib/nexus/vault-path";
 import {
   PathOutsideVaultError,
+  deleteVaultFile,
   listVaultFiles,
   readVaultFile,
   resolveInsideVault,
@@ -229,5 +230,39 @@ describe("listVaultFiles", () => {
     fs.writeFileSync(path.join(root, "Dir", "real.yaml"), "r");
     fs.symlinkSync(path.join(root, "Dir", "real.yaml"), path.join(root, "Dir", "link.yaml"));
     expect(listVaultFiles("Dir", { root })).toEqual(["real.yaml"]);
+  });
+});
+
+describe("deleteVaultFile", () => {
+  it("deletes the file when the version matches and returns true", () => {
+    writeVaultFile("a.md", "x", { root, expected: null });
+    const file = readVaultFile("a.md", { root });
+    expect(deleteVaultFile("a.md", { root, expected: file!.version })).toBe(true);
+    expect(readVaultFile("a.md", { root })).toBeNull();
+  });
+  it("returns false for a missing file", () => {
+    const version = writeVaultFile("a.md", "x", { root, expected: null });
+    fs.rmSync(path.join(root, "a.md"));
+    expect(deleteVaultFile("a.md", { root, expected: version })).toBe(false);
+  });
+  it("throws ConflictError and keeps the file when it changed after the read", () => {
+    writeVaultFile("a.md", "x", { root, expected: null });
+    const file = readVaultFile("a.md", { root });
+    fs.writeFileSync(path.join(root, "a.md"), "changed");
+    expect(() => deleteVaultFile("a.md", { root, expected: file!.version })).toThrow(ConflictError);
+    expect(fs.existsSync(path.join(root, "a.md"))).toBe(true);
+  });
+  it("rejects traversal and an empty path", () => {
+    const version = { size: 0, hash: "" };
+    expect(() => deleteVaultFile("../x", { root, expected: version })).toThrow(
+      PathOutsideVaultError
+    );
+    expect(() => deleteVaultFile("", { root, expected: version })).toThrow(PathOutsideVaultError);
+  });
+  it("does not remove the containing directory", () => {
+    writeVaultFile("Dir/x.md", "x", { root, expected: null });
+    const file = readVaultFile("Dir/x.md", { root });
+    deleteVaultFile("Dir/x.md", { root, expected: file!.version });
+    expect(fs.existsSync(path.join(root, "Dir"))).toBe(true);
   });
 });

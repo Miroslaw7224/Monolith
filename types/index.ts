@@ -1,7 +1,6 @@
 export type {
   DocumentRecord,
   NoteRecord,
-  ChunkRecord,
   NoteResourceRecord,
   CalendarEventRecord,
   CalendarEvent,

@@ -1,7 +1,7 @@
 # Etap 0c: warstwa plikowa `lib/nexus/` — projekt
 
 Data: 2026-11-12
-Status: projekt zatwierdzony w brainstormie; krok 0c-1 zaimplementowany i zmergowany do `main` (PR #8); krok 0c-2 ma osobny spec (`2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`); krok 0c-3 zaimplementowany (plan: `docs/superpowers/plans/2026-11-12-etap-0c-3-zadania-kalendarz.md`; ręczny przegląd UI i PR czekają); plan 0c-4 jeszcze nie napisany
+Status: projekt zatwierdzony w brainstormie; krok 0c-1 zaimplementowany i zmergowany do `main` (PR #8); krok 0c-2 ma osobny spec (`2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`); krok 0c-3 zaimplementowany (plan: `docs/superpowers/plans/2026-11-12-etap-0c-3-zadania-kalendarz.md`; zmergowany, PR #13); krok 0c-4 zaimplementowany (plan: `docs/superpowers/plans/2026-11-12-etap-0c-4-notatki-dokumenty-mapy-tablica.md`; `agent_log` i `vault-fs.append` odroczone, patrz niżej; ręczny przegląd UI i PR czekają)
 Nadrzędne specy: `2026-11-11-asystent-lokalny-nexus-design.md` (§4.1–4.3), `2026-11-12-etap-0-odpiecie-firebase-design.md` (§6), `2026-11-12-etap-0b-import-do-vaultu-design.md` (formaty plików)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -52,7 +52,7 @@ lib/nexus/
 - **Brak blokady w procesie.** Odczyt, zmiana i zapis w `updateVaultFile` są synchroniczne, więc w jednym procesie Node nic się nie przeplata, a blokada per plik niczego by nie chroniła (wykazała to recenzja kodu 0c-1). Ochroną przed procesami zewnętrznymi jest kontrola wersji i ponawianie. Gdyby `mutate` musiało kiedyś być asynchroniczne, blokadę dodajemy wtedy, razem z testem, który faktycznie ją wymusza.
 - **Reguła nakładania (C5).** Przy niezgodności kontroli: wczytaj plik ponownie, zastosuj zmianę do świeżej treści. Zadania: gdy linia o danym `id` jest bajtowo taka sama jak w odczycie początkowym, zapis przechodzi; w przeciwnym razie `ConflictError` (podklasa `DomainError` z `statusCode: 409` w `lib/errors.ts`; `handleServiceError` w `lib/apiError.ts` zwraca status z `DomainError`, a `inferHttpStatus` nie jest tu używany). Pliki YAML i notatki: ta sama reguła na poziomie rekordu (wpis o danym `id`) lub całego pliku notatki.
 - **Realny zakres ochrony C5.** UI nie przekazuje wersji (ETag), więc C5 chroni tylko okno odczyt-zmiana-zapis pojedynczego żądania. Zmiana zrobiona w Obsidianie przed żądaniem jest stanem początkowym i nie jest wykrywana jako konflikt. Dlatego aktualizacje zapisują wyłącznie pola przekazane w żądaniu (zadania: tylko zmienione pola inline w linii), a nie cały rekord z klienta.
-- **Dopisywanie.** `vault-fs` dostanie w 0c-4 osobną operację `append` dla logów (`Sessions/*.jsonl`): `O_APPEND` bez przepisywania pliku, bez `rename`. Atomowość pojedynczej linii zapewnia jeden `write` z końcem linii.
+- **Dopisywanie (odroczone).** Po A-1 nic nie zapisuje `agent_log`, więc `append` nie powstało w 0c-4 (YAGNI); dodadzą je agenci A-2…A-4 razem z pierwszym zapisem do `Sessions/`. Plan: `vault-fs` dostanie osobną operację `append` dla logów (`Sessions/*.jsonl`): `O_APPEND` bez przepisywania pliku, bez `rename`. Atomowość pojedynczej linii zapewnia jeden `write` z końcem linii.
 - **Czas** to tekst ISO w plikach i w typach. Typ `Timestamp` znika z `types/records.ts`.
 
 ### 3.3 Formaty per kolekcja
@@ -68,7 +68,7 @@ lib/nexus/
 | `documents`       | `Documents/<slug>.md`      | frontmatter `id`, `name`, `type`, `created`; treść jako Markdown/tekst                                                                                                                                               |
 | `mindMaps`        | `MindMaps/<id>.json`       | plik per mapa                                                                                                                                                                                                        |
 | `board`           | `Board/board.json`         | jeden plik                                                                                                                                                                                                           |
-| `agent_log`       | `Sessions/RRRR-MM.jsonl`   | tylko dopisywanie; jedna linia = jeden wpis                                                                                                                                                                          |
+| `agent_log`       | `Sessions/RRRR-MM.jsonl`   | **odroczone** (brak konsumenta po A-1); tylko dopisywanie; jedna linia = jeden wpis                                                                                                                                  |
 
 Formaty `tasks`, `task_templates`, `tags`, `resources` i `notes` są te z 0b (jedno źródło parserów w `lib/nexus/`). Pola `resources` w YAML są w snake_case (`favorite`, `thumbnail_url`), a rekordy aplikacji w camelCase; `repos/resources.ts` mapuje w obie strony. Kolekcje, których 0b nie zapisuje, dostają formaty z tabeli powyżej; ich opis trafia do dokumentacji po wdrożeniu danego podkroku.
 
@@ -116,5 +116,5 @@ Niezależny review diffa przez pomocnika po 0c-1 i 0c-3 (logika zapisu). Przed u
 ## 8. Otwarte pytania
 
 - **P1.** Rozstrzygnięte: schemat opisany w planie 0c-3 (T7–T9): jeden rekord w pliku miesiąca początku, odczyt skanuje wszystkie pliki.
-- **P2.** Zakres zmian w toolbarze edytora (które przyciski zostają): do ustalenia w planie 0c-4.
-- **P3.** Sanityzacja slugów notatek i dokumentów (0c-4): `vault-fs` odrzuca `..` i ścieżki bezwzględne, ale ukośnik wsteczny w nazwie na Linuksie tworzy plik z dosłownym `\\` w nazwie, więc generator slugów musi go usuwać.
+- **P2.** Rozstrzygnięte w planie 0c-4 (E2): w trybie Markdown zostają pogrubienie, kursywa i przekreślenie.
+- **P3.** Rozstrzygnięte w 0c-4 (N2): `slugify` zostawia tylko `[a-z0-9-]` (test w `tests/unit/lib/nexus/slug.test.ts`). Pierwotna uwaga: `vault-fs` odrzuca `..` i ścieżki bezwzględne, ale ukośnik wsteczny w nazwie na Linuksie tworzy plik z dosłownym `\\` w nazwie, więc generator slugów musi go usuwać.

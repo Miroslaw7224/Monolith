@@ -1,12 +1,9 @@
-import type { Timestamp } from "firebase-admin/firestore";
-
 export type DocumentRecord = {
   id: string;
   name: string;
   content: string;
   type: string;
   created_at?: string;
-  createdAt?: Timestamp;
 };
 
 export type NoteRecord = {
@@ -14,17 +11,7 @@ export type NoteRecord = {
   title: string;
   content: string;
   created_at?: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-};
-
-export type ChunkRecord = {
-  id: string;
-  content: string;
-  documentId?: string;
-  noteId?: string;
-  sourceName?: string;
-  noteTitle?: string;
+  updated_at?: string;
 };
 
 export interface NoteResourceRecord {

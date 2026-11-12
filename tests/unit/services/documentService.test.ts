@@ -7,13 +7,11 @@ import {
 
 const mockGetDocuments = vi.hoisted(() => vi.fn());
 const mockCreateDocument = vi.hoisted(() => vi.fn());
-const mockAddChunks = vi.hoisted(() => vi.fn());
 const mockDeleteDocument = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../lib/firestore-db.js", () => ({
   getDocuments: (...args: unknown[]) => mockGetDocuments(...args),
   createDocument: (...args: unknown[]) => mockCreateDocument(...args),
-  addChunks: (...args: unknown[]) => mockAddChunks(...args),
   deleteDocument: (...args: unknown[]) => mockDeleteDocument(...args),
 }));
 
@@ -21,7 +19,6 @@ describe("documentService", () => {
   beforeEach(() => {
     mockGetDocuments.mockReset();
     mockCreateDocument.mockReset();
-    mockAddChunks.mockReset();
     mockDeleteDocument.mockReset();
   });
 
@@ -43,7 +40,7 @@ describe("documentService", () => {
   });
 
   describe("ingestDocument", () => {
-    it("given valid data, when ingestDocument is called, then creates document and chunks and returns id and name (happy path)", async () => {
+    it("given valid data, when ingestDocument is called, then creates the document and returns id and name (happy path)", async () => {
       mockCreateDocument.mockResolvedValue({ id: "doc-1", name: "My Doc" });
 
       const result = await ingestDocument("user-1", {
@@ -53,10 +50,11 @@ describe("documentService", () => {
       });
 
       expect(result).toEqual({ id: "doc-1", name: "My Doc" });
-      expect(mockAddChunks).toHaveBeenCalledWith("user-1", [
-        { documentId: "doc-1", content: "Para one" },
-        { documentId: "doc-1", content: "Para two" },
-      ]);
+      expect(mockCreateDocument).toHaveBeenCalledWith("user-1", {
+        name: "My Doc",
+        content: "Para one\n\nPara two",
+        type: "text",
+      });
     });
 
     it("given createDocument throws, when ingestDocument is called, then propagates the error", async () => {

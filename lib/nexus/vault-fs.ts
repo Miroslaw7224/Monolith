@@ -212,3 +212,21 @@ export function listVaultFiles(relDir: string, opts?: VaultFsOptions): string[] 
     .map((entry) => entry.name)
     .sort();
 }
+
+/**
+ * Usuwa plik, jeśli jego wersja jest taka jak `expected` (z ostatniego odczytu).
+ * Zwraca false, gdy pliku nie ma; inna wersja daje ConflictError (plik zostaje).
+ */
+export function deleteVaultFile(
+  rel: string,
+  opts: VaultFsOptions & { expected: FileVersion }
+): boolean {
+  const abs = resolveInsideVault(rootOf(opts), rel);
+  const current = readAt(abs, rel);
+  if (current === null) return false;
+  if (!sameVersion(current.version, opts.expected)) {
+    throw new ConflictError(`Plik zmienił się w międzyczasie: ${rel}`);
+  }
+  fs.rmSync(abs, { force: true });
+  return true;
+}
