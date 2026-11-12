@@ -839,7 +839,8 @@ export async function wipeEmulator(): Promise<void> {
   if (!res.ok) throw new Error(`Czyszczenie emulatora nie powiodło się: ${res.status}`);
 }
 
-export const SEED_TIMESTAMP = new Timestamp(1767323045, 678901234);
+// Firestore przechowuje czas z dokładnością do mikrosekund, więc nanos musi być wielokrotnością 1000.
+export const SEED_TIMESTAMP = new Timestamp(1767323045, 678901000);
 
 /** withUnknown dodaje kolekcję mystery i podkolekcję board/main/history (obie nieznane). */
 export async function seed(db: Firestore, opts: { withUnknown: boolean }): Promise<void> {
