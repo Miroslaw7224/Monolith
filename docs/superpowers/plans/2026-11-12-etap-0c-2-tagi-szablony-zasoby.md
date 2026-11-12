@@ -1435,7 +1435,7 @@ Opinie traktuj jak hipotezy: zweryfikuj w kodzie, zanim cokolwiek zmienisz.
 
 **Files:** brak.
 
-Wymaga `NEXUS_VAULT_PATH` w `.env.local` (jest ustawione) i zaimportowanych plików z 0b w vaulcie (krok zerowy zrobiony).
+Wymaga `NEXUS_VAULT_PATH` w `.env` albo `.env.local` (bezwzględna ścieżka do `NEXUS/Vault`; sprawdź, że jest ustawione, bo `.env.example` to nie to samo) oraz restartu `npm run dev` po jego dodaniu (Next czyta env tylko przy starcie). Wymaga też zaimportowanych plików z 0b w vaulcie (krok zerowy zrobiony).
 
 - [ ] **Step 1: Uruchom aplikację**
 
