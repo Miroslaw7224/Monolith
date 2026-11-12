@@ -34,12 +34,12 @@ const seed = () => vault.write(FILE, formatYamlList("templates", STORED, GENERAT
 
 describe("task templates repository", () => {
   it("returns [] when the file does not exist", async () => {
-    expect(await getTaskTemplates("u1")).toEqual([]);
+    expect(await getTaskTemplates()).toEqual([]);
   });
 
   it("maps a 0b file and sorts ascending by created", async () => {
     seed();
-    expect(await getTaskTemplates("u1")).toEqual([
+    expect(await getTaskTemplates()).toEqual([
       {
         id: "tplB",
         label: "Bug",
@@ -58,7 +58,7 @@ describe("task templates repository", () => {
   });
 
   it("creates a trimmed template with an empty link by default, creating the file", async () => {
-    const tpl = await createTaskTemplate("u1", { label: " Doc ", title: " Dokumentacja " });
+    const tpl = await createTaskTemplate({ label: " Doc ", title: " Dokumentacja " });
     expect(tpl.id).toMatch(/^[A-Za-z0-9]{20}$/);
     expect(tpl).toMatchObject({ label: "Doc", title: "Dokumentacja", link: "" });
     const [stored] = readList(FILE, "templates");
@@ -68,7 +68,7 @@ describe("task templates repository", () => {
 
   it("appends without losing existing records", async () => {
     seed();
-    await createTaskTemplate("u1", { label: "Doc", title: "D", link: " https://x.dev " });
+    await createTaskTemplate({ label: "Doc", title: "D", link: " https://x.dev " });
     const stored = readList(FILE, "templates");
     expect(stored.slice(0, 2)).toEqual(STORED);
     expect(stored[2]).toMatchObject({ link: "https://x.dev" });
@@ -76,7 +76,7 @@ describe("task templates repository", () => {
 
   it("updates only the passed fields and keeps unknown keys", async () => {
     seed();
-    await updateTaskTemplate("u1", "tplA", { link: " https://new.dev " });
+    await updateTaskTemplate("tplA", { link: " https://new.dev " });
     expect(readList(FILE, "templates")).toEqual([
       { ...STORED[0], link: "https://new.dev" },
       STORED[1],
@@ -86,30 +86,30 @@ describe("task templates repository", () => {
   it("update of a missing id is a 404 and leaves the file untouched", async () => {
     seed();
     const before = vault.read(FILE);
-    await expect(updateTaskTemplate("u1", "nope", { label: "x" })).rejects.toMatchObject({
+    await expect(updateTaskTemplate("nope", { label: "x" })).rejects.toMatchObject({
       statusCode: 404,
     });
     expect(vault.read(FILE)).toBe(before);
   });
 
   it("update with no fields does no I/O", async () => {
-    await expect(updateTaskTemplate("u1", "nope", {})).resolves.toBeUndefined();
+    await expect(updateTaskTemplate("nope", {})).resolves.toBeUndefined();
     expect(vault.read(FILE)).toBeNull();
   });
 
   it("deletes a template; deleting a missing id does not touch the file", async () => {
     seed();
-    await deleteTaskTemplate("u1", "tplA");
+    await deleteTaskTemplate("tplA");
     expect(readList(FILE, "templates").map((r) => r.id)).toEqual(["tplB"]);
     const before = vault.read(FILE);
-    await deleteTaskTemplate("u1", "nope");
+    await deleteTaskTemplate("nope");
     expect(vault.read(FILE)).toBe(before);
   });
 
   it("round-trips special characters", async () => {
     const title = 'Sprawdź: "PR" #12 &apos; — zażółć gęślą jaźń';
-    const tpl = await createTaskTemplate("u1", { label: "yes", title });
-    expect(await getTaskTemplates("u1")).toEqual([
+    const tpl = await createTaskTemplate({ label: "yes", title });
+    expect(await getTaskTemplates()).toEqual([
       expect.objectContaining({ id: tpl.id, label: "yes", title }),
     ]);
   });

@@ -1,13 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-const mockGetAuthUserId = vi.hoisted(() => vi.fn());
 const mockGetTaskTemplates = vi.hoisted(() => vi.fn());
 const mockCreateTaskTemplate = vi.hoisted(() => vi.fn());
 const mockUpdateTaskTemplate = vi.hoisted(() => vi.fn());
 const mockDeleteTaskTemplate = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/getAuth", () => ({ getAuthUserId: mockGetAuthUserId }));
 vi.mock("@/services/taskTemplateService", () => ({
   getTaskTemplates: mockGetTaskTemplates,
   createTaskTemplate: mockCreateTaskTemplate,
@@ -19,7 +17,7 @@ import { GET, POST } from "@/app/api/task-templates/route";
 import { PUT, DELETE } from "@/app/api/task-templates/[id]/route";
 
 function makeRequest(options?: { method?: string; body?: unknown; url?: string }): NextRequest {
-  const headers: Record<string, string> = { authorization: "Bearer valid" };
+  const headers: Record<string, string> = {};
   if (options?.body) headers["content-type"] = "application/json";
   return new NextRequest(options?.url ?? "http://localhost/api/task-templates", {
     method: options?.method ?? "GET",
@@ -39,15 +37,6 @@ const fakeTemplate = {
 describe("GET /api/task-templates", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockGetAuthUserId.mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await GET(makeRequest());
-    expect(res.status).toBe(401);
   });
 
   it("returns templates array for authenticated user", async () => {
@@ -57,29 +46,24 @@ describe("GET /api/task-templates", () => {
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body[0].label).toBe("Review PR");
-    expect(mockGetTaskTemplates).toHaveBeenCalledWith("user-1");
+    expect(mockGetTaskTemplates).toHaveBeenCalledWith();
   });
 });
 
 describe("POST /api/task-templates", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
   });
 
   it("returns 400 when label is missing", async () => {
-    const res = await POST(
-      makeRequest({ method: "POST", body: { title: "Review PR" } })
-    );
+    const res = await POST(makeRequest({ method: "POST", body: { title: "Review PR" } }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/label/i);
   });
 
   it("returns 400 when title is missing", async () => {
-    const res = await POST(
-      makeRequest({ method: "POST", body: { label: "Review PR" } })
-    );
+    const res = await POST(makeRequest({ method: "POST", body: { label: "Review PR" } }));
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error).toMatch(/title/i);
@@ -97,7 +81,6 @@ describe("POST /api/task-templates", () => {
     const body = await res.json();
     expect(body.label).toBe("Review PR");
     expect(mockCreateTaskTemplate).toHaveBeenCalledWith(
-      "user-1",
       expect.objectContaining({ label: "Review PR", title: "Review PR" })
     );
   });
@@ -116,7 +99,6 @@ describe("POST /api/task-templates", () => {
 describe("PUT /api/task-templates/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
   });
 
   it("updates template and returns success", async () => {
@@ -131,7 +113,6 @@ describe("PUT /api/task-templates/[id]", () => {
     );
     expect(res.status).toBe(200);
     expect(mockUpdateTaskTemplate).toHaveBeenCalledWith(
-      "user-1",
       "tpl-1",
       expect.objectContaining({ title: "Updated" })
     );
@@ -141,7 +122,6 @@ describe("PUT /api/task-templates/[id]", () => {
 describe("DELETE /api/task-templates/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
   });
 
   it("deletes template and returns success", async () => {
@@ -154,6 +134,6 @@ describe("DELETE /api/task-templates/[id]", () => {
       { params: Promise.resolve({ id: "tpl-1" }) }
     );
     expect(res.status).toBe(200);
-    expect(mockDeleteTaskTemplate).toHaveBeenCalledWith("user-1", "tpl-1");
+    expect(mockDeleteTaskTemplate).toHaveBeenCalledWith("tpl-1");
   });
 });

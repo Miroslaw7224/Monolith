@@ -27,14 +27,15 @@ function toTemplate(record: YamlRecord): TaskTemplateRecord {
   };
 }
 
-export async function getTaskTemplates(_userId: string): Promise<TaskTemplateRecord[]> {
+export async function getTaskTemplates(): Promise<TaskTemplateRecord[]> {
   return sortByCreated(readList(FILE, KEY).map(toTemplate), (t) => t.created_at, "asc");
 }
 
-export async function createTaskTemplate(
-  _userId: string,
-  data: { label: string; title: string; link?: string }
-): Promise<TaskTemplateRecord> {
+export async function createTaskTemplate(data: {
+  label: string;
+  title: string;
+  link?: string;
+}): Promise<TaskTemplateRecord> {
   const record = await appendRecord(FILE, KEY, (taken) => ({
     id: generateId(taken),
     label: str(data.label).trim(),
@@ -46,7 +47,6 @@ export async function createTaskTemplate(
 }
 
 export async function updateTaskTemplate(
-  _userId: string,
   templateId: string,
   data: { label?: string; title?: string; link?: string }
 ): Promise<void> {
@@ -58,6 +58,6 @@ export async function updateTaskTemplate(
   await patchRecord(FILE, KEY, templateId, patch, "Template not found");
 }
 
-export async function deleteTaskTemplate(_userId: string, templateId: string): Promise<void> {
+export async function deleteTaskTemplate(templateId: string): Promise<void> {
   await removeRecord(FILE, KEY, templateId);
 }
