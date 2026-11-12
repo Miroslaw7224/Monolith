@@ -156,6 +156,18 @@ describe.skipIf(!hasGit)("checkWorkIgnored (prawdziwy git w katalogu tymczasowym
     expect(checkWorkIgnored(vault)).toMatchObject({ ok: false, reason: "tracked" });
   });
 
+  it("not-ignored, gdy .gitignore ma tylko regułę na pliki ukryte (.*)", () => {
+    expect(checkWorkIgnored(makeRepo(".*\n"))).toMatchObject({ ok: false, reason: "not-ignored" });
+  });
+
+  it("tracked, gdy śledzony jest folder o innej wielkości liter (work/)", () => {
+    const vault = makeRepo("/Vault/Work/\n");
+    fs.mkdirSync(path.join(vault, "work"));
+    fs.writeFileSync(path.join(vault, "work", "x.yaml"), "a: 1\n");
+    execFileSync("git", ["add", "-f", "Vault/work/x.yaml"], { cwd: tmp });
+    expect(checkWorkIgnored(vault)).toMatchObject({ ok: false, reason: "tracked" });
+  });
+
   it("no-git, gdy vault leży poza repozytorium", () => {
     const vault = path.join(tmp, "Vault");
     fs.mkdirSync(vault);

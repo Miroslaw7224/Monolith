@@ -18,8 +18,8 @@ export class WorkAccessBlockedError extends DomainError {
   }
 }
 
-/** Ścieżka sondy względem korzenia vaulta; plik nie musi istnieć. */
-const PROBE = "Work/.nexus-ignore-probe";
+/** Ścieżka sondy względem korzenia vaulta; plik nie musi istnieć. Bez kropki na początku: reguła `.*` nie może dać fałszywego "ignorowany". */
+const PROBE = "Work/probe.yaml";
 
 export const defaultGitRunner: GitRunner = (args, cwd) => {
   try {
@@ -57,7 +57,7 @@ export function checkWorkIgnored(vaultRoot: string, run: GitRunner = defaultGitR
     );
   }
   if (ignored !== 0) return blocked("no-git", "nie udało się sprawdzić reguł .gitignore.");
-  const tracked = run(["ls-files", "--", "Work"], vaultRoot);
+  const tracked = run(["ls-files", "--", ":(icase)Work"], vaultRoot);
   if (tracked.status !== 0) return blocked("no-git", "nie udało się sprawdzić śledzonych plików.");
   if (tracked.stdout.trim() !== "") {
     return blocked(
