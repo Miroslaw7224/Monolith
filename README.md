@@ -1,6 +1,6 @@
 # Monolith (Freelancer Edition)
 
-Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, notatki, zasoby, mapy myśli). Stack: Next.js 14 (App Router), Firebase (Auth, Firestore).
+Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, notatki, zasoby, mapy myśli). Stack: Next.js 14 (App Router); dane w plikach Markdown/YAML w vaultcie NEXUS (bez logowania, jeden lokalny użytkownik; zob. [ADR-020](docs/adr/020-lokalne-pliki-zamiast-firestore.md)).
 
 ## Uruchomienie lokalne
 
@@ -8,9 +8,9 @@ Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, not
 
 1. Zainstaluj zależności: `npm install --legacy-peer-deps`
 2. Skopiuj [.env.example](.env.example) do `.env` i uzupełnij:
-   - `NEXT_PUBLIC_FIREBASE_*` — konfiguracja Firebase (klient)
-   - `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` — Firebase Admin (serwer)
-3. Uruchom: `npm run dev` — aplikacja pod adresem http://localhost:3100
+   - `NEXUS_VAULT_PATH` — bezwzględna ścieżka do katalogu `Vault` (wymagane)
+   - `FIREBASE_*` — tylko do skryptów eksportu danych z Firestore, do etapu 0e; aplikacja ich nie używa
+3. Uruchom: `npm run dev` — aplikacja pod adresem http://127.0.0.1:3100 (otwiera się od razu na `/dashboard`, bez logowania)
 4. Build: `npm run build`; produkcja: `npm start`
 
 ## Skrypty
@@ -20,12 +20,12 @@ Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, not
 - `npm start` — uruchomienie zbudowanej aplikacji
 - `npm run lint` — lint (Next.js)
 - `npm run test` — testy jednostkowe (Vitest)
-- `npm run test:e2e` — testy E2E (Playwright)
+- `npm run test:e2e` — testy E2E (Playwright) na własnym serwerze (port 3199) i tymczasowym vaulcie, bez dotykania prawdziwych danych
 - `npm run migrate:sqlite-to-firestore` — migracja SQLite → Firestore (skrypt)
 
-## Hosting
+## Bezpieczeństwo lokalne
 
-Docelowo Vercel (`vercel link` + deploy). Zmienne środowiskowe ustaw w panelu Vercel zgodnie z `.env.example`.
+Serwer wiąże się tylko z `127.0.0.1`, a `middleware.ts` odrzuca obce nagłówki `Host` i obce żądania zmieniające stan. Narzędzia spoza przeglądarki (curl, skrypty) muszą wysyłać nagłówek `X-Nexus-Client: 1`. Aplikacja nie jest wdrażana (usunięcie z Vercela: etap 0e).
 
 ## Moduły i kluczowe funkcje
 
