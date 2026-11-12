@@ -14,3 +14,10 @@ export class ConflictError extends DomainError {
     this.name = "ConflictError";
   }
 }
+
+export class NotFoundError extends DomainError {
+  constructor(message: string) {
+    super(message, 404);
+    this.name = "NotFoundError";
+  }
+}
