@@ -48,7 +48,7 @@ export function htmlToMarkdown(html: string): string {
     emDelimiter: "*",
   });
   turndown.addRule("strikethrough", {
-    filter: ["s", "del", "strike"],
+    filter: (node) => ["S", "DEL", "STRIKE"].includes(node.nodeName),
     replacement: (content) => `~~${content}~~`,
   });
   return turndown.turndown(html).trim();
