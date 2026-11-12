@@ -9,3 +9,10 @@ test("pokazuje nazwę karty, etap i ścieżkę makiety", () => {
   expect(screen.getByText(/etap 4/)).toBeInTheDocument();
   expect(screen.getByText("docs/mockups/karty/cards/08-mapa.html")).toBeInTheDocument();
 });
+
+test("zaślepka Kodeksu pokazuje etap i ścieżkę makiety 09", () => {
+  render(<CardPlaceholder cardId="kodeks" />);
+  expect(screen.getByRole("heading", { name: "Kodeks" })).toBeInTheDocument();
+  expect(screen.getByText(/po etapie 0c/)).toBeInTheDocument();
+  expect(screen.getByText("docs/mockups/karty/cards/09-kodeks.html")).toBeInTheDocument();
+});

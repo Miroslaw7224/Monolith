@@ -23,7 +23,7 @@ export function useCardHotkeys({
         return;
       }
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
-        const match = /^Digit([1-8])$/.exec(e.code);
+        const match = /^Digit([1-9])$/.exec(e.code);
         const card = match ? cardByHotkey(Number(match[1])) : undefined;
         if (card) {
           e.preventDefault();

@@ -67,4 +67,21 @@ describe("useCardNavigation", () => {
     expect(result.current.activeCard).toBe("arsenal");
     expect(window.location.hash).toBe("#arsenal");
   });
+
+  test("przejście zaślepka → zaślepka ustawia Kodeks i adres #kodeks", () => {
+    const { result } = renderHook(() => useCardNavigation());
+    act(() => result.current.selectCard("projekty"));
+    expect(result.current.placeholder).toBe("projekty");
+    act(() => result.current.selectCard("kodeks"));
+    expect(result.current.placeholder).toBe("kodeks");
+    expect(result.current.activeCard).toBe("kodeks");
+    expect(window.location.hash).toBe("#kodeks");
+  });
+
+  test("przy starcie czyta Kodeks z hasha", () => {
+    window.history.replaceState(null, "", "/dashboard#kodeks");
+    const { result } = renderHook(() => useCardNavigation());
+    expect(result.current.activeCard).toBe("kodeks");
+    expect(result.current.placeholder).toBe("kodeks");
+  });
 });

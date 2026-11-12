@@ -6,13 +6,19 @@ import { CardRail } from "@/src/features/cards/CardRail";
 beforeEach(() => cleanup());
 
 describe("CardRail", () => {
-  test("pokazuje 8 kart w nawigacji", () => {
+  test("pokazuje 9 kart w nawigacji, Kodeks ostatni", () => {
     render(<CardRail activeCard="kokpit" onSelect={vi.fn()} onOpenPalette={vi.fn()} />);
     const nav = screen.getByRole("navigation", { name: "Karty" });
-    expect(nav.querySelectorAll("[data-card-id]")).toHaveLength(8);
+    const items = nav.querySelectorAll("[data-card-id]");
+    expect(items).toHaveLength(9);
+    expect(items[items.length - 1]).toHaveAttribute("data-card-id", "kodeks");
     expect(screen.getByRole("button", { name: /Płótno/ })).toHaveAttribute(
       "title",
       "Płótno (Alt+6)"
+    );
+    expect(screen.getByRole("button", { name: /Kodeks/ })).toHaveAttribute(
+      "title",
+      "Kodeks (Alt+9)"
     );
   });
 

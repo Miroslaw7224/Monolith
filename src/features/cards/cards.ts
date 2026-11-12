@@ -8,7 +8,8 @@ export type CardId =
   | "notatki"
   | "plotno"
   | "arsenal"
-  | "mapa";
+  | "mapa"
+  | "kodeks";
 
 export type AppMode = "home" | "planowanie";
 
@@ -38,6 +39,12 @@ export const CARDS: readonly CardDef[] = [
   { id: "plotno", label: "Płótno", hotkey: 6, target: { kind: "planning", tab: "board" } },
   { id: "arsenal", label: "Arsenał", hotkey: 7, target: { kind: "planning", tab: "resources" } },
   { id: "mapa", label: "Mapa", hotkey: 8, target: { kind: "placeholder", stage: "etap 4" } },
+  {
+    id: "kodeks",
+    label: "Kodeks",
+    hotkey: 9,
+    target: { kind: "placeholder", stage: "po etapie 0c" },
+  },
 ];
 
 const TAB_TO_CARD: Record<PlanningTab, CardId> = {

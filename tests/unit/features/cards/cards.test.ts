@@ -9,8 +9,8 @@ import {
 } from "@/src/features/cards/cards";
 
 describe("CARDS", () => {
-  test("ma 8 kart z klawiszami 1..8 w kolejności", () => {
-    expect(CARDS.map((c) => c.hotkey)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+  test("ma 9 kart z klawiszami 1..9 w kolejności", () => {
+    expect(CARDS.map((c) => c.hotkey)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(CARDS.map((c) => c.id)).toEqual([
       "kokpit",
       "kalendarz",
@@ -20,19 +20,26 @@ describe("CARDS", () => {
       "plotno",
       "arsenal",
       "mapa",
+      "kodeks",
     ]);
   });
 
-  test("projekty i mapa to zaślepki", () => {
+  test("projekty, mapa i kodeks to zaślepki", () => {
     expect(getCard("projekty").target).toEqual({ kind: "placeholder", stage: "etap 1" });
     expect(getCard("mapa").target).toEqual({ kind: "placeholder", stage: "etap 4" });
+    expect(getCard("kodeks").target).toEqual({ kind: "placeholder", stage: "po etapie 0c" });
+  });
+
+  test("Kodeks jest ostatnią kartą z etykietą Kodeks", () => {
+    expect(CARDS[CARDS.length - 1]).toMatchObject({ id: "kodeks", label: "Kodeks", hotkey: 9 });
   });
 });
 
 describe("cardByHotkey", () => {
-  test("zwraca kartę dla 1..8 i undefined poza zakresem", () => {
+  test("zwraca kartę dla 1..9 i undefined poza zakresem", () => {
     expect(cardByHotkey(3)?.id).toBe("zadania");
-    expect(cardByHotkey(9)).toBeUndefined();
+    expect(cardByHotkey(9)?.id).toBe("kodeks");
+    expect(cardByHotkey(10)).toBeUndefined();
     expect(cardByHotkey(0)).toBeUndefined();
   });
 });
@@ -58,6 +65,7 @@ describe("cardFromHash", () => {
   test("rozpoznaje znane karty z # i bez", () => {
     expect(cardFromHash("#notatki")).toBe("notatki");
     expect(cardFromHash("mapa")).toBe("mapa");
+    expect(cardFromHash("#kodeks")).toBe("kodeks");
   });
 
   test("zwraca null dla pustego i nieznanego", () => {

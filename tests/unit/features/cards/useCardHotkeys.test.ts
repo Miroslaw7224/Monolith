@@ -16,9 +16,14 @@ describe("useCardHotkeys", () => {
     expect(onSelectCard).toHaveBeenCalledWith("zadania");
   });
 
-  test("Alt+9 i Alt+0 nic nie robią", () => {
+  test("Alt+9 wybiera Kodeks", () => {
     const { onSelectCard } = setup();
     fireEvent.keyDown(window, { key: "9", code: "Digit9", altKey: true });
+    expect(onSelectCard).toHaveBeenCalledWith("kodeks");
+  });
+
+  test("Alt+0 nic nie robi", () => {
+    const { onSelectCard } = setup();
     fireEvent.keyDown(window, { key: "0", code: "Digit0", altKey: true });
     expect(onSelectCard).not.toHaveBeenCalled();
   });
