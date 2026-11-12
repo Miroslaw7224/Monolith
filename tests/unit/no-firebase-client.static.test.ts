@@ -5,13 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 const DIRS = ["app", "src", "lib", "services", "types"];
-/** Znikają w Task 4 (serwerowe pozostałości logowania i waitlisty). */
-const EXCLUDED = [
-  "lib/getAuth.ts",
-  "lib/waitlistCheckEmail.ts",
-  "app/api/auth/",
-  "app/api/waitlist/",
-];
+const EXCLUDED: string[] = [];
 const PATTERN =
   /from ["']firebase\/|firebase-client|\buseAuth\b|getIdToken|\/api\/waitlist|getAuthUserId|LoginScreen/;
 
