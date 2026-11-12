@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7) i uruchomiony na prawdziwym zrzucie (2026-11-12, liczności zgodne), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4; 0c-1 zmergowany, PR #8; 0c-2 ma spec `2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`), krok 0d podzielony na 0d-1 (zabezpieczenie lokalne, serwer bez auth i `userId`; plan `2026-11-12-etap-0d-1-lokalny-serwer-bez-auth-i-userid.md`, zaimplementowany) i 0d-2 (klient, waitlista, `firebase`, e2e, dokumentacja; plan `2026-11-12-etap-0d-2-klient-bez-logowania-i-sprzatanie.md`, zaimplementowany), kroki 0e–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7) i uruchomiony na prawdziwym zrzucie (2026-11-12, liczności zgodne), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4; 0c-1 zmergowany, PR #8; 0c-2 ma spec `2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`), krok 0d podzielony na 0d-1 (zabezpieczenie lokalne, serwer bez auth i `userId`; plan `2026-11-12-etap-0d-1-lokalny-serwer-bez-auth-i-userid.md`, zaimplementowany) i 0d-2 (klient, waitlista, `firebase`, e2e, dokumentacja; plan `2026-11-12-etap-0d-2-klient-bez-logowania-i-sprzatanie.md`, zaimplementowany), krok 0e w planowaniu, krok 0f wykonany (`2026-11-12-etap-0f-straznik-vault-work.md`). Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -193,6 +193,8 @@ Stan: zaimplementowane w 0d-1 (`lib/localGuard.ts` z testami, `middleware.ts`, s
 ### 0f: `Vault/Work/`
 
 W repo NEXUS: wpis `Work/` w `.gitignore` (zrobić przed utworzeniem pierwszego pliku). W aplikacji: kontrola `git check-ignore Vault/Work/` przy starcie, blokująca zapis i odczyt etatu, gdy folder nie jest ignorowany (§5 nadrzędnego specu).
+
+Stan 0f: wzorzec `/Vault/Work/` (zakotwiczony w korzeniu repo, żeby nie ignorować zagnieżdżonych folderów `Work`), dwie warstwy (`lib/nexus/vault-fs.ts` zamknięty z założenia + `lib/workGuard.ts` poza `lib/nexus/` z powodu zakazu `child_process`), kontrola przy każdym wejściu do strefy (bez cache). Brak funkcji etatu do czasu etapu 1: `assertWorkAccess` nie jest jeszcze nigdzie wpięty.
 
 ## 8. Otwarte pytania (do rozstrzygnięcia przed planem)
 

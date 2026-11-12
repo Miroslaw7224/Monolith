@@ -27,6 +27,10 @@ Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, not
 
 Serwer wiąże się tylko z `127.0.0.1`, a `middleware.ts` odrzuca obce nagłówki `Host` i obce żądania zmieniające stan. Narzędzia spoza przeglądarki (curl, skrypty) muszą wysyłać nagłówek `X-Nexus-Client: 1`. Aplikacja nie jest wdrażana (usunięcie z Vercela: etap 0e).
 
+## Dane etatu (`Vault/Work/`)
+
+Folder `Work/` w vaulcie jest przeznaczony na dane etatu i nie może trafić do repozytorium NEXUS: wpis `/Vault/Work/` w jego `.gitignore`. Warstwa plikowa (`lib/nexus/vault-fs.ts`) odmawia dostępu do `Work/`, chyba że wywołujący przejdzie przez `assertWorkAccess()` z `lib/workGuard.ts`, który sprawdza `git check-ignore` i brak śledzonych plików.
+
 ## Moduły i kluczowe funkcje
 
 Struktura frontendu (komponenty, hooki, podfoldery `resources/` i `calendar/`) jest opisana w **ADR-019** (refaktoryzacja dużych plików). Wspólna utilita klas CSS: `src/lib/cn.ts`.

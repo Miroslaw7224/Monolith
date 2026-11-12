@@ -85,7 +85,7 @@ Notatki są w Markdown (TipTap przez rozszerzenie Markdown). Przy migracji istni
 Vault NEXUS jest śledzony przez git z remote na GitHubie, więc dane etatu nie mogą trafić do `Vault/Projects/`.
 
 - `Vault/Work/` trafia do `.gitignore`. Zawiera `_registry.work.yaml`, foldery projektów etatu (ten sam format co zwykłe), `calendar.yaml`. Obsidian widzi ten folder w grafie, git nie.
-- **Kontrola gita:** przy starcie most uruchamia `git check-ignore Vault/Work/`. Jeśli folder nie jest ignorowany, zapis i odczyt danych etatu są blokowane i pokazywany jest komunikat.
+- **Kontrola gita:** przy starcie most uruchamia `git check-ignore Vault/Work/`. Jeśli folder nie jest ignorowany, zapis i odczyt danych etatu są blokowane i pokazywany jest komunikat. Stan (2026-11-12): zaimplementowane jako `lib/workGuard.ts` (sprawdzenie przy każdym wejściu do strefy) i blokada `Work/` w `lib/nexus/vault-fs.ts`; zob. plan 0f.
 - **Brak wysyłki do zewnętrznego AI:** treści projektów `owner: work` nigdy nie idą do Gemini. Mogą trafić do lokalnej Ollamy albo nigdzie. Gdy Ollama jest wyłączona, funkcje AI dla tych projektów są wyszarzone.
 - **Kontekst dla AI:** przycisk „kopiuj" działa także dla projektów etatu, ale pokazuje ostrzeżenie „dane z firmy: sprawdź, gdzie wklejasz".
 - **Brak eksportu** (HTML, linki publiczne) dla projektów etatu.
