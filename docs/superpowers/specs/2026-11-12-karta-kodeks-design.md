@@ -127,6 +127,16 @@ Przed kodem powstaje `docs/mockups/karty/cards/09-kodeks.html`, według tego sam
 
 Tor niekodowy. Punkt wyjścia: opinie `agy` i `cursor` z 2026-11-12 (rozdziały: zakres i hierarchia, TDD i dowód czerwieni, jakość asercji, warstwy testów, dowody przed twierdzeniami, zakres zmian i małe commity, bezpieczeństwo i dane, praca z agentami, egzekucja, anty-wzorce). Zasady przekrojowe: język MUST/SHOULD, krótko, kodeks jako kontrakt z odwołaniami zamiast duplikowania treści (do skilli oraz do istniejących notatek, np. `[[ai-coding-guardrails]]` w `Knowledge/`), każda reguła weryfikowalna. **Rdzeń `kodeks.md` ma rzędu 100 linii**; rozdziały wymagające szerszego omówienia (np. strategia testów wielopoziomowych) są osobnymi notatkami w `Knowledge/` linkowanymi z rdzenia, żeby limit nie zmuszał do płytkich reguł.
 
+Reguły zgłoszone przez użytkownika do włączenia do rdzenia (rozdział „praca z agentami”), gotowe w formacie z 4.1:
+
+```
+- **[AGENT-1] MUST** Plan (spec → plan implementacji) powstaje z odczytu istniejącego kodu i rozumowania. Nie buduję kodu, scratch projektu ani środowiska testowego po to, by plan napisać: implementacja powstaje raz, w kroku wykonania, w TDD.
+  Plan zawiera ścieżki, interfejsy, reguły działania, przypadki testowe z oczekiwanymi wartościami i komendy; pełny kod tylko dla małych współdzielonych formatów, napisany bez uruchamiania.
+  Weryfikacja kodu należy do wykonawcy planu (czerwony test, zielony test), nie do autora planu.
+```
+
+Powód: w sesji 2026-11-12 przy planie kroku 0b zbudowano i przetestowano kod poza repo tylko po to, by plan miał „sprawdzony” kod. Kod i tak trzeba było napisać drugi raz przy wykonaniu, więc tokeny poszły na pracę podwójną. Operacyjnie reguła obowiązuje już w `CLAUDE.md` tego repo (sekcja „Pisanie planów”).
+
 Do rozstrzygnięcia przy pisaniu: język dokumentu (polski dla czytelności vs angielski dla skuteczności reguł u agentów) oraz sposób podlinkowania z projektowych `CLAUDE.md` jedną linią.
 
 ## 6. Poza zakresem pierwszej wersji
