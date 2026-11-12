@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
 import { parseBody } from "@/lib/parseBody";
 import { UpdateResourceBodySchema } from "@/lib/validation/resources";
@@ -9,8 +8,6 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ resourceId: string }> }
 ) {
-  const auth = await getAuthUserId(request);
-  if (auth instanceof NextResponse) return auth;
   const { resourceId } = await params;
 
   const parsed = await parseBody(request, UpdateResourceBodySchema);
@@ -30,8 +27,8 @@ export async function PUT(
   if (isFavorite !== undefined) data.isFavorite = isFavorite;
 
   try {
-    await resourceService.updateResource(auth.uid, resourceId, data);
-    const resources = await resourceService.getResources(auth.uid);
+    await resourceService.updateResource(resourceId, data);
+    const resources = await resourceService.getResources();
     const updated = resources.find((r) => r.id === resourceId);
     return NextResponse.json(updated ?? { success: true });
   } catch (err) {
@@ -43,11 +40,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ resourceId: string }> }
 ) {
-  const auth = await getAuthUserId(_request);
-  if (auth instanceof NextResponse) return auth;
   const { resourceId } = await params;
   try {
-    await resourceService.deleteResource(auth.uid, resourceId);
+    await resourceService.deleteResource(resourceId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     return handleServiceError(err);

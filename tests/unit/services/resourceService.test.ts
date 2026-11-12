@@ -44,7 +44,6 @@ describe("resourceService", () => {
     it("fetches metadata and delegates to Firestore", async () => {
       const saved = {
         id: "r1",
-        userId: "u1",
         description: "d",
         url: "https://example.com",
         title: "Page Title",
@@ -53,7 +52,7 @@ describe("resourceService", () => {
       } as NoteResourceRecord;
       mockAdd.mockResolvedValue(saved);
 
-      const result = await addResource("u1", {
+      const result = await addResource({
         description: "d",
         url: "https://example.com",
         tags: ["a"],
@@ -61,9 +60,7 @@ describe("resourceService", () => {
 
       expect(result).toEqual(saved);
       expect(mockAdd).toHaveBeenCalledWith(
-        "u1",
         expect.objectContaining({
-          userId: "u1",
           description: "d",
           url: "https://example.com",
           title: "Page Title",
@@ -76,15 +73,14 @@ describe("resourceService", () => {
 
     it("uses URL as title when fetch fails", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
-      mockAdd.mockImplementation(async (_uid: string, payload: Record<string, unknown>) => ({
+      mockAdd.mockImplementation(async (payload: Record<string, unknown>) => ({
         id: "r2",
         ...payload,
       }));
 
-      await addResource("u1", { description: "x", url: "https://z.org" });
+      await addResource({ description: "x", url: "https://z.org" });
 
       expect(mockAdd).toHaveBeenCalledWith(
-        "u1",
         expect.objectContaining({
           title: "https://z.org",
         })
@@ -98,13 +94,13 @@ describe("resourceService", () => {
       mockDelete.mockResolvedValue(undefined);
       mockUpdate.mockResolvedValue(undefined);
 
-      await expect(getResources("u1")).resolves.toEqual([]);
-      await deleteResource("u1", "r1");
-      await updateResource("u1", "r1", { isFavorite: true });
+      await expect(getResources()).resolves.toEqual([]);
+      await deleteResource("r1");
+      await updateResource("r1", { isFavorite: true });
 
-      expect(mockGetAll).toHaveBeenCalledWith("u1");
-      expect(mockDelete).toHaveBeenCalledWith("u1", "r1");
-      expect(mockUpdate).toHaveBeenCalledWith("u1", "r1", { isFavorite: true });
+      expect(mockGetAll).toHaveBeenCalledWith();
+      expect(mockDelete).toHaveBeenCalledWith("r1");
+      expect(mockUpdate).toHaveBeenCalledWith("r1", { isFavorite: true });
     });
   });
 
@@ -112,7 +108,6 @@ describe("resourceService", () => {
     const samples = [
       {
         id: "1",
-        userId: "u1",
         description: "React hooks",
         url: "https://a",
         title: "Docs",
@@ -120,7 +115,6 @@ describe("resourceService", () => {
       },
       {
         id: "2",
-        userId: "u1",
         description: "Other",
         url: "https://b",
         title: "Vue guide",
@@ -130,20 +124,20 @@ describe("resourceService", () => {
 
     it("returns all when keywords empty", async () => {
       mockGetAll.mockResolvedValue(samples);
-      const r = await searchResources("u1", []);
+      const r = await searchResources([]);
       expect(r).toHaveLength(2);
     });
 
     it("filters by keyword in description, title, or tags", async () => {
       mockGetAll.mockResolvedValue(samples);
-      expect((await searchResources("u1", ["react"])).map((x) => x.id)).toEqual(["1"]);
-      expect((await searchResources("u1", ["vue"])).map((x) => x.id)).toEqual(["2"]);
-      expect((await searchResources("u1", ["framework"])).map((x) => x.id)).toEqual(["2"]);
+      expect((await searchResources(["react"])).map((x) => x.id)).toEqual(["1"]);
+      expect((await searchResources(["vue"])).map((x) => x.id)).toEqual(["2"]);
+      expect((await searchResources(["framework"])).map((x) => x.id)).toEqual(["2"]);
     });
 
     it("is case-insensitive", async () => {
       mockGetAll.mockResolvedValue(samples);
-      const r = await searchResources("u1", ["REACT"]);
+      const r = await searchResources(["REACT"]);
       expect(r).toHaveLength(1);
     });
   });

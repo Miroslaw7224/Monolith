@@ -17,7 +17,6 @@ export type NoteRecord = {
 export interface NoteResourceRecord {
   id: string;
   noteId?: string; // opcjonalne – zasoby są na poziomie użytkownika, nie notatki
-  userId: string;
   description: string;
   url: string;
   title: string;
