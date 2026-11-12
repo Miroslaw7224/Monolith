@@ -161,14 +161,11 @@ export function MindMapsTab({
       <div className="flex-1 overflow-hidden min-h-0">
         {!selectedMap ? (
           <MindMapList
-            apiFetch={apiFetch}
             maps={maps}
             isLoading={isLoadingList}
             onCreate={createMap}
             isCreating={isCreating}
             onOpen={(id) => setSelectedId(id)}
-            onCreatedNew={(id) => setSelectedId(id)}
-            onRefreshList={refreshList}
             t={t}
           />
         ) : isLoadingMap ? (

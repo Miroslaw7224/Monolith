@@ -31,10 +31,8 @@ export function TreeLevel(props: {
   onCommitLabel: (id: string, next: string) => void;
   onToggleCtx: (id: string) => void;
   onAddChild: (parentId: string) => void;
-  onAddChildAIImport: (parentId: string) => void;
   onInsertAbove: (childId: string) => void;
   onRequestDelete: (id: string) => void;
-  onOpenAI: (parentId: string) => void;
   onExportToOtherMap: (nodeId: string) => void;
   onDragStart: (id: string) => void;
   onDragOver: (id: string) => void;

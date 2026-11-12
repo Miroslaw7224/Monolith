@@ -1,4 +1,4 @@
 /**
- * Runs before integration tests. Loads .env so GEMINI_API_KEY etc. are available.
+ * Runs before integration tests. Loads .env so Firebase and other variables are available.
  */
 import "dotenv/config";

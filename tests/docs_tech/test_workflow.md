@@ -12,7 +12,7 @@ Baza: brak — używane są tylko mocki (`lib/firestore-db.js`).
 
 ---
 
-## Testy integracyjne (Firestore / Gemini)
+## Testy integracyjne (Firestore)
 
 ### Emulator w Dockerze (zalecane)
 
@@ -42,7 +42,7 @@ npm run test:integration:local
 | Ręcznie (Unix/Mac)   | `RUN_INTEGRATION_TESTS=1 npm run test:integration`       |
 | Ręcznie (PowerShell) | `$env:RUN_INTEGRATION_TESTS=1; npm run test:integration` |
 
-Bez zmiennej `RUN_INTEGRATION_TESTS=1` testy wymagające Firestore/Gemini są pomijane (skip).
+Bez zmiennej `RUN_INTEGRATION_TESTS=1` testy wymagające Firestore są pomijane (skip).
 
 ---
 

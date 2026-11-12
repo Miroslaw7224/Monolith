@@ -37,7 +37,3 @@ export function calendarEventsCol(userId: string) {
 export function tasksCol(userId: string) {
   return userCollection(userId, "tasks");
 }
-
-export function agentLogCol(userId: string) {
-  return userCollection(userId, "agent_log");
-}

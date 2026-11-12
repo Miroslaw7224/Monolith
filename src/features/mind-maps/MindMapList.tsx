@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Plus, Sparkles } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import type { MindMap } from "@/src/features/mind-maps/mindMapTypes";
 import { leafCount } from "@/src/lib/mindMapUtils";
-import { MindMapImportModal } from "@/src/features/mind-maps/MindMapImportModal";
 import type { translations } from "@/src/translations";
 
 type T = (typeof translations)["en"];
@@ -26,27 +24,20 @@ function formatDateLike(d: unknown): string {
 }
 
 export function MindMapList({
-  apiFetch,
   maps,
   isLoading,
   isCreating,
   onCreate,
   onOpen,
-  onCreatedNew,
-  onRefreshList,
   t,
 }: {
-  apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   maps: MindMap[];
   isLoading: boolean;
   isCreating: boolean;
   onCreate: () => void;
   onOpen: (id: string) => void;
-  onCreatedNew: (id: string) => void;
-  onRefreshList: () => Promise<void>;
   t: T;
 }) {
-  const [isImportOpen, setIsImportOpen] = useState(false);
   return (
     <div className="h-full overflow-auto p-6">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -68,24 +59,6 @@ export function MindMapList({
               <div className="font-bold">{t.mindMapsCreateCardTitle as string}</div>
               <div className="text-xs text-[var(--text3)]">
                 {t.mindMapsCreateCardSubtitle as string}
-              </div>
-            </div>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setIsImportOpen(true)}
-          className="group border-2 border-dashed border-[var(--border)] rounded-2xl p-5 text-left hover:bg-[var(--bg2)] transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[var(--bg3)] flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-bold">{t.mindMapsImportCardTitle as string}</div>
-              <div className="text-xs text-[var(--text3)]">
-                {t.mindMapsImportCardSubtitle as string}
               </div>
             </div>
           </div>
@@ -123,15 +96,6 @@ export function MindMapList({
           ))
         )}
       </div>
-
-      <MindMapImportModal
-        open={isImportOpen}
-        apiFetch={apiFetch}
-        onClose={() => setIsImportOpen(false)}
-        onCreatedNew={onCreatedNew}
-        onRefreshList={onRefreshList}
-        t={t}
-      />
     </div>
   );
 }
