@@ -1,7 +1,7 @@
 # Etap 0c: warstwa plikowa `lib/nexus/` — projekt
 
 Data: 2026-11-12
-Status: projekt zatwierdzony w brainstormie; krok 0c-1 zaimplementowany na gałęzi `feat/etap-0c-1-fundament` (czeka na ręczny przegląd UI i PR), plany 0c-2…0c-4 jeszcze nie napisane
+Status: projekt zatwierdzony w brainstormie; krok 0c-1 zaimplementowany i zmergowany do `main` (PR #8); krok 0c-2 ma osobny spec (`2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`); plany 0c-3 i 0c-4 jeszcze nie napisane
 Nadrzędne specy: `2026-11-11-asystent-lokalny-nexus-design.md` (§4.1–4.3), `2026-11-12-etap-0-odpiecie-firebase-design.md` (§6), `2026-11-12-etap-0b-import-do-vaultu-design.md` (formaty plików)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -92,7 +92,7 @@ Formaty `tasks`, `task_templates`, `tags`, `resources` i `notes` są te z 0b (je
 
 0c-4 jest największym podkrokiem; plan może go rozbić na 0c-4a (repozytoria backendowe) i 0c-4b (edytor notatek na Markdown), jeśli przekroczy rozmiar jednego PR-a.
 
-Niezależny review diffa przez pomocnika po 0c-1 i 0c-3 (logika zapisu). Przed uruchomieniem 0c-2 import 0b musi być wykonany na prawdziwym zrzucie.
+Niezależny review diffa przez pomocnika po 0c-1 i 0c-3 (logika zapisu). Przed uruchomieniem 0c-2 import 0b musi być wykonany na prawdziwym zrzucie (wykonany 2026-11-12, liczności zgodne).
 
 ## 6. Kryteria ukończenia podkroku
 

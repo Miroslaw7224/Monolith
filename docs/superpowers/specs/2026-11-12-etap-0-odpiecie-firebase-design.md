@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7; testy zielone, jeszcze nieuruchomiony na prawdziwym zrzucie), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4), kroki 0d–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7) i uruchomiony na prawdziwym zrzucie (2026-11-12, liczności zgodne), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4; 0c-1 zmergowany, PR #8; 0c-2 ma spec `2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`), kroki 0d–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -45,7 +45,7 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 | 0e   | Zdjęcie z Vercela, wygaszenie projektu Firebase                                        | nie                | tak (usunięcie), po okresie karencji |
 | 0f   | `Vault/Work/` w `.gitignore` NEXUS i kontrola `git check-ignore`                       | w NEXUS            | nie                                  |
 
-Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Krok 0b jest zmergowany do `main` (PR #7), testy są zielone, ale skrypt nie był jeszcze uruchomiony na prawdziwym zrzucie. Krok 0c ma zatwierdzony projekt w osobnym specu (podział na 0c-1…0c-4), implementacja nie rozpoczęta. Kroki 0d–0f bez zmian.
+Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Krok 0b jest zmergowany do `main` (PR #7) i uruchomiony na prawdziwym zrzucie (liczności zgodne). Krok 0c ma zatwierdzony projekt w osobnym specu (podział na 0c-1…0c-4); 0c-1 jest zmergowany (PR #8), 0c-2 ma spec, reszta bez implementacji. Kroki 0d–0f bez zmian.
 
 0f jest niezależny i może wejść w dowolnym momencie przed pierwszym zapisem danych etatu. Zmianę `.gitignore` w repo NEXUS robi człowiek lub agent poza aplikacją (aplikacja zapisuje tylko w `Vault/`).
 
