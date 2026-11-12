@@ -24,13 +24,13 @@ describe("parseImportArgs", () => {
   it("requires --dump", () => {
     const result = parseImportArgs(["--vault", "v"], {});
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain("--dump");
+    expect((result as { ok: false; error: string }).error).toContain("--dump");
   });
 
   it("requires a vault from --vault or NEXUS_VAULT_PATH", () => {
     const result = parseImportArgs(["--dump", "d"], {});
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain("NEXUS_VAULT_PATH");
+    expect((result as { ok: false; error: string }).error).toContain("NEXUS_VAULT_PATH");
   });
 
   it("returns an error (does not throw) for an unknown option", () => {
