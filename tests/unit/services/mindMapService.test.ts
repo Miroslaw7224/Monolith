@@ -97,8 +97,8 @@ describe("mindMapService", () => {
   describe("getMindMaps", () => {
     it("returns maps sorted by updatedAt descending", async () => {
       const { rows } = setupRepo();
-      rows.set("u1:a", row({ id: "a", title: "Old", updatedAt: "2026-11-12T10:00:00.000Z" }));
-      rows.set("u1:b", row({ id: "b", title: "New", updatedAt: "2026-11-12T11:00:00.000Z" }));
+      rows.set("a", row({ id: "a", title: "Old", updatedAt: "2026-11-12T10:00:00.000Z" }));
+      rows.set("b", row({ id: "b", title: "New", updatedAt: "2026-11-12T11:00:00.000Z" }));
 
       const list = await getMindMaps();
       expect(list.map((m) => m.title)).toEqual(["New", "Old"]);
@@ -106,9 +106,9 @@ describe("mindMapService", () => {
 
     it("puts maps without updatedAt last", async () => {
       const { rows } = setupRepo();
-      rows.set("u1:a", row({ id: "a", title: "None" }));
-      rows.set("u1:b", row({ id: "b", title: "Old", updatedAt: "2026-11-12T10:00:00.000Z" }));
-      rows.set("u1:c", row({ id: "c", title: "New", updatedAt: "2026-11-12T11:00:00.000Z" }));
+      rows.set("a", row({ id: "a", title: "None" }));
+      rows.set("b", row({ id: "b", title: "Old", updatedAt: "2026-11-12T10:00:00.000Z" }));
+      rows.set("c", row({ id: "c", title: "New", updatedAt: "2026-11-12T11:00:00.000Z" }));
 
       const list = await getMindMaps();
       expect(list.map((m) => m.title)).toEqual(["New", "Old", "None"]);
@@ -179,6 +179,20 @@ describe("mindMapService", () => {
       rows.set("x", row({ id: "x" }));
       await deleteMindMap("x");
       expect(rows.has("x")).toBe(false);
+    });
+
+    it("saveMindMap on a missing map gives 404 and does not write", async () => {
+      setupRepo();
+      await expect(saveMindMap("missing", { title: "Z" })).rejects.toMatchObject({
+        statusCode: 404,
+      });
+      expect(repo.saveMindMap).not.toHaveBeenCalled();
+    });
+
+    it("deleteMindMap on a missing map gives 404 and does not delete", async () => {
+      setupRepo();
+      await expect(deleteMindMap("missing")).rejects.toMatchObject({ statusCode: 404 });
+      expect(repo.deleteMindMap).not.toHaveBeenCalled();
     });
   });
 });
