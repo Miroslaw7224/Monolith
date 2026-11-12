@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Monolith (Next.js 14; dawniej Second Brain, katalog repo nadal `Second_brain`) wchodzi w skład ekosystemu NEXUS: vault Markdown/YAML w `~/projects/Brain_7224/NEXUS/`
+Monolith (Next.js 14; dawniej Second Brain; katalog repo: `Monolith`) wchodzi w skład ekosystemu NEXUS: vault Markdown/YAML w `~/projects/Brain_7224/NEXUS/`
 (źródło prawdy o projektach). Kierunek: lokalny asystent pracy,
 zob. `docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md`.
 Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/`.
@@ -93,7 +93,7 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 - Kody wyjścia: 0 ok, 1 nie znaleziono pomocnika, 2 pomocnik czeka na zgodę (`blocked`), 3 timeout.
 - Komenda `/consult <agy|cursor|both> <zadanie>` robi to samo.
 - NIE używaj `agy -p ...` ani `cursor-agent -p ...` przez Basha: to osobne procesy bez kontekstu sesji.
-- Pomocnicy działają w `~/projects/Brain_7224/Second_brain`; w prompcie podawaj ścieżki względem tego katalogu,
+- Pomocnicy działają w `~/projects/Brain_7224/Monolith`; w prompcie podawaj ścieżki względem tego katalogu,
   a do NEXUS przez `../NEXUS/...` (oba mają odczyt NEXUS). Uprawnienia komend cursora są w globalnym
   `~/.cursor/cli-config.json` (`Brain_7224/.cursor/cli.json` nie jest wczytywany z tego katalogu).
 - Pomocnicy nie widzą tej rozmowy: w prompcie podawaj cel, ścieżki, ograniczenia i oczekiwany format odpowiedzi.
