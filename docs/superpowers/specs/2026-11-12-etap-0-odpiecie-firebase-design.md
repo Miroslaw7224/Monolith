@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), kroki 0b–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zaimplementowany na gałęzi `feat/etap-0b-import-do-vaultu` (testy zielone, jeszcze nieuruchomiony na prawdziwym zrzucie), kroki 0c–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -45,7 +45,7 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 | 0e   | Zdjęcie z Vercela, wygaszenie projektu Firebase                                        | nie                | tak (usunięcie), po okresie karencji |
 | 0f   | `Vault/Work/` w `.gitignore` NEXUS i kontrola `git check-ignore`                       | w NEXUS            | nie                                  |
 
-Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Kroki 0b–0f nie są rozpoczęte.
+Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Krok 0b jest zaimplementowany na gałęzi `feat/etap-0b-import-do-vaultu`, testy są zielone, ale skrypt nie był jeszcze uruchomiony na prawdziwym zrzucie. Kroki 0c–0f bez zmian (nie rozpoczęte).
 
 0f jest niezależny i może wejść w dowolnym momencie przed pierwszym zapisem danych etatu. Zmianę `.gitignore` w repo NEXUS robi człowiek lub agent poza aplikacją (aplikacja zapisuje tylko w `Vault/`).
 

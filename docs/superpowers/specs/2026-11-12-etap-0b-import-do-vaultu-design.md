@@ -1,7 +1,7 @@
 # Etap 0b: import zrzutu Firestore do vaulta — projekt
 
 Data: 2026-11-12
-Status: szkic do przeglądu. Zawiera część 2 (bezpieczeństwo, kod, testy). Część 1 (formaty plików: frontmatter notatek, linia zadania, listy YAML) nie jest tu jeszcze zapisana, patrz §2.
+Status: zaimplementowane na gałęzi `feat/etap-0b-import-do-vaultu`, testy zielone, jeszcze nieuruchomione na prawdziwym zrzucie (robi to użytkownik).
 Nadrzędne specy: `2026-11-12-etap-0-odpiecie-firebase-design.md` (§1.1 zakres danych, §5 krok 0b), `2026-11-11-asystent-lokalny-nexus-design.md` (§4.2 zasady zapisu)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera danych użytkownika ani identyfikatorów projektu Firebase, i tak ma zostać. Dotyczy to też testów: korzystają wyłącznie z danych syntetycznych.
@@ -12,7 +12,7 @@ Zamienić zrzut zawężony z kroku 0a (`notes`, `tasks`, `resources`, `user_tags
 
 Poza zakresem (YAGNI): wczytywanie do Firestore z powrotem, tryb inkrementalny, GUI.
 
-## 2. Mapowanie i formaty (część 1, do uzupełnienia)
+## 2. Mapowanie i formaty
 
 Mapowanie kolekcji na pliki jest w §5 nadrzędnego specu etapu 0:
 
@@ -20,7 +20,25 @@ Mapowanie kolekcji na pliki jest w §5 nadrzędnego specu etapu 0:
 - `tasks` → plik zadań, status 4-stanowy polem inline `[status:: …]` (miejsce docelowe: O1 w nadrzędnym specu),
 - `resources` → `Resources/resources.yaml`, `user_tags` → `Resources/tags.yaml`, `task_templates` → `Tasks/templates.yaml`.
 
-Dokładne formaty (pola frontmattera, składnia linii zadania, schematy list YAML, reguły sluga) wynikają z części 1 projektu i trafią tutaj przed planem. Poniższe sekcje opisują tylko to, co niezależne od tych detali.
+Formaty przyjęte w implementacji (kod wspólny w `lib/nexus/`):
+
+| Co                             | Format                                                                                                                                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Linia zadania                  | `- [ ] Tytuł [id:: …] [status:: in_progress] [due:: …] [priority:: …] [order:: …] [link:: …] [desc:: …] [created:: …] [updated:: …]`. Kratka `[x]` tylko dla `done`; źródłem prawdy jest pole `status`. Pola puste (`null`, `""`) są pomijane. Jedna linia = jedno zadanie |
+| Ucieczka w liniach zadań       | `\\`, `\[`, `\]`, `\n`, `\r` w tytule i wartościach pól. `::` w wartości nie wymaga ucieczki                                                                                                                                                                               |
+| Zadania                        | `Tasks/tasks.md`: frontmatter `generated_by: import-to-vault`, nagłówek `# Zadania`, potem linie zadań. Kolejność: `order` (brak na końcu), `created`, `id`                                                                                                                |
+| Zasoby, tagi, szablony         | `Resources/resources.yaml` (klucz `resources`), `Resources/tags.yaml` (`tags`), `Tasks/templates.yaml` (`templates`); każdy plik: `version: 1`, `generated_by: import-to-vault`, lista map. Klucze rekordów w snake_case                                                   |
+| Notatki                        | `Notes/<slug>.md`, frontmatter w kolejności `id`, `title`, `created`, `updated`, `tags` (`tags: []` gdy brak), potem treść Markdown. Oryginał HTML: `Notes/.html/<id>.html`                                                                                                |
+| Czas                           | jedno pole `created`/`updated` jako tekst ISO. Źródło: `created_at` (tekst), a gdy brak, `createdAt` (Timestamp z zrzutu)                                                                                                                                                  |
+| Własność plików „pojedynczych” | plik jest „nasz”, gdy ma `generated_by: import-to-vault`. Istniejący plik bez znacznika dostaje obok wersję z sufiksem (`tasks-2.md`) i ostrzeżenie. Skutek uboczny: po przepisaniu pliku przez aplikację (0c) ponowny import nie nadpisze go, tylko zapisze obok          |
+| Nieznany status zadania        | zamieniany na `todo` z ostrzeżeniem w raporcie (zadanie nie ginie); round-trip porównuje ze statusem po normalizacji                                                                                                                                                       |
+
+Pliki tworzone przez ten krok kończą się znakiem nowej linii, używają `\n` i nie zawierają znaczników czasu importu (inaczej drugi przebieg zmieniałby pliki).
+
+Dwie decyzje zaobserwowane w implementacji:
+
+- **Rekordy YAML** (zasoby, tagi, szablony) pomijają tylko pola `undefined`; puste `""`, `[]` i `false` zostają w pliku. Pomijanie pustych pól dotyczy wyłącznie linii zadań.
+- **Wybór konta.** Bez `--uid` używane jest konto z manifestu (a gdy manifest go nie ma i zrzut zawiera jedno konto, to ono). Gdy manifest nie wskazuje konta, a zrzut zawiera obsługiwane kolekcje więcej niż jednego konta, `--uid` jest wymagane (inaczej kod 2). Zrzut zawężony zgodnie z §1.1 nadrzędnego specu ma jedno konto, więc `--uid` zwykle nie jest potrzebne.
 
 ## 3. Bezpieczeństwo zapisu
 
@@ -79,23 +97,26 @@ Małe jednostki, testowalne bez zrzutu.
 - **Integracyjny:** pełny przebieg na zrzucie syntetycznym do tymczasowego vaultu; drugi przebieg nie zmienia plików; zapis poza vaultem jest odrzucony.
 - **Statyczny:** skrypt nie zawiera ścieżek do `~/backups` ani innych zaszytych ścieżek i nie czyta niczego poza katalogiem zrzutu (`--dump`) i vaultem (`--vault`, tylko odczyt indeksu `id` potrzebnego do idempotencji).
 
-## 9. Polecenia (szkic)
+## 9. Polecenia
 
 ```
-npx tsx scripts/import-to-vault.ts --dump <katalog zrzutu>             # dry-run (domyślnie)
-npx tsx scripts/import-to-vault.ts --dump <katalog zrzutu> --write     # zapis do Vault/
+npx tsx scripts/import-to-vault.ts --dump <katalog zrzutu>                                    # dry-run (domyślnie)
+npx tsx scripts/import-to-vault.ts --dump <katalog zrzutu> [--vault <katalog Vault>] [--uid <uid>] [--write]
 ```
 
-Ścieżka vaultu pochodzi z konfiguracji (`NEXUS_VAULT_PATH`, zgodnie z nadrzędnym specem); ostateczna lista opcji w planie.
+`--dump` jest wymagane. `--vault` domyślnie z `NEXUS_VAULT_PATH` (zgodnie z nadrzędnym specem); brak obu to błąd użycia. `--uid` wskazuje konto, gdy zrzut zawiera kilka (patrz §2). Bez `--write` jest dry-run.
 
 ## 10. Kody wyjścia
 
-| Kod | Znaczenie                                                                                                 |
-| --- | --------------------------------------------------------------------------------------------------------- |
-| 0   | sukces (dry-run: raport bez błędów; zapis: round-trip zgodny)                                             |
-| ≠ 0 | błąd wejścia (SHA zrzutu niezgodne), odrzucona ścieżka, niezgodność round-trip lub rekord nieuwzględniony |
+| Kod | Znaczenie                                                                                                |
+| --- | -------------------------------------------------------------------------------------------------------- |
+| 0   | sukces (dry-run: raport bez błędów; zapis: round-trip zgodny)                                            |
+| 1   | błędne użycie: argumenty, brak lub niepoprawny katalog vaulta                                            |
+| 2   | błąd zrzutu: manifest, status ≠ ok, SHA lub liczba linii, struktura, wybór konta                         |
+| 3   | ścieżka poza vaultem                                                                                     |
+| 4   | bilans rekordów lub round-trip niezgodny (jakiś rekord nie został ani zapisany, ani świadomie pominięty) |
 
-Dokładne wartości kodów ustala plan.
+Raport szczegółowy (`import-report-<RRRR-MM-DDTGGMMSS>.json`, uprawnienia 0600) trafia do katalogu zrzutu także w dry-run i przy kodzie 4.
 
 ## 11. Ryzyka
 
