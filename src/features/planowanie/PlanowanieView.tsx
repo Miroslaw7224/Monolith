@@ -5,8 +5,6 @@
 
 import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
 import dynamic from "next/dynamic";
-import { Send, Loader2 } from "lucide-react";
-import { cn } from "@/src/lib/cn";
 import {
   AppSidebar,
   type AppSidebarUser,
@@ -17,10 +15,6 @@ import { CalendarView } from "@/src/components/CalendarView";
 import { TasksSection } from "@/src/components/TasksSection";
 import { TagsSection, type UserTag } from "@/src/components/TagsSection";
 import { ResourceSection } from "@/src/components/ResourceSection";
-import {
-  AgentPendingActions,
-  type PendingAgentAction,
-} from "@/src/components/AgentPendingActions";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
@@ -38,25 +32,9 @@ type TranslationsEn = (typeof translations)["en"];
 
 const ActivityLog = dynamic<
   ComponentProps<typeof import("@/src/components/ActivityLog").ActivityLog>
->(
-  () => import("@/src/components/ActivityLog").then((mod) => mod.ActivityLog),
-  { loading: () => <div className="flex-1 min-h-[24rem]" /> }
-);
-
-function planAskResponseText(data: { text?: string; error?: unknown }): string {
-  if (data.text) return data.text;
-  const e = data.error;
-  if (typeof e === "string") return e;
-  if (
-    e &&
-    typeof e === "object" &&
-    "message" in e &&
-    typeof (e as { message: unknown }).message === "string"
-  ) {
-    return (e as { message: string }).message;
-  }
-  return "";
-}
+>(() => import("@/src/components/ActivityLog").then((mod) => mod.ActivityLog), {
+  loading: () => <div className="flex-1 min-h-[24rem]" />,
+});
 
 export interface PlanowanieViewProps {
   user: AppSidebarUser | null;
@@ -87,17 +65,7 @@ export default function PlanowanieView({
   onLogout,
   setLang,
 }: PlanowanieViewProps) {
-  const [planAskInput, setPlanAskInput] = useState("");
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>(
-    []
-  );
-  const [planAskLoading, setPlanAskLoading] = useState(false);
-  const [planAskPendingMessage, setPlanAskPendingMessage] = useState<string | null>(null);
-  const [planAskUnknownTags, setPlanAskUnknownTags] = useState<string[]>([]);
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
-  const [agentEnabled, setAgentEnabled] = useState(false);
-  const [agentPending, setAgentPending] = useState<PendingAgentAction[]>([]);
-  const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const [userTags, setUserTags] = useState<UserTag[]>([]);
   const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
@@ -184,23 +152,6 @@ export default function PlanowanieView({
     void fetchTags();
   }, [fetchTags]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiFetch("/api/agent/status");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setAgentEnabled(Boolean(data.enabled));
-      } catch {
-        // agent stays disabled
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [apiFetch]);
-
   const handleSaveNote = async () => {
     if (!selectedNote) return;
     try {
@@ -240,122 +191,6 @@ export default function PlanowanieView({
   const handleSelectTab = (tab: PlanningTab) => {
     setAppMode("planowanie");
     setPlanningTab(tab);
-  };
-
-  const applyAgentChanges = (changed: string[]) => {
-    if (changed.includes("calendar")) setCalendarRefreshKey((k) => k + 1);
-    if (changed.includes("tasks") || changed.includes("mindmaps")) {
-      setDataRefreshKey((k) => k + 1);
-    }
-  };
-
-  const handlePlanAsk = async () => {
-    const message = planAskInput.trim();
-    if (!message || planAskLoading) return;
-    setPlanAskInput("");
-    setMessages((prev) => [...prev, { role: "user" as const, content: message }].slice(-20));
-    setPlanAskLoading(true);
-    setPlanAskUnknownTags([]);
-    setPlanAskPendingMessage(null);
-    try {
-      const res = await apiFetch(agentEnabled ? "/api/agent/chat" : "/api/plan/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          agentEnabled ? { message, lang, history: messages.slice(-12) } : { message, lang }
-        ),
-      });
-      const data = await res.json();
-      const text = planAskResponseText(data);
-      setMessages((prev) =>
-        [...prev, { role: "assistant" as const, content: text || "…" }].slice(-20)
-      );
-      if (Array.isArray(data.unknownTags) && data.unknownTags.length > 0) {
-        setPlanAskUnknownTags(data.unknownTags);
-        setPlanAskPendingMessage(message);
-      }
-      if (data.created) {
-        setCalendarRefreshKey((k) => k + 1);
-      }
-      if (agentEnabled) {
-        setAgentPending(Array.isArray(data.pending) ? data.pending : []);
-        if (Array.isArray(data.changed)) applyAgentChanges(data.changed);
-      }
-    } catch {
-      const errorMsg =
-        lang === "pl" ? "Nie udało się przetworzyć zapytania." : "Failed to process request.";
-      setMessages((prev) =>
-        [...prev, { role: "assistant" as const, content: errorMsg }].slice(-20)
-      );
-    } finally {
-      setPlanAskLoading(false);
-    }
-  };
-
-  const handleAgentConfirm = async (action: PendingAgentAction) => {
-    setPlanAskLoading(true);
-    try {
-      const res = await apiFetch("/api/agent/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tool: action.tool, args: action.args }),
-      });
-      const data = await res.json();
-      const text = data.message ?? data.error ?? "…";
-      setMessages((prev) => [...prev, { role: "assistant" as const, content: text }].slice(-20));
-      setAgentPending((prev) => prev.filter((p) => p.id !== action.id));
-      if (Array.isArray(data.changed)) applyAgentChanges(data.changed);
-    } catch {
-      const errorMsg =
-        lang === "pl" ? "Nie udało się wykonać akcji." : "Failed to run the action.";
-      setMessages((prev) => [...prev, { role: "assistant" as const, content: errorMsg }].slice(-20));
-    } finally {
-      setPlanAskLoading(false);
-    }
-  };
-
-  const handleAgentCancel = (action: PendingAgentAction) => {
-    setAgentPending((prev) => prev.filter((p) => p.id !== action.id));
-    const text = lang === "pl" ? "Anulowano." : "Cancelled.";
-    setMessages((prev) => [...prev, { role: "assistant" as const, content: text }].slice(-20));
-  };
-
-  const handlePlanAskAddTagAndRetry = async () => {
-    if (!planAskPendingMessage || planAskLoading) return;
-    setPlanAskLoading(true);
-    try {
-      for (const tag of planAskUnknownTags) {
-        await apiFetch("/api/tags", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tag, title: tag }),
-        });
-      }
-      await fetchTags();
-      const res = await apiFetch("/api/plan/ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: planAskPendingMessage, lang }),
-      });
-      const data = await res.json();
-      const text = planAskResponseText(data);
-      setMessages((prev) =>
-        [...prev, { role: "assistant" as const, content: text || "…" }].slice(-20)
-      );
-      setPlanAskPendingMessage(null);
-      setPlanAskUnknownTags([]);
-      if (data.created) {
-        setCalendarRefreshKey((k) => k + 1);
-      }
-    } catch (err) {
-      const errorMsg =
-        lang === "pl" ? "Nie udało się dodać tagu lub wpisu." : "Failed to add tag or entry.";
-      setMessages((prev) =>
-        [...prev, { role: "assistant" as const, content: errorMsg }].slice(-20)
-      );
-    } finally {
-      setPlanAskLoading(false);
-    }
   };
 
   const sidebarT: AppSidebarTranslations = {
@@ -484,7 +319,6 @@ export default function PlanowanieView({
           ) : planningTab === "mindmaps" ? (
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
               <MindMapsTab
-                key={`maps-${dataRefreshKey}`}
                 apiFetch={apiFetch}
                 title={(t.tabMindMaps as string) ?? "Mapy myśli"}
                 t={t}
@@ -519,86 +353,8 @@ export default function PlanowanieView({
               />
             </div>
           ) : (
-            <TasksSection key={`tasks-${dataRefreshKey}`} apiFetch={apiFetch} lang={lang} t={t} />
+            <TasksSection apiFetch={apiFetch} lang={lang} t={t} />
           )}
-        </div>
-
-        <div className="flex-shrink-0 p-4 bg-[var(--surface)] border-t border-[var(--border)]">
-          <div className="max-w-2xl mx-auto">
-            <div
-              className="overflow-y-auto mb-2 space-y-2 px-2 py-1 rounded-lg bg-[var(--bg2)]"
-              style={{ maxHeight: 240 }}
-            >
-              {messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "text-sm px-3 py-2 rounded-lg max-w-[85%]",
-                    m.role === "user"
-                      ? "ml-auto bg-[var(--accent)] text-white"
-                      : "mr-auto bg-[var(--bg3)] text-[var(--text)]"
-                  )}
-                >
-                  {m.content}
-                </div>
-              ))}
-              {planAskLoading && (
-                <div className="flex items-center gap-1 text-[var(--text3)] text-sm px-3 py-2">
-                  <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                  <span>…</span>
-                </div>
-              )}
-            </div>
-            <AgentPendingActions
-              pending={agentPending}
-              busy={planAskLoading}
-              lang={lang}
-              onConfirm={handleAgentConfirm}
-              onCancel={handleAgentCancel}
-            />
-            {planAskUnknownTags.length > 0 && (
-              <button
-                type="button"
-                onClick={handlePlanAskAddTagAndRetry}
-                disabled={planAskLoading}
-                className="mb-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--accent)] text-white hover:brightness-110 disabled:opacity-50"
-              >
-                {lang === "pl"
-                  ? planAskUnknownTags.length === 1
-                    ? `Dodaj tag "${planAskUnknownTags[0]}" i wpis`
-                    : "Dodaj tagi i wpis"
-                  : planAskUnknownTags.length === 1
-                    ? `Add tag "${planAskUnknownTags[0]}" and entry`
-                    : "Add tags and entry"}
-              </button>
-            )}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={planAskInput}
-                onChange={(e) => setPlanAskInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handlePlanAsk()}
-                placeholder={t.planAskPlaceholder}
-                className="flex-1 px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
-              />
-              <button
-                onClick={handlePlanAsk}
-                disabled={!planAskInput.trim() || planAskLoading}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-1",
-                  planAskInput.trim() && !planAskLoading
-                    ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--bg3)] text-[var(--text3)]"
-                )}
-              >
-                {planAskLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </div>
         </div>
       </main>
     </>
