@@ -4,14 +4,13 @@ export interface BoardViewport {
   zoom: number;
 }
 
-function key(userId: string): string {
-  return `board-viewport:${userId}`;
-}
+const KEY = "board-viewport";
 
-export function readViewport(userId: string): BoardViewport | null {
-  const raw = localStorage.getItem(key(userId));
-  if (!raw) return null;
+export function readViewport(): BoardViewport | null {
+  if (typeof window === "undefined") return null;
   try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as BoardViewport;
     if (![parsed.x, parsed.y, parsed.zoom].every((value) => Number.isFinite(value))) return null;
     return parsed;
@@ -20,6 +19,11 @@ export function readViewport(userId: string): BoardViewport | null {
   }
 }
 
-export function storeViewport(userId: string, viewport: BoardViewport): void {
-  localStorage.setItem(key(userId), JSON.stringify(viewport));
+export function storeViewport(viewport: BoardViewport): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(viewport));
+  } catch {
+    // zapis widoku jest dodatkiem; brak miejsca lub zablokowany localStorage nie może psuć tablicy
+  }
 }

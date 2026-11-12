@@ -28,7 +28,6 @@ beforeEach(() => {
 });
 
 const defaultProps = {
-  user: { id: "1", email: "test@test.com", name: "Test" },
   apiFetch: mockApiFetch,
   lang: "pl" as const,
   t,
@@ -38,7 +37,6 @@ const defaultProps = {
   setAppMode: vi.fn(),
   planningTab: "tasks" as const,
   setPlanningTab: vi.fn(),
-  onLogout: vi.fn(),
   setLang: vi.fn(),
 };
 

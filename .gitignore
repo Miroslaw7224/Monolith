@@ -2,6 +2,7 @@ node_modules/
 build/
 dist/
 .next/
+.next-*/
 coverage/
 .DS_Store
 *.log

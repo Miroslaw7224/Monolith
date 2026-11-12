@@ -22,13 +22,11 @@ export interface BoardTabLabels {
 
 export function BoardTab({
   apiFetch,
-  userId,
   lang,
   labels,
   canvasLabels,
 }: {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  userId: string;
   lang: "pl" | "en";
   labels: BoardTabLabels;
   canvasLabels: BoardCanvasLabels;
@@ -101,7 +99,6 @@ export function BoardTab({
       {view === "canvas" ? (
         <BoardCanvas
           board={board}
-          userId={userId}
           lang={lang}
           labels={canvasLabels}
           dialogOpen={Boolean(openTile) || canvasDialog}

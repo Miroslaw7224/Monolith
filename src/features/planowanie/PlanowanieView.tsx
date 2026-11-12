@@ -5,11 +5,7 @@
 
 import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
 import dynamic from "next/dynamic";
-import {
-  AppSidebar,
-  type AppSidebarUser,
-  type AppSidebarTranslations,
-} from "@/src/components/layout/AppSidebar";
+import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { CalendarView } from "@/src/components/CalendarView";
 import { TasksSection } from "@/src/components/TasksSection";
@@ -37,7 +33,6 @@ const ActivityLog = dynamic<
 });
 
 export interface PlanowanieViewProps {
-  user: AppSidebarUser | null;
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   lang: "en" | "pl";
   t: TranslationsEn;
@@ -47,12 +42,10 @@ export interface PlanowanieViewProps {
   setAppMode: (mode: "home" | "planowanie") => void;
   planningTab: PlanningTab;
   setPlanningTab: (tab: PlanningTab) => void;
-  onLogout: () => void;
   setLang: (lang: "en" | "pl") => void;
 }
 
 export default function PlanowanieView({
-  user,
   apiFetch,
   lang,
   t,
@@ -62,7 +55,6 @@ export default function PlanowanieView({
   setAppMode,
   planningTab,
   setPlanningTab,
-  onLogout,
   setLang,
 }: PlanowanieViewProps) {
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
@@ -75,23 +67,17 @@ export default function PlanowanieView({
   const { notes, fetchNotes } = useNotesData(apiFetch);
 
   useEffect(() => {
-    if (!user?.id) {
-      setActiveSessionState(null);
-      return;
-    }
-    const stored = getActiveSession(user.id);
-    setActiveSessionState(stored);
-  }, [user?.id]);
+    setActiveSessionState(getActiveSession());
+  }, []);
 
   useEffect(() => {
-    if (user && planningTab === "notes") {
+    if (planningTab === "notes") {
       void fetchNotes();
     }
-  }, [user, planningTab, fetchNotes]);
+  }, [planningTab, fetchNotes]);
 
   const handleStartSession = useCallback(
     (payload: { title: string; tags: string[]; color: string }) => {
-      if (!user?.id) return;
       const session: ActiveSession = {
         title: payload.title,
         startedAt: new Date().toISOString(),
@@ -99,13 +85,13 @@ export default function PlanowanieView({
         color: payload.color,
       };
       setActiveSessionState(session);
-      setActiveSession(user.id, session);
+      setActiveSession(session);
     },
-    [user?.id]
+    []
   );
 
   const handleEndSession = useCallback(async () => {
-    if (!activeSession || !user?.id) return;
+    if (!activeSession) return;
     setSessionEndError(null);
     const started = new Date(activeSession.startedAt);
     const now = Date.now();
@@ -131,12 +117,12 @@ export default function PlanowanieView({
         throw new Error((errBody as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       setActiveSessionState(null);
-      clearActiveSession(user.id);
+      clearActiveSession();
       setCalendarRefreshKey((k) => k + 1);
     } catch (err) {
       setSessionEndError(err instanceof Error ? err.message : "Failed to save");
     }
-  }, [activeSession, user?.id, apiFetch]);
+  }, [activeSession, apiFetch]);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -196,7 +182,6 @@ export default function PlanowanieView({
   const sidebarT: AppSidebarTranslations = {
     title: t.title,
     subtitle: t.subtitle,
-    logout: t.logout,
     proPlan: t.proPlan,
     docsLimit: t.docsLimit,
   };
@@ -227,8 +212,6 @@ export default function PlanowanieView({
         isSidebarOpen={isSidebarOpen}
         lang={lang}
         setLang={setLang}
-        user={user}
-        onLogout={onLogout}
         documentsCount={0}
         t={sidebarT}
       >
@@ -328,7 +311,6 @@ export default function PlanowanieView({
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
               <BoardTab
                 apiFetch={apiFetch}
-                userId={user?.id ?? ""}
                 lang={lang}
                 labels={{
                   canvas: t.boardCanvas as string,

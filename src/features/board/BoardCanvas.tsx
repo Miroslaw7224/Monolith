@@ -162,7 +162,6 @@ function persistDraggedNodes(board: Board, dragged: Node[]): Board | null {
 
 function CanvasInner({
   board,
-  userId,
   lang,
   labels,
   dialogOpen,
@@ -172,7 +171,6 @@ function CanvasInner({
   onOpenTile,
 }: {
   board: Board;
-  userId: string;
   lang: "pl" | "en";
   labels: BoardCanvasLabels;
   dialogOpen: boolean;
@@ -190,7 +188,7 @@ function CanvasInner({
     copy: { title: string; lines: string[] };
     resolve: (ok: boolean) => void;
   } | null>(null);
-  const stored = readViewport(userId);
+  const stored = readViewport();
   const actions = {
     onDelete: (id: string) => {
       void confirmDelete([id]).then((ok) => {
@@ -309,7 +307,7 @@ function CanvasInner({
           zoomOnDoubleClick={false}
           fitView={!stored}
           defaultViewport={stored ?? { x: 0, y: 0, zoom: 0.75 }}
-          onMoveEnd={(_event, viewport: BoardViewport) => storeViewport(userId, viewport)}
+          onMoveEnd={(_event, viewport: BoardViewport) => storeViewport(viewport)}
           onBeforeDelete={onBeforeDelete}
           onNodesDelete={(deleted) => {
             const ids = deleteIdsFromNodes(deleted);

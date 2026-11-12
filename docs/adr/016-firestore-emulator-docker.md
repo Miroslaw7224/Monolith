@@ -2,7 +2,7 @@
 
 ## Status
 
-Proponowany
+Zastąpiony przez [ADR-020](020-lokalne-pliki-zamiast-firestore.md) w etapie 0e; do tego czasu emulator służy wyłącznie testom integracyjnym eksportu
 
 ## Kontekst
 

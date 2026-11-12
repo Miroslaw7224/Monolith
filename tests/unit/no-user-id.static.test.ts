@@ -4,10 +4,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const DIRS = ["app/api", "services", "lib/nexus", "types"];
+const DIRS = ["app/api", "services", "lib/nexus", "types", "src"];
 const FILES = ["lib/firestore-db.ts"];
-/** Znikają w 0d-2 razem z logowaniem Firebase; do tego czasu klient z nich korzysta. */
-const EXCLUDED = ["app/api/auth/", "app/api/waitlist/"];
 const PATTERN = /\b_?userId\b|getAuthUserId|\bauth\.uid\b/;
 
 function collect(): string[] {
@@ -16,7 +14,7 @@ function collect(): string[] {
     for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
       const rel = `${dir}/${entry.name}`;
       if (entry.isDirectory()) walk(rel);
-      else if (/\.tsx?$/.test(entry.name) && !EXCLUDED.some((ex) => rel.startsWith(ex))) {
+      else if (/\.tsx?$/.test(entry.name)) {
         out.push(rel);
       }
     }
@@ -31,6 +29,7 @@ describe("0d-1 static guard: the server layer has no userId and no auth", () => 
     expect(files).toContain("services/noteService.ts");
     expect(files).toContain("app/api/notes/route.ts");
     expect(files).toContain("lib/nexus/repos/tasks.ts");
+    expect(files).toContain("src/lib/activeSession.ts");
     expect(files.some((f) => f.startsWith("app/api/waitlist/"))).toBe(false);
   });
 
