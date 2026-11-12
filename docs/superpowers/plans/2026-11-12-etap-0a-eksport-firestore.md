@@ -1826,7 +1826,7 @@ describe("formatCountReport", () => {
     const text = formatCountReport(base);
     expect(text).toContain("users/u1/tasks");
     expect(text).toContain("3");
-    expect(text).toMatch(/NIEZNANA.*mystery/s);
+    expect(text).toMatch(/mystery.*NIEZNANA/);
     expect(text).toContain("users/ghost");
     expect(text).toMatch(/Razem dokumentów: 4/);
     expect(text).toMatch(/odczytów.*8/);

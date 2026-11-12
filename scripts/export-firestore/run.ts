@@ -75,3 +75,46 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
   writeManifest(params.outDir, manifest);
   return manifest;
 }
+
+export type CountRow = { path: string; count: number; known: boolean };
+
+export type CountReport = {
+  rows: CountRow[];
+  ghosts: string[];
+  total: number;
+  /** Discovery czyta listę dokumentów, eksport czyta je drugi raz: ~2 odczyty na dokument. */
+  estimatedReads: number;
+};
+
+export async function countReport(db: Firestore): Promise<CountReport> {
+  const { collections, ghosts } = await discoverCollections(db);
+  const rows: CountRow[] = [];
+  for (const col of collections) {
+    rows.push({ path: col.path, count: await countDocs(col), known: isKnownCollection(col.path) });
+  }
+  const total = rows.reduce((sum, row) => sum + row.count, 0);
+  return { rows, ghosts, total, estimatedReads: total * 2 };
+}
+
+const READS_WARNING_THRESHOLD = 40_000;
+
+export function formatCountReport(report: CountReport): string {
+  const width = Math.max(10, ...report.rows.map((r) => r.path.length));
+  const lines = ["Kolekcje:"];
+  for (const row of report.rows) {
+    const flag = row.known ? "" : "   <-- NIEZNANA kolekcja";
+    lines.push(`  ${row.path.padEnd(width)}  ${String(row.count).padStart(7)}${flag}`);
+  }
+  if (report.ghosts.length > 0) {
+    lines.push("", "Dokumenty-widma (nie istnieją, ale mają podkolekcje):");
+    for (const ghost of report.ghosts) lines.push(`  ${ghost}`);
+  }
+  lines.push("", `Razem dokumentów: ${report.total}`);
+  lines.push(`Szacowana liczba odczytów przy pełnym eksporcie: ${report.estimatedReads}`);
+  if (report.estimatedReads > READS_WARNING_THRESHOLD) {
+    lines.push(
+      "UWAGA: blisko dziennego limitu 50 000 odczytów. Eksport może wymagać --resume następnego dnia."
+    );
+  }
+  return lines.join("\n");
+}

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { getFirestore } from "../../../lib/firebase-admin.js";
-import { runExport } from "../../../scripts/export-firestore/run.js";
+import { countReport, runExport } from "../../../scripts/export-firestore/run.js";
 import { decodeValue } from "../../../scripts/export-firestore/serialize.js";
 import {
   integrationEnabled,
@@ -107,5 +107,19 @@ describe.skipIf(!integrationEnabled)("runExport (emulator)", () => {
       /drzewie roboczym gita/
     );
     expect(fs.existsSync(inside)).toBe(false);
+  });
+
+  it("count-only reports counts without writing any file", async () => {
+    const db = getFirestore();
+    await seed(db, { withUnknown: true });
+
+    const report = await countReport(db);
+
+    const row = (p: string) => report.rows.find((r) => r.path === p);
+    expect(row("users/u1/tasks")).toMatchObject({ count: 3, known: true });
+    expect(row("mystery")).toMatchObject({ count: 1, known: false });
+    expect(report.ghosts).toEqual(["users/ghost"]);
+    expect(report.total).toBe(1 + 3 + 1 + 1 + 1 + 1 + 1 + 1); // users, tasks, notes, board, ghost task, waitlist, history, mystery
+    expect(report.estimatedReads).toBe(report.total * 2);
   });
 });
