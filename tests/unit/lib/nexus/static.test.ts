@@ -36,7 +36,7 @@ describe("lib/nexus vault-* static guards", () => {
     ).toEqual([]);
     expect(read(FS_TS)).toMatch(/from\s+["']node:fs["']/);
   });
-  it("3. mutates the file system only in vault-fs, with a single rmSync", () => {
+  it("3. mutates the file system only in vault-fs, with exactly two rmSync calls", () => {
     expect(
       hits(
         /writeFileSync|renameSync|rmSync|mkdirSync|appendFileSync|unlinkSync|createWriteStream/,
@@ -44,7 +44,8 @@ describe("lib/nexus vault-* static guards", () => {
       )
     ).toEqual([]);
     const text = read(FS_TS);
-    expect(text.match(/rmSync\(/g) ?? []).toHaveLength(1);
+    // sprzątanie pliku tymczasowego i deleteVaultFile
+    expect(text.match(/rmSync\(/g) ?? []).toHaveLength(2);
     expect(text).not.toMatch(/unlinkSync|rmdirSync/);
   });
   it("4. resolves every path inside the vault before reading or writing", () => {
@@ -57,7 +58,13 @@ describe("lib/nexus vault-* static guards", () => {
       const next = rest.search(/\nexport /);
       return next === -1 ? rest : rest.slice(0, next);
     };
-    for (const name of ["readVaultFile", "writeVaultFile", "updateVaultFile", "listVaultFiles"]) {
+    for (const name of [
+      "readVaultFile",
+      "writeVaultFile",
+      "updateVaultFile",
+      "listVaultFiles",
+      "deleteVaultFile",
+    ]) {
       expect(body(name), `${name} powinna wołać resolveInsideVault`).toMatch(
         /resolveInsideVault\(/
       );
