@@ -22,8 +22,10 @@ describe("MonolithLogo", () => {
       </>
     );
 
-    const ids = Array.from(container.querySelectorAll("linearGradient")).map((g) => g.id);
-    expect(ids).toHaveLength(2);
-    expect(new Set(ids).size).toBe(2);
+    const ids = Array.from(container.querySelectorAll("linearGradient, radialGradient")).map(
+      (g) => g.id
+    );
+    expect(ids).toHaveLength(8);
+    expect(new Set(ids).size).toBe(8);
   });
 });

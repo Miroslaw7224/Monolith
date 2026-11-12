@@ -38,7 +38,7 @@ export function AppSidebar({
       className="bg-[var(--bg2)] border-r border-[var(--border)] hidden md:flex flex-col overflow-hidden"
     >
       <div className="p-6 flex items-center gap-3 border-b border-[var(--border)]">
-        <MonolithLogo size={40} className="shrink-0" />
+        <MonolithLogo size={52} className="shrink-0 -ml-1" />
         <div className="flex-1">
           <h1 className="font-bold text-lg tracking-tight text-[var(--text)]">{t.title}</h1>
           <p className="text-xs text-[var(--text2)] font-medium uppercase tracking-wider">
