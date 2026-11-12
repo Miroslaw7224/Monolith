@@ -9,11 +9,11 @@ Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/
 
 Trzy agenty działają w terminalach tego samego workspace `hc` („Brain_7224"):
 
-| Rola | Agent | Zadania |
-|------|-------|---------|
-| **Główny wykonawca** | Claude Code | planowanie, implementacja, decyzje, commity, końcowa odpowiedzialność |
-| Pomocnik | `agy` (Antigravity) | wyszukiwanie i pytania o kod (tylko odczyt), review, doradztwo |
-| Pomocnik | `cursor` (Cursor Agent) | testy / lint / build z podsumowaniem, drobne edycje (`--role task`) |
+| Rola                 | Agent                   | Zadania                                                               |
+| -------------------- | ----------------------- | --------------------------------------------------------------------- |
+| **Główny wykonawca** | Claude Code             | planowanie, implementacja, decyzje, commity, końcowa odpowiedzialność |
+| Pomocnik             | `agy` (Antigravity)     | wyszukiwanie i pytania o kod (tylko odczyt), review, doradztwo        |
+| Pomocnik             | `cursor` (Cursor Agent) | testy / lint / build z podsumowaniem, drobne edycje (`--role task`)   |
 
 ### Ekonomia tokenów (zasada nadrzędna przy delegowaniu)
 
@@ -31,11 +31,11 @@ Nie deleguj drobnych pytań, które sprawdzę jednym `grep`/`Read`: prompt + odp
 
 **Dobór modeli (nie używaj mocnych modeli na darmo):**
 
-| Kto | Domyślnie | Mocniejszy, tylko gdy trzeba |
-|-----|-----------|------------------------------|
-| Claude Code (limity Claude Pro) | Sonnet 5.5 | Opus 5.5: architektura, trudne bugi, duże zmiany bez jasnego planu |
-| `agy` (limit Google AI Pro) | `--tier light` = Gemini 3.8 Flash: szukanie, streszczenia | `--tier deep` = Gemini 4 Argon: review, doradztwo |
-| `cursor` (abonament Cursor) | `--tier light` = Composer 2.5: testy, lint, drobne edycje | `--tier deep` = Auto |
+| Kto                             | Domyślnie                                                 | Mocniejszy, tylko gdy trzeba                                       |
+| ------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------ |
+| Claude Code (limity Claude Pro) | Sonnet 5.5                                                | Opus 5.5: architektura, trudne bugi, duże zmiany bez jasnego planu |
+| `agy` (limit Google AI Pro)     | `--tier light` = Gemini 3.8 Flash: szukanie, streszczenia | `--tier deep` = Gemini 4 Argon: review, doradztwo                  |
+| `cursor` (abonament Cursor)     | `--tier light` = Composer 2.5: testy, lint, drobne edycje | `--tier deep` = Auto                                               |
 
 - `ask-helper.sh` dobiera tier automatycznie (`--role review` → deep, reszta → light) i wysyła `/model` tylko,
   gdy pasek pomocnika pokazuje inny model. `--tier none` zostawia model bez zmian.
@@ -45,11 +45,25 @@ Nie deleguj drobnych pytań, które sprawdzę jednym `grep`/`Read`: prompt + odp
   liczy się do limitu Google, nie Claude Pro.
 
 **Czyszczenie kontekstu pomocników** (`/clear` przed zadaniem, robi to `ask-helper.sh`):
+
 - domyślnie automatycznie: przy `--role review` (niezależna opinia bez starego kontekstu), co 5 zadań
   (`CLEAR_EVERY`) albo gdy pasek pomocnika pokazuje zajętość kontekstu ≥ 40% (`CLEAR_PCT`, odczyt działa dla Cursora);
 - `--fresh`: nowy, niezwiązany temat → zawsze czyść;
 - `--keep`: dopytanie / kontynuacja poprzedniego zadania → nie czyść (wtedy w prompcie nie powtarzaj kontekstu).
-Odpowiedzi są domyślnie ucinane do 40 linii (`--max-lines`); pełną wersję daje `--max-lines 0`.
+  Odpowiedzi są domyślnie ucinane do 40 linii (`--max-lines`); pełną wersję daje `--max-lines 0`.
+
+### Pisanie planów (zakaz budowania kodu „na próbę")
+
+Plan (`docs/superpowers/plans/`) piszę z samego rozumowania i odczytu istniejącego kodu. **Nie buduję kodu
+ani środowiska testowego (scratch projekt, instalacja pakietów, uruchamianie testów) po to, by plan napisać**:
+to spalanie tokenów, a implementacja i tak powstanie w kroku wykonania, w TDD.
+
+- W planie: ścieżki plików, interfejsy (sygnatury), reguły działania, konkretne przypadki testowe z oczekiwanymi
+  wartościami i komendy. Pełny kod tylko dla małych, współdzielonych formatów (np. `lib/nexus/`), i to napisany
+  bez uruchamiania.
+- Wolno sprawdzić fakty potrzebne do planu jednym `grep`/`Read` (typy rekordów, format zrzutu, wersje pakietów).
+  Nie wolno prototypować całych modułów ani fuzzować ich „dla pewności".
+- Weryfikacja kodu należy do wykonawcy planu (czerwony test, zielony test), nie do autora planu.
 
 ### Jak wołać pomocników
 

@@ -117,7 +117,7 @@ NONCE="ref:$(head -c6 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 if [[ "$ROLE" == "task" ]]; then
   PREFIX="[Rola: pomocnik Claude Code. Wykonaj dokładnie opisane drobne zadanie, nie wychodź poza wskazane pliki, nie rób git commit/push.]"
 else
-  PREFIX="[Rola: doradca/weryfikator Claude Code. Tryb tylko do odczytu: nie modyfikuj żadnych plików, nie uruchamiaj komend zmieniających stan. Odpowiadaj zwięźle i konkretnie, wskaż pliki/linie.]"
+  PREFIX="[Rola: doradca/weryfikator Claude Code. Tryb tylko do odczytu: czytaj pliki i diffy (cat, grep, ls, git show/diff/log). Nie uruchamiaj kodu ani testów (node, npx, tsx, ts-node, vitest, npm), nie twórz skryptów ani plików tymczasowych, nie modyfikuj żadnych plików. Wnioski wyciągaj z czytania kodu; jeśli czegoś nie da się stwierdzić bez uruchomienia, napisz to w odpowiedzi zamiast uruchamiać. Odpowiadaj zwięźle i konkretnie, wskaż pliki/linie.]"
 fi
 BREVITY="[Format: końcową odpowiedź zacznij od osobnej linii === WYNIK === ; potem maks. 15 linii, tylko wnioski i ścieżki:linie, bez wstępów.]"
 FULL="$PREFIX $BREVITY $PROMPT ($NONCE)"
