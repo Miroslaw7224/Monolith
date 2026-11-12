@@ -49,9 +49,19 @@ describe("lib/nexus vault-* static guards", () => {
   });
   it("4. resolves every path inside the vault before reading or writing", () => {
     const text = read(FS_TS);
-    expect(text).toMatch(/export function readVaultFile[\s\S]*?resolveInsideVault\(/);
-    expect(text).toMatch(/export function writeVaultFile[\s\S]*?resolveInsideVault\(/);
-    expect(text).toMatch(/export async function updateVaultFile[\s\S]*?resolveInsideVault\(/);
+    // Ciało funkcji: od jej deklaracji do następnego `export` albo końca pliku.
+    const body = (name: string): string => {
+      const start = text.search(new RegExp(`export (?:async )?function ${name}\\b`));
+      expect(start, `brak funkcji ${name}`).toBeGreaterThanOrEqual(0);
+      const rest = text.slice(start + 1);
+      const next = rest.search(/\nexport /);
+      return next === -1 ? rest : rest.slice(0, next);
+    };
+    for (const name of ["readVaultFile", "writeVaultFile", "updateVaultFile"]) {
+      expect(body(name), `${name} powinna wołać resolveInsideVault`).toMatch(
+        /resolveInsideVault\(/
+      );
+    }
   });
   it("5. reads process.env only in vault-path", () => {
     expect(hits(/process\.env/, [PATH_TS])).toEqual([]);
