@@ -7,7 +7,7 @@ import {
   updateVaultFile,
   writeVaultFile,
 } from "../vault-fs";
-import { generateId, nowIso } from "./common";
+import { generateId, nowIso } from "../record-helpers";
 
 const DIR = "MindMaps";
 /** `id` pochodzi z URL, więc budujemy ścieżkę tylko z bezpiecznego identyfikatora. */

@@ -1,6 +1,6 @@
 import { ConflictError, DomainError } from "@/lib/errors";
-import { formatFrontmatter, parseFrontmatter, type Frontmatter } from "../frontmatter";
-import { allocateName, slugify } from "../slug";
+import { formatFrontmatter, parseFrontmatter, type Frontmatter } from "./frontmatter";
+import { allocateName, slugify } from "./slug";
 import {
   deleteVaultFile,
   listVaultFiles,
@@ -8,8 +8,8 @@ import {
   updateVaultFile,
   writeVaultFile,
   type FileVersion,
-} from "../vault-fs";
-import { generateId } from "./common";
+} from "./vault-fs";
+import { generateId } from "./record-helpers";
 
 /**
  * Katalog plików `.md` z frontmatterem (`Notes/`, `Documents/`): wyszukiwanie po `id`

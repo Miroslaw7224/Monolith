@@ -1,6 +1,6 @@
 import type { BoardDoc } from "@/types/records";
 import { readVaultFile, updateVaultFile } from "../vault-fs";
-import { nowIso } from "./common";
+import { nowIso } from "../record-helpers";
 
 const FILE = "Board/board.json";
 

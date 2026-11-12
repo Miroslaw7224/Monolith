@@ -10,8 +10,8 @@ import {
   findEntry,
   listEntries,
   updateEntry,
-} from "@/lib/nexus/repos/markdown-dir";
-import { useTempVault } from "./helpers";
+} from "@/lib/nexus/markdown-dir";
+import { useTempVault } from "./repos/helpers";
 
 const vault = useTempVault();
 const note = (id: string, body = "tekst", extra = "") =>

@@ -1,6 +1,6 @@
 import type { DocumentRecord } from "@/types/records";
-import { nowIso, optStr, sortByCreated, str } from "./common";
-import { createEntry, deleteEntry, listEntries, type MarkdownEntry } from "./markdown-dir";
+import { nowIso, optStr, sortByCreated, str } from "../record-helpers";
+import { createEntry, deleteEntry, listEntries, type MarkdownEntry } from "../markdown-dir";
 
 const DIR = "Documents";
 
