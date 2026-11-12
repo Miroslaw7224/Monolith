@@ -1,7 +1,7 @@
 # Etap 1-1: karta projektu, rejestr i odczyt — projekt
 
 Data: 2026-11-12
-Status: zaakceptowany (2026-11-12); przepisany na kontekst `contexts/bc_projects/` po decyzji o strukturze. Wykonanie czeka na akceptację specu struktury (dziś „szkic do przeglądu”) i merge jego PR 1
+Status: wykonany (2026-11-12)
 Nadrzędne: `2026-11-11-asystent-lokalny-nexus-design.md` (§6.1 karta projektu, §6.6 karty, §7 etap 1), `2026-11-12-struktura-kontekstow-design.md` (siatka kontekstu, reguły importów)
 
 ## 1. Cel i zakres
