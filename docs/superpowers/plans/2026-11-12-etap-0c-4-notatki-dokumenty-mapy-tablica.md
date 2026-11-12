@@ -10,7 +10,7 @@
 
 **Źródła:** `docs/superpowers/specs/2026-11-12-etap-0c-warstwa-plikowa-design.md` (§3.2, §3.3, §5, §7, P2, P3) oraz plany 0c-2/0c-3 (wzorzec: `repos/common.ts`, `useTempVault`, testy statyczne).
 
-**Zasady wykonania (CLAUDE.md):** testy, `tsc`, lint i build zleca się `cursor` (`scripts/ask-helper.sh --role advice`, prośba o „przeszło" albo listę `plik:linia + przyczyna`). Review diffa przez `agy` (`--role review`) jest wymagany po tym kroku (logika zapisu i usuwania plików).
+**Zasady wykonania (CLAUDE.md):** testy, `tsc`, lint i build zleca się `cursor` (`scripts/ask-helper.sh --role task` z zakazem edycji plików, bo rola `advice` nie uruchamia komend; prośba o „przeszło" albo listę `plik:linia + przyczyna`). Review diffa przez `agy` (`--role review`) jest wymagany po tym kroku (logika zapisu i usuwania plików).
 
 ---
 
