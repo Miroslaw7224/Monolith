@@ -175,7 +175,7 @@ Aplikacja dzieli się na 8 kart. Wzorcem wizualnym są makiety w `docs/mockups/k
 
 Każdy etap dostaje osobny spec, plan i wdrożenie.
 
-0. **Odpięcie Firebase i Vercela.**
+0. **Odpięcie Firebase i Vercela.** Spec: `2026-11-12-etap-0-odpiecie-firebase-design.md`.
    - Skrypt eksportu Firestore do plików, z liczeniem rekordów przed i po. **Eksport przed jakimkolwiek odpięciem.**
    - Warstwa plikowa `lib/nexus/` pod istniejącymi funkcjami `services/`.
    - Usunięcie auth, waitlisty, stron prawnych, zależności Firebase. Zdjęcie aplikacji z Vercela dopiero po weryfikacji migracji.
