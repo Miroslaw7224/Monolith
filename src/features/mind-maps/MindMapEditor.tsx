@@ -33,11 +33,8 @@ import { useMindMapEditorShortcuts } from "@/src/features/mind-maps/mindMapEdito
 import { MindMapNotesPanel } from "@/src/features/mind-maps/MindMapNotesPanel";
 import { ExportSubtreeToMapModal } from "@/src/features/mind-maps/ExportSubtreeToMapModal";
 import { MindMapDeleteModal } from "@/src/features/mind-maps/MindMapDeleteModal";
-import { MindMapAIModal } from "@/src/features/mind-maps/MindMapAIModal";
-import { MindMapAIImportTreeModal } from "@/src/features/mind-maps/MindMapAIImportTreeModal";
 import type { translations } from "@/src/translations";
 
-type AINodeResult = { label: string; description: string };
 type T = (typeof translations)["en"];
 
 export function MindMapEditor({
@@ -75,9 +72,6 @@ export function MindMapEditor({
   const [dropId, setDropId] = useState<string | null>(null);
 
   const [deleteNodeId, setDeleteNodeId] = useState<string | null>(null);
-  const [aiParentId, setAiParentId] = useState<string | null>(null);
-  const [aiImportParentId, setAiImportParentId] = useState<string | null>(null);
-  const [isAiImportOpen, setIsAiImportOpen] = useState(false);
   const [exportToMapNodeId, setExportToMapNodeId] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
@@ -107,9 +101,6 @@ export function MindMapEditor({
     setDragId(null);
     setDropId(null);
     setDeleteNodeId(null);
-    setAiParentId(null);
-    setAiImportParentId(null);
-    setIsAiImportOpen(false);
     setExportToMapNodeId(null);
     setQuery("");
     setMatchCursor(0);
@@ -394,38 +385,6 @@ export function MindMapEditor({
     setDropId(null);
   }, []);
 
-  const openAI = useCallback((parentId: string) => {
-    setCtxId(null);
-    setAiParentId(parentId);
-  }, []);
-
-  const acceptAI = useCallback(
-    (parentId: string, result: AINodeResult) => {
-      const nid = nanoid();
-      doc.updateTree(
-        (root) =>
-          mapNode(root, parentId, (n) => ({
-            ...n,
-            collapsed: false,
-            children: [
-              ...n.children,
-              {
-                id: nid,
-                label: result.label,
-                note: result.description,
-                collapsed: false,
-                children: [],
-              },
-            ],
-          })),
-        { kind: "structure" }
-      );
-      setAiParentId(null);
-      setSelId(nid);
-    },
-    [doc]
-  );
-
   const cloneWithNewNodeIds = useCallback((node: MindMapNode): MindMapNode => {
     return {
       ...node,
@@ -439,37 +398,6 @@ export function MindMapEditor({
     const sub = findNode(rootNode, exportToMapNodeId);
     return sub ? cloneWithNewNodeIds(sub) : null;
   }, [exportToMapNodeId, rootNode, cloneWithNewNodeIds]);
-
-  const acceptAIImportTree = useCallback(
-    (parentId: string, importedRoot: MindMapNode) => {
-      // `/api/mind-maps/import` returns a "root" wrapper node with id="root".
-      // We insert only its children under the selected parent.
-      const importedChildren = importedRoot.children;
-      const clonedChildren = importedChildren.map((c) => cloneWithNewNodeIds(c));
-      if (clonedChildren.length === 0) return;
-
-      doc.updateTree(
-        (root) =>
-          mapNode(root, parentId, (n) => ({
-            ...n,
-            collapsed: false,
-            children: [...n.children, ...clonedChildren],
-          })),
-        { kind: "structure" }
-      );
-
-      setAiImportParentId(null);
-      setIsAiImportOpen(false);
-      setAiParentId(null);
-      setCtxId(null);
-      setDragId(null);
-      setDropId(null);
-
-      setSelId(clonedChildren[0].id);
-      setEditId(clonedChildren[0].id);
-    },
-    [cloneWithNewNodeIds, doc]
-  );
 
   const updateSelectedNote = useCallback(
     (html: string) => {
@@ -625,14 +553,8 @@ export function MindMapEditor({
               onAddChild={addChild}
               onAddSibling={addSibling}
               onReorderSibling={reorderSibling}
-              onAddChildAIImport={(parentId) => {
-                setAiImportParentId(parentId);
-                setIsAiImportOpen(true);
-                setCtxId(null);
-              }}
               onInsertAbove={insertAbove}
               onRequestDelete={requestDelete}
-              onOpenAI={openAI}
               onExportToOtherMap={(nodeId) => {
                 setExportToMapNodeId(nodeId);
                 setCtxId(null);
@@ -689,31 +611,6 @@ export function MindMapEditor({
         onConfirm={(keep) => {
           if (!deleteNodeId) return;
           confirmDelete(deleteNodeId, keep);
-        }}
-        t={t}
-      />
-
-      <MindMapAIModal
-        open={Boolean(aiParentId)}
-        apiFetch={apiFetch}
-        onClose={() => setAiParentId(null)}
-        onAccept={(result) => {
-          if (!aiParentId) return;
-          acceptAI(aiParentId, result);
-        }}
-        t={t}
-      />
-      <MindMapAIImportTreeModal
-        open={isAiImportOpen}
-        apiFetch={apiFetch}
-        parentId={aiImportParentId}
-        onClose={() => {
-          setIsAiImportOpen(false);
-          setAiImportParentId(null);
-        }}
-        onInsert={(importedRoot) => {
-          if (!aiImportParentId) return;
-          acceptAIImportTree(aiImportParentId, importedRoot);
         }}
         t={t}
       />

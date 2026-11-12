@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Pencil,
   Plus,
-  Sparkles,
   X,
 } from "lucide-react";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
@@ -35,10 +34,8 @@ export function NodePill({
   onCommitLabel,
   onToggleCtx,
   onAddChild,
-  onAddChildAIImport,
   onInsertAbove,
   onRequestDelete,
-  onOpenAI,
   onExportToOtherMap,
   onDragStart,
   onDragOver,
@@ -66,10 +63,8 @@ export function NodePill({
   onCommitLabel: (id: string, next: string) => void;
   onToggleCtx: (id: string) => void;
   onAddChild: (parentId: string) => void;
-  onAddChildAIImport: (parentId: string) => void;
   onInsertAbove: (childId: string) => void;
   onRequestDelete: (id: string) => void;
-  onOpenAI: (parentId: string) => void;
   onExportToOtherMap: (nodeId: string) => void;
   onDragStart: (id: string) => void;
   onDragOver: (id: string) => void;
@@ -280,30 +275,6 @@ export function NodePill({
           >
             <Plus className="w-4 h-4 text-emerald-700" />
             {t.mindMapsAddChild as string}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onAddChildAIImport(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <Sparkles className="w-4 h-4 text-sky-700" />
-            {t.mindMapsAIImportTreeAdd as string}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onToggleCtx(node.id);
-              onOpenAI(node.id);
-            }}
-            className="w-full px-3 py-2 rounded-xl text-left text-sm font-semibold hover:bg-[var(--bg2)] text-[var(--text)] inline-flex items-center gap-2"
-            role="menuitem"
-          >
-            <Sparkles className="w-4 h-4 text-sky-700" />
-            {(t.mindMapsAIAddTitle as string).replace(/^✦\s*/, "")}
           </button>
 
           <div className="my-1 h-px bg-[var(--border)]" />

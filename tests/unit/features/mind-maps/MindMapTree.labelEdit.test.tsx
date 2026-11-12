@@ -41,10 +41,8 @@ function Editor({
       onCommitLabel={onCommitLabel}
       onToggleCtx={() => {}}
       onAddChild={() => {}}
-      onAddChildAIImport={() => {}}
       onInsertAbove={() => {}}
       onRequestDelete={() => {}}
-      onOpenAI={() => {}}
       onExportToOtherMap={() => {}}
       onDragStart={() => {}}
       onDragOver={() => {}}
@@ -88,10 +86,8 @@ describe("MindMapTree label edit", () => {
         onCommitLabel={() => {}}
         onToggleCtx={() => {}}
         onAddChild={() => {}}
-        onAddChildAIImport={() => {}}
         onInsertAbove={() => {}}
         onRequestDelete={() => {}}
-        onOpenAI={() => {}}
         onExportToOtherMap={() => {}}
         onDragStart={() => {}}
         onDragOver={() => {}}
