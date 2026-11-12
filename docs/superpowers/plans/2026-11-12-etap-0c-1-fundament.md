@@ -4,7 +4,7 @@
 
 **Goal:** Dodać do `lib/nexus/` fundament zapisu do vaulta (`vault-path`, `vault-fs`, `ConflictError`) i domknąć szew `lib/firestore-db.ts` dla map myśli i tablicy, bez zmiany zachowania aplikacji (nadal Firestore).
 
-**Architecture:** `vault-fs` daje odczyt z wersją (skrót treści), zapis atomowy, blokadę per plik i `updateVaultFile` (odczyt, zmiana, zapis z ponowieniem przy zmianie zewnętrznej). Mapy myśli i tablica dostają funkcje repozytoryjne w `lib/firestore/` wystawione przez barrel; serwisy tracą importy `firebase-admin`; pola czasu map myśli stają się tekstem ISO. Nic w aplikacji jeszcze nie czyta z vaulta.
+**Architecture:** `vault-fs` daje odczyt z wersją (skrót treści), zapis atomowy i `updateVaultFile` (odczyt, zmiana, zapis z ponowieniem przy zmianie zewnętrznej). Mapy myśli i tablica dostają funkcje repozytoryjne w `lib/firestore/` wystawione przez barrel; serwisy tracą importy `firebase-admin`; pola czasu map myśli stają się tekstem ISO. Nic w aplikacji jeszcze nie czyta z vaulta.
 
 **Tech Stack:** TypeScript, Next.js 14, Vitest (`// @vitest-environment node` dla testów plikowych), `node:fs`, `yaml` (już w projekcie).
 
@@ -18,26 +18,26 @@ Spec: `docs/superpowers/specs/2026-11-12-etap-0c-warstwa-plikowa-design.md` (§3
 
 ## Struktura plików
 
-| Plik                                                     | Akcja       | Odpowiedzialność                                                            |
-| -------------------------------------------------------- | ----------- | --------------------------------------------------------------------------- |
-| `lib/errors.ts`                                          | modyfikacja | dodać `ConflictError` (409)                                                 |
-| `lib/nexus/vault-path.ts`                                | nowy        | `NEXUS_VAULT_PATH` → ścieżka bezwzględna, mapowanie `E:\` ↔ `/mnt/e/`       |
-| `lib/nexus/vault-fs.ts`                                  | nowy        | odczyt z wersją, zapis atomowy, blokada, `updateVaultFile`, ochrona ścieżek |
-| `lib/firestore/time.ts`                                  | nowy        | `toIso(value)`: Timestamp/Date/tekst/liczba → ISO                           |
-| `lib/firestore/mindMaps.ts`                              | nowy        | repozytorium map myśli (Firestore)                                          |
-| `lib/firestore/board.ts`                                 | nowy        | repozytorium tablicy (Firestore)                                            |
-| `lib/firestore/collections.ts`                           | bez zmian   | `mindMapsCol`, `boardDoc` zostają, ale tylko dla repozytoriów               |
-| `lib/firestore-db.ts`                                    | modyfikacja | usunąć eksport `mindMapsCol`/`boardDoc`, dodać funkcje repozytoryjne        |
-| `types/records.ts`                                       | modyfikacja | `MindMap.createdAt/updatedAt` → `string` (opcjonalne), typ `BoardDoc`       |
-| `services/mindMapService.ts`, `services/boardService.ts` | modyfikacja | tylko logika domenowa, bez `firebase-admin`                                 |
-| `.env.example`                                           | modyfikacja | wpis `NEXUS_VAULT_PATH`                                                     |
-| `tests/unit/lib/errors.test.ts`                          | modyfikacja | przypadki `ConflictError`                                                   |
-| `tests/unit/lib/nexus/vault-path.test.ts`                | nowy        | testy mapowania ścieżek                                                     |
-| `tests/unit/lib/nexus/vault-fs.test.ts`                  | nowy        | testy odczytu/zapisu/konfliktów/blokady                                     |
-| `tests/unit/lib/nexus/static.test.ts`                    | nowy        | testy statyczne dla `lib/nexus/vault-*`                                     |
-| `tests/unit/lib/firestore/time.test.ts`                  | nowy        | testy `toIso`                                                               |
-| `tests/unit/services/mindMapService.test.ts`             | przepisany  | mock `firestore-db` zamiast SDK                                             |
-| `tests/unit/services/boardService.test.ts`               | przepisany  | mock `firestore-db` zamiast SDK                                             |
+| Plik                                                     | Akcja       | Odpowiedzialność                                                      |
+| -------------------------------------------------------- | ----------- | --------------------------------------------------------------------- |
+| `lib/errors.ts`                                          | modyfikacja | dodać `ConflictError` (409)                                           |
+| `lib/nexus/vault-path.ts`                                | nowy        | `NEXUS_VAULT_PATH` → ścieżka bezwzględna, mapowanie `E:\` ↔ `/mnt/e/` |
+| `lib/nexus/vault-fs.ts`                                  | nowy        | odczyt z wersją, zapis atomowy, `updateVaultFile`, ochrona ścieżek    |
+| `lib/firestore/time.ts`                                  | nowy        | `toIso(value)`: Timestamp/Date/tekst/liczba → ISO                     |
+| `lib/firestore/mindMaps.ts`                              | nowy        | repozytorium map myśli (Firestore)                                    |
+| `lib/firestore/board.ts`                                 | nowy        | repozytorium tablicy (Firestore)                                      |
+| `lib/firestore/collections.ts`                           | bez zmian   | `mindMapsCol`, `boardDoc` zostają, ale tylko dla repozytoriów         |
+| `lib/firestore-db.ts`                                    | modyfikacja | usunąć eksport `mindMapsCol`/`boardDoc`, dodać funkcje repozytoryjne  |
+| `types/records.ts`                                       | modyfikacja | `MindMap.createdAt/updatedAt` → `string` (opcjonalne), typ `BoardDoc` |
+| `services/mindMapService.ts`, `services/boardService.ts` | modyfikacja | tylko logika domenowa, bez `firebase-admin`                           |
+| `.env.example`                                           | modyfikacja | wpis `NEXUS_VAULT_PATH`                                               |
+| `tests/unit/lib/errors.test.ts`                          | modyfikacja | przypadki `ConflictError`                                             |
+| `tests/unit/lib/nexus/vault-path.test.ts`                | nowy        | testy mapowania ścieżek                                               |
+| `tests/unit/lib/nexus/vault-fs.test.ts`                  | nowy        | testy odczytu/zapisu/konfliktów                                       |
+| `tests/unit/lib/nexus/static.test.ts`                    | nowy        | testy statyczne dla `lib/nexus/vault-*`                               |
+| `tests/unit/lib/firestore/time.test.ts`                  | nowy        | testy `toIso`                                                         |
+| `tests/unit/services/mindMapService.test.ts`             | przepisany  | mock `firestore-db` zamiast SDK                                       |
+| `tests/unit/services/boardService.test.ts`               | przepisany  | mock `firestore-db` zamiast SDK                                       |
 
 ---
 
@@ -268,6 +268,8 @@ git commit -m "feat(nexus): resolve vault root from NEXUS_VAULT_PATH"
 ---
 
 ### Task 3: `vault-fs.ts`
+
+> **Stan po review (commit `0be0858`):** kod poniżej to wersja pierwotna. Po recenzji usunięto blokadę per plik (`withLock`; sekcja synchroniczna, nic by nie chroniła), `PathOutsideVaultError` dziedziczy po `DomainError` (400), odczyt jest ścisłym UTF-8 ze zdjęciem BOM, ścieżka jest rozwiązywana raz na wywołanie (`readAt`/`writeAt`), a typ opcji to wyeksportowane `VaultFsOptions`. Obowiązuje kod w repozytorium, nie ten blok.
 
 **Files:**
 

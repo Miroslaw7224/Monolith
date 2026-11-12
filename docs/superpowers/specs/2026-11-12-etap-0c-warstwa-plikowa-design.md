@@ -34,7 +34,7 @@ Poza zakresem (kroki 0d–0f): usunięcie auth i `userId`, zmiana nazwy barrela,
 ```
 lib/nexus/
 ├ vault-path.ts     ścieżka vaulta z NEXUS_VAULT_PATH, mapowanie E:\ <-> /mnt/e/, błąd konfiguracji
-├ vault-fs.ts       odczyt z metadanymi, zapis atomowy, kontrola konfliktu, blokada per plik
+├ vault-fs.ts       odczyt z metadanymi, zapis atomowy, kontrola konfliktu
 ├ markdown-edit.ts  punktowa zmiana jednej linii listy zadań po id (powstaje w 0c-3)
 ├ frontmatter.ts, task-line.ts, yaml-lists.ts   (istnieją z 0b)
 └ repos/<kolekcja>.ts   implementacja funkcji z lib/firestore-db.ts dla danej kolekcji
@@ -49,7 +49,7 @@ lib/nexus/
 - **Zapis atomowy** (plik tymczasowy i `rename`) przez jedną funkcję `vault-fs`. Odmowa zapisu poza `Vault/`; ścieżki są normalizowane i sprawdzane po rozwiązaniu dowiązań.
 - **Kontrola konfliktu** przy zapisie: porównanie rozmiaru i skrótu treści (SHA-256) z ostatniego odczytu. `mtime` nie bierze udziału, bo jego rozdzielczość na dysku Windows przez WSL (`/mnt/e/`) bywa zbyt gruba, a skrót rozstrzyga sam.
 - **Końce linii.** Odczyt normalizuje `\r\n` do `\n` przed parsowaniem i liczeniem skrótu (Obsidian na Windowsie może zapisać CRLF); zapis używa `\n`.
-- **Blokada w procesie per plik** (kolejka zapisów), aby dwa równoległe żądania aplikacji nie wyścigały się o ten sam plik.
+- **Brak blokady w procesie.** Odczyt, zmiana i zapis w `updateVaultFile` są synchroniczne, więc w jednym procesie Node nic się nie przeplata, a blokada per plik niczego by nie chroniła (wykazała to recenzja kodu 0c-1). Ochroną przed procesami zewnętrznymi jest kontrola wersji i ponawianie. Gdyby `mutate` musiało kiedyś być asynchroniczne, blokadę dodajemy wtedy, razem z testem, który faktycznie ją wymusza.
 - **Reguła nakładania (C5).** Przy niezgodności kontroli: wczytaj plik ponownie, zastosuj zmianę do świeżej treści. Zadania: gdy linia o danym `id` jest bajtowo taka sama jak w odczycie początkowym, zapis przechodzi; w przeciwnym razie `ConflictError` (podklasa `DomainError` z `statusCode: 409` w `lib/errors.ts`; `handleServiceError` w `lib/apiError.ts` zwraca status z `DomainError`, a `inferHttpStatus` nie jest tu używany). Pliki YAML i notatki: ta sama reguła na poziomie rekordu (wpis o danym `id`) lub całego pliku notatki.
 - **Realny zakres ochrony C5.** UI nie przekazuje wersji (ETag), więc C5 chroni tylko okno odczyt-zmiana-zapis pojedynczego żądania. Zmiana zrobiona w Obsidianie przed żądaniem jest stanem początkowym i nie jest wykrywana jako konflikt. Dlatego aktualizacje zapisują wyłącznie pola przekazane w żądaniu (zadania: tylko zmienione pola inline w linii), a nie cały rekord z klienta.
 - **Dopisywanie.** `vault-fs` dostanie w 0c-4 osobną operację `append` dla logów (`Sessions/*.jsonl`): `O_APPEND` bez przepisywania pliku, bez `rename`. Atomowość pojedynczej linii zapewnia jeden `write` z końcem linii.
@@ -76,7 +76,7 @@ Formaty `tasks`, `task_templates`, `tags`, `resources` i `notes` są te z 0b (je
 
 - **Repozytoria** na tymczasowym vaulcie (`mkdtemp`), bez emulatora i Dockera. Wspólny zestaw przypadków: CRUD, kolejność, pola puste, znaki specjalne w tytułach (ucieczki z `task-line.ts`).
 - **Zgodność z 0b w obie strony:** fixture w formatach z 0b wczytuje się bez strat; to, co zapisze repozytorium, odczytuje ten sam parser.
-- **Konflikty:** zmiana innej linii w międzyczasie (nałożenie), zmiana tej samej linii (409), dwa równoległe zapisy do jednego pliku (blokada), zapis przerwany przed `rename` (plik docelowy bez zmian).
+- **Konflikty:** zmiana innej linii w międzyczasie (nałożenie), zmiana tej samej linii (409), dwa równoległe zapisy do jednego pliku (brak utraconych aktualizacji), zapis przerwany przed `rename` (plik docelowy bez zmian).
 - **Testy usług** zostają; `mindMapService` i `boardService` mockują `firestore-db` zamiast SDK `firebase-admin`.
 - **Testy statyczne** jak w 0b: w `lib/nexus/` brak importów `firebase*`; każda ścieżka zapisu przechodzi przez `vault-fs`; nic nie zapisuje poza `Vault/`.
 - **Ręczny przegląd w UI** po każdej przepiętej kolekcji.
