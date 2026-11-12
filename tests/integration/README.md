@@ -41,12 +41,12 @@ Na Windows długie łańcuchy z `&&` mogą nie działać w jednej komendzie — 
 
 **Znane ograniczenie:** Przy błędzie testów (exit code 1) skrypt `test:integration:docker` przerywa wykonanie przed `down`, więc kontener pozostaje uruchomiony. Ręcznie zatrzymaj: `docker compose -f docker-compose-test.yml down`. Na CI zwykle nie ma to znaczenia (runner efemeryczny); na maszynie deweloperskiej może być uciążliwe.
 
-**Czyszczenie danych emulatora:** Ten sam endpoint co przy emulatorze działa z Dockerem. Użyj tego samego projektu co przy testach (`FIREBASE_PROJECT_ID` lub domyślnie `demo-nexus`):
+**Czyszczenie danych emulatora:** Ten sam endpoint co przy emulatorze działa z Dockerem. Użyj tego samego projektu co przy testach (`FIREBASE_PROJECT_ID` lub domyślnie `demo-monolith`):
 
 - **Unix/Mac:**  
-  `curl -X DELETE "http://localhost:8080/emulator/v1/projects/${FIREBASE_PROJECT_ID:-demo-nexus}/databases/(default)/documents"`
+  `curl -X DELETE "http://localhost:8080/emulator/v1/projects/${FIREBASE_PROJECT_ID:-demo-monolith}/databases/(default)/documents"`
 - **PowerShell:**  
-  `$proj = if ($env:FIREBASE_PROJECT_ID) { $env:FIREBASE_PROJECT_ID } else { "demo-nexus" }; Invoke-RestMethod -Method Delete -Uri "http://localhost:8080/emulator/v1/projects/$proj/databases/(default)/documents"`
+  `$proj = if ($env:FIREBASE_PROJECT_ID) { $env:FIREBASE_PROJECT_ID } else { "demo-monolith" }; Invoke-RestMethod -Method Delete -Uri "http://localhost:8080/emulator/v1/projects/$proj/databases/(default)/documents"`
 
 Opcjonalnie wywołaj przed testami (w beforeAll lub skrypcie) dla powtarzalności.
 
@@ -60,7 +60,7 @@ Jeśli nie używasz emulatora, uruchom testy integracyjne przeciw **prawdziwemu*
 npm run test:integration:local
 ```
 
-Użyj osobnego projektu Firebase tylko do testów (np. w `.env`: `FIREBASE_PROJECT_ID=nexus-test` + credentials testowe), żeby nie dotykać produkcji.
+Użyj osobnego projektu Firebase tylko do testów (np. w `.env`: `FIREBASE_PROJECT_ID=monolith-test` + credentials testowe), żeby nie dotykać produkcji.
 
 - **Z flagą (ręcznie):**  
   `RUN_INTEGRATION_TESTS=1 npm run test:integration`  

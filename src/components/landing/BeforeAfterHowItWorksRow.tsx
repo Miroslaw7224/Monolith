@@ -11,7 +11,7 @@ const steps = [
   },
   {
     icon: Cpu,
-    title: "Nexus indeksuje i łączy z AI",
+    title: "Monolith indeksuje i łączy z AI",
     text: "Twoja baza jest gotowa do pytań.",
   },
   {
@@ -75,7 +75,7 @@ export default function BeforeAfterHowItWorksRow() {
                 Jak to działa
               </h2>
               <p className="mt-4 text-center text-lg text-[var(--text2)]">
-                Czym jest Nexus w 4 krokach
+                Czym jest Monolith w 4 krokach
               </p>
               <ul className="mt-14 space-y-8">
                 {steps.map((step, i) => (

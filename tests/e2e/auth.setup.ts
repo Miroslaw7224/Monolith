@@ -16,7 +16,7 @@ setup("authenticate", async ({ page }) => {
   fs.mkdirSync(path.dirname(authFile), { recursive: true });
 
   await page.goto("/auth/login");
-  await expect(page.getByRole("heading", { name: /^Nexus$/i })).toBeVisible({
+  await expect(page.getByRole("heading", { name: /^Monolith$/i })).toBeVisible({
     timeout: 15000,
   });
   await page.locator('input[type="email"]').fill(LOGIN_EMAIL);

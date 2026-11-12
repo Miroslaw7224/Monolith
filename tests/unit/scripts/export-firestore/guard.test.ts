@@ -22,9 +22,7 @@ afterEach(() => {
 describe("defaultOutDir", () => {
   it("lives under ~/backups and is stamped with date and time", () => {
     const dir = defaultOutDir(new Date("2026-11-12T14:30:45Z"));
-    expect(dir).toBe(
-      path.join(os.homedir(), "backups", "second-brain-firestore", "2026-11-12T1430")
-    );
+    expect(dir).toBe(path.join(os.homedir(), "backups", "monolith-firestore", "2026-11-12T1430"));
   });
 });
 

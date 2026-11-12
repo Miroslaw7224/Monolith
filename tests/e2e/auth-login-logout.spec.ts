@@ -25,7 +25,7 @@ test.describe("Flow logowania i wylogowania", () => {
 
     // 3. Oczekiwanie na dashboard (przekierowanie po zalogowaniu)
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
-    await expect(page.getByText(/Nexus|Freelancer/i).first()).toBeVisible({
+    await expect(page.getByText(/Monolith|Freelancer/i).first()).toBeVisible({
       timeout: 10000,
     });
 

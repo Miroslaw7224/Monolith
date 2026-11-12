@@ -4,7 +4,7 @@ test.describe("Dashboard (zalogowany)", () => {
   test("pokazuje shell i nawigację Planowania", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
-    await expect(page.getByRole("heading", { name: "Nexus" })).toBeVisible({
+    await expect(page.getByRole("heading", { name: "Monolith" })).toBeVisible({
       timeout: 20000,
     });
 

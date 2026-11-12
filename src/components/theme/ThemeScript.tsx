@@ -5,13 +5,18 @@
 export function ThemeScript() {
   const script = `
 (function() {
-  var oldKey = 'secondbrain-theme';
-  var key = 'nexus-theme';
-  var migrated = localStorage.getItem(oldKey);
+  var oldKeys = ['nexus-theme', 'secondbrain-theme'];
+  var key = 'monolith-theme';
   var prev = localStorage.getItem(key);
-  if ((!prev || (prev !== 'dark' && prev !== 'light')) && (migrated === 'dark' || migrated === 'light')) {
-    localStorage.setItem(key, migrated);
-    localStorage.removeItem(oldKey);
+  if (prev !== 'dark' && prev !== 'light') {
+    for (var i = 0; i < oldKeys.length; i++) {
+      var migrated = localStorage.getItem(oldKeys[i]);
+      if (migrated === 'dark' || migrated === 'light') {
+        localStorage.setItem(key, migrated);
+        localStorage.removeItem(oldKeys[i]);
+        break;
+      }
+    }
   }
   var stored = localStorage.getItem(key);
   var theme = stored === 'dark' || stored === 'light' ? stored : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

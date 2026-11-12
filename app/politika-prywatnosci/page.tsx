@@ -38,7 +38,7 @@ export default function PolitykaPrywatnosciPage() {
               1. Administrator danych
             </h2>
             <p>
-              Administratorem Twoich danych osobowych w ramach usługi Nexus (Freelancer Edition)
+              Administratorem Twoich danych osobowych w ramach usługi Monolith (Freelancer Edition)
               jest Mirosław Baczkowski. Kontakt w sprawie danych osobowych:{" "}
               <a href="mailto:miro.job7224@gmail.com">miro.job7224@gmail.com</a>.
             </p>

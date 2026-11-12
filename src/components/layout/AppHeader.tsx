@@ -84,7 +84,7 @@ export function AppHeader({ isSidebarOpen, setIsSidebarOpen, t }: AppHeaderProps
             <div className="flex-1 min-h-0">
               <iframe
                 src="https://tally.so/embed/81dpVO"
-                title="Feedback – Nexus BETA"
+                title="Feedback – Monolith BETA"
                 className="w-full h-[70vh] min-h-[400px] border-0"
               />
             </div>

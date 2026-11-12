@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-const OLD_KEY = "secondbrain-theme";
-const STORAGE_KEY = "nexus-theme";
+const OLD_KEYS = ["nexus-theme", "secondbrain-theme"];
+const STORAGE_KEY = "monolith-theme";
 
 export type Theme = "dark" | "light";
 
@@ -12,10 +12,13 @@ function getInitialTheme(): Theme {
   // migrate from old key only when new key does not yet have a stored theme
   const existing = window.localStorage.getItem(STORAGE_KEY);
   if (!(existing === "dark" || existing === "light")) {
-    const migrated = window.localStorage.getItem(OLD_KEY);
-    if (migrated === "dark" || migrated === "light") {
-      window.localStorage.setItem(STORAGE_KEY, migrated);
-      window.localStorage.removeItem(OLD_KEY);
+    for (const oldKey of OLD_KEYS) {
+      const migrated = window.localStorage.getItem(oldKey);
+      if (migrated === "dark" || migrated === "light") {
+        window.localStorage.setItem(STORAGE_KEY, migrated);
+        window.localStorage.removeItem(oldKey);
+        break;
+      }
     }
   }
   const stored = window.localStorage.getItem(STORAGE_KEY);
