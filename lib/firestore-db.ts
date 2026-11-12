@@ -17,7 +17,7 @@ export {
   getResourcesFromFirestore,
   deleteResourceFromFirestore,
   updateResourceInFirestore,
-} from "@/lib/firestore/resources";
+} from "@/lib/nexus/repos/resources";
 export {
   getCalendarEvents,
   createCalendarEvent,
@@ -25,13 +25,13 @@ export {
   deleteCalendarEvent,
 } from "@/lib/firestore/calendar";
 export { getTasks, createTask, updateTask, reorderTasks, deleteTask } from "@/lib/firestore/tasks";
-export { getUserTags, createUserTag, updateUserTag, deleteUserTag } from "@/lib/firestore/tags";
+export { getUserTags, createUserTag, updateUserTag, deleteUserTag } from "@/lib/nexus/repos/tags";
 export {
   getTaskTemplates,
   createTaskTemplate,
   updateTaskTemplate,
   deleteTaskTemplate,
-} from "@/lib/firestore/taskTemplates";
+} from "@/lib/nexus/repos/taskTemplates";
 export { addAgentLogEntry, type AgentLogEntry } from "@/lib/firestore/agentLog";
 export {
   getMindMaps,
