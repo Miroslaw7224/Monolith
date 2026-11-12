@@ -1,4 +1,4 @@
-import TurndownService from "turndown";
+import { htmlToMarkdown } from "../../lib/markdown/html-markdown";
 import { formatFrontmatter } from "../../lib/nexus/frontmatter";
 import type { VaultNote } from "./types";
 
@@ -40,19 +40,7 @@ export function detectLosses(html: string): string[] {
   return losses;
 }
 
-export function htmlToMarkdown(html: string): string {
-  const turndown = new TurndownService({
-    headingStyle: "atx",
-    bulletListMarker: "-",
-    codeBlockStyle: "fenced",
-    emDelimiter: "*",
-  });
-  turndown.addRule("strikethrough", {
-    filter: (node) => ["S", "DEL", "STRIKE"].includes(node.nodeName),
-    replacement: (content) => `~~${content}~~`,
-  });
-  return turndown.turndown(html).trim();
-}
+export { htmlToMarkdown };
 
 export function buildNoteFiles(note: VaultNote): {
   markdown: string;
