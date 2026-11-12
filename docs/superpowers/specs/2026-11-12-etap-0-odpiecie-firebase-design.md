@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), kroki 0b–0f w planowaniu. Zakres danych zawężony decyzją użytkownika (§1.1).
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), kroki 0b–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -18,8 +18,8 @@ Poza zakresem: nowe moduły (karta projektu, kokpit, arsenał, mapa), zmiana naz
 
 - **Migrujemy:** `notes`, `tasks`, `resources`, `user_tags`, `task_templates` jednego użytkownika, czyli jedynego prawdziwego konta. Dwa pozostałe konta z danymi są testowe i są pomijane, razem z kolekcją `waitlist` i metadanymi kont Auth innych użytkowników.
 - **Nie migrujemy i nie ma ich w zawężonym zrzucie:** `calendar_events`, `mindMaps`, `board`, `documents` (konto prawdziwe nie ma tej kolekcji), `chunks`, `agent_log` oraz historyczne `knowledgeNodes` i `knowledgeEdges`. Widok „Moja praca” (`ActivityLog`) nie jest osobną kolekcją, tylko widokiem na zadaniach i kalendarzu.
-- **Skutek:** po odpięciu Firebase moduły oparte na pominiętych danych (kalendarz, mapy myśli, „Moja praca”, planowanie, tablica) nie mają dokąd zapisywać. Co z ich kodem, rozstrzyga O7.
-- **Szerszy zrzut:** pełniejszy zrzut konta (z kalendarzem i mapami myśli) istnieje lokalnie poza repozytoriami i na wniosek użytkownika zostaje. Po 0e będzie jedyną kopią tych danych, więc jego usunięcie wymaga osobnej, świadomej decyzji.
+- **Skutek:** to wyłącznie decyzja o danych, nie o funkcjach. Kalendarz, mapy myśli, „Moja praca”, planowanie, tablica i asystent AI **zostają w aplikacji** i działają dalej; po odpięciu Firebase dostają backend plikowy i startują puste, bez starych danych. Założenia aplikacji pozostają aktualne (O7 rozstrzygnięte).
+- **Szerszy zrzut:** pełniejszy zrzut konta (z kalendarzem i mapami myśli) istnieje lokalnie poza repozytoriami i na wniosek użytkownika zostaje, jako archiwum. Nie jest wejściem do żadnego kroku. Po 0e będzie jedyną kopią tych danych, więc jego usunięcie wymaga osobnej, świadomej decyzji.
 
 ## 2. Stan wyjściowy (zweryfikowany w kodzie)
 
@@ -126,13 +126,13 @@ Wejściem jest zrzut zawężony (1.1). Proponowane mapowanie (otwarte punkty w 8
 | `notes`                            | `Notes/<slug>.md`                             | frontmatter: `id`, `title`, `created`, `tags`; treść HTML → Markdown, **raport strat** per notatka |
 | `documents`                        | nie migrujemy                                 | konto prawdziwe nie ma tej kolekcji (O2 rozstrzygnięte)                                            |
 | `chunks`                           | nie migrujemy                                 | to pochodny indeks wyszukiwania; odtwarzany z treści, jeśli będzie potrzebny                       |
-| `calendar_events`                  | nie migrujemy                                 | decyzja użytkownika (1.1); dane tylko w szerszym zrzucie                                           |
+| `calendar_events`                  | nie migrujemy                                 | decyzja użytkownika (1.1); moduł zostaje, kalendarz startuje pusty; stare dane tylko w archiwum    |
 | `tasks`                            | do ustalenia (O1)                             | status 4-stanowy zapisany polem inline `[status:: in_progress]`, nie samą kratką `- [ ]`           |
 | `user_tags`, `task_templates`      | `Resources/tags.yaml`, `Tasks/templates.yaml` | konfiguracja                                                                                       |
 | `resources`                        | `Resources/resources.yaml`                    | linki, tagi, ulubione                                                                              |
-| `mindMaps`                         | nie migrujemy                                 | decyzja użytkownika (1.1); dane tylko w szerszym zrzucie                                           |
-| `board/main`                       | nie migrujemy                                 | decyzja użytkownika (1.1); konto prawdziwe nie ma danych tablicy                                   |
-| `agent_log`                        | nie migrujemy                                 | decyzja użytkownika (1.1), O3 rozstrzygnięte; dane tylko w szerszym zrzucie                        |
+| `mindMaps`                         | nie migrujemy                                 | decyzja użytkownika (1.1); moduł zostaje, startuje pusty; stare dane tylko w archiwum              |
+| `board/main`                       | nie migrujemy                                 | decyzja użytkownika (1.1); moduł zostaje, startuje pusty; konto prawdziwe nie ma danych tablicy    |
+| `agent_log`                        | nie migrujemy                                 | decyzja użytkownika (1.1), O3 rozstrzygnięte; log startuje pusty; stare dane tylko w archiwum      |
 | `knowledgeNodes`, `knowledgeEdges` | nie migrujemy                                 | historyczne (maj 2026), moduł usunięty, wektory osadzeń; tylko w szerszym zrzucie                  |
 | `waitlist`                         | nie migrujemy                                 | dane innych osób, zostają wyłącznie w zrzucie                                                      |
 
@@ -141,11 +141,11 @@ Bramka 0b: raport porównuje liczbę rekordów po stronie zrzutu i po stronie pl
 ## 6. Krok 0c: warstwa `lib/nexus/`
 
 - `lib/firestore-db.ts` pozostaje jedynym szwem. Funkcje o tych samych nazwach i sygnaturach dostają implementację plikową; Szew nie jest jednak szczelny, więc 0c zaczyna się od jego domknięcia (patrz niżej).
-- **Zakres 0c po zawężeniu (1.1):** podmieniamy `tags`, `task_templates`, `resources`, `tasks` i `notes`. Poniższa analiza szwu dotyczy modułów, których danych nie migrujemy (mapy myśli, tablica, kalendarz). Zachowuje wagę tylko wtedy, gdy O7 rozstrzygnie, że te moduły zostają w aplikacji z jakimś backendem. Jeśli O7 wybierze usunięcie modułów, domknięcie szwu dla nich odpada, a ich kod znika w 0d.
-- **Domknięcie szwu (pierwszy podkrok 0c, bez zmiany zachowania; dotyczy modułów z O7).** Zweryfikowane w kodzie: `services/mindMapService.ts` i `services/boardService.ts` importują `FieldValue` z `firebase-admin/firestore` i używają bezpośrednio `mindMapsCol`/`boardDoc` (z `.doc()`, `.get()`, `.update()`), a `src/App.tsx`, `src/features/mind-maps/*` i `types/records.ts` (typ `Timestamp`) też dotykają Firebase. Trzeba dodać do `firestore-db.ts` funkcje repozytoryjne (`getMindMaps`, `createMindMap`, `updateMindMap`, `deleteMindMap`, `getBoard`, `saveBoard`), przenieść do nich `serverTimestamp()`, a pola czasu w typach zamienić na ISO string.
-- **Zależności między serwisami:** `calendarService` czyta zadania (`getTasks`, `services/calendarService.ts:36`), a `planService` odpytuje kalendarz i tworzy wydarzenia bezpośrednio przez `firestoreDb`. Pełna kolejność, gdyby wszystkie moduły zostawały, to: `tags` → `task_templates` → `resources` → **`tasks` → `calendar_events`** → `notes` / `documents` → `mindMaps` → `board` → `agent_log`; `planService` przechodzi wtedy przez API `calendarService`, a nie przez `firestoreDb`. Po zawężeniu zakresu obowiązuje: `tags` → `task_templates` → `resources` → `tasks` → `notes`, a `calendarService` i `planService` (zależne od zadań i kalendarza) wymagają decyzji z O7 przed podmianą `tasks`.
+- **Zakres 0c:** wszystkie kolekcje, które aplikacja używa, dostają backend plikowy. Dane migrują tylko `tags`, `task_templates`, `resources`, `tasks` i `notes` (1.1); `calendar_events`, `mindMaps`, `board` i `agent_log` startują puste, ale ich moduły muszą w pełni działać, więc ich implementacje plikowe i domknięcie szwu poniżej obowiązują.
+- **Domknięcie szwu (pierwszy podkrok 0c, bez zmiany zachowania).** Zweryfikowane w kodzie: `services/mindMapService.ts` i `services/boardService.ts` importują `FieldValue` z `firebase-admin/firestore` i używają bezpośrednio `mindMapsCol`/`boardDoc` (z `.doc()`, `.get()`, `.update()`), a `src/App.tsx`, `src/features/mind-maps/*` i `types/records.ts` (typ `Timestamp`) też dotykają Firebase. Trzeba dodać do `firestore-db.ts` funkcje repozytoryjne (`getMindMaps`, `createMindMap`, `updateMindMap`, `deleteMindMap`, `getBoard`, `saveBoard`), przenieść do nich `serverTimestamp()`, a pola czasu w typach zamienić na ISO string.
+- **Zależności między serwisami:** `calendarService` czyta zadania (`getTasks`, `services/calendarService.ts:36`), a `planService` odpytuje kalendarz i tworzy wydarzenia bezpośrednio przez `firestoreDb`. Kolejność podmiany to: `tags` → `task_templates` → `resources` → **`tasks` → `calendar_events`** → `notes` / `documents` → `mindMaps` → `board` → `agent_log`; `planService` przechodzi przez API `calendarService`, a nie przez `firestoreDb`. Kolekcje bez migrowanych danych (`calendar_events`, `mindMaps`, `board`, `agent_log`) są podmieniane w tej samej kolejności, tylko bez kroku importu.
 - Po każdej kolekcji: testy usługi, ręczny przegląd w UI, commit.
-- **`agent_log`:** `agentService` zapisuje do niego w każdym przebiegu (`services/agentService.ts`), a dane nie są migrowane (O3). Backend plikowy musi więc mieć implementację (dopisywany JSONL w `Sessions/`) albo jawny no-op. Brak implementacji zatrzyma asystenta AI (por. O7).
+- **`agent_log`:** `agentService` zapisuje do niego w każdym przebiegu (`services/agentService.ts`), więc backend plikowy musi mieć implementację (dopisywany JSONL w `Sessions/`) albo jawny no-op. Stare dane nie są migrowane (O3), log startuje pusty. Brak implementacji zatrzymałby asystenta AI.
 - Pojedynczy użytkownik: `userId` staje się stałą lokalną. Parametr zostaje w sygnaturach do końca kroku (mniej zmian), usuwany w 0d.
 - Moduły zgodnie z §4.1 nadrzędnego specu: `vault-path.ts` (w tym mapowanie `E:\` ↔ `/mnt/e/`, błąd konfiguracji przy braku `NEXUS_VAULT_PATH`), `markdown-edit.ts`, zapis atomowy z kontrolą `mtime`.
 - Testy: ten sam zestaw testów usług uruchamiany na obu backendach (kontrakt), dopóki istnieją oba. Zweryfikowane: `tests/unit/services/boardService.test.ts` i `mindMapService.test.ts` mockują wprost `firebase-admin` i `FieldValue`, więc po domknięciu szwu trzeba je przepisać tak, by mockowały `firestore-db` (lub interfejs repozytorium), a nie SDK. Szczegóły w planie.
@@ -161,7 +161,6 @@ Bramka 0b: raport porównuje liczbę rekordów po stronie zrzutu i po stronie pl
 - Strony prawne i landing: `app/regulamin`, `app/politika-prywatnosci`, `app/cookies`, `app/auth`, oraz `app/page.tsx` do zastąpienia wejściem w aplikację (O4).
 - Zależności: `firebase`, `firebase-admin`; pliki `firebase.json`, `firestore.rules`; zmienne `FIREBASE_*` i `NEXT_PUBLIC_FIREBASE_*` z `.env.example`; skrypty `migrate-sqlite-to-firestore.ts`, `cleanup-knowledge-collections.ts`; `docker-compose-test.yml` i skrypty `emulator:docker`, `migrate:sqlite-to-firestore`, `vercel`, `vercel:prod` z `package.json`; pakiety `vercel` i `better-sqlite3` (po sprawdzeniu, że nic innego ich nie używa); tło emulatora z testów integracyjnych.
 - Testy e2e (Playwright): `tests/e2e/auth.setup.ts`, `auth-login-logout.spec.ts`, `public-pages.spec.ts` i specyfikacje `*.authenticated.spec.ts` zależą od logowania; trzeba je przepisać na uruchomienie bez auth albo usunąć.
-- Moduły bez migrowanych danych (kalendarz, mapy myśli, „Moja praca”, planowanie, tablica): usunięcie lub wyłączenie zgodnie z rozstrzygnięciem O7; usuwanie razem z ich trasami, testami (jednostkowymi i e2e) i wpisami w nawigacji.
 - Dokumentacja: nowe ADR „lokalne pliki zamiast Firestore” oznacza ADR-002, 003, 016 jako zastąpione; poprawka README.
 
 ### Zabezpieczenie lokalnego serwera (wymóg, nie opcja)
@@ -192,7 +191,7 @@ W repo NEXUS: wpis `Work/` w `.gitignore` (zrobić przed utworzeniem pierwszego 
 - **O4. Co zastępuje landing (`app/page.tsx`)?** Propozycja: przekierowanie do głównego widoku aplikacji.
 - **O5. Okres obserwacji i karencji** przed 0e (propozycja: 7 dni lokalnej pracy na plikach, 30 dni od zamknięcia reguł do usunięcia projektu Firebase).
 - **O6. ~~Ilu użytkowników jest w Firestore?~~** Rozstrzygnięte: jedno prawdziwe konto i dwa testowe, trzy konta z danymi (a cztery w Auth). Testowe pomijamy, bez ich danych w zawężonym zrzucie.
-- **O7. Co z kodem modułów bez migrowanych danych?** Dotyczy kalendarza, map myśli, „Mojej pracy” (`ActivityLog`), planowania (`planService`, zależny od kalendarza) i tablicy, a także asystenta AI, który czyta kalendarz i zadania oraz zapisuje do `agent_log`. Propozycja: usunąć kalendarz, mapy myśli, „Moją pracę” i planowanie w 0d razem z testami; tablicę i asystenta zostawić do osobnych decyzji, bo należą do kierunku z nadrzędnego specu (Płótno, asystent lokalny), z jawnym no-op lub plikowym zapisem w miejscu `agent_log`. Wymaga potwierdzenia użytkownika przed planem 0c.
+- **O7. ~~Co z kodem modułów bez migrowanych danych?~~** Rozstrzygnięte decyzją użytkownika: wszystkie moduły (kalendarz, mapy myśli, „Moja praca”, planowanie, tablica, asystent AI) zostają i będą używane. Nie migrujemy tylko starych danych; założenia aplikacji są nadal aktualne. Konsekwencja: żaden kod modułów nie jest usuwany w 0d, a backend plikowy musi pokryć wszystkie kolekcje (0c).
 
 ## 9. Ryzyka
 
@@ -202,7 +201,7 @@ W repo NEXUS: wpis `Work/` w `.gitignore` (zrobić przed utworzeniem pierwszego 
 - **Otwarty lokalny port bez auth.** Ograniczenie: sekcja o zabezpieczeniu lokalnym w 0d, wymóg przed usunięciem logowania.
 - **Zrzut z danymi osobistymi w złym miejscu.** Ograniczenie: zapis poza gitem z twardą odmową, uprawnienia 0600.
 - **Limit odczytów.** Ograniczenie: `--count-only`, ostrzeżenie, `--resume`.
-- **Nieodwracalna utrata pominiętych danych.** Kalendarz, mapy myśli i reszta spoza 1.1 istnieją po 0e tylko w szerszym zrzucie. Ograniczenie: szerszy zrzut zostaje, trafia do drugiej kopii (0e.2) i nie jest usuwany bez osobnej decyzji użytkownika.
+- **Nieodwracalna utrata pominiętych danych.** Stare dane kalendarza, map myśli i reszty spoza 1.1 istnieją po 0e tylko w archiwalnym szerszym zrzucie (użytkownik ich nie potrzebuje, ale usunięcie jest nieodwracalne). Ograniczenie: szerszy zrzut zostaje, trafia do drugiej kopii (0e.2) i nie jest usuwany bez osobnej decyzji użytkownika.
 
 ## 10. Kryteria ukończenia etapu 0
 
