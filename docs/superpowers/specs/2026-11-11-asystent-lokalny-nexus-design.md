@@ -71,6 +71,8 @@ Vault/
 ├ + Resources/resources.yaml       linki, tagi, ulubione
 ├ + Sessions/2026-11.jsonl         log sesji (jedna linia = jedna sesja)
 ├ + Inbox/inbox.md                 szybki inbox
+├ + Tasks/tasks.md, templates.yaml  zadania ogólne (bez projektu) i szablony (etap 0, O1)
+├ + Board/board.json               tablica/płótno (etap 0)
 ├ + Courses/<slug>.md              kursy, postęp, akcje do projektów
 └ Knowledge/, focus.md             bez zmian
 ```

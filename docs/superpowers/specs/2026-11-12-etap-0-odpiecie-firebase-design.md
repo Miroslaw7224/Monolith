@@ -70,8 +70,8 @@ Dokumenty „widmo” (brak dokumentu `users/{uid}`, ale istnieją podkolekcje) 
 
 ### 4.4 Liczenie przed i po
 
-1. **Przed:** `collection.count()` (zapytanie agregujące, tanie w odczytach) dla każdej kolekcji.
-2. Odczyt stronami po 500, `orderBy(__name__)` z `startAfter`, dopisywanie do `.jsonl`.
+1. **Przed:** `count()` (zapytanie agregujące, tanie w odczytach) dla każdej kolekcji, osobno dla każdej ścieżki `users/<uid>/<kolekcja>` i dla każdej wykrytej podkolekcji. `count()` liczy tylko dokumenty bezpośrednio w danej kolekcji, więc podkolekcje muszą mieć własne wpisy w bilansie.
+2. Odczyt stronami po 500, `orderBy(FieldPath.documentId())` z `startAfter`, dopisywanie do pliku tymczasowego `.jsonl.part`, po zakończeniu kolekcji `rename` na `.jsonl`.
 3. **Po:** liczba linii w każdym pliku i ponowne `count()` z Firestore.
 4. Wynik zgodny, gdy `przed == linie == po` dla każdej kolekcji. Każda różnica kończy skrypt kodem ≠ 0 i nie zapisuje `manifest.json` ze statusem `ok`.
 
@@ -89,7 +89,7 @@ Poświadczenia jak w aplikacji (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, 
 
 ### 4.6 Koszt odczytów
 
-Darmowy limit Firestore to 50 tys. odczytów dziennie. `--count-only` pokazuje, ile dokumentów jest do przeczytania; skrypt ostrzega, gdy suma przekracza 40 tys., i pozwala wznowić eksport następnego dnia (`--resume`, zapis stanu strony w katalogu wyjściowym). Kolekcja `chunks` (indeks pod wyszukiwanie) jest zwykle największa.
+Darmowy limit Firestore to 50 tys. odczytów dziennie. `--count-only` pokazuje, ile dokumentów jest do przeczytania; skrypt ostrzega, gdy suma przekracza 40 tys., i pozwala wznowić eksport następnego dnia (`--resume`: wznawia od ostatniego przeczytanego id; gotowe kolekcje są pomijane, a niedokończony plik `.part` jest odcinany do ostatniej pełnej linii, żeby nie powstały duplikaty). Kolekcja `chunks` (indeks pod wyszukiwanie) jest zwykle największa.
 
 ### 4.7 Testy
 
@@ -122,29 +122,35 @@ Bramka 0b: raport porównuje liczbę rekordów po stronie zrzutu i po stronie pl
 
 ## 6. Krok 0c: warstwa `lib/nexus/`
 
-- `lib/firestore-db.ts` pozostaje jedynym szwem. Funkcje o tych samych nazwach i sygnaturach dostają implementację plikową; `services/*` nie zmieniają się poza importami, o ile to możliwe.
-- Podmiana **kolekcja po kolekcji**, w kolejności od najprostszych: `tags` → `task_templates` → `resources` → `calendar_events` → `tasks` → `notes` / `documents` → `mindMaps` → `board` → `agent_log`. Po każdej: testy usługi, ręczny przegląd w UI, commit.
+- `lib/firestore-db.ts` pozostaje jedynym szwem. Funkcje o tych samych nazwach i sygnaturach dostają implementację plikową; Szew nie jest jednak szczelny, więc 0c zaczyna się od jego domknięcia (patrz niżej).
+- **Domknięcie szwu (pierwszy podkrok 0c, bez zmiany zachowania).** Zweryfikowane w kodzie: `services/mindMapService.ts` i `services/boardService.ts` importują `FieldValue` z `firebase-admin/firestore` i używają bezpośrednio `mindMapsCol`/`boardDoc` (z `.doc()`, `.get()`, `.update()`), a `src/App.tsx`, `src/features/mind-maps/*` i `types/records.ts` (typ `Timestamp`) też dotykają Firebase. Trzeba dodać do `firestore-db.ts` funkcje repozytoryjne (`getMindMaps`, `createMindMap`, `updateMindMap`, `deleteMindMap`, `getBoard`, `saveBoard`), przenieść do nich `serverTimestamp()`, a pola czasu w typach zamienić na ISO string.
+- **Zależności między serwisami:** `calendarService` czyta zadania (`getTasks`, `services/calendarService.ts:36`), a `planService` odpytuje kalendarz i tworzy wydarzenia bezpośrednio przez `firestoreDb`. Dlatego kolejność podmiany to: `tags` → `task_templates` → `resources` → **`tasks` → `calendar_events`** → `notes` / `documents` → `mindMaps` → `board` → `agent_log`. `planService` przechodzi przez API `calendarService`, a nie przez `firestoreDb`.
+- Po każdej kolekcji: testy usługi, ręczny przegląd w UI, commit.
+- **`agent_log`:** `agentService` zapisuje do niego w każdym przebiegu (`services/agentService.ts`), więc backend plikowy musi mieć implementację (dopisywany JSONL w `Sessions/`) albo jawny no-op. Brak implementacji zatrzyma asystenta AI (por. O3).
 - Pojedynczy użytkownik: `userId` staje się stałą lokalną. Parametr zostaje w sygnaturach do końca kroku (mniej zmian), usuwany w 0d.
 - Moduły zgodnie z §4.1 nadrzędnego specu: `vault-path.ts` (w tym mapowanie `E:\` ↔ `/mnt/e/`, błąd konfiguracji przy braku `NEXUS_VAULT_PATH`), `markdown-edit.ts`, zapis atomowy z kontrolą `mtime`.
-- Testy: ten sam zestaw testów usług uruchamiany na obu backendach (kontrakt), dopóki istnieją oba. Szczegóły mockowania w planie.
+- Testy: ten sam zestaw testów usług uruchamiany na obu backendach (kontrakt), dopóki istnieją oba. Zweryfikowane: `tests/unit/services/boardService.test.ts` i `mindMapService.test.ts` mockują wprost `firebase-admin` i `FieldValue`, więc po domknięciu szwu trzeba je przepisać tak, by mockowały `firestore-db` (lub interfejs repozytorium), a nie SDK. Szczegóły w planie.
 
 ## 7. Kroki 0d–0f
 
 ### 0d: usunięcie
 
-- Auth: `lib/getAuth.ts`, `src/lib/auth/useAuth.ts`, `src/components/LoginScreen.tsx`, `app/(protected)/layout.tsx`, `src/lib/firebase-client.ts`, `lib/firebase-admin.ts`, `app/api/auth`, testy `getAuth`.
+- Route handlery: `getAuthUserId` jest użyty w 27 plikach `app/api/**`; każdy dostaje stałego lokalnego użytkownika zamiast weryfikacji tokenu (mechaniczna zmiana, nadaje się do `--role task` z kontrolą `git diff`).
+- Routing: usunięcie `app/(protected)/layout.tsx` wymaga zdecydowania o `app/(protected)/dashboard` i `notes` (zostawić grupę z prostym layoutem bez auth albo spłaszczyć trasy).
+- Auth: `lib/getAuth.ts`, `lib/waitlistCheckEmail.ts`, `src/lib/auth/useAuth.ts`, `src/components/LoginScreen.tsx`, `app/(protected)/layout.tsx`, `src/lib/firebase-client.ts`, `lib/firebase-admin.ts`, `app/api/auth`, testy `getAuth`.
 - Waitlista: `app/api/waitlist/*` i jej testy.
 - Strony prawne i landing: `app/regulamin`, `app/politika-prywatnosci`, `app/cookies`, `app/auth`, oraz `app/page.tsx` do zastąpienia wejściem w aplikację (O4).
-- Zależności: `firebase`, `firebase-admin`; pliki `firebase.json`, `firestore.rules`; zmienne `FIREBASE_*` i `NEXT_PUBLIC_FIREBASE_*` z `.env.example`; skrypty `migrate-sqlite-to-firestore.ts`, `cleanup-knowledge-collections.ts`; tło emulatora z testów integracyjnych.
+- Zależności: `firebase`, `firebase-admin`; pliki `firebase.json`, `firestore.rules`; zmienne `FIREBASE_*` i `NEXT_PUBLIC_FIREBASE_*` z `.env.example`; skrypty `migrate-sqlite-to-firestore.ts`, `cleanup-knowledge-collections.ts`; `docker-compose-test.yml` i skrypty `emulator:docker`, `migrate:sqlite-to-firestore`, `vercel`, `vercel:prod` z `package.json`; pakiety `vercel` i `better-sqlite3` (po sprawdzeniu, że nic innego ich nie używa); tło emulatora z testów integracyjnych.
+- Testy e2e (Playwright): `tests/e2e/auth.setup.ts`, `auth-login-logout.spec.ts`, `public-pages.spec.ts` i specyfikacje `*.authenticated.spec.ts` zależą od logowania; trzeba je przepisać na uruchomienie bez auth albo usunąć.
 - Dokumentacja: nowe ADR „lokalne pliki zamiast Firestore” oznacza ADR-002, 003, 016 jako zastąpione; poprawka README.
 
 ### Zabezpieczenie lokalnego serwera (wymóg, nie opcja)
 
 Po usunięciu auth każdy proces z dostępem do portu może pisać do vaulta. Dlatego w 0d, jeszcze przed usunięciem logowania:
 
-- serwer wiąże się tylko z `127.0.0.1` (`next dev/start -H 127.0.0.1`),
-- middleware odrzuca żądania, których nagłówek `Host` nie jest `localhost`/`127.0.0.1` (ochrona przed DNS rebinding),
-- żądania zmieniające stan (POST/PUT/PATCH/DELETE) wymagają zgodnego `Origin` albo nagłówka własnego (ochrona przed zapisem z cudzej strony otwartej w tej samej przeglądarce),
+- serwer wiąże się tylko z `127.0.0.1` (`next dev -p 3100 -H 127.0.0.1`, `next start -H 127.0.0.1`; port dev to 3100 w `package.json`),
+- middleware odrzuca żądania, których nazwa hosta z nagłówka `Host` (bez portu) nie jest jedną z `localhost`, `127.0.0.1`, `[::1]` (ochrona przed DNS rebinding),
+- żądania zmieniające stan (POST/PUT/PATCH/DELETE) wymagają zgodnego `Origin` (lub `Sec-Fetch-Site: same-origin`) albo nagłówka własnego (ochrona przed zapisem z cudzej strony otwartej w tej samej przeglądarce),
 - test pokrywa trzy powyższe przypadki.
 
 ### 0e: Vercel i Firebase
