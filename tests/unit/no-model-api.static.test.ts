@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
-const SCAN_DIRS = ["app", "src", "services", "lib", "scripts"];
+const SCAN_DIRS = ["app", "src", "services", "lib", "scripts", "contexts"];
 const SKIP_DIRS = new Set(["node_modules", ".next"]);
 const SOURCE_EXT = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 
