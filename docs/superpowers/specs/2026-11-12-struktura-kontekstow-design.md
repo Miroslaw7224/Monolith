@@ -49,23 +49,23 @@ Repo ma mieć jedną, powtarzalną siatkę plików, zgodną z notatkami vaulta N
 
 ## 5. Infrastruktura wspólna
 
-- `lib/nexus/` — bez zmian w roli: `vault-path`, `vault-fs`, `yaml-store`, `yaml-lists`, `frontmatter`, `markdown-edit`, `task-line`, `slug`. W PR 1 dochodzą wspólne pomocniki repozytoriów przeniesione z `lib/nexus/repos/`: `common.ts` → `lib/nexus/record-helpers.ts` (używany przez wszystkie repozytoria) i `markdown-dir.ts` → `lib/nexus/markdown-dir.ts` (notatki i dokumenty). Importowany tylko przez `repositories` kontekstów, inne pliki `lib/nexus/`, `lib/workGuard.ts` (`import type`) i, do PR 10, stare `lib/nexus/repos/**`.
+- `lib/nexus/` — bez zmian w roli: `vault-path`, `vault-fs`, `yaml-store`, `yaml-lists`, `frontmatter`, `markdown-edit`, `task-line`, `slug`. W PR 1 dochodzą wspólne pomocniki repozytoriów przeniesione z `lib/nexus/repos/`: `common.ts` → `lib/nexus/record-helpers.ts` (używany przez wszystkie repozytoria) i `markdown-dir.ts` → `lib/nexus/markdown-dir.ts` (notatki i dokumenty). Importowany tylko przez `repositories` kontekstów, inne pliki `lib/nexus/`, `lib/workGuard.ts` (`import type` z `vault-fs` i `getVaultRoot` z `vault-path`), skrypty `scripts/**` (poza zasięgiem testu) i, do PR 10, stare `lib/nexus/repos/**`.
 - `lib/http/` (nowy, PR 1): `apiError.ts`, `parseBody.ts`, `inferHttpStatus.ts`, `uploadFormFile.ts`, `localGuard.ts`. `middleware.ts` importuje `localGuard` z nowej ścieżki.
 - `lib/schema/` (nowy, PR 1): `looseObject.ts` (z `lib/validation/`); bezpieczny dla klienta, bo używają go `schemas.ts`.
-- `lib/workGuard.ts` zostaje poza `lib/nexus/` (test `static.test.ts` zabrania tam `child_process`); importuje z `vault-fs` tylko typ.
+- `lib/workGuard.ts` zostaje poza `lib/nexus/` (test `static.test.ts` zabrania tam `child_process`); importuje z `vault-fs` tylko typ `VaultFsOptions`, a z `vault-path` funkcję `getVaultRoot` (import runtime, dopuszczony jawnie w regule 5).
 - `lib/errors.ts` — zostaje (`DomainError`, `ConflictError`, nowy `NotFoundError` z 1-1).
 - `lib/calendarRange.ts`, `lib/dateRef.ts` — do rozstrzygnięcia przy migracji domeny, która ich używa: kod jednej domeny wchodzi do jej kontekstu, kod wspólny zostaje w `lib/`.
-- `lib/markdown/html-markdown.ts` używa tylko UI (`NoteEditor.tsx`, `NotesPanel.tsx`), więc w PR 6 przechodzi do `src/lib/`.
+- `lib/markdown/html-markdown.ts` używają UI (`NoteEditor.tsx`, `NotesPanel.tsx`) i skrypt `scripts/import-to-vault/notes.ts`. Zostaje w `lib/markdown/` jako kod wspólny (reguła 1 nie zabrania `src/** → lib/markdown`); nie przenosimy go do `src/lib/`, bo skrypt nie powinien importować z `src/`.
 
 ### 5.1 UI wspólne
 
-Reguła: kod UI używany przez jeden moduł leży w `src/features/<moduł>/`; używany przez więcej niż jeden — w `src/components/<temat>/` (komponenty) albo `src/lib/` (funkcje, stałe). `src/features/A` nie importuje `src/features/B` (wyjątek: istniejące `planowanie` i `cards`, które składają widoki — opisane w ADR-021).
+Reguła: kod UI używany przez jeden moduł leży w `src/features/<moduł>/`; używany przez więcej niż jeden — w `src/components/<temat>/` (komponenty) albo `src/lib/` (funkcje, stałe). `src/features/A` nie importuje `src/features/B`. Wyjątki to moduły składające widoki: `planowanie` (importuje `mind-maps`, `board`, `notes`), `cards` i `home` (importują `planowanie`) — opisane w ADR-021. Ta reguła jest konwencją sprawdzaną w review, nie regułą testu architektury (§6); jeśli trafi do testu, wyjątki idą do baseline.
 
-| Element                                                     | Używają                                   | Miejsce docelowe               |
-| ----------------------------------------------------------- | ----------------------------------------- | ------------------------------ |
-| `NoteEditor*`, `noteEditorExtensions`                       | notatki, mapy myśli (`MindMapNotesPanel`) | `src/components/note-editor/`  |
-| `ActivityLog`, `StartSessionModal`, `src/lib/activeSession` | Home, Planowanie, kalendarz               | `src/components/sessions/`     |
-| `calendarConstants`                                         | tagi, kalendarz                           | `src/lib/calendarConstants.ts` |
+| Element                                                     | Używają                                                     | Miejsce docelowe               |
+| ----------------------------------------------------------- | ----------------------------------------------------------- | ------------------------------ |
+| `NoteEditor*`, `noteEditorExtensions`                       | notatki, mapy myśli (`MindMapNotesPanel`)                   | `src/components/note-editor/`  |
+| `ActivityLog`, `StartSessionModal`, `src/lib/activeSession` | Home, Planowanie, kalendarz                                 | `src/components/sessions/`     |
+| `calendarConstants`                                         | tagi, kalendarz, sesje (`ActivityLog`, `StartSessionModal`) | `src/lib/calendarConstants.ts` |
 
 ## 6. Reguły importów (test architektury)
 
@@ -77,7 +77,7 @@ Test skanuje kod źródłowy: `app/`, `contexts/`, `lib/`, `services/`, `src/`, 
 2. `contexts/bc_A/**` importuje z `contexts/bc_B/**` (B ≠ A) wyłącznie `contexts/bc_B/services*`.
 3. Kierunek wewnątrz kontekstu zgodnie z §4 („Kierunek wewnątrz kontekstu”); `repositories*` importowany tylko przez własny `services*` i wnętrze własnego folderu `repositories/`; `models*` tylko w obrębie kontekstu.
 4. `contexts/*/router*` importowany tylko przez `app/api/**/route.ts` i wnętrze własnego folderu `router/`. `route.ts`, który importuje kontekst, ma tylko re-eksport z jednego `router` (żadnych innych importów).
-5. `lib/nexus/**` importowany tylko przez `contexts/*/repositories*`, inne pliki `lib/nexus/**`, `lib/workGuard.ts` (`import type`) oraz, do PR 10, `lib/nexus/repos/**` i `lib/firestore-db.ts`.
+5. `lib/nexus/**` importowany tylko przez `contexts/*/repositories*`, inne pliki `lib/nexus/**`, `lib/workGuard.ts` (dziś: `import type` z `vault-fs` i `getVaultRoot` z `vault-path`) oraz, do PR 10, `lib/nexus/repos/**` i `lib/firestore-db.ts`. `scripts/**` nie jest skanowany.
 6. `app/api/**`, `services/**`, `lib/**`, `contexts/**`, `types/**` nie importują `src/**`.
 7. `contexts/**` nie importuje `services/**`, `types/records` ani `lib/firestore-db` (nowy kod nie opiera się na starej warstwie). Odwrotnie wolno: stary `services/**` może wołać `contexts/*/services*` w trakcie migracji.
 8. Graf `contexts/bc_*/services*` → `contexts/bc_*/services*` jest acykliczny (zakaz cykli między kontekstami).
@@ -117,15 +117,15 @@ Według specu `2026-11-12-etap-1-1-karta-projektu-odczyt-design.md`. Pierwszy ko
 
 ### PR 3…9: migracja domen (po jednej na PR, backend i UI razem)
 
-| Kolejność | Kontekst       | Backend (skąd)                                                                                                                                                       | UI (dokąd)                                                                                 |
-| --------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 3         | `bc_tags`      | `services/tagService.ts`, `lib/nexus/repos/tags.ts`, `lib/validation/tags.ts`, `app/api/tags/**`                                                                     | `src/components/TagsSection.tsx` → `src/features/tags/`                                    |
-| 4         | `bc_tasks`     | `taskService`, `taskTemplateService`, repos `tasks`, `taskTemplates`, walidacje, `app/api/tasks/**`, `task-templates/**`                                             | `src/components/tasks/`, `TasksSection`, modale zadań → `src/features/tasks/`              |
-| 5         | `bc_calendar`  | `calendarService` (zadania przez `bc_tasks/services`), repo `calendarEvents`, `app/api/calendar/**`                                                                  | `CalendarView`, `calendar/`, `CalendarEventForm`, `ActivityLog` → `src/features/calendar/` |
-| 6         | `bc_notes`     | `noteService`, repo `notes`, walidacja, `app/api/notes/**`                                                                                                           | `NoteEditor*`, `noteEditorExtensions` → `src/features/notes/`                              |
-| 7         | `bc_resources` | `resourceService`, `documentService`, repos `resources`, `documents`, `app/api/resources/**`, `documents/**`, `upload`                                               | `ResourceSection`, `resources/` → `src/features/resources/`                                |
-| 8         | `bc_board`     | `boardService`, repo `board`, `app/api/board`; `boardTypes`/`boardSchema` → `models`/`schemas`, `EMPTY_BOARD` w `schemas` (koniec wyjątków board w baseline)         | `src/features/board/` (bez typów domeny)                                                   |
-| 9         | `bc_mind_maps` | `mindMapService`, repo `mindMaps`, `app/api/mind-maps/**`; typy domeny z `mindMapTypes` → `models` + DTO w `schemas`, stałe `*_COL_W` zostają w UI (koniec baseline) | `src/features/mind-maps/` + `src/lib/mindMapUtils.ts`                                      |
+| Kolejność | Kontekst       | Backend (skąd)                                                                                                                                                       | UI (dokąd)                                                                                     |
+| --------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 3         | `bc_tags`      | `services/tagService.ts`, `lib/nexus/repos/tags.ts`, `lib/validation/tags.ts`, `app/api/tags/**`                                                                     | `src/components/TagsSection.tsx` → `src/features/tags/`                                        |
+| 4         | `bc_tasks`     | `taskService`, `taskTemplateService`, repos `tasks`, `taskTemplates`, walidacje, `app/api/tasks/**`, `task-templates/**`                                             | `src/components/tasks/`, `TasksSection`, modale zadań → `src/features/tasks/`                  |
+| 5         | `bc_calendar`  | `calendarService` (zadania przez `bc_tasks/services`), repo `calendarEvents`, `app/api/calendar/**`                                                                  | `CalendarView`, `calendar/`, `CalendarEventForm`, `ActivityLog` → `src/features/calendar/`     |
+| 6         | `bc_notes`     | `noteService`, repo `notes`, walidacja, `app/api/notes/**`                                                                                                           | `NoteEditor*`, `noteEditorExtensions` → `src/components/note-editor/` (§5.1, wspólne z mapami) |
+| 7         | `bc_resources` | `resourceService`, `documentService`, repos `resources`, `documents`, `app/api/resources/**`, `documents/**`, `upload`                                               | `ResourceSection`, `resources/` → `src/features/resources/`                                    |
+| 8         | `bc_board`     | `boardService`, repo `board`, `app/api/board`; `boardTypes`/`boardSchema` → `models`/`schemas`, `EMPTY_BOARD` w `schemas` (koniec wyjątków board w baseline)         | `src/features/board/` (bez typów domeny)                                                       |
+| 9         | `bc_mind_maps` | `mindMapService`, repo `mindMaps`, `app/api/mind-maps/**`; typy domeny z `mindMapTypes` → `models` + DTO w `schemas`, stałe `*_COL_W` zostają w UI (koniec baseline) | `src/features/mind-maps/` + `src/lib/mindMapUtils.ts`                                          |
 
 Każdy PR: przeniesienie testów lustrzanie, aktualizacja `repos-static.test.ts` i list plików w pozostałych testach statycznych (np. ścieżki zaszyte w `no-user-id.static.test.ts`), test architektury zielony, brak zmian zachowania (te same testy przechodzą po przeniesieniu). Typy z `types/records.ts` wędrują do `models`/`schemas` kontekstu; dopóki inne miejsca ich używają, `types/records.ts` re-eksportuje je wyłącznie z `schemas` (reguła 9).
 
@@ -143,4 +143,4 @@ Usunięcie `services/`, `lib/nexus/repos/`, `lib/validation/`, `types/records.ts
 - **Mocki w testach** (`vi.mock("…/lib/firestore-db.js")`) zmieniają cel przy każdej migracji; testy serwisu mockują `repositories` własnego kontekstu.
 - **Plan 0e** (usunięcie Firebase) dotyka `lib/firebase-admin.ts`, skryptów i konfiguracji, nie domen; nie koliduje, ale jego Task 6 trzeba wykonać na aktualnym `main`.
 - **Rozmiar `router.ts`** przy kontekście z wieloma trasami (np. `bc_tasks`): wtedy folder `router/` (§4).
-- **`looseObject` przepuszcza nieznane pola** (`passthrough`), a notatka vaulta zaleca jawny błąd dla nieznanych pól (odpowiednik `extra='forbid'`). Zmiana na `strict` zmienia zachowanie API, więc nie wchodzi do migracji (która ma być bez zmian zachowania); osobna decyzja po PR 10.
+- **`looseObject` przepuszcza nieznane pola** (`passthrough`), a notatka vaulta `struktura-jako-uprzaz.md` zaleca jawny błąd dla nieznanych pól (odpowiednik `extra='forbid'`). Zmiana na `strict` zmienia zachowanie API, więc nie wchodzi do migracji (która ma być bez zmian zachowania); osobna decyzja po PR 10.
