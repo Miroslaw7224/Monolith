@@ -61,7 +61,7 @@ vi.mock("@tiptap/react", () => {
 });
 
 // Mock all Tiptap extensions used by NoteEditor
-vi.mock("@tiptap/starter-kit", () => ({ default: {} }));
+vi.mock("@tiptap/starter-kit", () => ({ default: { configure: () => ({}) } }));
 vi.mock("@tiptap/extension-underline", () => ({ default: {} }));
 vi.mock("@tiptap/extension-text-align", () => ({
   default: { configure: () => ({}) },
@@ -184,5 +184,45 @@ describe("NoteEditor", () => {
     fireEvent.click(toggleButton);
     fireEvent.click(screen.getByText("Domyślny"));
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+});
+
+describe("NoteEditor format=markdown", () => {
+  const renderMarkdown = () =>
+    render(<NoteEditor content="**x**" onContentChange={vi.fn()} format="markdown" />);
+
+  it("renders without crashing", () => {
+    renderMarkdown();
+    expect(screen.getByTestId("tiptap-editor")).toBeInTheDocument();
+  });
+
+  it("keeps bold, italic and strikethrough", () => {
+    renderMarkdown();
+    expect(screen.getByTitle("Pogrubienie")).toBeInTheDocument();
+    expect(screen.getByTitle("Kursywa")).toBeInTheDocument();
+    expect(screen.getByTitle("Przekreślenie")).toBeInTheDocument();
+  });
+
+  it("drops formatting that Markdown cannot represent", () => {
+    renderMarkdown();
+    for (const title of [
+      "Podkreślenie",
+      "Wyrównaj do lewej",
+      "Wyśrodkuj",
+      "Wyrównaj do prawej",
+      "Justowanie",
+      "Rozmiar czcionki",
+      "Czcionka",
+      "Kolor tekstu",
+    ]) {
+      expect(screen.queryByTitle(title), title).not.toBeInTheDocument();
+    }
+  });
+
+  it("keeps the full toolbar in the default html mode", () => {
+    render(<NoteEditor content="<p>x</p>" onContentChange={vi.fn()} />);
+    expect(screen.getByTitle("Podkreślenie")).toBeInTheDocument();
+    expect(screen.getByTitle("Kolor tekstu")).toBeInTheDocument();
+    expect(screen.getByTitle("Rozmiar czcionki")).toBeInTheDocument();
   });
 });

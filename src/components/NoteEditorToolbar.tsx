@@ -165,7 +165,18 @@ function ToolbarButton({
   );
 }
 
-export function NoteEditorToolbar({ editor }: { editor: Editor }) {
+/**
+ * `format="markdown"`: tylko to, co Markdown potrafi zapisać (pogrubienie, kursywa, przekreślenie);
+ * `"html"` (domyślnie, notatki węzłów map myśli) zachowuje pełny pasek.
+ */
+export function NoteEditorToolbar({
+  editor,
+  format = "html",
+}: {
+  editor: Editor;
+  format?: "html" | "markdown";
+}) {
+  const rich = format !== "markdown";
   return (
     <div className="flex flex-wrap items-center gap-1 p-2 border-b border-[var(--border)] bg-[var(--bg2)] flex-shrink-0">
       <ToolbarButton
@@ -182,13 +193,15 @@ export function NoteEditorToolbar({ editor }: { editor: Editor }) {
       >
         <Italic className="w-4 h-4" />
       </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        active={editor.isActive("underline")}
-        title="Podkreślenie"
-      >
-        <UnderlineIcon className="w-4 h-4" />
-      </ToolbarButton>
+      {rich && (
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          active={editor.isActive("underline")}
+          title="Podkreślenie"
+        >
+          <UnderlineIcon className="w-4 h-4" />
+        </ToolbarButton>
+      )}
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive("strike")}
@@ -196,78 +209,82 @@ export function NoteEditorToolbar({ editor }: { editor: Editor }) {
       >
         <Strikethrough className="w-4 h-4" />
       </ToolbarButton>
-      <span className="w-px h-6 bg-[var(--border)] mx-1" />
-      {/* Text alignment */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        active={editor.isActive({ textAlign: "left" })}
-        title="Wyrównaj do lewej"
-      >
-        <AlignLeft className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        active={editor.isActive({ textAlign: "center" })}
-        title="Wyśrodkuj"
-      >
-        <AlignCenter className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("right").run()}
-        active={editor.isActive({ textAlign: "right" })}
-        title="Wyrównaj do prawej"
-      >
-        <AlignRight className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-        active={editor.isActive({ textAlign: "justify" })}
-        title="Justowanie"
-      >
-        <AlignJustify className="w-4 h-4" />
-      </ToolbarButton>
-      <span className="w-px h-6 bg-[var(--border)] mx-1" />
-      {/* Font size */}
-      <select
-        title="Rozmiar czcionki"
-        value={(editor.getAttributes("textStyle").fontSize as string) || ""}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v) editor.chain().focus().setFontSize(v).run();
-          else editor.chain().focus().unsetFontSize().run();
-        }}
-        className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] min-w-[4rem]"
-      >
-        <option value="">Rozmiar</option>
-        {FONT_SIZES.map((size) => (
-          <option key={size} value={size}>
-            {size}
-          </option>
-        ))}
-      </select>
-      {/* Font family */}
-      <select
-        title="Czcionka"
-        value={(editor.getAttributes("textStyle").fontFamily as string) ?? ""}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (v) editor.chain().focus().setFontFamily(v).run();
-          else editor.chain().focus().unsetFontFamily().run();
-        }}
-        className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] min-w-[5rem]"
-      >
-        {FONT_FAMILIES.map((f) => (
-          <option key={f.value || "default"} value={f.value}>
-            {f.label}
-          </option>
-        ))}
-      </select>
-      <span className="w-px h-6 bg-[var(--border)] mx-1" />
-      <TextColorPicker
-        value={(editor.getAttributes("textStyle").color as string) ?? ""}
-        onPick={(hex) => editor.chain().focus().setColor(hex).run()}
-        onClear={() => editor.chain().focus().unsetColor().run()}
-      />
+      {rich && (
+        <>
+          <span className="w-px h-6 bg-[var(--border)] mx-1" />
+          {/* Text alignment */}
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
+            active={editor.isActive({ textAlign: "left" })}
+            title="Wyrównaj do lewej"
+          >
+            <AlignLeft className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
+            active={editor.isActive({ textAlign: "center" })}
+            title="Wyśrodkuj"
+          >
+            <AlignCenter className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
+            active={editor.isActive({ textAlign: "right" })}
+            title="Wyrównaj do prawej"
+          >
+            <AlignRight className="w-4 h-4" />
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+            active={editor.isActive({ textAlign: "justify" })}
+            title="Justowanie"
+          >
+            <AlignJustify className="w-4 h-4" />
+          </ToolbarButton>
+          <span className="w-px h-6 bg-[var(--border)] mx-1" />
+          {/* Font size */}
+          <select
+            title="Rozmiar czcionki"
+            value={(editor.getAttributes("textStyle").fontSize as string) || ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) editor.chain().focus().setFontSize(v).run();
+              else editor.chain().focus().unsetFontSize().run();
+            }}
+            className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] min-w-[4rem]"
+          >
+            <option value="">Rozmiar</option>
+            {FONT_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+          {/* Font family */}
+          <select
+            title="Czcionka"
+            value={(editor.getAttributes("textStyle").fontFamily as string) ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) editor.chain().focus().setFontFamily(v).run();
+              else editor.chain().focus().unsetFontFamily().run();
+            }}
+            className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] min-w-[5rem]"
+          >
+            {FONT_FAMILIES.map((f) => (
+              <option key={f.value || "default"} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <span className="w-px h-6 bg-[var(--border)] mx-1" />
+          <TextColorPicker
+            value={(editor.getAttributes("textStyle").color as string) ?? ""}
+            onPick={(hex) => editor.chain().focus().setColor(hex).run()}
+            onClear={() => editor.chain().focus().unsetColor().run()}
+          />
+        </>
+      )}
     </div>
   );
 }
