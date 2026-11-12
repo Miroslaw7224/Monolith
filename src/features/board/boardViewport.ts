@@ -7,9 +7,10 @@ export interface BoardViewport {
 const KEY = "board-viewport";
 
 export function readViewport(): BoardViewport | null {
-  const raw = localStorage.getItem(KEY);
-  if (!raw) return null;
+  if (typeof window === "undefined") return null;
   try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
     const parsed = JSON.parse(raw) as BoardViewport;
     if (![parsed.x, parsed.y, parsed.zoom].every((value) => Number.isFinite(value))) return null;
     return parsed;
@@ -19,5 +20,10 @@ export function readViewport(): BoardViewport | null {
 }
 
 export function storeViewport(viewport: BoardViewport): void {
-  localStorage.setItem(KEY, JSON.stringify(viewport));
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(viewport));
+  } catch {
+    // zapis widoku jest dodatkiem; brak miejsca lub zablokowany localStorage nie może psuć tablicy
+  }
 }
