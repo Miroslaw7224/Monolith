@@ -15,6 +15,7 @@
     { id: "plotno", label: "Płótno", file: "06-plotno.html" },
     { id: "arsenal", label: "Arsenał", file: "07-arsenal.html" },
     { id: "mapa", label: "Mapa", file: "08-mapa.html" },
+    { id: "kodeks", label: "Kodeks", file: "09-kodeks.html" },
   ];
   const root = document.documentElement;
   const current = root.dataset.card;
@@ -47,7 +48,7 @@
     <span class="statusbar__item"><span class="statusbar__dot"></span>vault <b>zsynchronizowany</b></span>
     <span class="statusbar__item">branch <b>${root.dataset.branch || "main"}</b></span>
     <span class="statusbar__spacer"></span>
-    <span class="statusbar__item">Alt+1…8 karty · Alt+0 źródła · Ctrl+K polecenia</span>
+    <span class="statusbar__item">Alt+1…9 karty · Alt+0 źródła · Ctrl+K polecenia</span>
     <span class="statusbar__item"><b data-clock>--:--</b></span>`;
   app.append(bar);
   const clock = bar.querySelector("[data-clock]");
@@ -176,7 +177,7 @@
       toggleSrc();
       return;
     }
-    if (e.altKey && /^Digit[1-8]$/.test(e.code)) {
+    if (e.altKey && /^Digit[1-9]$/.test(e.code)) {
       e.preventDefault();
       location.href = CARDS[+e.code.slice(5) - 1].file;
     }
