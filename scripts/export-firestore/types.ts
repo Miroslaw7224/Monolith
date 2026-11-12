@@ -15,6 +15,12 @@ export const KNOWN_COLLECTIONS = [
   "waitlist",
 ] as const;
 
+/**
+ * Kolekcje historyczne: po usuniętym module Wiedza/RAG (maj 2026), nic w aplikacji ich nie czyta.
+ * Są eksportowane wiernie, ale nie wymagają przeglądu i nie trafią do migracji (0b).
+ */
+export const HISTORICAL_COLLECTIONS = ["knowledgeNodes", "knowledgeEdges"] as const;
+
 export const MANIFEST_FILE = "manifest.json";
 export const AUTH_USERS_FILE = "auth-users.json";
 export const DEFAULT_PAGE_SIZE = 500;

@@ -22,6 +22,9 @@ describe("isKnownCollection", () => {
     expect(isKnownCollection("waitlist")).toBe(true);
     expect(isKnownCollection("mystery")).toBe(false);
     expect(isKnownCollection("users/u1/board/main/history")).toBe(false);
+    // historyczne po usuniętym module Wiedza/RAG
+    expect(isKnownCollection("users/u1/knowledgeNodes")).toBe(true);
+    expect(isKnownCollection("users/u1/knowledgeEdges")).toBe(true);
   });
 });
 

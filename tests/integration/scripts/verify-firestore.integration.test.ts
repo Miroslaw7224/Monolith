@@ -36,6 +36,15 @@ describe.skipIf(!integrationEnabled)("verifyDump (emulator)", () => {
     expect(await verifyDump(scoped, db)).toEqual({ ok: true, problems: [] });
   });
 
+  it("recomputes status from the current known list, not the stored one", async () => {
+    const file = path.join(outDir, "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+    manifest.status = "needs-review";
+    manifest.collections[0].known = false; // jak w zrzucie sprzed dopisania kolekcji do znanych
+    fs.writeFileSync(file, JSON.stringify(manifest));
+    expect(await verifyDump(outDir, getFirestore())).toEqual({ ok: true, problems: [] });
+  });
+
   it("fails when a document was added to Firestore after the export", async () => {
     const db = getFirestore();
     await db.doc("users/u1/tasks/t-new").set({ title: "late" });

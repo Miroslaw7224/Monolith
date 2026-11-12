@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+  HISTORICAL_COLLECTIONS,
   KNOWN_COLLECTIONS,
   MANIFEST_FILE,
   type CollectionEntry,
@@ -10,7 +11,10 @@ import {
 
 export function isKnownCollection(collectionPath: string): boolean {
   const last = collectionPath.split("/").pop() ?? "";
-  return (KNOWN_COLLECTIONS as readonly string[]).includes(last);
+  return (
+    (KNOWN_COLLECTIONS as readonly string[]).includes(last) ||
+    (HISTORICAL_COLLECTIONS as readonly string[]).includes(last)
+  );
 }
 
 export function computeStatus(entries: CollectionEntry[]): ManifestStatus {

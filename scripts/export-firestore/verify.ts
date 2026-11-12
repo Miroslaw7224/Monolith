@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Firestore } from "firebase-admin/firestore";
 import { countDocs, discoverCollections } from "./discover";
 import { describeFile } from "./exporter";
-import { readManifest } from "./manifest";
+import { computeStatus, isKnownCollection, readManifest } from "./manifest";
 import { MANIFEST_FILE } from "./types";
 
 export type VerifyResult = { ok: boolean; problems: string[] };
@@ -22,8 +22,13 @@ export async function verifyDump(dir: string, db: Firestore): Promise<VerifyResu
   }
 
   const problems: string[] = [];
-  if (manifest.status !== "ok") {
-    problems.push(`status eksportu to "${manifest.status}", a nie "ok"`);
+  // Status liczymy od nowa z bieżącej listy znanych kolekcji: zapisany w manifeście mógł
+  // powstać, zanim kolekcja trafiła na listę (np. historyczne knowledgeNodes).
+  const status = computeStatus(
+    manifest.collections.map((e) => ({ ...e, known: isKnownCollection(e.path) }))
+  );
+  if (status !== "ok") {
+    problems.push(`status eksportu to "${status}", a nie "ok"`);
   }
 
   const { collections } = await discoverCollections(db, { uid: manifest.uid ?? undefined });
