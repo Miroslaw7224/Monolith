@@ -1,7 +1,7 @@
 # Struktura repo Monolith według vaulta NEXUS (konteksty `bc_*`) — projekt
 
 Data: 2026-11-12
-Status: szkic do przeglądu
+Status: zaakceptowany (2026-11-12)
 Powiązane: `docs/adr/014-layer-separation-and-service-layer.md` (zastępowane mapowanie folderów), `docs/adr/018-feature-modules-wiedza-planowanie.md`, spec etapu 1-1 `2026-11-12-etap-1-1-karta-projektu-odczyt-design.md` (pierwszy kontekst)
 
 ## 1. Cel
