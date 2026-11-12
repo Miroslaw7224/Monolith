@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7) i uruchomiony na prawdziwym zrzucie (2026-11-12, liczności zgodne), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4; 0c-1 zmergowany, PR #8; 0c-2 ma spec `2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`), kroki 0d–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7) i uruchomiony na prawdziwym zrzucie (2026-11-12, liczności zgodne), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4; 0c-1 zmergowany, PR #8; 0c-2 ma spec `2026-11-12-etap-0c-2-tagi-szablony-zasoby-design.md`), krok 0d podzielony na 0d-1 (zabezpieczenie lokalne, serwer bez auth i `userId`; plan `2026-11-12-etap-0d-1-lokalny-serwer-bez-auth-i-userid.md`, zaimplementowany) i 0d-2 (klient, waitlista, `firebase`, e2e, dokumentacja), kroki 0e–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -157,6 +157,10 @@ Szczegółowy projekt, podział na podkroki 0c-1…0c-4, formaty plików i testy
 
 ### 0d: usunięcie
 
+**Podział (decyzja przy planowaniu 0d).** 0d-1: zabezpieczenie lokalnego serwera (`lib/localGuard.ts`, `middleware.ts`, nagłówek `X-Nexus-Client` dla narzędzi spoza przeglądarki, `-H 127.0.0.1`) oraz usunięcie auth i `userId` z route'ów, serwisów, repozytoriów i typów. 0d-2: wszystko, co dotyczy klienta, waitlisty, pakietu `firebase`, e2e i dokumentacji (lista niżej). Między nimi aplikacja działa: klient nadal loguje się Firebase i woła `/api/waitlist/check`, a pozostałe route'y ignorują token.
+
+**Odstępstwo od listy niżej: `firebase-admin`, `lib/firebase-admin.ts`, `scripts/export-firestore/`, `scripts/migrate-sqlite-to-firestore.ts`, `scripts/cleanup-knowledge-collections.ts` i testy integracyjne eksportu zostają do 0e.** `--verify` zrzutu (bramka 0e krok 1) i ewentualny ponowny eksport potrzebują `firebase-admin`, a zrzut jest jedyną siatką bezpieczeństwa przed usunięciem projektu Firebase. Usuwamy je po bramce 0e.
+
 - Route handlery: `getAuthUserId` jest użyty w 27 plikach `app/api/**`; każdy dostaje stałego lokalnego użytkownika zamiast weryfikacji tokenu (mechaniczna zmiana, nadaje się do `--role task` z kontrolą `git diff`).
 - Routing: usunięcie `app/(protected)/layout.tsx` wymaga zdecydowania o `app/(protected)/dashboard` i `notes` (zostawić grupę z prostym layoutem bez auth albo spłaszczyć trasy).
 - Auth: `lib/getAuth.ts`, `lib/waitlistCheckEmail.ts`, `src/lib/auth/useAuth.ts`, `src/components/LoginScreen.tsx`, `app/(protected)/layout.tsx`, `src/lib/firebase-client.ts`, `lib/firebase-admin.ts`, `app/api/auth`, testy `getAuth`.
@@ -174,6 +178,8 @@ Po usunięciu auth każdy proces z dostępem do portu może pisać do vaulta. Dl
 - middleware odrzuca żądania, których nazwa hosta z nagłówka `Host` (bez portu) nie jest jedną z `localhost`, `127.0.0.1`, `[::1]` (ochrona przed DNS rebinding),
 - żądania zmieniające stan (POST/PUT/PATCH/DELETE) wymagają zgodnego `Origin` (lub `Sec-Fetch-Site: same-origin`) albo nagłówka własnego (ochrona przed zapisem z cudzej strony otwartej w tej samej przeglądarce),
 - test pokrywa trzy powyższe przypadki.
+
+Stan: zaimplementowane w 0d-1 (`lib/localGuard.ts` z testami, `middleware.ts`, skrypty `dev`/`start`/`preview` z `-H 127.0.0.1`). Przeglądarka sama wysyła `Origin` i `Sec-Fetch-Site` przy `fetch` na ten sam origin, więc kod UI się nie zmienia; curl i skrypty wysyłają `X-Nexus-Client: 1`. Reguły: obcy `Host` → 403 dla każdej metody; metody zmieniające stan wymagają `Sec-Fetch-Site: same-origin`, a bez tego nagłówka zgodnego `Origin` lub `X-Nexus-Client: 1` (nagłówek nie przebija obcego `Origin`).
 
 ### 0e: Vercel i Firebase
 
@@ -210,7 +216,7 @@ W repo NEXUS: wpis `Work/` w `.gitignore` (zrobić przed utworzeniem pierwszego 
 
 - Zrzut przechodzi `--verify`, liczności zgodne w obu kierunkach (0a).
 - Raport 0b bez rekordów nieuwzględnionych; straty konwersji zaakceptowane przez użytkownika.
-- Aplikacja uruchamia się bez zmiennych `FIREBASE_*` i bez pakietów Firebase w `package-lock.json`.
+- Po 0e (nie po 0d, bo `firebase-admin` służy bramce 0e): aplikacja uruchamia się bez zmiennych `FIREBASE_*` i bez pakietów Firebase w `package-lock.json`.
 - Testy jednostkowe i integracyjne przechodzą, w tym testy zabezpieczenia lokalnego.
 - Aplikacja nie jest wdrożona na Vercelu; projekt Firebase zamknięty po karencji; zrzut zachowany w dwóch miejscach.
 - `git check-ignore Vault/Work/` zwraca ścieżkę w NEXUS, a aplikacja blokuje dostęp do `Work/`, gdy tak nie jest.
