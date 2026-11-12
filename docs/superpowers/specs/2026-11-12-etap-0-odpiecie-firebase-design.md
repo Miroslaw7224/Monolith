@@ -54,7 +54,7 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 <katalog>/
 ├ manifest.json
 ├ users/<uid>/<kolekcja>.jsonl      jedna linia = jeden dokument {"_id","_path","data":{…}}
-├ root/<kolekcja>.jsonl             kolekcje główne (np. waitlist)
+├ root/<ścieżka kolekcji>.jsonl     kolekcje główne i zagnieżdżone poza users/<uid> (np. root/users.jsonl, root/waitlist.jsonl)
 └ auth-users.json                   uid, e-mail, daty (bez haszy haseł i tokenów)
 ```
 
