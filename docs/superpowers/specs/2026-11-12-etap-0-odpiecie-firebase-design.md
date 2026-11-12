@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: szkic do przeglądu (bez implementacji)
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), kroki 0b–0f w planowaniu. Zakres danych zawężony decyzją użytkownika (§1.1).
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -14,11 +14,19 @@ W zakresie: eksport, konwersja do plików, warstwa plikowa `lib/nexus/` pod `ser
 
 Poza zakresem: nowe moduły (karta projektu, kokpit, arsenał, mapa), zmiana nazwy na Monolith (D8), serwer MCP, indeks z watcherem.
 
+### 1.1 Zakres danych (decyzja użytkownika, 2026-11-12)
+
+- **Migrujemy:** `notes`, `tasks`, `resources`, `user_tags`, `task_templates` jednego użytkownika, czyli jedynego prawdziwego konta. Dwa pozostałe konta z danymi są testowe i są pomijane, razem z kolekcją `waitlist` i metadanymi kont Auth innych użytkowników.
+- **Nie migrujemy i nie ma ich w zawężonym zrzucie:** `calendar_events`, `mindMaps`, `board`, `documents` (konto prawdziwe nie ma tej kolekcji), `chunks`, `agent_log` oraz historyczne `knowledgeNodes` i `knowledgeEdges`. Widok „Moja praca” (`ActivityLog`) nie jest osobną kolekcją, tylko widokiem na zadaniach i kalendarzu.
+- **Skutek:** po odpięciu Firebase moduły oparte na pominiętych danych (kalendarz, mapy myśli, „Moja praca”, planowanie, tablica) nie mają dokąd zapisywać. Co z ich kodem, rozstrzyga O7.
+- **Szerszy zrzut:** pełniejszy zrzut konta (z kalendarzem i mapami myśli) istnieje lokalnie poza repozytoriami i na wniosek użytkownika zostaje. Po 0e będzie jedyną kopią tych danych, więc jego usunięcie wymaga osobnej, świadomej decyzji.
+
 ## 2. Stan wyjściowy (zweryfikowany w kodzie)
 
 - Dane użytkownika leżą w `users/{uid}/…`, kolekcje (`lib/firestore/collections.ts`): `documents`, `notes`, `mindMaps`, `board/main`, `resources`, `chunks`, `calendar_events`, `tasks`, `user_tags`, `task_templates`, `agent_log`.
 - Poza `users/` jest kolekcja główna `waitlist` (używana w bramce dostępu `lib/getAuth.ts`).
-- Skrypty jednorazowe w repo wskazują, że mogły istnieć też kolekcje historyczne (`knowledgeNodes`, `knowledgeEdges`, już czyszczone). Eksport nie może zakładać, że lista kolekcji jest kompletna (patrz 4.3).
+- Na produkcji istnieją dane historycznych kolekcji `knowledgeNodes` i `knowledgeEdges` (pozostałość po usuniętym module Wiedza/RAG z maja 2026; nic w aplikacji ich nie czyta, a `scripts/cleanup-knowledge-collections.ts` nigdy nie został uruchomiony na produkcji). Eksport nie może zakładać, że lista kolekcji jest kompletna (patrz 4.3).
+- Produkcyjny Firestore ma trzy konta z danymi (jedno prawdziwe, dwa testowe) jako dokumenty-widma pod `users/<uid>`; dokument `users/<uid>` istnieje tylko dla innego konta, bez danych. W Auth są cztery konta (rozstrzygnięcie O6).
 - `lib/firestore-db.ts` jest barrelem eksportującym całe API danych. To naturalny szew do podmiany backendu.
 - Rekordy mają pola czasu w dwóch formach: tekst (`created_at`) i `Timestamp` (`createdAt`). Eksport musi zachować oba.
 - `firestore.rules` zabrania odczytu `agent_log` z klienta (tylko Admin SDK).
@@ -37,6 +45,8 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 | 0e   | Zdjęcie z Vercela, wygaszenie projektu Firebase                                        | nie                | tak (usunięcie), po okresie karencji |
 | 0f   | `Vault/Work/` w `.gitignore` NEXUS i kontrola `git check-ignore`                       | w NEXUS            | nie                                  |
 
+Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Kroki 0b–0f nie są rozpoczęte.
+
 0f jest niezależny i może wejść w dowolnym momencie przed pierwszym zapisem danych etatu. Zmianę `.gitignore` w repo NEXUS robi człowiek lub agent poza aplikacją (aplikacja zapisuje tylko w `Vault/`).
 
 ## 4. Krok 0a: eksport Firestore
@@ -46,6 +56,7 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 - **Tylko odczyt.** Skrypt nie wywołuje `set`, `update`, `delete`, `add`, `batch`. Test sprawdza to statycznie (brak tych wywołań w pliku skryptu).
 - **Pełna wierność.** Zapisujemy dokument takim, jaki jest, bez konwersji formatu. Konwersja do vaulta to krok 0b na kopii.
 - **Miejsce wyjścia poza repo i poza vaultem**, domyślnie `~/backups/second-brain-firestore/<RRRR-MM-DDTGGMM>/`. Powód: oba repo są śledzone przez git, a zrzut zawiera pełną treść notatek i dokumentów. Skrypt odmawia zapisu, jeśli katalog docelowy leży w drzewie roboczym gita (`git rev-parse --is-inside-work-tree`). Katalog 0700, pliki 0600.
+- **Zakres na życzenie.** `--uid` ogranicza zrzut do jednego konta (`users/<uid>/…`, bez kolekcji głównych i innych kont, a Auth pobiera przez `getUser` tylko to konto), `--only` do kolekcji o podanych nazwach (pominięte nie są pobierane, liczone ani sprawdzane przez `--verify`; skrypt nie schodzi w ich podkolekcje). Zakres trafia do manifestu.
 - **Brak zapisów w trakcie.** Aplikacja nie pisze do Firestore w czasie eksportu (jedyny użytkownik, zatrzymać serwer). Skrypt sprawdza spójność drugim przebiegiem liczenia (4.4).
 
 ### 4.2 Format wyjścia
@@ -60,11 +71,12 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 
 - Typy Firestore są kodowane znacznikami, aby dało się je odtworzyć bez strat: `Timestamp` jako `{"__type":"timestamp","iso":"…","seconds":N,"nanos":N}`, `GeoPoint`, `DocumentReference` (jako ścieżka), `Bytes` (base64). Liczby całkowite i zmiennoprzecinkowe zostają liczbami JSON.
 - Podkolekcje dokumentów (np. pod `board/main`) są eksportowane rekurencyjnie, ścieżka dokumentu jest w `_path`.
-- `manifest.json`: czas eksportu, wersja skryptu, liczność per kolekcja per użytkownik (z licznika i z pliku), SHA-256 każdego pliku, lista kolekcji nieznanych (4.3), liczba stron i błędów.
+- `manifest.json`: czas eksportu, `uid` i `only` (zakres, albo `null`), rozmiar strony, status (`ok`, `mismatch`, `needs-review`), liczność per kolekcja (przed, linie w pliku, po), SHA-256 każdego pliku, znacznik kolekcji nieznanych, lista dokumentów-widm, wynik eksportu Auth i sumy.
+- Eksport kont Auth zawiera uid, e-mail, daty i dostawców logowania; nie zawiera haszy ani tokenów. Błąd Auth nie przerywa eksportu danych (zapisuje się w manifeście).
 
 ### 4.3 Wykrywanie kolekcji
 
-Skrypt nie ma na sztywno listy kolekcji. Wywołuje `listCollections()` na korzeniu i na każdym dokumencie `users/{uid}` (oraz rekurencyjnie na dokumentach podkolekcji). Kolekcje spoza znanego zbioru (`documents`, `notes`, `mindMaps`, `board`, `resources`, `chunks`, `calendar_events`, `tasks`, `user_tags`, `task_templates`, `agent_log`, `waitlist`) też są eksportowane i wypisane w raporcie jako **nieznane**. Nieznana kolekcja z danymi wstrzymuje przejście do 0b do decyzji użytkownika.
+Skrypt nie ma na sztywno listy kolekcji. Wywołuje `listCollections()` na korzeniu i na każdym dokumencie `users/{uid}` (oraz rekurencyjnie na dokumentach podkolekcji). Kolekcje spoza znanego zbioru (`documents`, `notes`, `mindMaps`, `board`, `resources`, `chunks`, `calendar_events`, `tasks`, `user_tags`, `task_templates`, `agent_log`, `waitlist`) też są eksportowane i wypisane w raporcie jako **nieznane**. Nieznana kolekcja z danymi wstrzymuje przejście do 0b do decyzji użytkownika. Kolekcje oznaczone przez użytkownika jako **historyczne** (`knowledgeNodes`, `knowledgeEdges`, `HISTORICAL_COLLECTIONS`) są traktowane jak znane: eksportowane wiernie, ale bez wstrzymania i bez migracji.
 
 Dokumenty „widmo” (brak dokumentu `users/{uid}`, ale istnieją podkolekcje) są wykrywane tą samą drogą, bo `listCollections()` na referencji działa bez istnienia dokumentu. W przeciwieństwie do `.get()` na kolekcji `users`, która ich nie zwróci, dlatego uid-y zbieramy też z `listDocuments()`.
 
@@ -81,9 +93,14 @@ Dokumenty „widmo” (brak dokumentu `users/{uid}`, ale istnieją podkolekcje) 
 npx tsx scripts/export-firestore.ts --count-only            # tylko liczność i wykryte kolekcje, zero plików
 npx tsx scripts/export-firestore.ts [--out <katalog>]       # pełny eksport
 npx tsx scripts/export-firestore.ts --verify <katalog>      # niezależna weryfikacja istniejącego zrzutu
+# opcje eksportu: --resume (z --out), --skip-auth, --page-size N,
+#   --uid <uid>               tylko jedno konto
+#   --only notes,tasks,...    tylko kolekcje o tych nazwach
 ```
 
-`--verify` czyta zrzut z dysku, przelicza SHA-256 i linie, porównuje z manifestem oraz z bieżącym `count()` Firestore. Uruchamiany tuż przed krokiem 0e, aby wykryć dane zapisane po eksporcie.
+Zrzut zgodny z zakresem 1.1: `--uid <uid prawdziwego konta> --only notes,tasks,resources,user_tags,task_templates`.
+
+`--verify` czyta zrzut z dysku, przelicza SHA-256 i linie, porównuje z manifestem oraz z bieżącym `count()` Firestore, w zakresie zapisanym w manifeście (`uid`, `only`). Status liczy od nowa z bieżącej listy znanych i historycznych kolekcji, a nie z wartości zapisanej w manifeście. Uruchamiany tuż przed krokiem 0e, aby wykryć dane zapisane po eksporcie.
 
 Poświadczenia jak w aplikacji (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` lub `GOOGLE_APPLICATION_CREDENTIALS`). Wsparcie emulatora (`FIRESTORE_EMULATOR_HOST`) działa tą samą ścieżką `getFirestore()`.
 
@@ -102,31 +119,33 @@ Darmowy limit Firestore to 50 tys. odczytów dziennie. `--count-only` pokazuje, 
 
 Osobny skrypt `scripts/import-to-vault.ts`, wejście: katalog zrzutu z 0a. Tryb domyślny `--dry-run` (raport bez zapisu), zapis dopiero z `--write`. Idempotentny po stabilnym `id` (ponowne uruchomienie nie duplikuje). Zapis tylko w `Vault/` (atomowo, zgodnie z §4.2 nadrzędnego specu). Wszystkie pliki z tej konwersji trafiają do vaulta, który jest śledzony przez prywatne repo, więc nie dotyczy to `Vault/Work/` (nic z Firestore tam nie trafia).
 
-Proponowane mapowanie (otwarte punkty w 8):
+Wejściem jest zrzut zawężony (1.1). Proponowane mapowanie (otwarte punkty w 8):
 
-| Firestore                     | Plik w vaulcie                                | Uwagi                                                                                              |
-| ----------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `notes`                       | `Notes/<slug>.md`                             | frontmatter: `id`, `title`, `created`, `tags`; treść HTML → Markdown, **raport strat** per notatka |
-| `documents`                   | do ustalenia (O2)                             | duże teksty importowane, bez pól wektorowych                                                       |
-| `chunks`                      | nie migrujemy                                 | to pochodny indeks wyszukiwania; odtwarzany z treści, jeśli będzie potrzebny                       |
-| `calendar_events`             | `Calendar/RRRR-MM.yaml`                       | podział po miesiącu z `date`; zachować `type`, `tags`, `color`                                     |
-| `tasks`                       | do ustalenia (O1)                             | status 4-stanowy zapisany polem inline `[status:: in_progress]`, nie samą kratką `- [ ]`           |
-| `user_tags`, `task_templates` | `Resources/tags.yaml`, `Tasks/templates.yaml` | konfiguracja                                                                                       |
-| `resources`                   | `Resources/resources.yaml`                    | linki, tagi, ulubione                                                                              |
-| `mindMaps`                    | `MindMaps/<id>.json`                          | struktura drzewa bez zmian                                                                         |
-| `board/main`                  | `Board/board.json`                            | nowy katalog, nie ma go jeszcze w §4.3 nadrzędnego specu                                           |
-| `agent_log`                   | do ustalenia (O3)                             | domyślnie tylko w zrzucie                                                                          |
-| `waitlist`                    | nie migrujemy                                 | dane innych osób, zostają wyłącznie w zrzucie                                                      |
+| Firestore                          | Plik w vaulcie                                | Uwagi                                                                                              |
+| ---------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `notes`                            | `Notes/<slug>.md`                             | frontmatter: `id`, `title`, `created`, `tags`; treść HTML → Markdown, **raport strat** per notatka |
+| `documents`                        | nie migrujemy                                 | konto prawdziwe nie ma tej kolekcji (O2 rozstrzygnięte)                                            |
+| `chunks`                           | nie migrujemy                                 | to pochodny indeks wyszukiwania; odtwarzany z treści, jeśli będzie potrzebny                       |
+| `calendar_events`                  | nie migrujemy                                 | decyzja użytkownika (1.1); dane tylko w szerszym zrzucie                                           |
+| `tasks`                            | do ustalenia (O1)                             | status 4-stanowy zapisany polem inline `[status:: in_progress]`, nie samą kratką `- [ ]`           |
+| `user_tags`, `task_templates`      | `Resources/tags.yaml`, `Tasks/templates.yaml` | konfiguracja                                                                                       |
+| `resources`                        | `Resources/resources.yaml`                    | linki, tagi, ulubione                                                                              |
+| `mindMaps`                         | nie migrujemy                                 | decyzja użytkownika (1.1); dane tylko w szerszym zrzucie                                           |
+| `board/main`                       | nie migrujemy                                 | decyzja użytkownika (1.1); konto prawdziwe nie ma danych tablicy                                   |
+| `agent_log`                        | nie migrujemy                                 | decyzja użytkownika (1.1), O3 rozstrzygnięte; dane tylko w szerszym zrzucie                        |
+| `knowledgeNodes`, `knowledgeEdges` | nie migrujemy                                 | historyczne (maj 2026), moduł usunięty, wektory osadzeń; tylko w szerszym zrzucie                  |
+| `waitlist`                         | nie migrujemy                                 | dane innych osób, zostają wyłącznie w zrzucie                                                      |
 
 Bramka 0b: raport porównuje liczbę rekordów po stronie zrzutu i po stronie plików (per typ), wylicza notatki ze stratami konwersji i zakończy się kodem ≠ 0, gdy jakiś rekord nie został ani zapisany, ani świadomie pominięty (z powodem).
 
 ## 6. Krok 0c: warstwa `lib/nexus/`
 
 - `lib/firestore-db.ts` pozostaje jedynym szwem. Funkcje o tych samych nazwach i sygnaturach dostają implementację plikową; Szew nie jest jednak szczelny, więc 0c zaczyna się od jego domknięcia (patrz niżej).
-- **Domknięcie szwu (pierwszy podkrok 0c, bez zmiany zachowania).** Zweryfikowane w kodzie: `services/mindMapService.ts` i `services/boardService.ts` importują `FieldValue` z `firebase-admin/firestore` i używają bezpośrednio `mindMapsCol`/`boardDoc` (z `.doc()`, `.get()`, `.update()`), a `src/App.tsx`, `src/features/mind-maps/*` i `types/records.ts` (typ `Timestamp`) też dotykają Firebase. Trzeba dodać do `firestore-db.ts` funkcje repozytoryjne (`getMindMaps`, `createMindMap`, `updateMindMap`, `deleteMindMap`, `getBoard`, `saveBoard`), przenieść do nich `serverTimestamp()`, a pola czasu w typach zamienić na ISO string.
-- **Zależności między serwisami:** `calendarService` czyta zadania (`getTasks`, `services/calendarService.ts:36`), a `planService` odpytuje kalendarz i tworzy wydarzenia bezpośrednio przez `firestoreDb`. Dlatego kolejność podmiany to: `tags` → `task_templates` → `resources` → **`tasks` → `calendar_events`** → `notes` / `documents` → `mindMaps` → `board` → `agent_log`. `planService` przechodzi przez API `calendarService`, a nie przez `firestoreDb`.
+- **Zakres 0c po zawężeniu (1.1):** podmieniamy `tags`, `task_templates`, `resources`, `tasks` i `notes`. Poniższa analiza szwu dotyczy modułów, których danych nie migrujemy (mapy myśli, tablica, kalendarz). Zachowuje wagę tylko wtedy, gdy O7 rozstrzygnie, że te moduły zostają w aplikacji z jakimś backendem. Jeśli O7 wybierze usunięcie modułów, domknięcie szwu dla nich odpada, a ich kod znika w 0d.
+- **Domknięcie szwu (pierwszy podkrok 0c, bez zmiany zachowania; dotyczy modułów z O7).** Zweryfikowane w kodzie: `services/mindMapService.ts` i `services/boardService.ts` importują `FieldValue` z `firebase-admin/firestore` i używają bezpośrednio `mindMapsCol`/`boardDoc` (z `.doc()`, `.get()`, `.update()`), a `src/App.tsx`, `src/features/mind-maps/*` i `types/records.ts` (typ `Timestamp`) też dotykają Firebase. Trzeba dodać do `firestore-db.ts` funkcje repozytoryjne (`getMindMaps`, `createMindMap`, `updateMindMap`, `deleteMindMap`, `getBoard`, `saveBoard`), przenieść do nich `serverTimestamp()`, a pola czasu w typach zamienić na ISO string.
+- **Zależności między serwisami:** `calendarService` czyta zadania (`getTasks`, `services/calendarService.ts:36`), a `planService` odpytuje kalendarz i tworzy wydarzenia bezpośrednio przez `firestoreDb`. Pełna kolejność, gdyby wszystkie moduły zostawały, to: `tags` → `task_templates` → `resources` → **`tasks` → `calendar_events`** → `notes` / `documents` → `mindMaps` → `board` → `agent_log`; `planService` przechodzi wtedy przez API `calendarService`, a nie przez `firestoreDb`. Po zawężeniu zakresu obowiązuje: `tags` → `task_templates` → `resources` → `tasks` → `notes`, a `calendarService` i `planService` (zależne od zadań i kalendarza) wymagają decyzji z O7 przed podmianą `tasks`.
 - Po każdej kolekcji: testy usługi, ręczny przegląd w UI, commit.
-- **`agent_log`:** `agentService` zapisuje do niego w każdym przebiegu (`services/agentService.ts`), więc backend plikowy musi mieć implementację (dopisywany JSONL w `Sessions/`) albo jawny no-op. Brak implementacji zatrzyma asystenta AI (por. O3).
+- **`agent_log`:** `agentService` zapisuje do niego w każdym przebiegu (`services/agentService.ts`), a dane nie są migrowane (O3). Backend plikowy musi więc mieć implementację (dopisywany JSONL w `Sessions/`) albo jawny no-op. Brak implementacji zatrzyma asystenta AI (por. O7).
 - Pojedynczy użytkownik: `userId` staje się stałą lokalną. Parametr zostaje w sygnaturach do końca kroku (mniej zmian), usuwany w 0d.
 - Moduły zgodnie z §4.1 nadrzędnego specu: `vault-path.ts` (w tym mapowanie `E:\` ↔ `/mnt/e/`, błąd konfiguracji przy braku `NEXUS_VAULT_PATH`), `markdown-edit.ts`, zapis atomowy z kontrolą `mtime`.
 - Testy: ten sam zestaw testów usług uruchamiany na obu backendach (kontrakt), dopóki istnieją oba. Zweryfikowane: `tests/unit/services/boardService.test.ts` i `mindMapService.test.ts` mockują wprost `firebase-admin` i `FieldValue`, więc po domknięciu szwu trzeba je przepisać tak, by mockowały `firestore-db` (lub interfejs repozytorium), a nie SDK. Szczegóły w planie.
@@ -142,6 +161,7 @@ Bramka 0b: raport porównuje liczbę rekordów po stronie zrzutu i po stronie pl
 - Strony prawne i landing: `app/regulamin`, `app/politika-prywatnosci`, `app/cookies`, `app/auth`, oraz `app/page.tsx` do zastąpienia wejściem w aplikację (O4).
 - Zależności: `firebase`, `firebase-admin`; pliki `firebase.json`, `firestore.rules`; zmienne `FIREBASE_*` i `NEXT_PUBLIC_FIREBASE_*` z `.env.example`; skrypty `migrate-sqlite-to-firestore.ts`, `cleanup-knowledge-collections.ts`; `docker-compose-test.yml` i skrypty `emulator:docker`, `migrate:sqlite-to-firestore`, `vercel`, `vercel:prod` z `package.json`; pakiety `vercel` i `better-sqlite3` (po sprawdzeniu, że nic innego ich nie używa); tło emulatora z testów integracyjnych.
 - Testy e2e (Playwright): `tests/e2e/auth.setup.ts`, `auth-login-logout.spec.ts`, `public-pages.spec.ts` i specyfikacje `*.authenticated.spec.ts` zależą od logowania; trzeba je przepisać na uruchomienie bez auth albo usunąć.
+- Moduły bez migrowanych danych (kalendarz, mapy myśli, „Moja praca”, planowanie, tablica): usunięcie lub wyłączenie zgodnie z rozstrzygnięciem O7; usuwanie razem z ich trasami, testami (jednostkowymi i e2e) i wpisami w nawigacji.
 - Dokumentacja: nowe ADR „lokalne pliki zamiast Firestore” oznacza ADR-002, 003, 016 jako zastąpione; poprawka README.
 
 ### Zabezpieczenie lokalnego serwera (wymóg, nie opcja)
@@ -156,7 +176,7 @@ Po usunięciu auth każdy proces z dostępem do portu może pisać do vaulta. Dl
 ### 0e: Vercel i Firebase
 
 1. Bramka: `--verify` zrzutu (4.5) kończy się zgodnie, 0b zgodne, aplikacja lokalnie działa na plikach co najmniej tydzień (okres obserwacji do potwierdzenia, O5).
-2. Druga kopia zrzutu na osobnym nośniku (zrzut zawiera dane osobiste, nie wysyłać do chmury bez szyfrowania).
+2. Druga kopia zrzutu na osobnym nośniku (zrzut zawiera dane osobiste, nie wysyłać do chmury bez szyfrowania). Kopia obejmuje także szerszy zrzut z 1.1, bo po usunięciu projektu Firebase jest jedynym źródłem pominiętych danych.
 3. Zdjęcie wdrożenia z Vercela, usunięcie projektu Vercel i katalogu `.vercel/` z repo.
 4. Projekt Firebase: najpierw wyłączenie dostępu (reguły zamykające), karencja (O5), potem usunięcie projektu. Zrzut zostaje.
 
@@ -167,11 +187,12 @@ W repo NEXUS: wpis `Work/` w `.gitignore` (zrobić przed utworzeniem pierwszego 
 ## 8. Otwarte pytania (do rozstrzygnięcia przed planem)
 
 - **O1. Dokąd idą zadania z Firestore?** Są płaskie (bez projektu), a w vaulcie zadania żyją w `Projects/<id>/tasks.md`. Propozycja: `Tasks/tasks.md` jako lista ogólna, przypisywanie do projektów później (w etapie 1).
-- **O2. Dokąd idą `documents`?** (RAG/wiedza wgrana plikami). Propozycja: `Knowledge/Imported/<slug>.md`, albo pominąć i zostawić w zrzucie.
-- **O3. Czy `agent_log` ma wartość?** Propozycja: tylko w zrzucie, bez migracji.
+- **O2. ~~Dokąd idą `documents`?~~** Rozstrzygnięte: konto prawdziwe nie ma tej kolekcji, nic do migracji.
+- **O3. ~~Czy `agent_log` ma wartość?~~** Rozstrzygnięte decyzją użytkownika (1.1): nie migrujemy, dane tylko w szerszym zrzucie.
 - **O4. Co zastępuje landing (`app/page.tsx`)?** Propozycja: przekierowanie do głównego widoku aplikacji.
 - **O5. Okres obserwacji i karencji** przed 0e (propozycja: 7 dni lokalnej pracy na plikach, 30 dni od zamknięcia reguł do usunięcia projektu Firebase).
-- **O6. Ilu użytkowników jest w Firestore?** Rozstrzyga `--count-only` w 0a. Jeśli więcej niż jeden uid, dopisujemy decyzję, co z pozostałymi (domyślnie: tylko zrzut).
+- **O6. ~~Ilu użytkowników jest w Firestore?~~** Rozstrzygnięte: jedno prawdziwe konto i dwa testowe, trzy konta z danymi (a cztery w Auth). Testowe pomijamy, bez ich danych w zawężonym zrzucie.
+- **O7. Co z kodem modułów bez migrowanych danych?** Dotyczy kalendarza, map myśli, „Mojej pracy” (`ActivityLog`), planowania (`planService`, zależny od kalendarza) i tablicy, a także asystenta AI, który czyta kalendarz i zadania oraz zapisuje do `agent_log`. Propozycja: usunąć kalendarz, mapy myśli, „Moją pracę” i planowanie w 0d razem z testami; tablicę i asystenta zostawić do osobnych decyzji, bo należą do kierunku z nadrzędnego specu (Płótno, asystent lokalny), z jawnym no-op lub plikowym zapisem w miejscu `agent_log`. Wymaga potwierdzenia użytkownika przed planem 0c.
 
 ## 9. Ryzyka
 
@@ -181,6 +202,7 @@ W repo NEXUS: wpis `Work/` w `.gitignore` (zrobić przed utworzeniem pierwszego 
 - **Otwarty lokalny port bez auth.** Ograniczenie: sekcja o zabezpieczeniu lokalnym w 0d, wymóg przed usunięciem logowania.
 - **Zrzut z danymi osobistymi w złym miejscu.** Ograniczenie: zapis poza gitem z twardą odmową, uprawnienia 0600.
 - **Limit odczytów.** Ograniczenie: `--count-only`, ostrzeżenie, `--resume`.
+- **Nieodwracalna utrata pominiętych danych.** Kalendarz, mapy myśli i reszta spoza 1.1 istnieją po 0e tylko w szerszym zrzucie. Ograniczenie: szerszy zrzut zostaje, trafia do drugiej kopii (0e.2) i nie jest usuwany bez osobnej decyzji użytkownika.
 
 ## 10. Kryteria ukończenia etapu 0
 
