@@ -67,7 +67,6 @@ describe("BoardCanvas", () => {
     render(
       <BoardCanvas
         board={EMPTY_BOARD}
-        userId="u1"
         lang="pl"
         labels={labels}
         dialogOpen={false}
@@ -91,7 +90,6 @@ describe("BoardCanvas", () => {
     const { rerender } = render(
       <BoardCanvas
         board={EMPTY_BOARD}
-        userId="u1"
         lang="pl"
         labels={labels}
         dialogOpen={false}
@@ -105,7 +103,6 @@ describe("BoardCanvas", () => {
     rerender(
       <BoardCanvas
         board={EMPTY_BOARD}
-        userId="u1"
         lang="pl"
         labels={labels}
         dialogOpen

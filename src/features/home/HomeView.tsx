@@ -126,13 +126,11 @@ export default function HomeView({
   }, [apiFetch]);
 
   useEffect(() => {
-    if (user?.id) setActiveSessionState(getActiveSession(user.id));
-    else setActiveSessionState(null);
-  }, [user?.id]);
+    setActiveSessionState(getActiveSession());
+  }, []);
 
   const handleStartSession = useCallback(
     (payload: { title: string; tags: string[]; color: string }) => {
-      if (!user?.id) return;
       const session: ActiveSession = {
         title: payload.title,
         startedAt: new Date().toISOString(),
@@ -140,13 +138,13 @@ export default function HomeView({
         color: payload.color,
       };
       setActiveSessionState(session);
-      setActiveSession(user.id, session);
+      setActiveSession(session);
     },
-    [user?.id]
+    []
   );
 
   const handleEndSession = useCallback(async () => {
-    if (!activeSession || !user?.id) return;
+    if (!activeSession) return;
     setSessionEndError(null);
     const started = new Date(activeSession.startedAt);
     const now = Date.now();
@@ -171,11 +169,11 @@ export default function HomeView({
         throw new Error((errBody as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       setActiveSessionState(null);
-      clearActiveSession(user.id);
+      clearActiveSession();
     } catch (err) {
       setSessionEndError(err instanceof Error ? err.message : "Failed to save");
     }
-  }, [activeSession, user?.id, apiFetch]);
+  }, [activeSession, apiFetch]);
 
   const today = todayISO();
   const limit48h = in48hISO();

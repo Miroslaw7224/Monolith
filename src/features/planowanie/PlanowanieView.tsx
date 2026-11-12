@@ -75,23 +75,17 @@ export default function PlanowanieView({
   const { notes, fetchNotes } = useNotesData(apiFetch);
 
   useEffect(() => {
-    if (!user?.id) {
-      setActiveSessionState(null);
-      return;
-    }
-    const stored = getActiveSession(user.id);
-    setActiveSessionState(stored);
-  }, [user?.id]);
+    setActiveSessionState(getActiveSession());
+  }, []);
 
   useEffect(() => {
-    if (user && planningTab === "notes") {
+    if (planningTab === "notes") {
       void fetchNotes();
     }
-  }, [user, planningTab, fetchNotes]);
+  }, [planningTab, fetchNotes]);
 
   const handleStartSession = useCallback(
     (payload: { title: string; tags: string[]; color: string }) => {
-      if (!user?.id) return;
       const session: ActiveSession = {
         title: payload.title,
         startedAt: new Date().toISOString(),
@@ -99,13 +93,13 @@ export default function PlanowanieView({
         color: payload.color,
       };
       setActiveSessionState(session);
-      setActiveSession(user.id, session);
+      setActiveSession(session);
     },
-    [user?.id]
+    []
   );
 
   const handleEndSession = useCallback(async () => {
-    if (!activeSession || !user?.id) return;
+    if (!activeSession) return;
     setSessionEndError(null);
     const started = new Date(activeSession.startedAt);
     const now = Date.now();
@@ -131,12 +125,12 @@ export default function PlanowanieView({
         throw new Error((errBody as { error?: string }).error ?? `HTTP ${res.status}`);
       }
       setActiveSessionState(null);
-      clearActiveSession(user.id);
+      clearActiveSession();
       setCalendarRefreshKey((k) => k + 1);
     } catch (err) {
       setSessionEndError(err instanceof Error ? err.message : "Failed to save");
     }
-  }, [activeSession, user?.id, apiFetch]);
+  }, [activeSession, apiFetch]);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -328,7 +322,6 @@ export default function PlanowanieView({
             <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
               <BoardTab
                 apiFetch={apiFetch}
-                userId={user?.id ?? ""}
                 lang={lang}
                 labels={{
                   canvas: t.boardCanvas as string,

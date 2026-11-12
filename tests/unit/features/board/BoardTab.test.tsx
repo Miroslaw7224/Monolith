@@ -49,15 +49,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 describe("BoardTab", () => {
   it("shows a retry when the load fails and does not draw the canvas", async () => {
     const apiFetch = vi.fn().mockResolvedValue(jsonResponse({ error: "nope" }, 500));
-    render(
-      <BoardTab
-        apiFetch={apiFetch}
-        userId="u1"
-        lang="pl"
-        labels={labels}
-        canvasLabels={{} as never}
-      />
-    );
+    render(<BoardTab apiFetch={apiFetch} lang="pl" labels={labels} canvasLabels={{} as never} />);
     expect(await screen.findByText("Nie udało się wczytać tablicy")).toBeInTheDocument();
     expect(screen.queryByTestId("flow")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "change" })).not.toBeInTheDocument();
@@ -76,15 +68,7 @@ describe("BoardTab", () => {
           edges: [],
         })
       );
-    render(
-      <BoardTab
-        apiFetch={apiFetch}
-        userId="u1"
-        lang="pl"
-        labels={labels}
-        canvasLabels={{} as never}
-      />
-    );
+    render(<BoardTab apiFetch={apiFetch} lang="pl" labels={labels} canvasLabels={{} as never} />);
     await user.click(await screen.findByRole("button", { name: "change" }));
     expect(await screen.findByText("Nie zapisano zmian")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "change" }));

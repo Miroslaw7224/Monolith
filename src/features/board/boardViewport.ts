@@ -4,12 +4,10 @@ export interface BoardViewport {
   zoom: number;
 }
 
-function key(userId: string): string {
-  return `board-viewport:${userId}`;
-}
+const KEY = "board-viewport";
 
-export function readViewport(userId: string): BoardViewport | null {
-  const raw = localStorage.getItem(key(userId));
+export function readViewport(): BoardViewport | null {
+  const raw = localStorage.getItem(KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as BoardViewport;
@@ -20,6 +18,6 @@ export function readViewport(userId: string): BoardViewport | null {
   }
 }
 
-export function storeViewport(userId: string, viewport: BoardViewport): void {
-  localStorage.setItem(key(userId), JSON.stringify(viewport));
+export function storeViewport(viewport: BoardViewport): void {
+  localStorage.setItem(KEY, JSON.stringify(viewport));
 }
