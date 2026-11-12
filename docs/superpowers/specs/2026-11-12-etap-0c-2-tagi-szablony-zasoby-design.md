@@ -1,7 +1,7 @@
 # Etap 0c-2: tagi, szablony zadań, zasoby w vaulcie — projekt
 
 Data: 2026-11-12
-Status: projekt zatwierdzony w brainstormie; plan i implementacja jeszcze nie rozpoczęte
+Status: zaimplementowany (plan: `docs/superpowers/plans/2026-11-12-etap-0c-2-tagi-szablony-zasoby.md`); ręczny przegląd UI i PR czekają
 Nadrzędne specy: `2026-11-12-etap-0c-warstwa-plikowa-design.md` (§3.2, §3.3, §5, §7), `2026-11-12-etap-0-odpiecie-firebase-design.md` (§6), `2026-11-12-etap-0b-import-do-vaultu-design.md` (formaty plików)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -48,6 +48,7 @@ Nazwy i sygnatury funkcji w barrelu bez zmian (`getUserTags`, `createUserTag`, `
 - `readList(rel, listKey): YamlRecord[]`: odczyt przez `readVaultFile`. Brak pliku, pusty tekst i tekst złożony z białych znaków dają `[]` bez wołania parsera (`YAML.parse("")` zwraca `null`, a `parseYamlList` odrzuca takie wejście). W pozostałych przypadkach `parseYamlList`.
 - `updateList(rel, listKey, fn)`: `updateVaultFile` z `mutate`, które parsuje świeżą treść (jak wyżej), woła `fn(items)` i zwraca `formatYamlList(listKey, nowe, undefined)`. `fn` zwraca nową listę albo `null`, gdy nic się nie zmieniło; wtedy `mutate` zwraca bajtowo identyczną treść, a `updateList` pomija zapis (idempotentny `delete`). Wynik operacji (np. utworzony rekord) repozytorium przekazuje przez zmienną przypisywaną wewnątrz `fn`; przy ponowieniu `fn` wykonuje się od nowa na świeżej liście, więc wynik odpowiada zapisanej wersji.
 - Nieznane klucze rekordów i kolejność rekordów zostają, bo `fn` operuje na obiektach z pliku (D2).
+- Pominięcie zapisu realizuje wyjątek-wartownik w `mutate`, nie bajtowo identyczna treść (`updateVaultFile` zawsze zapisuje wynik `mutate`).
 - Przepisany plik **nie** ma `generated_by` (nadrzędny spec 0c §7: ponowny import 0b zapisze wtedy obok zamiast nadpisać).
 - Plik, który się nie parsuje, **nigdy nie jest nadpisywany**: błąd odczytu przerywa operację przed zapisem, a komunikat zawiera ścieżkę względną pliku.
 - Brak `NEXUS_VAULT_PATH` to `VaultConfigError` z 0c-1 (status HTTP sprawdza plan na podstawie `handleServiceError`).
@@ -127,5 +128,5 @@ W `types/records.ts`:
 
 ## 8. Otwarte pytania
 
-- **P1.** Status HTTP dla `VaultConfigError` w `handleServiceError`: do sprawdzenia w planie. Jeśli zwraca 500 z ogólnym komunikatem, plan decyduje, czy dodać czytelniejszy komunikat.
-- **P2.** `createdAt`/`updatedAt` w `NoteResourceRecord` jako opcjonalne czy wymagane: ustala plan po przejrzeniu testów komponentów.
+- **P1 (rozstrzygnięte).** `VaultConfigError` wychodzi z `handleServiceError` jako HTTP 500 z własnym, czytelnym komunikatem; bez zmian kodu, test w `tests/unit/lib/apiError.test.ts`.
+- **P2 (rozstrzygnięte).** `createdAt`/`updatedAt` w `NoteResourceRecord` są opcjonalne (`string`, ISO).

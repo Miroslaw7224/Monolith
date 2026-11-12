@@ -35,19 +35,21 @@ export async function addResourceToFirestore(
   userId: string,
   data: Omit<NoteResourceRecord, "id" | "createdAt" | "updatedAt">
 ): Promise<NoteResourceRecord> {
-  const now = nowIso();
-  const record = await appendRecord(FILE, KEY, (taken) => ({
-    id: generateId(taken),
-    title: data.title,
-    url: data.url,
-    description: data.description,
-    tags: data.tags ?? [],
-    favorite: data.isFavorite ?? false,
-    ...(data.thumbnailUrl != null ? { thumbnail_url: data.thumbnailUrl } : {}),
-    ...(data.noteId != null ? { note_id: data.noteId } : {}),
-    created: now,
-    updated: now,
-  }));
+  const record = await appendRecord(FILE, KEY, (taken) => {
+    const now = nowIso(); // wewnątrz build: ponowienie po konflikcie dostaje świeży czas
+    return {
+      id: generateId(taken),
+      title: data.title,
+      url: data.url,
+      description: data.description,
+      tags: data.tags ?? [],
+      favorite: data.isFavorite ?? false,
+      ...(data.thumbnailUrl != null ? { thumbnail_url: data.thumbnailUrl } : {}),
+      ...(data.noteId != null ? { note_id: data.noteId } : {}),
+      created: now,
+      updated: now,
+    };
+  });
   return toResource(record, userId);
 }
 
