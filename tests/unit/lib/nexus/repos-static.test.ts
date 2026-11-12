@@ -8,7 +8,9 @@ const STORE = "lib/nexus/yaml-store.ts";
 const REPOS = ["common", "tags", "taskTemplates", "resources"].map(
   (name) => `lib/nexus/repos/${name}.ts`
 );
-const FILES = [STORE, ...REPOS];
+const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
+const FILE_REPOS = ["tasks", "calendarEvents"].map((name) => `lib/nexus/repos/${name}.ts`);
+const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
@@ -24,7 +26,7 @@ function hits(pattern: RegExp, files: string[] = FILES): string[] {
   return out;
 }
 
-describe("0c-2 static guards", () => {
+describe("0c-2 / 0c-3 static guards", () => {
   it("scans existing sources", () => {
     for (const rel of FILES) expect(fs.existsSync(path.join(ROOT, rel))).toBe(true);
   });
@@ -44,19 +46,37 @@ describe("0c-2 static guards", () => {
     expect(hits(/vault-fs/, REPOS)).toEqual([]);
   });
 
-  it("old Firestore repositories and collection helpers are gone", () => {
-    for (const name of ["tags", "taskTemplates", "resources"]) {
-      expect(fs.existsSync(path.join(ROOT, `lib/firestore/${name}.ts`)), name).toBe(false);
-    }
-    expect(read("lib/firestore/collections.ts")).not.toMatch(
-      /userTagsCol|taskTemplatesCol|userResourcesCol/
+  it("markdown-edit is pure text; only yaml-store and the two file repos import vault-fs", () => {
+    expect(hits(/from\s+["'][^"']*vault-fs["']/, [PLAIN_TEXT])).toEqual([]);
+    const importers: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(rel);
+        else if (/\.ts$/.test(entry.name) && /from\s+["'][^"']*\/vault-fs["']/.test(read(rel))) {
+          importers.push(rel);
+        }
+      }
+    };
+    walk("lib/nexus");
+    expect(importers.sort()).toEqual(
+      [STORE, "lib/nexus/repos/calendarEvents.ts", "lib/nexus/repos/tasks.ts"].sort()
     );
   });
 
-  it("the barrel points the three groups at lib/nexus/repos", () => {
+  it("old Firestore repositories and collection helpers are gone", () => {
+    for (const name of ["tags", "taskTemplates", "resources", "tasks", "calendar"]) {
+      expect(fs.existsSync(path.join(ROOT, `lib/firestore/${name}.ts`)), name).toBe(false);
+    }
+    expect(read("lib/firestore/collections.ts")).not.toMatch(
+      /userTagsCol|taskTemplatesCol|userResourcesCol|tasksCol|calendarEventsCol/
+    );
+  });
+
+  it("the barrel points the five groups at lib/nexus/repos", () => {
     const barrel = read("lib/firestore-db.ts");
-    expect(barrel).not.toMatch(/lib\/firestore\/(tags|taskTemplates|resources)/);
-    for (const name of ["tags", "taskTemplates", "resources"]) {
+    expect(barrel).not.toMatch(/lib\/firestore\/(tags|taskTemplates|resources|tasks|calendar)/);
+    for (const name of ["tags", "taskTemplates", "resources", "tasks", "calendarEvents"]) {
       expect(barrel).toContain(`@/lib/nexus/repos/${name}`);
     }
   });

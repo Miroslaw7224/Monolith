@@ -7,6 +7,7 @@ import { ConflictError, DomainError } from "@/lib/errors";
 import { VaultConfigError } from "@/lib/nexus/vault-path";
 import {
   PathOutsideVaultError,
+  listVaultFiles,
   readVaultFile,
   resolveInsideVault,
   updateVaultFile,
@@ -203,5 +204,30 @@ describe("updateVaultFile", () => {
     const lines = fs.readFileSync(path.join(root, "c.md"), "utf8").trim().split("\n");
     expect(lines).toHaveLength(20);
     expect(new Set(lines).size).toBe(20);
+  });
+});
+
+describe("listVaultFiles", () => {
+  it("lists only regular files directly in the directory, sorted", () => {
+    fs.mkdirSync(path.join(root, "Dir", "sub"), { recursive: true });
+    fs.writeFileSync(path.join(root, "Dir", "b.yaml"), "b");
+    fs.writeFileSync(path.join(root, "Dir", "a.yaml"), "a");
+    fs.writeFileSync(path.join(root, "Dir", "sub", "c.yaml"), "c");
+    expect(listVaultFiles("Dir", { root })).toEqual(["a.yaml", "b.yaml"]);
+  });
+  it("returns [] for a missing directory and for a path that is a file", () => {
+    expect(listVaultFiles("Nope", { root })).toEqual([]);
+    fs.writeFileSync(path.join(root, "plain.txt"), "x");
+    expect(listVaultFiles("plain.txt", { root })).toEqual([]);
+  });
+  it("rejects traversal and an empty path", () => {
+    expect(() => listVaultFiles("../x", { root })).toThrow(PathOutsideVaultError);
+    expect(() => listVaultFiles("", { root })).toThrow(PathOutsideVaultError);
+  });
+  it("does not list symbolic links", () => {
+    fs.mkdirSync(path.join(root, "Dir"));
+    fs.writeFileSync(path.join(root, "Dir", "real.yaml"), "r");
+    fs.symlinkSync(path.join(root, "Dir", "real.yaml"), path.join(root, "Dir", "link.yaml"));
+    expect(listVaultFiles("Dir", { root })).toEqual(["real.yaml"]);
   });
 });

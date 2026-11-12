@@ -52,11 +52,10 @@ export type CalendarEventRecord = {
   color: string;
   type: "work" | "meeting";
   created_at?: string;
-  createdAt?: Timestamp;
 };
 
-/** API and UI calendar event; task_deadline is synthesized by calendarService and is not a Firestore write. */
-export type CalendarEvent = Omit<CalendarEventRecord, "type" | "createdAt"> & {
+/** API and UI calendar event; task_deadline is synthesized by calendarService and is never stored. */
+export type CalendarEvent = Omit<CalendarEventRecord, "type"> & {
   type: "work" | "meeting" | "task_deadline";
 };
 
@@ -71,8 +70,6 @@ export type TaskRecord = {
   order?: number;
   created_at?: string;
   updated_at?: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
 };
 
 export type UserTagRecord = {

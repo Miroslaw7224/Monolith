@@ -57,7 +57,7 @@ describe("lib/nexus vault-* static guards", () => {
       const next = rest.search(/\nexport /);
       return next === -1 ? rest : rest.slice(0, next);
     };
-    for (const name of ["readVaultFile", "writeVaultFile", "updateVaultFile"]) {
+    for (const name of ["readVaultFile", "writeVaultFile", "updateVaultFile", "listVaultFiles"]) {
       expect(body(name), `${name} powinna wołać resolveInsideVault`).toMatch(
         /resolveInsideVault\(/
       );

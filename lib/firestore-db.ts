@@ -23,8 +23,14 @@ export {
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
-} from "@/lib/firestore/calendar";
-export { getTasks, createTask, updateTask, reorderTasks, deleteTask } from "@/lib/firestore/tasks";
+} from "@/lib/nexus/repos/calendarEvents";
+export {
+  getTasks,
+  createTask,
+  updateTask,
+  reorderTasks,
+  deleteTask,
+} from "@/lib/nexus/repos/tasks";
 export { getUserTags, createUserTag, updateUserTag, deleteUserTag } from "@/lib/nexus/repos/tags";
 export {
   getTaskTemplates,
