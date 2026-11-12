@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DomainError, ConflictError } from "../../../lib/errors.js";
+import { DomainError, ConflictError, NotFoundError } from "../../../lib/errors.js";
 
 describe("lib/errors", () => {
   describe("DomainError", () => {
@@ -35,5 +35,14 @@ describe("ConflictError", () => {
     expect(err.name).toBe("ConflictError");
     expect(err.statusCode).toBe(409);
     expect(err.message).toBe("File changed");
+  });
+});
+
+describe("NotFoundError", () => {
+  it("NotFoundError to DomainError z kodem 404", () => {
+    const err = new NotFoundError("Nie ma projektu x");
+    expect(err).toBeInstanceOf(DomainError);
+    expect(err.statusCode).toBe(404);
+    expect(err.name).toBe("NotFoundError");
   });
 });

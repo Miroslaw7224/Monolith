@@ -16,6 +16,7 @@ export type AppMode = "home" | "planowanie";
 export type CardTarget =
   | { kind: "home" }
   | { kind: "planning"; tab: PlanningTab }
+  | { kind: "projects" }
   | { kind: "placeholder"; stage: string };
 
 export interface CardDef {
@@ -33,7 +34,7 @@ export const CARDS: readonly CardDef[] = [
     id: "projekty",
     label: "Projekty",
     hotkey: 4,
-    target: { kind: "placeholder", stage: "etap 1" },
+    target: { kind: "projects" },
   },
   { id: "notatki", label: "Notatki", hotkey: 5, target: { kind: "planning", tab: "notes" } },
   { id: "plotno", label: "Płótno", hotkey: 6, target: { kind: "planning", tab: "board" } },

@@ -36,6 +36,9 @@ describe("useCardNavigation", () => {
   test("setter starego widoku zdejmuje zaślepkę", () => {
     const { result } = renderHook(() => useCardNavigation());
     act(() => result.current.selectCard("projekty"));
+    expect(result.current.placeholder).toBeNull();
+    expect(result.current.projectsOpen).toBe(true);
+    expect(result.current.activeCard).toBe("projekty");
     act(() => result.current.setPlanningTab("mindmaps"));
     expect(result.current.placeholder).toBeNull();
     act(() => result.current.setAppMode("planowanie"));
@@ -71,7 +74,9 @@ describe("useCardNavigation", () => {
   test("przejście zaślepka → zaślepka ustawia Kodeks i adres #kodeks", () => {
     const { result } = renderHook(() => useCardNavigation());
     act(() => result.current.selectCard("projekty"));
-    expect(result.current.placeholder).toBe("projekty");
+    expect(result.current.placeholder).toBeNull();
+    expect(result.current.projectsOpen).toBe(true);
+    expect(result.current.activeCard).toBe("projekty");
     act(() => result.current.selectCard("kodeks"));
     expect(result.current.placeholder).toBe("kodeks");
     expect(result.current.activeCard).toBe("kodeks");
@@ -83,5 +88,19 @@ describe("useCardNavigation", () => {
     const { result } = renderHook(() => useCardNavigation());
     expect(result.current.activeCard).toBe("kodeks");
     expect(result.current.placeholder).toBe("kodeks");
+  });
+
+  test("projekty → zadania zamyka widok projektów", () => {
+    const { result } = renderHook(() => useCardNavigation());
+    act(() => result.current.selectCard("projekty"));
+    act(() => result.current.selectCard("zadania"));
+    expect(result.current.projectsOpen).toBe(false);
+    expect(result.current.activeCard).toBe("zadania");
+  });
+
+  test("przy starcie czyta Projekty z hasha", () => {
+    window.history.replaceState(null, "", "/dashboard#projekty");
+    const { result } = renderHook(() => useCardNavigation());
+    expect(result.current.projectsOpen).toBe(true);
   });
 });

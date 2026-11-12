@@ -44,11 +44,21 @@ Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 | Grupy Teraz / Następne / Icebox      | BRAK      | są kolumny todo / in_progress / to_review / done            |
 | Szybkie dodawanie ze składnią        | BRAK      |                                                             |
 
-## 4. Projekty
+## 4. Projekty (`src/features/projects/`, `contexts/bc_projects/`)
 
-Wszystko **BRAK**: brak encji projektu w `types/records.ts`. Rejestr, wykrywanie porzuconych (>14 dni),
-metryczka, Save State, Teraz/Następne/Icebox, devlog, paczka kontekstu, etykieta „Firma” powstaną
-na warstwie vaulta (`lib/nexus/`, etap 0–1).
+Etap **1-1 (odczyt)** zrobiony: Alt+4 / `#projekty` otwiera kartę; rejestr z vaulta (`GET /api/projects`),
+teczka (`GET /api/projects/[id]`), freshness/stale (>14 dni), metryczka (linki, `localPath`),
+„Gdzie skończyłem”, zadania z `tasks.md`, bugi z `bugs.md` (aktywne + licznik zamkniętych).
+
+| Funkcja                                   | Stan | Gdzie / uwagi                                          |
+| ----------------------------------------- | ---- | ------------------------------------------------------ |
+| Rejestr i teczka (odczyt)                 | JEST | ProjectsView, ProjectList, ProjectDossier; bc_projects |
+| Wykrywanie porzuconych (freshness stale)  | JEST | services.ts + odznaka `prj-item--stale`                |
+| Kafle statystyk                           | BRAK | względem makiety `04-projekty.html`                    |
+| Owner                                     | BRAK | względem makiety                                       |
+| Kamień milowy                             | BRAK | względem makiety                                       |
+| Save State, Teraz/Następne/Icebox, devlog | BRAK | późniejsze podetapy                                    |
+| Paczka kontekstu, etykieta „Firma”        | BRAK | późniejsze podetapy                                    |
 
 ## 5. Notatki (`src/features/notes/`, `src/components/NoteEditor.tsx`)
 

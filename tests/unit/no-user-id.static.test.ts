@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const DIRS = ["app/api", "services", "lib/nexus", "types", "src"];
+const DIRS = ["app/api", "services", "lib/nexus", "types", "src", "contexts"];
 const FILES = ["lib/firestore-db.ts"];
 const PATTERN = /\b_?userId\b|getAuthUserId|\bauth\.uid\b/;
 

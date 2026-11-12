@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const DIRS = ["app", "src", "lib", "services", "scripts", "types"];
+const DIRS = ["app", "src", "lib", "services", "scripts", "types", "contexts"];
 const ALLOWED = ["lib/nexus/vault-fs.ts", "lib/workGuard.ts"];
 
 function collect(): string[] {

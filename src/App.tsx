@@ -16,12 +16,21 @@ import { CardRail } from "@/src/features/cards/CardRail";
 import { CommandPalette } from "@/src/features/cards/CommandPalette";
 import { CardPlaceholder } from "@/src/features/cards/CardPlaceholder";
 import { buildCardCommands } from "@/src/features/cards/cards";
+import { ProjectsView } from "@/src/features/projects/ProjectsView";
 
 export default function App() {
   const [lang, setLang] = useState<"en" | "pl">("pl");
   const t = translations[lang];
-  const { appMode, setAppMode, planningTab, setPlanningTab, placeholder, activeCard, selectCard } =
-    useCardNavigation();
+  const {
+    appMode,
+    setAppMode,
+    planningTab,
+    setPlanningTab,
+    placeholder,
+    projectsOpen,
+    activeCard,
+    selectCard,
+  } = useCardNavigation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -40,7 +49,9 @@ export default function App() {
       data-card={activeCard}
     >
       <CardRail activeCard={activeCard} onSelect={selectCard} onOpenPalette={openPalette} />
-      {placeholder ? (
+      {projectsOpen ? (
+        <ProjectsView apiFetch={apiFetch} />
+      ) : placeholder ? (
         <CardPlaceholder cardId={placeholder} />
       ) : appMode === "home" ? (
         <HomeView
