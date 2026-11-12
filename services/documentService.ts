@@ -8,15 +8,8 @@ export async function ingestDocument(
   userId: string,
   data: { name: string; content: string; type: string }
 ) {
-  const { id: docId } = await firestoreDb.createDocument(userId, data);
-  const paragraphs = data.content.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
-  if (paragraphs.length > 0) {
-    await firestoreDb.addChunks(
-      userId,
-      paragraphs.map((p: string) => ({ documentId: docId, content: p }))
-    );
-  }
-  return { id: docId, name: data.name };
+  const { id } = await firestoreDb.createDocument(userId, data);
+  return { id, name: data.name };
 }
 
 export async function deleteDocument(userId: string, id: string) {

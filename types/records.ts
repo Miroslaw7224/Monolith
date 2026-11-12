@@ -14,15 +14,6 @@ export type NoteRecord = {
   updated_at?: string;
 };
 
-export type ChunkRecord = {
-  id: string;
-  content: string;
-  documentId?: string;
-  noteId?: string;
-  sourceName?: string;
-  noteTitle?: string;
-};
-
 export interface NoteResourceRecord {
   id: string;
   noteId?: string; // opcjonalne – zasoby są na poziomie użytkownika, nie notatki
