@@ -9,7 +9,9 @@ const REPOS = ["common", "tags", "taskTemplates", "resources"].map(
   (name) => `lib/nexus/repos/${name}.ts`
 );
 const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
-const FILE_REPOS = ["tasks", "calendarEvents"].map((name) => `lib/nexus/repos/${name}.ts`);
+const FILE_REPOS = ["tasks", "calendarEvents", "markdown-dir"].map(
+  (name) => `lib/nexus/repos/${name}.ts`
+);
 const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
@@ -60,7 +62,12 @@ describe("0c-2 / 0c-3 static guards", () => {
     };
     walk("lib/nexus");
     expect(importers.sort()).toEqual(
-      [STORE, "lib/nexus/repos/calendarEvents.ts", "lib/nexus/repos/tasks.ts"].sort()
+      [
+        STORE,
+        "lib/nexus/repos/calendarEvents.ts",
+        "lib/nexus/repos/markdown-dir.ts",
+        "lib/nexus/repos/tasks.ts",
+      ].sort()
     );
   });
 
