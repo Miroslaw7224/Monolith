@@ -27,7 +27,7 @@ describe("documentService", () => {
       const docs = [{ id: "d1", name: "Doc 1", content: "x", type: "text" }];
       mockGetDocuments.mockResolvedValue(docs);
 
-      const result = await listDocuments("user-1");
+      const result = await listDocuments();
 
       expect(result).toEqual(docs);
     });
@@ -35,7 +35,7 @@ describe("documentService", () => {
     it("given getDocuments throws, when listDocuments is called, then propagates the error", async () => {
       mockGetDocuments.mockRejectedValue(new Error("DB error"));
 
-      await expect(listDocuments("user-1")).rejects.toThrow("DB error");
+      await expect(listDocuments()).rejects.toThrow("DB error");
     });
   });
 
@@ -43,14 +43,14 @@ describe("documentService", () => {
     it("given valid data, when ingestDocument is called, then creates the document and returns id and name (happy path)", async () => {
       mockCreateDocument.mockResolvedValue({ id: "doc-1", name: "My Doc" });
 
-      const result = await ingestDocument("user-1", {
+      const result = await ingestDocument({
         name: "My Doc",
         content: "Para one\n\nPara two",
         type: "text",
       });
 
       expect(result).toEqual({ id: "doc-1", name: "My Doc" });
-      expect(mockCreateDocument).toHaveBeenCalledWith("user-1", {
+      expect(mockCreateDocument).toHaveBeenCalledWith({
         name: "My Doc",
         content: "Para one\n\nPara two",
         type: "text",
@@ -60,9 +60,9 @@ describe("documentService", () => {
     it("given createDocument throws, when ingestDocument is called, then propagates the error", async () => {
       mockCreateDocument.mockRejectedValue(new Error("Create failed"));
 
-      await expect(
-        ingestDocument("user-1", { name: "X", content: "Y", type: "text" })
-      ).rejects.toThrow("Create failed");
+      await expect(ingestDocument({ name: "X", content: "Y", type: "text" })).rejects.toThrow(
+        "Create failed"
+      );
     });
   });
 
@@ -70,15 +70,15 @@ describe("documentService", () => {
     it("given valid id, when deleteDocument is called, then calls firestore delete (happy path)", async () => {
       mockDeleteDocument.mockResolvedValue(undefined);
 
-      await deleteDocument("user-1", "doc-1");
+      await deleteDocument("doc-1");
 
-      expect(mockDeleteDocument).toHaveBeenCalledWith("user-1", "doc-1");
+      expect(mockDeleteDocument).toHaveBeenCalledWith("doc-1");
     });
 
     it("given deleteDocument throws, when deleteDocument is called, then propagates the error", async () => {
       mockDeleteDocument.mockRejectedValue(new Error("Delete failed"));
 
-      await expect(deleteDocument("user-1", "doc-1")).rejects.toThrow("Delete failed");
+      await expect(deleteDocument("doc-1")).rejects.toThrow("Delete failed");
     });
   });
 });

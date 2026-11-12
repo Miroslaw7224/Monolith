@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-const mockGetAuthUserId = vi.hoisted(() => vi.fn());
 const mockListNotes = vi.hoisted(() => vi.fn());
 const mockCreateNote = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/getAuth", () => ({ getAuthUserId: mockGetAuthUserId }));
 vi.mock("@/services/noteService", () => ({
   listNotes: mockListNotes,
   createNote: mockCreateNote,
@@ -14,7 +12,7 @@ vi.mock("@/services/noteService", () => ({
 import { GET, POST } from "@/app/api/notes/route";
 
 function makeRequest(options?: { method?: string; body?: unknown }): NextRequest {
-  const headers: Record<string, string> = { authorization: "Bearer valid" };
+  const headers: Record<string, string> = {};
   if (options?.body) headers["content-type"] = "application/json";
   return new NextRequest("http://localhost/api/notes", {
     method: options?.method ?? "GET",
@@ -33,15 +31,6 @@ const fakeNote = {
 describe("GET /api/notes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockGetAuthUserId.mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await GET(makeRequest());
-    expect(res.status).toBe(401);
   });
 
   it("returns notes array with id, title, content, created_at", async () => {
@@ -51,22 +40,13 @@ describe("GET /api/notes", () => {
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body[0]).toMatchObject({ id: "note-1", title: "Moja notatka" });
-    expect(mockListNotes).toHaveBeenCalledWith("user-1");
+    expect(mockListNotes).toHaveBeenCalledWith();
   });
 });
 
 describe("POST /api/notes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockGetAuthUserId.mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await POST(makeRequest({ method: "POST", body: {} }));
-    expect(res.status).toBe(401);
   });
 
   it("creates note with empty title/content when fields are omitted", async () => {
@@ -74,7 +54,6 @@ describe("POST /api/notes", () => {
     const res = await POST(makeRequest({ method: "POST", body: {} }));
     expect(res.status).toBe(200);
     expect(mockCreateNote).toHaveBeenCalledWith(
-      "user-1",
       expect.objectContaining({ title: "", content: "" })
     );
   });
@@ -86,7 +65,6 @@ describe("POST /api/notes", () => {
     );
     expect(res.status).toBe(200);
     expect(mockCreateNote).toHaveBeenCalledWith(
-      "user-1",
       expect.objectContaining({ title: "Nowa notatka", content: "<p>Treść</p>" })
     );
   });

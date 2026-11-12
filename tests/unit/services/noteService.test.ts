@@ -26,7 +26,7 @@ describe("noteService", () => {
       const notes = [{ id: "n1", title: "Note 1", content: "Content" }];
       mockGetNotes.mockResolvedValue(notes);
 
-      const result = await listNotes("user-1");
+      const result = await listNotes();
 
       expect(result).toEqual(notes);
     });
@@ -34,7 +34,7 @@ describe("noteService", () => {
     it("given getNotes throws, when listNotes is called, then propagates the error", async () => {
       mockGetNotes.mockRejectedValue(new Error("DB error"));
 
-      await expect(listNotes("user-1")).rejects.toThrow("DB error");
+      await expect(listNotes()).rejects.toThrow("DB error");
     });
   });
 
@@ -42,7 +42,7 @@ describe("noteService", () => {
     it("given valid data, when createNote is called, then returns created note (happy path)", async () => {
       mockCreateNote.mockResolvedValue({ id: "n1", title: "T", content: "C" });
 
-      const result = await createNote("user-1", { title: "T", content: "C" });
+      const result = await createNote({ title: "T", content: "C" });
 
       expect(result).toEqual({ id: "n1", title: "T", content: "C" });
     });
@@ -50,9 +50,7 @@ describe("noteService", () => {
     it("given createNote throws, when createNote is called, then propagates the error", async () => {
       mockCreateNote.mockRejectedValue(new Error("Create failed"));
 
-      await expect(createNote("user-1", { title: "T", content: "C" })).rejects.toThrow(
-        "Create failed"
-      );
+      await expect(createNote({ title: "T", content: "C" })).rejects.toThrow("Create failed");
     });
   });
 
@@ -60,9 +58,9 @@ describe("noteService", () => {
     it("given valid id and data, when updateNote is called, then delegates to firestore (happy path)", async () => {
       mockUpdateNote.mockResolvedValue(undefined);
 
-      await updateNote("user-1", "n1", { title: "T2", content: "C2" });
+      await updateNote("n1", { title: "T2", content: "C2" });
 
-      expect(mockUpdateNote).toHaveBeenCalledWith("user-1", "n1", {
+      expect(mockUpdateNote).toHaveBeenCalledWith("n1", {
         title: "T2",
         content: "C2",
       });
@@ -71,9 +69,7 @@ describe("noteService", () => {
     it("given updateNote throws, when updateNote is called, then propagates the error", async () => {
       mockUpdateNote.mockRejectedValue(new Error("Update failed"));
 
-      await expect(updateNote("user-1", "n1", { title: "T", content: "C" })).rejects.toThrow(
-        "Update failed"
-      );
+      await expect(updateNote("n1", { title: "T", content: "C" })).rejects.toThrow("Update failed");
     });
   });
 
@@ -81,15 +77,15 @@ describe("noteService", () => {
     it("given valid id, when deleteNote is called, then delegates to firestore (happy path)", async () => {
       mockDeleteNote.mockResolvedValue(undefined);
 
-      await deleteNote("user-1", "n1");
+      await deleteNote("n1");
 
-      expect(mockDeleteNote).toHaveBeenCalledWith("user-1", "n1");
+      expect(mockDeleteNote).toHaveBeenCalledWith("n1");
     });
 
     it("given deleteNote throws, when deleteNote is called, then propagates the error", async () => {
       mockDeleteNote.mockRejectedValue(new Error("Delete failed"));
 
-      await expect(deleteNote("user-1", "n1")).rejects.toThrow("Delete failed");
+      await expect(deleteNote("n1")).rejects.toThrow("Delete failed");
     });
   });
 });
