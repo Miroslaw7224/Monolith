@@ -26,8 +26,6 @@
     "playwright:cli": "playwright-cli",
     "playwright:cli:help": "playwright-cli --help",
     "playwright:cli:skills": "playwright-cli install --skills",
-    "vercel": "vercel",
-    "vercel:prod": "vercel --prod",
     "prepare": "husky"
   },
   "dependencies": {
@@ -45,7 +43,6 @@
     "clsx": "^2.1.1",
     "d3-force": "^3.0.0",
     "dotenv": "^17.2.3",
-    "firebase": "^12.9.0",
     "firebase-admin": "^13.0.0",
     "lucide-react": "^0.546.0",
     "markdown-it": "^14.3.3",
@@ -91,7 +88,6 @@
     "ts-prune": "^0.10.3",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vercel": "^50.25.4",
     "vitest": "^3.2.4",
     "wait-on": "^8.0.2"
   },
