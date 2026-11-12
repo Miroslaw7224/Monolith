@@ -5,7 +5,7 @@ import { ThemeScript } from "@/src/components/theme/ThemeScript";
 import { ThemeProvider } from "@/src/components/theme/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Monolith · Freelancer Edition",
+  title: "Monolith · Offline Nexus Core",
   description:
     "Jedno miejsce na dokumenty i notatki. Chat z AI po swojej bazie wiedzy — odpowiedzi w sekundach, ze wskazaniem źródła. Dla freelancerów.",
 };

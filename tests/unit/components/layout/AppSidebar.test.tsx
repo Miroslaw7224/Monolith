@@ -5,7 +5,7 @@ import { AppSidebar } from "@/src/components/layout/AppSidebar";
 
 const t = {
   title: "Monolith",
-  subtitle: "Freelancer Edition",
+  subtitle: "Offline Nexus Core",
   proPlan: "PRO",
   docsLimit: "Limit dokumentów",
 };

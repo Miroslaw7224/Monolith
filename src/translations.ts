@@ -6,7 +6,7 @@
 export const translations = {
   en: {
     title: "Monolith",
-    subtitle: "Freelancer Edition",
+    subtitle: "Offline Nexus Core",
     noDocs: "No documents yet",
     proPlan: "PRO PLAN",
     docsLimit: "50 documents limit",
@@ -255,7 +255,7 @@ export const translations = {
   },
   pl: {
     title: "Monolith",
-    subtitle: "Edycja Freelancera",
+    subtitle: "Offline Nexus Core",
     noDocs: "Brak dokumentów",
     proPlan: "PLAN PRO",
     docsLimit: "Limit 50 dokumentów",

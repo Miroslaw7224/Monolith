@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Brain } from "lucide-react";
+import { MonolithLogo } from "@/src/components/brand/MonolithLogo";
 import { motion } from "motion/react";
 
 export interface AppSidebarTranslations {
@@ -38,9 +38,7 @@ export function AppSidebar({
       className="bg-[var(--bg2)] border-r border-[var(--border)] hidden md:flex flex-col overflow-hidden"
     >
       <div className="p-6 flex items-center gap-3 border-b border-[var(--border)]">
-        <div className="w-10 h-10 bg-[var(--accent)] rounded-xl flex items-center justify-center">
-          <Brain className="text-white w-6 h-6" />
-        </div>
+        <MonolithLogo size={40} className="shrink-0" />
         <div className="flex-1">
           <h1 className="font-bold text-lg tracking-tight text-[var(--text)]">{t.title}</h1>
           <p className="text-xs text-[var(--text2)] font-medium uppercase tracking-wider">
