@@ -32,7 +32,6 @@ export {
   updateTaskTemplate,
   deleteTaskTemplate,
 } from "@/lib/nexus/repos/taskTemplates";
-export { addAgentLogEntry, type AgentLogEntry } from "@/lib/firestore/agentLog";
 export {
   getMindMaps,
   getMindMap,
