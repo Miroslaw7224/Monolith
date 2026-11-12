@@ -16,7 +16,7 @@ efektów HUD (ścięte rogi, narożniki). `02-kalendarz.html` pokazuje, jak prze
 
 | Plik                    | Rola                                                      | Czy wolno edytować w zadaniu karty |
 | ----------------------- | --------------------------------------------------------- | ---------------------------------- |
-| `tokens.css`            | palety 8 kart + wspólne zmienne                           | **nie**                            |
+| `tokens.css`            | palety 9 kart + wspólne zmienne                           | **nie**                            |
 | `shell.css`             | szkielet i wspólne komponenty                             | **nie**                            |
 | `shell.js`              | pasek kart, pasek stanu, skróty, Ctrl+K, toasty, zakładki | **nie**                            |
 | `cards/0N-<nazwa>.html` | jedna karta                                               | **tak, tylko swój plik**           |
@@ -94,7 +94,7 @@ Zasady:
 | `data-toast="…"` na dowolnym elemencie                                                            | atrapa akcji: po kliknięciu toast          |
 
 Klasy własne karty mają prefiks: Kokpit `.kp-`, Kalendarz `.kal-`, Zadania `.zad-`, Projekty `.prj-`,
-Notatki `.not-`, Płótno `.plo-`, Arsenał `.ars-`, Mapa `.map-`.
+Notatki `.not-`, Płótno `.plo-`, Arsenał `.ars-`, Mapa `.map-`, Kodeks `.kod-`.
 
 ## 5. Źródła danych (`data-src`)
 

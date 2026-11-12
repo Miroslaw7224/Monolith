@@ -6,18 +6,18 @@ Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 
 ## 1. Kokpit (`src/features/home/HomeView.tsx`)
 
-| Funkcja                         | Stan          | Gdzie / uwagi                                                                         |
-| ------------------------------- | ------------- | ------------------------------------------------------------------------------------- |
-| Kafle z liczbami dnia           | CZĘŚCIOWO     | HomeView.tsx:257 (zadania dziś, nadchodzące); brak inbox, aktywnych tematów, commitów |
-| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx:183 (zadania z terminem dziś); brak energii Deep/Quick i projektów       |
-| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx:186 (lista 48 h); brak osi czasu, linku do spotkania                     |
-| Sesja pracy                     | CZĘŚCIOWO     | src/lib/activeSession.ts (timer); to nie Save State                                   |
-| Punkty skupienia z Save State   | BRAK          |                                                                                       |
-| Brief i action items            | BRAK          |                                                                                       |
-| Szybki inbox                    | BRAK          |                                                                                       |
-| Rytuał zamknięcia dnia / zaczep | BRAK          |                                                                                       |
-| Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                |
-| Ctrl+K i Alt+1…8                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet           |
+| Funkcja                         | Stan          | Gdzie / uwagi                                                                                          |
+| ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
+| Kafle z liczbami dnia           | CZĘŚCIOWO     | HomeView.tsx:257 (zadania dziś, nadchodzące); brak inbox, aktywnych tematów, commitów                  |
+| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx:183 (zadania z terminem dziś); brak energii Deep/Quick i projektów                        |
+| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx:186 (lista 48 h); brak osi czasu, linku do spotkania                                      |
+| Sesja pracy                     | CZĘŚCIOWO     | src/lib/activeSession.ts (timer); to nie Save State                                                    |
+| Punkty skupienia z Save State   | BRAK          |                                                                                                        |
+| Brief i action items            | BRAK          |                                                                                                        |
+| Szybki inbox                    | BRAK          |                                                                                                        |
+| Rytuał zamknięcia dnia / zaczep | BRAK          |                                                                                                        |
+| Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                 |
+| Ctrl+K i Alt+1…9                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka) |
 
 ## 2. Kalendarz (`src/components/CalendarView.tsx`)
 
@@ -88,6 +88,12 @@ na warstwie vaulta (`lib/nexus/`, etap 0–1).
 
 Wszystko **BRAK**: graf projektów, radar blokad, agenci z Herdr, sieć NEXUS. Jest czat agenta
 (PlanowanieView.tsx:260, AgentPendingActions.tsx:18), ale to nie panel Herdr.
+
+## 9. Kodeks
+
+Wszystko **BRAK** poza zaślepką w szkielecie kart (`src/features/cards/`, `Alt+9`). Czytnik kodeksu
+(`Vault/Knowledge/kodeks.md`) i checklisty to część B specu `2026-11-12-karta-kodeks-design.md`,
+zależna od warstwy `lib/nexus/` (etap 0c).
 
 ## Wnioski do planu wdrożenia
 
