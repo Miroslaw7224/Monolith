@@ -192,3 +192,23 @@ export async function updateVaultFile(
     }
   }
 }
+
+/**
+ * Nazwy zwykłych plików (bez katalogów i dowiązań) bezpośrednio w katalogu `relDir` vaulta,
+ * posortowane rosnąco. Brak katalogu daje []. Ścieżka przechodzi przez resolveInsideVault.
+ */
+export function listVaultFiles(relDir: string, opts?: VaultFsOptions): string[] {
+  const abs = resolveInsideVault(rootOf(opts), relDir);
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(abs, { withFileTypes: true });
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT" || code === "ENOTDIR") return [];
+    throw err;
+  }
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .sort();
+}
