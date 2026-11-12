@@ -29,11 +29,3 @@ export function boardDoc(userId: string) {
 export function chunksCol(userId: string) {
   return userCollection(userId, "chunks");
 }
-
-export function calendarEventsCol(userId: string) {
-  return userCollection(userId, "calendar_events");
-}
-
-export function tasksCol(userId: string) {
-  return userCollection(userId, "tasks");
-}
