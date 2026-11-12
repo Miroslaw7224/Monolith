@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { NextResponse } from "next/server";
 import { DomainError } from "../../../lib/errors.js";
 import { handleServiceError } from "../../../lib/apiError.js";
+import { VaultConfigError } from "../../../lib/nexus/vault-path.js";
 
 describe("lib/apiError", () => {
   afterEach(() => {
@@ -14,6 +15,15 @@ describe("lib/apiError", () => {
     expect(res).toBeInstanceOf(NextResponse);
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "Not here" });
+  });
+
+  it("maps VaultConfigError to 500 with its readable message", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = handleServiceError(
+      new VaultConfigError("Brak vaulta: ustaw NEXUS_VAULT_PATH na bezwzględną ścieżkę.")
+    );
+    expect(res.status).toBe(500);
+    expect(String((await res.json()).error)).toContain("NEXUS_VAULT_PATH");
   });
 
   it("maps 429-shaped error to retry payload", async () => {
