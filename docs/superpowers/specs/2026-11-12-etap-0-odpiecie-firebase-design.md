@@ -1,7 +1,7 @@
 # Etap 0: odpięcie Firebase i Vercela — projekt
 
 Data: 2026-11-12
-Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zaimplementowany na gałęzi `feat/etap-0b-import-do-vaultu` (testy zielone, jeszcze nieuruchomiony na prawdziwym zrzucie), kroki 0c–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
+Status: krok 0a zaimplementowany i uruchomiony na produkcji (tylko odczyt), krok 0b zmergowany do `main` (PR #7; testy zielone, jeszcze nieuruchomiony na prawdziwym zrzucie), krok 0c zaprojektowany (`2026-11-12-etap-0c-warstwa-plikowa-design.md`, cztery podkroki 0c-1…0c-4), kroki 0d–0f w planowaniu. Zakres migracji danych zawężony decyzją użytkownika (§1.1); moduły aplikacji zostają.
 Nadrzędny spec: `2026-11-11-asystent-lokalny-nexus-design.md` (decyzje D1–D8, §7 etap 0)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -45,7 +45,7 @@ Każdy krok kończy się commitem, działającą aplikacją i bramką weryfikacj
 | 0e   | Zdjęcie z Vercela, wygaszenie projektu Firebase                                        | nie                | tak (usunięcie), po okresie karencji |
 | 0f   | `Vault/Work/` w `.gitignore` NEXUS i kontrola `git check-ignore`                       | w NEXUS            | nie                                  |
 
-Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Krok 0b jest zaimplementowany na gałęzi `feat/etap-0b-import-do-vaultu`, testy są zielone, ale skrypt nie był jeszcze uruchomiony na prawdziwym zrzucie. Kroki 0c–0f bez zmian (nie rozpoczęte).
+Stan: 0a jest wykonane. Zrzut zawężony do zakresu z 1.1 powstał, przeszedł `--verify` i ma zgodne liczności przed, w pliku i po. Krok 0b jest zmergowany do `main` (PR #7), testy są zielone, ale skrypt nie był jeszcze uruchomiony na prawdziwym zrzucie. Krok 0c ma zatwierdzony projekt w osobnym specu (podział na 0c-1…0c-4), implementacja nie rozpoczęta. Kroki 0d–0f bez zmian.
 
 0f jest niezależny i może wejść w dowolnym momencie przed pierwszym zapisem danych etatu. Zmianę `.gitignore` w repo NEXUS robi człowiek lub agent poza aplikacją (aplikacja zapisuje tylko w `Vault/`).
 
@@ -140,15 +140,18 @@ Bramka 0b: raport porównuje liczbę rekordów po stronie zrzutu i po stronie pl
 
 ## 6. Krok 0c: warstwa `lib/nexus/`
 
-- `lib/firestore-db.ts` pozostaje jedynym szwem. Funkcje o tych samych nazwach i sygnaturach dostają implementację plikową; Szew nie jest jednak szczelny, więc 0c zaczyna się od jego domknięcia (patrz niżej).
-- **Zakres 0c:** wszystkie kolekcje, które aplikacja używa, dostają backend plikowy. Dane migrują tylko `tags`, `task_templates`, `resources`, `tasks` i `notes` (1.1); `calendar_events`, `mindMaps`, `board` i `agent_log` startują puste, ale ich moduły muszą w pełni działać, więc ich implementacje plikowe i domknięcie szwu poniżej obowiązują.
+Szczegółowy projekt, podział na podkroki 0c-1…0c-4, formaty plików i testy: `2026-11-12-etap-0c-warstwa-plikowa-design.md`. Poniżej ustalenia nadrzędne.
+
+- **Decyzje z brainstormu 0c (2026-11-12):** podmiana w miejscu, **bez przełącznika backendów** (Firestore i Vercel znikają z projektu, więc nie utrzymujemy dwóch implementacji); `chunks` wypadają (martwy indeks, nic go nie czyta); `documents` dostają backend plikowy `Documents/<slug>.md`; edytor notatek (TipTap) przechodzi na Markdown (z toolbara znikają kolor, krój czcionki, wyrównanie i podkreślenie).
+- `lib/firestore-db.ts` pozostaje jedynym szwem. Funkcje o tych samych nazwach i sygnaturach dostają implementację plikową w `lib/nexus/repos/`, a plik kolekcji w `lib/firestore/` jest usuwany po jej przepięciu. Szew nie jest jednak szczelny, więc 0c zaczyna się od jego domknięcia (patrz niżej).
+- **Zakres 0c:** wszystkie kolekcje, które aplikacja używa (poza `chunks`, które są usuwane), dostają backend plikowy. Dane migrują tylko `tags`, `task_templates`, `resources`, `tasks` i `notes` (1.1); `calendar_events`, `mindMaps`, `board` i `agent_log` startują puste, ale ich moduły muszą w pełni działać, więc ich implementacje plikowe i domknięcie szwu poniżej obowiązują.
 - **Domknięcie szwu (pierwszy podkrok 0c, bez zmiany zachowania).** Zweryfikowane w kodzie: `services/mindMapService.ts` i `services/boardService.ts` importują `FieldValue` z `firebase-admin/firestore` i używają bezpośrednio `mindMapsCol`/`boardDoc` (z `.doc()`, `.get()`, `.update()`), a `src/App.tsx`, `src/features/mind-maps/*` i `types/records.ts` (typ `Timestamp`) też dotykają Firebase. Trzeba dodać do `firestore-db.ts` funkcje repozytoryjne (`getMindMaps`, `createMindMap`, `updateMindMap`, `deleteMindMap`, `getBoard`, `saveBoard`), przenieść do nich `serverTimestamp()`, a pola czasu w typach zamienić na ISO string.
 - **Zależności między serwisami:** `calendarService` czyta zadania (`getTasks`, `services/calendarService.ts:36`), a `planService` odpytuje kalendarz i tworzy wydarzenia bezpośrednio przez `firestoreDb`. Kolejność podmiany to: `tags` → `task_templates` → `resources` → **`tasks` → `calendar_events`** → `notes` / `documents` → `mindMaps` → `board` → `agent_log`; `planService` przechodzi przez API `calendarService`, a nie przez `firestoreDb`. Kolekcje bez migrowanych danych (`calendar_events`, `mindMaps`, `board`, `agent_log`) są podmieniane w tej samej kolejności, tylko bez kroku importu.
 - Po każdej kolekcji: testy usługi, ręczny przegląd w UI, commit.
 - **`agent_log`:** `agentService` zapisuje do niego w każdym przebiegu (`services/agentService.ts`), więc backend plikowy musi mieć implementację (dopisywany JSONL w `Sessions/`) albo jawny no-op. Stare dane nie są migrowane (O3), log startuje pusty. Brak implementacji zatrzymałby asystenta AI.
 - Pojedynczy użytkownik: `userId` staje się stałą lokalną. Parametr zostaje w sygnaturach do końca kroku (mniej zmian), usuwany w 0d.
 - Moduły zgodnie z §4.1 nadrzędnego specu: `vault-path.ts` (w tym mapowanie `E:\` ↔ `/mnt/e/`, błąd konfiguracji przy braku `NEXUS_VAULT_PATH`), `markdown-edit.ts`, zapis atomowy z kontrolą `mtime`.
-- Testy: ten sam zestaw testów usług uruchamiany na obu backendach (kontrakt), dopóki istnieją oba. Zweryfikowane: `tests/unit/services/boardService.test.ts` i `mindMapService.test.ts` mockują wprost `firebase-admin` i `FieldValue`, więc po domknięciu szwu trzeba je przepisać tak, by mockowały `firestore-db` (lub interfejs repozytorium), a nie SDK. Szczegóły w planie.
+- Testy: testy usług zostają jedne (bez drugiego backendu); repozytoria plikowe są testowane na tymczasowym vaulcie. Zweryfikowane: `tests/unit/services/boardService.test.ts` i `mindMapService.test.ts` mockują wprost `firebase-admin` i `FieldValue`, więc po domknięciu szwu trzeba je przepisać tak, by mockowały `firestore-db` (lub interfejs repozytorium), a nie SDK. Szczegóły w planie.
 
 ## 7. Kroki 0d–0f
 
