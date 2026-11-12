@@ -1,24 +1,17 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { LogOut, Link, Briefcase, Tag, Map, LayoutDashboard } from "lucide-react";
+import { Link, Briefcase, Tag, Map, LayoutDashboard } from "lucide-react";
 import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
 
 interface MobileMoreDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogout: () => void;
   lang: "en" | "pl";
   onSelectTab: (tab: PlanningTab) => void;
 }
 
-export function MobileMoreDrawer({
-  isOpen,
-  onClose,
-  onLogout,
-  lang,
-  onSelectTab,
-}: MobileMoreDrawerProps) {
+export function MobileMoreDrawer({ isOpen, onClose, lang, onSelectTab }: MobileMoreDrawerProps) {
   const items: Array<{
     id: PlanningTab;
     icon: React.ReactNode;
@@ -92,19 +85,6 @@ export function MobileMoreDrawer({
                   </button>
                 );
               })}
-              <button
-                type="button"
-                onClick={() => {
-                  onLogout();
-                  onClose();
-                }}
-                className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-[var(--bg3)] text-red-500 transition-colors mt-2"
-              >
-                <LogOut className="w-5 h-5" />
-                <span className="text-sm font-semibold">
-                  {lang === "pl" ? "Wyloguj" : "Logout"}
-                </span>
-              </button>
             </div>
           </motion.div>
         </>

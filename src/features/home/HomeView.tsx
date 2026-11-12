@@ -11,11 +11,7 @@ import {
   clearActiveSession,
   type ActiveSession,
 } from "@/src/lib/activeSession";
-import {
-  AppSidebar,
-  type AppSidebarUser,
-  type AppSidebarTranslations,
-} from "@/src/components/layout/AppSidebar";
+import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import {
   PlanowanieSidebarContent,
@@ -38,7 +34,6 @@ interface HomeEvent {
 }
 
 interface HomeViewProps {
-  user: AppSidebarUser | null;
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   lang: "en" | "pl";
   t: T;
@@ -48,7 +43,6 @@ interface HomeViewProps {
   setAppMode: (mode: "home" | "planowanie") => void;
   planningTab: PlanningTab;
   setPlanningTab: (tab: PlanningTab) => void;
-  onLogout: () => void;
   setLang: (lang: "en" | "pl") => void;
 }
 
@@ -63,7 +57,6 @@ function in48hISO() {
 }
 
 export default function HomeView({
-  user,
   apiFetch,
   lang,
   t,
@@ -73,7 +66,6 @@ export default function HomeView({
   setAppMode,
   planningTab,
   setPlanningTab,
-  onLogout,
   setLang,
 }: HomeViewProps) {
   const [tasks, setTasks] = useState<HomeTask[]>([]);
@@ -190,7 +182,7 @@ export default function HomeView({
     setAppMode("planowanie");
   };
 
-  const greeting = `${t.homeGreeting}, ${user?.name?.split(" ")[0] ?? ""}`;
+  const greeting = t.homeGreeting;
   const dateStr = new Date().toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {
     weekday: "long",
     day: "numeric",
@@ -200,7 +192,6 @@ export default function HomeView({
   const sidebarT: AppSidebarTranslations = {
     title: t.title,
     subtitle: t.subtitle,
-    logout: t.logout,
     proPlan: t.proPlan,
     docsLimit: t.docsLimit,
   };
@@ -211,8 +202,6 @@ export default function HomeView({
         isSidebarOpen={isSidebarOpen}
         lang={lang}
         setLang={setLang}
-        user={user}
-        onLogout={onLogout}
         documentsCount={0}
         t={sidebarT}
       >

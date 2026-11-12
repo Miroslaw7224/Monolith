@@ -324,7 +324,6 @@ export default function App({ authenticated = false }: AppProps = {}) {
         <CardPlaceholder cardId={placeholder} />
       ) : appMode === "home" ? (
         <HomeView
-          user={user}
           apiFetch={apiFetch}
           lang={lang}
           t={t}
@@ -334,12 +333,10 @@ export default function App({ authenticated = false }: AppProps = {}) {
           setAppMode={setAppMode}
           planningTab={planningTab}
           setPlanningTab={setPlanningTab}
-          onLogout={handleLogout}
           setLang={setLang}
         />
       ) : (
         <PlanowanieView
-          user={user}
           apiFetch={apiFetch}
           lang={lang}
           t={t}
@@ -349,7 +346,6 @@ export default function App({ authenticated = false }: AppProps = {}) {
           setAppMode={setAppMode}
           planningTab={planningTab}
           setPlanningTab={setPlanningTab}
-          onLogout={handleLogout}
           setLang={setLang}
         />
       )}
@@ -364,7 +360,6 @@ export default function App({ authenticated = false }: AppProps = {}) {
       <MobileMoreDrawer
         isOpen={moreDrawerOpen}
         onClose={() => setMoreDrawerOpen(false)}
-        onLogout={handleLogout}
         lang={lang}
         onSelectTab={(tab) => {
           setPlanningTab(tab);

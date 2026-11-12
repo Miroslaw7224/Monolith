@@ -1,13 +1,11 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { AppSidebar } from "@/src/components/layout/AppSidebar";
 
 const t = {
   title: "Monolith",
   subtitle: "Freelancer Edition",
-  logout: "Wyloguj",
   proPlan: "PRO",
   docsLimit: "Limit dokumentów",
 };
@@ -15,45 +13,25 @@ const t = {
 describe("AppSidebar", () => {
   beforeEach(() => cleanup());
 
-  it("renders title, user and logout control", () => {
-    const onLogout = vi.fn();
+  it("renders title, panel content and the plan block", () => {
     render(
-      <AppSidebar
-        isSidebarOpen
-        lang="pl"
-        setLang={vi.fn()}
-        user={{ id: "1", email: "u@test.com", name: "Jan K" }}
-        onLogout={onLogout}
-        documentsCount={10}
-        t={t}
-      >
+      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} documentsCount={10} t={t}>
         <p>Panel content</p>
       </AppSidebar>
     );
 
     expect(screen.getByRole("heading", { name: "Monolith" })).toBeInTheDocument();
-    expect(screen.getByText("Jan K")).toBeInTheDocument();
     expect(screen.getByText("Panel content")).toBeInTheDocument();
+    expect(screen.getByText("PRO")).toBeInTheDocument();
   });
 
-  it("invokes onLogout when logout is clicked", async () => {
-    const user = userEvent.setup();
-    const onLogout = vi.fn();
+  it("does not render a user card or a logout button", () => {
     render(
-      <AppSidebar
-        isSidebarOpen
-        lang="pl"
-        setLang={vi.fn()}
-        user={{ id: "1", email: "only@mail.com", name: "" }}
-        onLogout={onLogout}
-        documentsCount={0}
-        t={t}
-      >
+      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} documentsCount={0} t={t}>
         <span />
       </AppSidebar>
     );
 
-    await user.click(screen.getByRole("button", { name: "Wyloguj" }));
-    expect(onLogout).toHaveBeenCalled();
+    expect(screen.queryByText(/wyloguj|logout/i)).toBeNull();
   });
 });
