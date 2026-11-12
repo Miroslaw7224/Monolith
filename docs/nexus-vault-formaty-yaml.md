@@ -1,4 +1,4 @@
-# Format plików w vaulcie (tagi, szablony, zasoby, zadania, kalendarz)
+# Format plików w vaulcie (tagi, szablony, zasoby, zadania, kalendarz, notatki, dokumenty, mapy myśli, tablica)
 
 Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, `lib/nexus/repos/`.
 
@@ -43,3 +43,50 @@ Jeden plik na miesiąc **daty początku** wydarzenia. Klucz listy `events`, pola
 - Zmiana `date` na inny miesiąc przenosi rekord do pliku tego miesiąca.
 - Zasady zapisu jak w pozostałych plikach YAML (nieznane klucze rekordu przeżywają, komentarze giną, uszkodzony plik nie jest nadpisywany).
 - Terminy zadań (`due`) nie są zapisywane w kalendarzu: aplikacja dolicza je w locie.
+
+## Notatki: `Notes/<slug>.md`
+
+Frontmatter (`id`, `title`, `created`, `updated`, `tags`), pusta linia, potem treść w **Markdownie**. Przykład:
+
+```
+---
+id: gmuXuPubwth2cvHDJiNy
+title: Pomysły
+created: "2026-11-10T21:26:56.494Z"
+updated: "2026-11-12T08:00:00.000Z"
+tags:
+  - praca
+---
+
+Treść z **pogrubieniem** i listą:
+
+- punkt
+```
+
+- Nazwa pliku (`slug`) powstaje z tytułu przy tworzeniu i **nie zmienia się** po zmianie tytułu. Kolizja daje sufiks `-2`, `-3` (bez rozróżniania wielkości liter); pusty tytuł daje `bez-tytulu.md`. W slugu zostają tylko `a-z`, `0-9` i `-`.
+- Aplikacja szuka notatki po `id` z frontmattera. Plik `.md` bez frontmattera albo bez tekstowego `id` nie pojawia się w aplikacji i nie jest zmieniany. Przy duplikacie `id` obowiązuje pierwszy plik w kolejności nazw.
+- Zapis zmienia `title`, treść i `updated`; **pozostałe klucze frontmattera (np. `tags`, wpisy z Obsidiana) i ich kolejność zostają**. Komentarze w frontmatterze giną.
+- Edytor notatek zapisuje Markdown: zostaje pogrubienie, kursywa, przekreślenie, nagłówki, listy, cytaty i kod. Kolor, krój i rozmiar czcionki, wyrównanie, podkreślenie, tabele, listy zadań i zakreślenie nie mają odpowiednika; oryginał HTML starych notatek jest w `Notes/.html/<id>.html` i **aplikacja go nie rusza** (także przy usuwaniu notatki).
+- Surowy HTML w treści jest w widoku notatki pokazywany jako tekst.
+- Odczyt: `created` malejąco; brak `title` daje nazwę pliku.
+
+## Dokumenty: `Documents/<slug>.md`
+
+Frontmatter (`id`, `name`, `type`, `created`), potem treść wgranego pliku jako tekst. Slug z `name` (`raport.txt` → `raport-txt.md`), reguły kolizji jak w notatkach. Dokumentów się nie edytuje, tylko dodaje i usuwa. Białe znaki na początku i końcu treści są obcinane.
+
+## Mapy myśli: `MindMaps/<id>.json`
+
+Jeden plik na mapę; `id` (20 znaków alfanumerycznych) to nazwa pliku. JSON z wcięciem 2 spacje i końcowym `\n`:
+
+```
+{ "title": "…", "rootNode": { "id": "root", "label": "…", "note": "<p>…</p>", "collapsed": false, "children": [] },
+  "colWidths": { "0": 200 }, "createdAt": "ISO", "updatedAt": "ISO" }
+```
+
+- `userId` nie jest zapisywany. Notatki węzłów (`note`) zostają w HTML (inny edytor niż notatki).
+- Uszkodzony plik JSON jest pomijany na liście map, a przy otwarciu tej mapy aplikacja zgłasza błąd z nazwą pliku.
+- `id` z adresu spoza `[A-Za-z0-9_-]{1,64}` jest traktowany jak nieistniejący.
+
+## Tablica: `Board/board.json`
+
+Jeden plik: `{ "tiles": […], "frames": […], "edges": […], "updatedAt": "ISO" }`. Brak pliku to pusta tablica. Zapis zawsze nadpisuje plik (ostatni zapis wygrywa).
