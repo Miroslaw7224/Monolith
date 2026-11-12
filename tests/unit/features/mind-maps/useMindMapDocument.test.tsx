@@ -16,7 +16,6 @@ function root(label: string): MindMapNode {
 function mapOf(label: string): MindMap {
   return {
     id: "map-1",
-    userId: "user-1",
     title: label,
     rootNode: root(label),
     colWidths: {},

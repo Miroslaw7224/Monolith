@@ -45,17 +45,17 @@ function parseStored(text: string, rel: string): Stored {
   };
 }
 
-/** Kolejność kluczy w pliku jest stała; `userId` nie trafia do vaulta (M1). */
+/** Kolejność kluczy w pliku jest stała; rekord nie przechowuje właściciela (M1). */
 function serialize(stored: Stored): string {
   const { title, rootNode, colWidths, createdAt, updatedAt } = stored;
   return JSON.stringify({ title, rootNode, colWidths, createdAt, updatedAt }, null, 2) + "\n";
 }
 
-function toMindMap(id: string, userId: string, stored: Stored): MindMap {
-  return { id, userId, ...stored };
+function toMindMap(id: string, stored: Stored): MindMap {
+  return { id, ...stored };
 }
 
-export async function getMindMaps(userId: string): Promise<MindMap[]> {
+export async function getMindMaps(): Promise<MindMap[]> {
   const maps: MindMap[] = [];
   for (const name of listVaultFiles(DIR)) {
     if (!name.endsWith(".json")) continue;
@@ -64,7 +64,7 @@ export async function getMindMaps(userId: string): Promise<MindMap[]> {
     const file = readVaultFile(relOf(id));
     if (file === null) continue;
     try {
-      maps.push(toMindMap(id, userId, parseStored(file.text, relOf(id))));
+      maps.push(toMindMap(id, parseStored(file.text, relOf(id))));
     } catch {
       // uszkodzony plik nie blokuje listy; bezpośredni odczyt (`getMindMap`) zgłasza błąd
     }
@@ -72,17 +72,17 @@ export async function getMindMaps(userId: string): Promise<MindMap[]> {
   return maps;
 }
 
-export async function getMindMap(userId: string, mapId: string): Promise<MindMap | null> {
+export async function getMindMap(mapId: string): Promise<MindMap | null> {
   if (!ID_PATTERN.test(mapId)) return null;
   const file = readVaultFile(relOf(mapId));
   if (file === null) return null;
-  return toMindMap(mapId, userId, parseStored(file.text, relOf(mapId)));
+  return toMindMap(mapId, parseStored(file.text, relOf(mapId)));
 }
 
-export async function createMindMap(
-  userId: string,
-  data: { title: string; rootNode: MindMapNode }
-): Promise<MindMap> {
+export async function createMindMap(data: {
+  title: string;
+  rootNode: MindMapNode;
+}): Promise<MindMap> {
   const taken = new Set(listVaultFiles(DIR).map((name) => name.replace(/\.json$/, "")));
   const id = generateId(taken);
   const now = nowIso();
@@ -94,11 +94,10 @@ export async function createMindMap(
     updatedAt: now,
   };
   writeVaultFile(relOf(id), serialize(stored), { expected: null });
-  return toMindMap(id, userId, stored);
+  return toMindMap(id, stored);
 }
 
 export async function saveMindMap(
-  _userId: string,
   mapId: string,
   patch: { title?: string; rootNode?: MindMapNode; colWidths?: Record<number, number> }
 ): Promise<void> {
@@ -118,7 +117,7 @@ export async function saveMindMap(
 }
 
 /** Idempotentne; `ConflictError` (zmiana zewnętrzna między odczytem a usunięciem) propaguje się jako 409. */
-export async function deleteMindMap(_userId: string, mapId: string): Promise<void> {
+export async function deleteMindMap(mapId: string): Promise<void> {
   if (!ID_PATTERN.test(mapId)) return;
   const file = readVaultFile(relOf(mapId));
   if (file === null) return;

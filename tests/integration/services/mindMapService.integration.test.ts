@@ -8,17 +8,16 @@ describe("mindMapService (integration)", () => {
   it.skipIf(!runIntegration)(
     "when Firestore is available, create get and delete a mind map",
     async () => {
-      const userId = "test-user-mindmap";
       const title = `e2e-map-${Date.now()}`;
-      const created = await createMindMap(userId, title);
+      const created = await createMindMap(title);
       expect(created.id).toBeTruthy();
       expect(created.title).toBe(title);
 
-      const loaded = await getMindMap(userId, created.id);
+      const loaded = await getMindMap(created.id);
       expect(loaded.rootNode.label).toBe(title);
 
-      await deleteMindMap(userId, created.id);
-      await expect(getMindMap(userId, created.id)).rejects.toThrow(DomainError);
+      await deleteMindMap(created.id);
+      await expect(getMindMap(created.id)).rejects.toThrow(DomainError);
     }
   );
 });

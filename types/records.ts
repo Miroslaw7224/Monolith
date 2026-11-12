@@ -76,7 +76,6 @@ export type TaskTemplateRecord = {
 
 export interface MindMap {
   id: string;
-  userId: string;
   title: string;
   rootNode: MindMapNode;
   /** Column widths in px per depth level. */
