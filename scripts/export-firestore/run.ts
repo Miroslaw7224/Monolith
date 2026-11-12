@@ -15,6 +15,8 @@ export type RunExportParams = {
   resume: boolean;
   /** Ogranicza eksport do users/<uid>/… */
   uid?: string;
+  /** Ogranicza eksport do kolekcji o tych nazwach. */
+  only?: string[];
   now?: Date;
   log?: (message: string) => void;
 };
@@ -23,7 +25,10 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
   const log = params.log ?? (() => {});
   prepareOutDir(params.outDir, { resume: params.resume });
 
-  const { collections, ghosts } = await discoverCollections(params.db, { uid: params.uid });
+  const { collections, ghosts } = await discoverCollections(params.db, {
+    uid: params.uid,
+    only: params.only,
+  });
   log(`Wykryto kolekcji: ${collections.length}, dokumentów-widm: ${ghosts.length}`);
 
   const before: Record<string, number> = {};
@@ -66,6 +71,7 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
     projectId: process.env.FIREBASE_PROJECT_ID ?? null,
     pageSize: params.pageSize,
     uid: params.uid ?? null,
+    only: params.only ?? null,
     status: computeStatus(entries),
     collections: entries,
     ghosts,

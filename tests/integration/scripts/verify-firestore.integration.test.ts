@@ -45,6 +45,23 @@ describe.skipIf(!integrationEnabled)("verifyDump (emulator)", () => {
     expect(await verifyDump(outDir, getFirestore())).toEqual({ ok: true, problems: [] });
   });
 
+  it("verifies a dump limited with only against those collections only", async () => {
+    const db = getFirestore();
+    const narrow = path.join(tmpDir(created), "narrow");
+    await runExport({
+      db,
+      outDir: narrow,
+      pageSize: 500,
+      resume: false,
+      uid: "u1",
+      only: ["tasks"],
+    });
+    await db.doc("users/u1/notes/n2").set({ title: "added outside the dump scope" });
+    expect(await verifyDump(narrow, db)).toEqual({ ok: true, problems: [] });
+    await db.doc("users/u1/tasks/t-new").set({ title: "in scope" });
+    expect((await verifyDump(narrow, db)).ok).toBe(false);
+  });
+
   it("fails when a document was added to Firestore after the export", async () => {
     const db = getFirestore();
     await db.doc("users/u1/tasks/t-new").set({ title: "late" });

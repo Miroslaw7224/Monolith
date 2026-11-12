@@ -56,6 +56,8 @@ export type Manifest = {
   pageSize: number;
   /** Gdy ustawione, eksport objął tylko users/<uid>/… (pozostałe konta i kolekcje główne pominięto). */
   uid: string | null;
+  /** Gdy ustawione, wyeksportowano wyłącznie kolekcje o tych nazwach (ostatni segment ścieżki). */
+  only: string[] | null;
   status: ManifestStatus;
   collections: CollectionEntry[];
   /** Ścieżki dokumentów, które nie istnieją, ale mają podkolekcje (np. users/ghost). */

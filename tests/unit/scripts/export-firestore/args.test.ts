@@ -37,6 +37,16 @@ describe("parseCliArgs", () => {
     expect(() => parseCliArgs(["--verify", "/tmp/d", "--uid", "abc"])).toThrow(/osobno/);
   });
 
+  it("parses --only as a trimmed list and rejects an empty one", () => {
+    expect(parseCliArgs(["--only", "notes, tasks,resources"])).toMatchObject({
+      mode: "export",
+      only: ["notes", "tasks", "resources"],
+    });
+    expect(parseCliArgs([])).toMatchObject({ only: undefined });
+    expect(() => parseCliArgs(["--only", " , "])).toThrow(/--only/);
+    expect(() => parseCliArgs(["--count-only", "--only", "notes"])).toThrow(/osobno/);
+  });
+
   it("requires --out together with --resume", () => {
     expect(() => parseCliArgs(["--resume"])).toThrow(/--resume wymaga --out/);
     expect(parseCliArgs(["--resume", "--out", "/tmp/d"])).toMatchObject({ resume: true });

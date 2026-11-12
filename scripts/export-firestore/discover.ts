@@ -14,11 +14,13 @@ export type Discovery = {
  */
 export async function discoverCollections(
   db: Firestore,
-  opts: { uid?: string } = {}
+  opts: { uid?: string; only?: string[] } = {}
 ): Promise<Discovery> {
   const collections: CollectionReference[] = [];
 
   async function walk(col: CollectionReference): Promise<void> {
+    // Z only pomijamy kolekcje spoza listy i nie schodzimy w ich podkolekcje.
+    if (opts.only && !opts.only.includes(col.id)) return;
     collections.push(col);
     for (const docRef of await col.listDocuments()) {
       for (const sub of await docRef.listCollections()) await walk(sub);

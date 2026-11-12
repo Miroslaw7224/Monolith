@@ -117,6 +117,29 @@ describe.skipIf(!integrationEnabled)("runExport (emulator)", () => {
     expect(fs.existsSync(path.join(outDir, "users/ghost"))).toBe(false);
   });
 
+  it("with only exports just the named collections and skips the rest", async () => {
+    const db = getFirestore();
+    await seed(db, { withUnknown: true });
+    const outDir = path.join(tmpDir(created), "dump");
+
+    const manifest = await runExport({
+      db,
+      outDir,
+      pageSize: 500,
+      resume: false,
+      uid: "u1",
+      only: ["tasks", "notes"],
+    });
+
+    expect(manifest.only).toEqual(["tasks", "notes"]);
+    expect(manifest.collections.map((c) => c.path).sort()).toEqual([
+      "users/u1/notes",
+      "users/u1/tasks",
+    ]);
+    expect(manifest.status).toBe("ok");
+    expect(fs.existsSync(path.join(outDir, "users/u1/board.jsonl"))).toBe(false);
+  });
+
   it("refuses to write inside this repository", async () => {
     const db = getFirestore();
     const inside = path.join(process.cwd(), "tests", "tmp-dump-should-not-exist");

@@ -11,6 +11,7 @@ export type CliArgs =
       skipAuth: boolean;
       pageSize: number;
       uid: string | undefined;
+      only: string[] | undefined;
     };
 
 export function parseCliArgs(argv: string[]): CliArgs {
@@ -25,6 +26,7 @@ export function parseCliArgs(argv: string[]): CliArgs {
       "skip-auth": { type: "boolean" },
       "page-size": { type: "string" },
       uid: { type: "string" },
+      only: { type: "string" },
     },
   });
 
@@ -35,7 +37,8 @@ export function parseCliArgs(argv: string[]): CliArgs {
     values.resume === true ||
     values["skip-auth"] === true ||
     values["page-size"] !== undefined ||
-    values.uid !== undefined;
+    values.uid !== undefined ||
+    values.only !== undefined;
 
   if (countOnly && verifyDir !== undefined) {
     throw new Error("--count-only i --verify uruchamia się osobno.");
@@ -60,6 +63,15 @@ export function parseCliArgs(argv: string[]): CliArgs {
     throw new Error("--resume wymaga --out <katalog istniejącego, niedokończonego eksportu>.");
   }
 
+  let only: string[] | undefined;
+  if (values.only !== undefined) {
+    only = values.only
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name !== "");
+    if (only.length === 0) throw new Error("--only wymaga listy nazw kolekcji, np. notes,tasks.");
+  }
+
   return {
     mode: "export",
     out: values.out,
@@ -67,5 +79,6 @@ export function parseCliArgs(argv: string[]): CliArgs {
     skipAuth: values["skip-auth"] === true,
     pageSize,
     uid: values.uid,
+    only,
   };
 }
