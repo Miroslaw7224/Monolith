@@ -7,6 +7,7 @@ import { ConflictError, DomainError } from "@/lib/errors";
 import { VaultConfigError } from "@/lib/nexus/vault-path";
 import {
   PathOutsideVaultError,
+  WorkAreaBlockedError,
   deleteVaultFile,
   listVaultFiles,
   readVaultFile,
@@ -265,4 +266,85 @@ describe("deleteVaultFile", () => {
     deleteVaultFile("Dir/x.md", { root, expected: file!.version });
     expect(fs.existsSync(path.join(root, "Dir"))).toBe(true);
   });
+});
+
+describe("strefa Work/ (dane etatu) jest zamknięta z założenia", () => {
+  const BLOCKED = ["Work/a.yaml", "work/a.yaml", "WORK/sub/a.md", "./Work/a.yaml", "Work"];
+  const anyVersion = { size: 0, hash: "" };
+
+  it.each(BLOCKED)("odrzuca %s dla odczytu, zapisu, listy i usunięcia", (rel) => {
+    expect(() => readVaultFile(rel, { root })).toThrow(WorkAreaBlockedError);
+    expect(() => writeVaultFile(rel, "x", { root, expected: null })).toThrow(WorkAreaBlockedError);
+    expect(() => listVaultFiles(rel, { root })).toThrow(WorkAreaBlockedError);
+    expect(() => deleteVaultFile(rel, { root, expected: anyVersion })).toThrow(
+      WorkAreaBlockedError
+    );
+  });
+
+  it("odrzuca updateVaultFile", async () => {
+    await expect(updateVaultFile("Work/a.yaml", () => "x", { root })).rejects.toThrow(
+      WorkAreaBlockedError
+    );
+  });
+
+  it("błąd to DomainError 403 z czytelnym komunikatem", () => {
+    try {
+      readVaultFile("Work/a.yaml", { root });
+      expect.unreachable();
+    } catch (err) {
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).statusCode).toBe(403);
+      expect((err as Error).message).toContain("Work/");
+    }
+  });
+
+  it("po odmowie nie tworzy nic na dysku", () => {
+    expect(() => writeVaultFile("Work/a.yaml", "x", { root, expected: null })).toThrow();
+    expect(fs.existsSync(path.join(root, "Work"))).toBe(false);
+  });
+
+  it("odrzuca dowiązanie z innego katalogu do Work/", () => {
+    fs.mkdirSync(path.join(root, "Work"));
+    fs.writeFileSync(path.join(root, "Work", "a.yaml"), "x");
+    fs.mkdirSync(path.join(root, "Notes"));
+    fs.symlinkSync(path.join(root, "Work"), path.join(root, "Notes", "alias"));
+    expect(() => readVaultFile("Notes/alias/a.yaml", { root })).toThrow(WorkAreaBlockedError);
+  });
+
+  it("odrzuca dowiązanie do korzenia vaulta, gdy Work/ jeszcze nie istnieje", () => {
+    fs.symlinkSync(root, path.join(root, "alias"));
+    expect(() => readVaultFile("alias/Work/a.yaml", { root })).toThrow(WorkAreaBlockedError);
+    expect(() => writeVaultFile("alias/Work/a.yaml", "x", { root, expected: null })).toThrow(
+      WorkAreaBlockedError
+    );
+    expect(fs.existsSync(path.join(root, "Work"))).toBe(false);
+  });
+
+  it.each(["Work./a.yaml", "Work /a.yaml", "WORK~1/a.yaml"])(
+    "odrzuca warianty nazwy z Windows/drvfs: %s",
+    (rel) => {
+      expect(() => readVaultFile(rel, { root })).toThrow(WorkAreaBlockedError);
+    }
+  );
+
+  it("przepuszcza z allowWork: true", () => {
+    writeVaultFile("Work/a.yaml", "x", { root, expected: null, allowWork: true });
+    expect(readVaultFile("Work/a.yaml", { root, allowWork: true })?.text).toBe("x");
+    expect(listVaultFiles("Work", { root, allowWork: true })).toEqual(["a.yaml"]);
+  });
+
+  it("resolveInsideVault: blokuje bez opcji, przepuszcza z allowWork", () => {
+    expect(() => resolveInsideVault(root, "Work/a")).toThrow(WorkAreaBlockedError);
+    expect(resolveInsideVault(root, "Work/a", { allowWork: true })).toBe(
+      path.join(fs.realpathSync(root), "Work", "a")
+    );
+  });
+
+  it.each(["Workshop/a.md", "Work.md", "Notes/Work/a.md", "Projects/work/a.md"])(
+    "nie blokuje podobnej ścieżki %s",
+    (rel) => {
+      writeVaultFile(rel, "x", { root, expected: null });
+      expect(readVaultFile(rel, { root })?.text).toBe("x");
+    }
+  );
 });

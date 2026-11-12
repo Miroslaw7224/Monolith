@@ -11,9 +11,47 @@ export class PathOutsideVaultError extends DomainError {
   }
 }
 
+export class WorkAreaBlockedError extends DomainError {
+  constructor(rel: string) {
+    super(`Dostęp do Work/ (dane etatu) jest zablokowany: ${rel}`, 403);
+    this.name = "WorkAreaBlockedError";
+  }
+}
+
+/** `Work`, także jako `Work.` / `Work ` (Windows/drvfs obcina końcowe kropki i spacje) oraz `WORK~1`. */
+function isWorkSegment(segment: string | undefined): boolean {
+  const name = (segment ?? "").replace(/[. ]+$/, "").toLowerCase();
+  return name === "work" || /^work~\d+$/.test(name);
+}
+
+/**
+ * Ścieżka kanoniczna: `realpath` najbliższego istniejącego przodka plus nieistniejący ogon.
+ * Wyłapuje dowiązanie do korzenia vaulta (`alias -> .`, a potem `alias/Work/x`), gdy `Work/` jeszcze nie istnieje.
+ */
+function canonicalPath(abs: string): string {
+  const tail: string[] = [];
+  let current = abs;
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync(current), ...[...tail].reverse());
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+    }
+    tail.push(path.basename(current));
+    const parent = path.dirname(current);
+    if (parent === current) return abs;
+    current = parent;
+  }
+}
+
+/** Pierwszy człon ścieżki (rozdzielacze `/` i `\`), z pominięciem `.` i pustych członów. */
+function firstSegment(relative: string): string | undefined {
+  return relative.split(/[\\/]/).find((segment) => segment !== "" && segment !== ".");
+}
+
 export type FileVersion = { size: number; hash: string };
 export type VaultFile = { text: string; version: FileVersion };
-export type VaultFsOptions = { root?: string };
+export type VaultFsOptions = { root?: string; allowWork?: boolean };
 
 function isInside(realRoot: string, abs: string): boolean {
   const relative = path.relative(realRoot, abs);
@@ -48,7 +86,11 @@ function realpathOfNearestAncestor(abs: string): string {
   }
 }
 
-export function resolveInsideVault(vaultRoot: string, rel: string): string {
+export function resolveInsideVault(
+  vaultRoot: string,
+  rel: string,
+  opts?: { allowWork?: boolean }
+): string {
   let realRoot: string;
   try {
     realRoot = fs.realpathSync(vaultRoot);
@@ -70,6 +112,13 @@ export function resolveInsideVault(vaultRoot: string, rel: string): string {
   const ancestor = realpathOfNearestAncestor(abs);
   if (ancestor !== realRoot && !isInside(realRoot, ancestor)) {
     throw new PathOutsideVaultError(`Path resolves outside vault: ${rel}`);
+  }
+  if (!opts?.allowWork) {
+    const viaPath = firstSegment(path.relative(realRoot, abs));
+    const viaCanonical = firstSegment(path.relative(realRoot, canonicalPath(abs)));
+    if (isWorkSegment(firstSegment(rel)) || isWorkSegment(viaPath) || isWorkSegment(viaCanonical)) {
+      throw new WorkAreaBlockedError(rel);
+    }
   }
   return abs;
 }
@@ -150,7 +199,7 @@ function writeAt(
  * przepisany jako LF. Niepoprawny UTF-8 daje błąd.
  */
 export function readVaultFile(rel: string, opts?: VaultFsOptions): VaultFile | null {
-  const abs = resolveInsideVault(rootOf(opts), rel);
+  const abs = resolveInsideVault(rootOf(opts), rel, opts);
   return readAt(abs, rel);
 }
 
@@ -165,7 +214,7 @@ export function writeVaultFile(
   text: string,
   opts: VaultFsOptions & { expected: FileVersion | null }
 ): FileVersion {
-  const abs = resolveInsideVault(rootOf(opts), rel);
+  const abs = resolveInsideVault(rootOf(opts), rel, opts);
   return writeAt(abs, rel, text, opts.expected);
 }
 
@@ -180,7 +229,7 @@ export async function updateVaultFile(
   mutate: (current: string | null) => string,
   opts: VaultFsOptions & { retries?: number } = {}
 ): Promise<FileVersion> {
-  const abs = resolveInsideVault(rootOf(opts), rel);
+  const abs = resolveInsideVault(rootOf(opts), rel, opts);
   const retries = opts.retries ?? 3;
   for (let attempt = 0; ; attempt += 1) {
     const file = readAt(abs, rel);
@@ -198,7 +247,7 @@ export async function updateVaultFile(
  * posortowane rosnąco. Brak katalogu daje []. Ścieżka przechodzi przez resolveInsideVault.
  */
 export function listVaultFiles(relDir: string, opts?: VaultFsOptions): string[] {
-  const abs = resolveInsideVault(rootOf(opts), relDir);
+  const abs = resolveInsideVault(rootOf(opts), relDir, opts);
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(abs, { withFileTypes: true });
@@ -221,7 +270,7 @@ export function deleteVaultFile(
   rel: string,
   opts: VaultFsOptions & { expected: FileVersion }
 ): boolean {
-  const abs = resolveInsideVault(rootOf(opts), rel);
+  const abs = resolveInsideVault(rootOf(opts), rel, opts);
   const current = readAt(abs, rel);
   if (current === null) return false;
   if (!sameVersion(current.version, opts.expected)) {
