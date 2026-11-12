@@ -100,8 +100,8 @@ export interface MindMap {
   rootNode: MindMapNode;
   /** Column widths in px per depth level. */
   colWidths: Record<number, number>;
-  createdAt: unknown;
-  updatedAt: unknown;
+  createdAt?: string; // ISO 8601
+  updatedAt?: string; // ISO 8601
 }
 
 export interface MindMapNode {
@@ -114,3 +114,6 @@ export interface MindMapNode {
   collapsed: boolean;
   children: MindMapNode[];
 }
+
+/** Zapisany dokument tablicy (surowe, jeszcze nieprzetworzone przez parseBoard). */
+export type BoardDoc = { tiles: unknown; frames: unknown; edges: unknown };

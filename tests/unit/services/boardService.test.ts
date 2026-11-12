@@ -1,41 +1,33 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { DomainError } from "../../../lib/errors.js";
 
-const mockBoardDoc = vi.hoisted(() => vi.fn());
-
-vi.mock("../../../lib/firestore-db.js", () => ({
-  boardDoc: (...args: unknown[]) => mockBoardDoc(...args),
+const repo = vi.hoisted(() => ({
+  getBoard: vi.fn(),
+  saveBoard: vi.fn(),
 }));
 
-vi.mock("firebase-admin/firestore", () => ({
-  FieldValue: { serverTimestamp: () => ({ __sv: "ts" }) },
-}));
+vi.mock("../../../lib/firestore-db.js", () => repo);
 
 import { getBoard, saveBoard } from "../../../services/boardService.js";
 
-function setupDoc() {
-  let stored: Record<string, unknown> | undefined;
-  mockBoardDoc.mockReturnValue({
-    async get() {
-      if (!stored) return { exists: false, data: () => undefined };
-      return { exists: true, data: () => stored };
-    },
-    async set(data: Record<string, unknown>) {
-      stored = { ...data };
-    },
+type Stored = { tiles: unknown; frames: unknown; edges: unknown };
+
+function setupRepo() {
+  let stored: Stored | null = null;
+  repo.getBoard.mockImplementation(async () => stored);
+  repo.saveBoard.mockImplementation(async (_userId: string, board: Stored) => {
+    stored = { tiles: board.tiles, frames: board.frames, edges: board.edges };
   });
 }
 
 describe("boardService", () => {
-  beforeEach(() => mockBoardDoc.mockReset());
-
   it("returns three empty lists when the document is missing", async () => {
-    setupDoc();
+    setupRepo();
     await expect(getBoard("u1")).resolves.toEqual({ tiles: [], frames: [], edges: [] });
   });
 
   it("reads back a saved board", async () => {
-    setupDoc();
+    setupRepo();
     const saved = await saveBoard("u1", {
       tiles: [{ id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: null }],
       frames: [],
@@ -46,8 +38,23 @@ describe("boardService", () => {
     expect(loaded.tiles[0].id).toBe("t1");
   });
 
-  it("rejects an unknown frame", async () => {
-    setupDoc();
+  it("passes the parsed board to the repository", async () => {
+    setupRepo();
+    await saveBoard("u1", {
+      tiles: [{ id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: null }],
+      frames: [],
+      edges: [],
+    });
+    expect(repo.saveBoard).toHaveBeenCalledTimes(1);
+    const [userId, board] = repo.saveBoard.mock.calls[0];
+    expect(userId).toBe("u1");
+    expect(board.tiles[0].id).toBe("t1");
+    expect(board.frames).toEqual([]);
+    expect(board.edges).toEqual([]);
+  });
+
+  it("rejects an unknown frame and does not call the repository", async () => {
+    setupRepo();
     await expect(
       saveBoard("u1", {
         tiles: [{ id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: "nope" }],
@@ -55,5 +62,6 @@ describe("boardService", () => {
         edges: [],
       })
     ).rejects.toThrow(DomainError);
+    expect(repo.saveBoard).not.toHaveBeenCalled();
   });
 });

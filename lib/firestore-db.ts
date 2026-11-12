@@ -9,7 +9,6 @@ export type {
   TaskTemplateRecord,
 } from "@/types/records";
 
-export { mindMapsCol, boardDoc } from "@/lib/firestore/collections";
 export { getDocuments, createDocument, deleteDocument } from "@/lib/firestore/documents";
 export { getNotes, createNote, updateNote, deleteNote } from "@/lib/firestore/notes";
 export { addChunks, deleteChunksByDocument, deleteChunksByNote } from "@/lib/firestore/chunks";
@@ -34,3 +33,11 @@ export {
   deleteTaskTemplate,
 } from "@/lib/firestore/taskTemplates";
 export { addAgentLogEntry, type AgentLogEntry } from "@/lib/firestore/agentLog";
+export {
+  getMindMaps,
+  getMindMap,
+  createMindMap,
+  saveMindMap,
+  deleteMindMap,
+} from "@/lib/firestore/mindMaps";
+export { getBoard, saveBoard } from "@/lib/firestore/board";
