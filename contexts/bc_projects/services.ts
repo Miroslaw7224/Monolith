@@ -33,12 +33,17 @@ function statusRank(status: string): number {
   return 1;
 }
 
+/** Data `YYYY-MM-DD` do sortowania; śmieciowy `last_worked` traktujemy jak brak daty. */
+function sortDate(p: Project): string | undefined {
+  return p.lastWorked && DATE_RE.test(p.lastWorked) ? p.lastWorked.slice(0, 10) : undefined;
+}
+
 export function sortProjects(projects: Project[]): Project[] {
   return [...projects].sort((a, b) => {
     const rankDiff = statusRank(a.status) - statusRank(b.status);
     if (rankDiff !== 0) return rankDiff;
-    const aDate = a.lastWorked;
-    const bDate = b.lastWorked;
+    const aDate = sortDate(a);
+    const bDate = sortDate(b);
     if (aDate && bDate) {
       const dateDiff = bDate.localeCompare(aDate);
       if (dateDiff !== 0) return dateDiff;

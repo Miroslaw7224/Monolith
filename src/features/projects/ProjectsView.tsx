@@ -50,7 +50,11 @@ export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
           {selectedId && detail === null && detailError === null ? (
             <p className="prj-state">Ładowanie projektu…</p>
           ) : null}
-          {detailError ? <p className="prj-state prj-state--error">{detailError}</p> : null}
+          {detailError ? (
+            <p className="prj-state prj-state--error" role="alert">
+              {detailError}
+            </p>
+          ) : null}
           {detail ? <ProjectDossier project={detail} /> : null}
         </div>
       </div>

@@ -62,6 +62,26 @@ describe("bc_projects services", () => {
     expect(freshness("2026-11-20", TODAY)).toBe("fresh");
   });
 
+  it("kolejność: śmieciowy lastWorked jest traktowany jak brak daty", () => {
+    const sorted = sortProjects([
+      project({
+        id: "junk",
+        name: "Junk",
+        status: "active",
+        lastWorked: "abc",
+        freshness: "unknown",
+      }),
+      project({
+        id: "real",
+        name: "Real",
+        status: "active",
+        lastWorked: "2026-10-01",
+        freshness: "stale",
+      }),
+    ]);
+    expect(sorted.map((p) => p.id)).toEqual(["real", "junk"]);
+  });
+
   it("kolejność D5", () => {
     const projects = [
       project({

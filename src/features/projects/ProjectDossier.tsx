@@ -1,6 +1,9 @@
 import React from "react";
 import type { ProjectDetailDto } from "@/contexts/bc_projects/schemas";
 
+/** Linkujemy tylko http(s); inny protokół z rejestru (np. `javascript:`) wyświetlamy jako zwykły tekst. */
+const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+
 export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.Element {
   const { project } = props;
   const activeBugs = project.bugs.filter((b) => b.section !== "Zamknięte");
@@ -19,14 +22,22 @@ export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.
         </div>
         <div className="prj-links">
           {project.github ? (
-            <a href={project.github} target="_blank" rel="noreferrer" className="prj-link">
-              github
-            </a>
+            isHttpUrl(project.github) ? (
+              <a href={project.github} target="_blank" rel="noreferrer" className="prj-link">
+                github
+              </a>
+            ) : (
+              <span className="prj-link">github: {project.github}</span>
+            )
           ) : null}
           {project.deploy ? (
-            <a href={project.deploy} target="_blank" rel="noreferrer" className="prj-link">
-              deploy
-            </a>
+            isHttpUrl(project.deploy) ? (
+              <a href={project.deploy} target="_blank" rel="noreferrer" className="prj-link">
+                deploy
+              </a>
+            ) : (
+              <span className="prj-link">deploy: {project.deploy}</span>
+            )
           ) : null}
           <code className="prj-local-path">{project.localPath}</code>
         </div>
@@ -64,16 +75,18 @@ export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.
           <p>Brak bugów</p>
         ) : (
           <>
-            <ul className="prj-bugs">
-              {activeBugs.map((bug) => (
-                <li key={bug.id}>
-                  <span className="prj-badge">{bug.id}</span>
-                  <span>{bug.title}</span>
-                  {bug.priority ? <span className="prj-badge">{bug.priority}</span> : null}
-                  {bug.status ? <span className="prj-badge">{bug.status}</span> : null}
-                </li>
-              ))}
-            </ul>
+            {activeBugs.length > 0 ? (
+              <ul className="prj-bugs">
+                {activeBugs.map((bug) => (
+                  <li key={bug.id}>
+                    <span className="prj-badge">{bug.id}</span>
+                    <span>{bug.title}</span>
+                    {bug.priority ? <span className="prj-badge">{bug.priority}</span> : null}
+                    {bug.status ? <span className="prj-badge">{bug.status}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             {closedBugs.length > 0 ? (
               <p className="prj-bugs-closed">Zamknięte: {closedBugs.length}</p>
             ) : null}

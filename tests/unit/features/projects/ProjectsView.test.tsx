@@ -116,6 +116,30 @@ describe("ProjectsView", () => {
     expect(screen.getByText("Zamknięte: 1")).toBeInTheDocument();
   });
 
+  it("linki tylko http(s): inny protokół jako zwykły tekst", async () => {
+    const a = summary({ id: "a", github: "javascript:alert(1)", deploy: "https://example.com" });
+    const apiFetch = makeApiFetch([a], {
+      a: detail({ id: "a", github: "javascript:alert(1)", deploy: "https://example.com" }),
+    });
+    render(<ProjectsView apiFetch={apiFetch} />);
+    const deploy = await screen.findByRole("link", { name: "deploy" });
+    expect(deploy).toHaveAttribute("href", "https://example.com");
+    expect(screen.queryByRole("link", { name: /github/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/github: javascript:alert\(1\)/)).toBeInTheDocument();
+  });
+
+  it("same zamknięte bugi: licznik bez pustej listy", async () => {
+    const a = summary({ id: "a" });
+    const apiFetch = makeApiFetch([a], {
+      a: detail({ id: "a", bugs: [{ id: "EA-001", title: "stary", section: "Zamknięte" }] }),
+    });
+    const { container } = render(<ProjectsView apiFetch={apiFetch} />);
+    await waitFor(() => {
+      expect(screen.getByText("Zamknięte: 1")).toBeInTheDocument();
+    });
+    expect(container.querySelector("ul.prj-bugs")).toBeNull();
+  });
+
   it("brak bugów", async () => {
     const a = summary({ id: "a" });
     const apiFetch = makeApiFetch([a], { a: detail({ id: "a", bugs: [] }) });
