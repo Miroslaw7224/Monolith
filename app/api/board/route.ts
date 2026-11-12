@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleServiceError } from "@/lib/apiError";
-import { parseBody } from "@/lib/parseBody";
+import { handleServiceError } from "@/lib/http/apiError";
+import { parseBody } from "@/lib/http/parseBody";
 import { BoardBodySchema } from "@/src/features/board/boardSchema";
 import { getBoard, saveBoard } from "@/services/boardService";
 

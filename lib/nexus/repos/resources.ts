@@ -10,7 +10,7 @@ import {
   removeRecord,
   sortByCreated,
   str,
-} from "./common";
+} from "../record-helpers";
 
 const FILE = "Resources/resources.yaml";
 const KEY = "resources";

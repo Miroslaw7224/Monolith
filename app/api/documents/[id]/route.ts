@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleServiceError } from "@/lib/apiError";
+import { handleServiceError } from "@/lib/http/apiError";
 import * as documentService from "@/services/documentService";
 
 export async function DELETE(

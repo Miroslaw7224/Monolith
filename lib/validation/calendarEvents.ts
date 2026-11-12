@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { looseObject } from "@/lib/validation/looseObject";
+import { looseObject } from "@/lib/schema/looseObject";
 
 export const CreateCalendarEventBodySchema = looseObject({
   date: z.unknown().optional(),

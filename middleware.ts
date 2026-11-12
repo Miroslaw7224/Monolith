@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { checkRequest } from "@/lib/localGuard";
+import { checkRequest } from "@/lib/http/localGuard";
 
 export function middleware(request: NextRequest) {
   const result = checkRequest({

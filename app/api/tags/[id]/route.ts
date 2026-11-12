@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleServiceError } from "@/lib/apiError";
-import { parseBody } from "@/lib/parseBody";
+import { handleServiceError } from "@/lib/http/apiError";
+import { parseBody } from "@/lib/http/parseBody";
 import { UpdateTagBodySchema } from "@/lib/validation/tags";
 import * as tagService from "@/services/tagService";
 

@@ -5,13 +5,17 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 const STORE = "lib/nexus/yaml-store.ts";
-const REPOS = ["common", "tags", "taskTemplates", "resources", "notes", "documents"].map(
-  (name) => `lib/nexus/repos/${name}.ts`
-);
+const REPOS = [
+  "lib/nexus/record-helpers.ts",
+  ...["tags", "taskTemplates", "resources", "notes", "documents"].map(
+    (name) => `lib/nexus/repos/${name}.ts`
+  ),
+];
 const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
-const FILE_REPOS = ["tasks", "calendarEvents", "markdown-dir", "mindMaps", "board"].map(
-  (name) => `lib/nexus/repos/${name}.ts`
-);
+const FILE_REPOS = [
+  "lib/nexus/markdown-dir.ts",
+  ...["tasks", "calendarEvents", "mindMaps", "board"].map((name) => `lib/nexus/repos/${name}.ts`),
+];
 const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
@@ -66,7 +70,7 @@ describe("0c-2 / 0c-3 static guards", () => {
         STORE,
         "lib/nexus/repos/board.ts",
         "lib/nexus/repos/calendarEvents.ts",
-        "lib/nexus/repos/markdown-dir.ts",
+        "lib/nexus/markdown-dir.ts",
         "lib/nexus/repos/mindMaps.ts",
         "lib/nexus/repos/tasks.ts",
       ].sort()

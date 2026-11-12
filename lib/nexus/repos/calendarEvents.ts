@@ -4,7 +4,15 @@ import type { CalendarEventRecord } from "@/types/records";
 import { listVaultFiles } from "../vault-fs";
 import type { YamlRecord } from "../yaml-lists";
 import { readList } from "../yaml-store";
-import { appendRecord, generateId, nowIso, optStr, patchRecord, removeRecord, str } from "./common";
+import {
+  appendRecord,
+  generateId,
+  nowIso,
+  optStr,
+  patchRecord,
+  removeRecord,
+  str,
+} from "../record-helpers";
 
 const KEY = "events";
 const DIR = "Calendar";

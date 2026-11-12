@@ -10,7 +10,7 @@ import {
   removeRecord,
   sortByCreated,
   str,
-} from "./common";
+} from "../record-helpers";
 
 const FILE = "Resources/tags.yaml";
 const KEY = "tags";

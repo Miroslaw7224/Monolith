@@ -1,12 +1,12 @@
 import type { NoteRecord } from "@/types/records";
-import { nowIso, optStr, sortByCreated } from "./common";
+import { nowIso, optStr, sortByCreated } from "../record-helpers";
 import {
   createEntry,
   deleteEntry,
   listEntries,
   updateEntry,
   type MarkdownEntry,
-} from "./markdown-dir";
+} from "../markdown-dir";
 
 const DIR = "Notes";
 

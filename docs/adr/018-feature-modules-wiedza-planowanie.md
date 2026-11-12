@@ -4,6 +4,8 @@
 
 Częściowo unieważniony — moduł Wiedza został usunięty z aplikacji; Planowanie (kalendarz, zadania, tagi, notatki, zasoby, mapy myśli) pozostaje jako główny i jedyny moduł funkcjonalny obok Home. Dokument zachowany jako zapis historycznej decyzji o rozdzieleniu modułów.
 
+Mapowanie folderów zastąpione przez ADR-021 (2026-11-12).
+
 ## Kontekst
 
 Obecnie jeden duży `App.tsx` (~1158 linii) łączy oba tryby aplikacji (Wiedza i Planowanie), sidebar zależny od trybu, header z przełącznikiem, auth, tłumaczenia, listę dokumentów w sidebarze (Wiedza), zakładki Planowanie (kalendarz / aktywność / zadania / tagi), chat, notatki, zasoby oraz pasek Plan AI. Trudniej to utrzymywać i testować — rozbudowa jednego trybu wymaga grzebania we wspólnym pliku.

@@ -5,7 +5,7 @@ const mockIngestDocument = vi.hoisted(() => vi.fn());
 const mockParseUploadFormFile = vi.hoisted(() => vi.fn());
 
 vi.mock("@/services/documentService", () => ({ ingestDocument: mockIngestDocument }));
-vi.mock("@/lib/uploadFormFile", () => ({ parseUploadFormFile: mockParseUploadFormFile }));
+vi.mock("@/lib/http/uploadFormFile", () => ({ parseUploadFormFile: mockParseUploadFormFile }));
 
 import { POST } from "@/app/api/upload/route";
 

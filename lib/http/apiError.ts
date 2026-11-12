@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { DomainError } from "@/lib/errors";
-import { inferHttpStatus } from "@/lib/inferHttpStatus";
+import { inferHttpStatus } from "@/lib/http/inferHttpStatus";
 
 export function handleServiceError(err: unknown): NextResponse {
   if (err instanceof DomainError) {

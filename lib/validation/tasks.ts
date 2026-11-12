@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { looseObject } from "@/lib/validation/looseObject";
+import { looseObject } from "@/lib/schema/looseObject";
 
 export const CreateTaskBodySchema = looseObject({
   title: z.unknown().optional(),

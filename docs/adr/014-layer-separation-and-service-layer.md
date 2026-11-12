@@ -4,6 +4,8 @@
 
 Zaakceptowany
 
+Mapowanie folderów zastąpione przez ADR-021 (2026-11-12).
+
 ## Kontekst
 
 Separacja warstw to decyzja o największym wpływie na codzienne życie z kodem — szczególnie przy solo developerze, gdzie łatwo o „szybkie skróty", które potem bolą. Zapisanie tego jako ADR tworzy kontrakt z samym sobą.

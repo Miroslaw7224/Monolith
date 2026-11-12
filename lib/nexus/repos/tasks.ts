@@ -9,7 +9,7 @@ import {
 } from "../markdown-edit";
 import type { TaskLine } from "../task-line";
 import { readVaultFile, updateVaultFile } from "../vault-fs";
-import { generateId, nowIso } from "./common";
+import { generateId, nowIso } from "../record-helpers";
 
 const FILE = "Tasks/tasks.md";
 

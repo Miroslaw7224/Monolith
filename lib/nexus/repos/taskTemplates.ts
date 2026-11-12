@@ -10,7 +10,7 @@ import {
   removeRecord,
   sortByCreated,
   str,
-} from "./common";
+} from "../record-helpers";
 
 const FILE = "Tasks/templates.yaml";
 const KEY = "templates";

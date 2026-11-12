@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
 import { DomainError } from "@/lib/errors";
-import type { YamlRecord } from "../yaml-lists";
-import { updateList } from "../yaml-store";
+import type { YamlRecord } from "./yaml-lists";
+import { updateList } from "./yaml-store";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
