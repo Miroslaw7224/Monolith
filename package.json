@@ -31,7 +31,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@google/genai": "^1.29.0",
     "@tailwindcss/postcss": "^4.1.14",
     "@tiptap/extension-color": "^3.20.0",
     "@tiptap/extension-font-family": "^3.20.0",

@@ -1,6 +1,6 @@
 # Testy integracyjne
 
-Testy w tym katalogu korzystają z **prawdziwego** Firestore i/lub Gemini API. Nie są uruchamiane w ramach `npm test` / `npm run test:run`.
+Testy w tym katalogu korzystają z **prawdziwego** Firestore. Nie są uruchamiane w ramach `npm test` / `npm run test:run`.
 
 ## Testowa baza: emulator Firestore w Dockerze (zalecane)
 
@@ -69,12 +69,12 @@ Użyj osobnego projektu Firebase tylko do testów (np. w `.env`: `FIREBASE_PROJE
   Uwaga: bez `FIRESTORE_EMULATOR_HOST` aplikacja łączy się z Firestore z konfiguracji env (np. .env) — ustaw projekt testowy, żeby uniknąć produkcji.
 
 - **Bez flagi:**  
-  `npm run test:integration` — testy wymagające Firestore/Gemini są pomijane (skip).
+  `npm run test:integration` — testy wymagające Firestore są pomijane (skip).
 
 ## Wymagania
 
 - Dla emulatora (zalecane): tylko Docker (Docker Compose V2) — zob. sekcja „Testowa baza: emulator Firestore w Dockerze” powyżej.
-- Bez emulatora: skonfigurowane zmienne środowiskowe (np. `GEMINI_API_KEY`, Firebase/Firestore).
+- Bez emulatora: skonfigurowane zmienne środowiskowe (np. konfiguracja Firebase/Firestore).
 - W CI — osobny job: uruchom emulator w Dockerze, ustaw `FIRESTORE_EMULATOR_HOST` i `RUN_INTEGRATION_TESTS=1`, potem `npm run test:integration`.
 
 Źródła: [ADR-015 Testing Strategy](../../docs/adr/015-testing-strategy.md), [ADR-016 Firestore Emulator Docker](../../docs/adr/016-firestore-emulator-docker.md).
