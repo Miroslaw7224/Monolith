@@ -1,23 +1,28 @@
 import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { ConflictError } from "@/lib/errors";
+import { ConflictError, DomainError } from "@/lib/errors";
 import { getVaultRoot } from "./vault-path";
 
-export class PathOutsideVaultError extends Error {
+export class PathOutsideVaultError extends DomainError {
   constructor(message: string) {
-    super(message);
+    super(message, 400);
     this.name = "PathOutsideVaultError";
   }
 }
 
 export type FileVersion = { size: number; hash: string };
 export type VaultFile = { text: string; version: FileVersion };
-type Opts = { root?: string };
+export type VaultFsOptions = { root?: string };
 
 function isInside(realRoot: string, abs: string): boolean {
   const relative = path.relative(realRoot, abs);
-  return relative !== "" && !relative.startsWith("..") && !path.isAbsolute(relative);
+  return (
+    relative !== "" &&
+    relative !== ".." &&
+    !relative.startsWith(".." + path.sep) &&
+    !path.isAbsolute(relative)
+  );
 }
 
 /** Najbliższy istniejący przodek (po realpath); wiszące dowiązanie traktujemy jako naruszenie. */
@@ -85,36 +90,38 @@ function sameVersion(a: FileVersion | null, b: FileVersion | null): boolean {
   return a.size === b.size && a.hash === b.hash;
 }
 
-function rootOf(opts?: Opts): string {
+function rootOf(opts?: VaultFsOptions): string {
   return opts?.root ?? getVaultRoot();
 }
 
-export function readVaultFile(rel: string, opts?: Opts): VaultFile | null {
-  const abs = resolveInsideVault(rootOf(opts), rel);
-  let raw: string;
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
+
+function readAt(abs: string, rel: string): VaultFile | null {
+  let buf: Buffer;
   try {
-    raw = fs.readFileSync(abs, "utf8");
+    buf = fs.readFileSync(abs);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
     throw err;
   }
-  const text = normalizeEol(raw);
+  let raw: string;
+  try {
+    raw = utf8Decoder.decode(buf);
+  } catch {
+    throw new Error(`Plik nie jest poprawnym UTF-8: ${rel}`);
+  }
+  const text = normalizeEol(raw.replace(/^\uFEFF/, ""));
   return { text, version: versionOf(text) };
 }
 
-/**
- * Zapis atomowy. `expected` = wersja z ostatniego odczytu (`null` = plik nie ma istnieć).
- * Niezgodność wersji tuż przed zapisem daje `ConflictError`. Między sprawdzeniem a `rename`
- * zostaje wąskie okno wyścigu z procesem zewnętrznym (świadomie akceptowane).
- */
-export function writeVaultFile(
+function writeAt(
+  abs: string,
   rel: string,
   text: string,
-  opts: Opts & { expected: FileVersion | null }
+  expected: FileVersion | null
 ): FileVersion {
-  const abs = resolveInsideVault(rootOf(opts), rel);
-  const current = readVaultFile(rel, opts)?.version ?? null;
-  if (!sameVersion(current, opts.expected)) {
+  const current = readAt(abs, rel)?.version ?? null;
+  if (!sameVersion(current, expected)) {
     throw new ConflictError(`Plik zmienił się w międzyczasie: ${rel}`);
   }
   const body = normalizeEol(text);
@@ -127,45 +134,61 @@ export function writeVaultFile(
     fs.writeFileSync(tmp, body, { encoding: "utf8", flag: "wx" });
     fs.renameSync(tmp, abs);
   } catch (err) {
-    fs.rmSync(tmp, { force: true });
+    try {
+      fs.rmSync(tmp, { force: true });
+    } catch {
+      /* błąd sprzątania nie może przesłonić pierwotnego błędu */
+    }
     throw err;
   }
   return versionOf(body);
 }
 
-const locks = new Map<string, Promise<unknown>>();
-
-function withLock<T>(key: string, task: () => Promise<T>): Promise<T> {
-  const previous = locks.get(key) ?? Promise.resolve();
-  const run = previous.then(task, task);
-  const tail = run.catch(() => undefined);
-  locks.set(key, tail);
-  void tail.then(() => {
-    if (locks.get(key) === tail) locks.delete(key);
-  });
-  return run;
+/**
+ * Odczyt pliku z vaulta (`null`, gdy nie istnieje). CRLF jest normalizowany do LF przy odczycie,
+ * a każdy zapis zapisuje LF; BOM jest usuwany; plik z mieszanymi końcami linii zostanie
+ * przepisany jako LF. Niepoprawny UTF-8 daje błąd.
+ */
+export function readVaultFile(rel: string, opts?: VaultFsOptions): VaultFile | null {
+  const abs = resolveInsideVault(rootOf(opts), rel);
+  return readAt(abs, rel);
 }
 
 /**
- * Odczyt, zmiana, zapis pod blokadą per plik. Zmiana zewnętrzna między odczytem a zapisem
- * powoduje ponowny odczyt i ponowne zastosowanie `mutate` (maks. `retries` razy).
+ * Zapis atomowy. `expected` = wersja z ostatniego odczytu (`null` = plik nie ma istnieć).
+ * Niezgodność wersji tuż przed zapisem daje `ConflictError`. Między sprawdzeniem wersji a `rename`
+ * oraz między rozwiązaniem ścieżki a jej użyciem zostaje wąskie okno wyścigu z procesem
+ * zewnętrznym; akceptowane w modelu lokalnego zaufania.
+ */
+export function writeVaultFile(
+  rel: string,
+  text: string,
+  opts: VaultFsOptions & { expected: FileVersion | null }
+): FileVersion {
+  const abs = resolveInsideVault(rootOf(opts), rel);
+  return writeAt(abs, rel, text, opts.expected);
+}
+
+/**
+ * Odczyt, zmiana, zapis. Zmiana zewnętrzna między odczytem a zapisem powoduje ponowny odczyt
+ * i ponowne zastosowanie `mutate` (maks. `retries` razy).
+ * Odczyt, mutate i zapis są synchroniczne, więc w jednym procesie nic się nie przeplata;
+ * ochrona przed procesami zewnętrznymi to kontrola wersji i ponawianie.
  */
 export async function updateVaultFile(
   rel: string,
   mutate: (current: string | null) => string,
-  opts: Opts & { retries?: number } = {}
+  opts: VaultFsOptions & { retries?: number } = {}
 ): Promise<FileVersion> {
   const abs = resolveInsideVault(rootOf(opts), rel);
   const retries = opts.retries ?? 3;
-  return withLock(abs, async () => {
-    for (let attempt = 0; ; attempt += 1) {
-      const file = readVaultFile(rel, opts);
-      const next = mutate(file?.text ?? null);
-      try {
-        return writeVaultFile(rel, next, { ...opts, expected: file?.version ?? null });
-      } catch (err) {
-        if (!(err instanceof ConflictError) || attempt >= retries) throw err;
-      }
+  for (let attempt = 0; ; attempt += 1) {
+    const file = readAt(abs, rel);
+    const next = mutate(file?.text ?? null);
+    try {
+      return writeAt(abs, rel, next, file?.version ?? null);
+    } catch (err) {
+      if (!(err instanceof ConflictError) || attempt >= retries) throw err;
     }
-  });
+  }
 }

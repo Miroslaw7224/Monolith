@@ -2,8 +2,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ConflictError } from "@/lib/errors";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ConflictError, DomainError } from "@/lib/errors";
 import {
   PathOutsideVaultError,
   readVaultFile,
@@ -20,13 +20,37 @@ beforeEach(() => {
   root = path.join(tmp, "vault");
   fs.mkdirSync(root);
 });
-afterEach(() => fs.rmSync(tmp, { recursive: true, force: true }));
+afterEach(() => {
+  vi.restoreAllMocks();
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
 
 describe("resolveInsideVault", () => {
   it("rejects traversal, absolute paths, empty path and NUL", () => {
     for (const bad of ["../x", "a/../../x", "/etc/passwd", "C:\\x", "", "a\0b"]) {
       expect(() => resolveInsideVault(root, bad), bad).toThrow(PathOutsideVaultError);
     }
+  });
+  it("throws a DomainError with status 400", () => {
+    let caught: unknown;
+    try {
+      resolveInsideVault(root, "../x");
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(PathOutsideVaultError);
+    expect(caught).toBeInstanceOf(DomainError);
+    expect((caught as DomainError).statusCode).toBe(400);
+  });
+  it("does not treat names starting with two dots as traversal", () => {
+    expect(resolveInsideVault(root, "..notes.md")).toBe(
+      path.join(fs.realpathSync(root), "..notes.md")
+    );
+    expect(() => resolveInsideVault(root, "a/../b")).toThrow(PathOutsideVaultError);
+  });
+  it("rejects a dangling symlink inside the vault", () => {
+    fs.symlinkSync(path.join(tmp, "nope"), path.join(root, "dangling"));
+    expect(() => resolveInsideVault(root, "dangling/x.md")).toThrow(PathOutsideVaultError);
   });
   it("rejects a symlink that points outside the vault", () => {
     const outside = path.join(tmp, "outside");
@@ -60,6 +84,29 @@ describe("readVaultFile / writeVaultFile", () => {
     const b = readVaultFile("b.md", { root })!;
     expect(a.text).toBe("x\ny\n");
     expect(a.version.hash).toBe(b.version.hash);
+  });
+  it("reads strictly as UTF-8 and throws on invalid bytes", () => {
+    fs.writeFileSync(path.join(root, "bad.md"), Buffer.from([0x66, 0xf3, 0x72]));
+    expect(() => readVaultFile("bad.md", { root })).toThrow(/UTF-8/);
+  });
+  it("strips a leading BOM on read", () => {
+    fs.writeFileSync(path.join(root, "bom.md"), "\uFEFF---\nid: 1\n---\n");
+    expect(readVaultFile("bom.md", { root })!.text).toBe("---\nid: 1\n---\n");
+  });
+  it("throws when the path is a directory", () => {
+    fs.mkdirSync(path.join(root, "somedir"));
+    expect(() => readVaultFile("somedir", { root })).toThrow();
+  });
+  it("writes LF only, even for CRLF input", () => {
+    writeVaultFile("a.md", "a\r\nb\r\n", { root, expected: null });
+    expect(fs.readFileSync(path.join(root, "a.md"), "utf8")).not.toContain("\r");
+  });
+  it("removes the temporary file and keeps the original error when rename fails", () => {
+    vi.spyOn(fs, "renameSync").mockImplementationOnce(() => {
+      throw new Error("rename failed");
+    });
+    expect(() => writeVaultFile("a.md", "x\n", { root, expected: null })).toThrow("rename failed");
+    expect(fs.readdirSync(root)).toEqual([]);
   });
   it("throws ConflictError when expected is null but the file exists", () => {
     fs.writeFileSync(path.join(root, "a.md"), "x\n");
@@ -139,7 +186,7 @@ describe("updateVaultFile", () => {
     ).rejects.toThrow("boom");
     expect(calls).toBe(1);
   });
-  it("serializes concurrent updates of the same file (no lost updates)", async () => {
+  it("does not lose updates when called concurrently", async () => {
     fs.writeFileSync(path.join(root, "c.md"), "");
     await Promise.all(
       Array.from({ length: 20 }, (_, i) =>
