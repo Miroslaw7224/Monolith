@@ -15,31 +15,30 @@ test.describe("Notes", () => {
     });
   });
 
-  // FIXME(0d-2): selektory nieaktualne względem obecnego UI (spec nie był uruchamiany w CI); do naprawy osobno.
-  test.fixme("creates a new note", async ({ page }) => {
-    await page.getByRole("button", { name: /nowa notatka|new note/i }).click();
+  test("creates a new note", async ({ page }) => {
+    const title = `Notatka e2e ${Date.now()}`;
+    const body = "Treść testowej notatki e2e";
 
+    await page.getByRole("button", { name: /nowa notatka|new note/i }).click();
     await expect(page.locator("[contenteditable]")).toBeVisible({ timeout: 10000 });
 
+    // Lista notatek pokazuje tytuł (bez tytułu: "Untitled"), więc tytuł jest wymagany.
+    await page.getByRole("textbox", { name: /tytuł|title/i }).fill(title);
     await page.locator("[contenteditable]").click();
-    await page.keyboard.type("Test notatka e2e");
-
-    const saveBtn = page.getByRole("button", { name: /zapisz|save/i });
-    if (await saveBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await saveBtn.click();
-    } else {
-      await page.waitForTimeout(1500);
-    }
+    await page.keyboard.type(body);
+    await page.getByRole("button", { name: /zapisz|save/i }).click();
 
     await page.reload();
     await page
       .locator("aside")
       .getByRole("button", { name: /^(Notatki|Notes)$/ })
       .click();
-    await expect(page.getByTestId("notes-sidebar-list")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId("notes-sidebar-list").getByText("Test notatka e2e")).toBeVisible({
-      timeout: 15000,
-    });
+    const list = page.getByTestId("notes-sidebar-list");
+    await expect(list).toBeVisible({ timeout: 15000 });
+    await expect(list.getByText(title)).toBeVisible({ timeout: 15000 });
+
+    await list.getByText(title).click();
+    await expect(page.getByText(body)).toBeVisible({ timeout: 10000 });
   });
 
   test("note title is editable", async ({ page }) => {

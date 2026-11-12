@@ -25,8 +25,7 @@ test.describe("Task Management", () => {
     await expect(page.getByText(taskTitle)).toBeVisible({ timeout: 10000 });
   });
 
-  // FIXME(0d-2): selektory nieaktualne względem obecnego UI (spec nie był uruchamiany w CI); do naprawy osobno.
-  test.fixme("edits a task title", async ({ page }) => {
+  test("edits a task title", async ({ page }) => {
     const originalTitle = `Edit Test ${Date.now()}`;
     const updatedTitle = `Updated ${Date.now()}`;
 
@@ -35,10 +34,10 @@ test.describe("Task Management", () => {
     await expect(page.getByText(originalTitle)).toBeVisible({ timeout: 10000 });
 
     await page.getByText(originalTitle).first().dblclick();
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible({ timeout: 5000 });
 
-    const titleInput = page.getByRole("textbox", { name: /tytuł|title/i });
-    await titleInput.fill(updatedTitle);
+    await dialog.locator("#task-detail-title-field").fill(updatedTitle);
     await page.getByRole("button", { name: /^(Zapisz|Save)$/i }).click();
 
     await expect(page.locator("li", { hasText: updatedTitle })).toBeVisible({ timeout: 10000 });
@@ -58,8 +57,7 @@ test.describe("Task Management", () => {
     await expect(page.getByText(taskTitle)).not.toBeVisible({ timeout: 10000 });
   });
 
-  // FIXME(0d-2): selektory nieaktualne względem obecnego UI (spec nie był uruchamiany w CI); do naprawy osobno.
-  test.fixme("creates a template and uses it to add a task", async ({ page }) => {
+  test("creates a template and uses it to add a task", async ({ page }) => {
     const stamp = Date.now();
     const templateLabel = `Tpl Review ${stamp}`;
     const templateTitle = `Review PR ${stamp}`;
@@ -74,7 +72,11 @@ test.describe("Task Management", () => {
     await modal.getByRole("button", { name: /dodaj szablon|add template/i }).click();
     await expect(modal.getByText(templateLabel)).toBeVisible({ timeout: 10000 });
 
-    await page.keyboard.press("Escape");
+    // Escape zamyka modal tylko z fokusem wewnątrz; przycisk zamknięcia działa zawsze.
+    await modal
+      .getByRole("button", { name: /^(Anuluj|Cancel)$/ })
+      .first()
+      .click();
     await expect(modal).not.toBeVisible({ timeout: 5000 });
 
     await page.locator("#new-task-template").selectOption({ label: templateLabel });
