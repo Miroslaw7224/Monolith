@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
 import { parseBody } from "@/lib/parseBody";
 import { CreateCalendarEventBodySchema } from "@/lib/validation/calendarEvents";
 import * as calendarService from "@/services/calendarService";
 
 export async function GET(request: NextRequest) {
-  const auth = await getAuthUserId(request);
-  if (auth instanceof NextResponse) return auth;
   const startDate = request.nextUrl.searchParams.get("startDate") ?? undefined;
   const endDate = request.nextUrl.searchParams.get("endDate") ?? undefined;
   try {
-    const events = await calendarService.getCalendarEvents(auth.uid, { startDate, endDate });
+    const events = await calendarService.getCalendarEvents({ startDate, endDate });
     return NextResponse.json(events);
   } catch (err) {
     return handleServiceError(err);
@@ -19,15 +16,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthUserId(request);
-  if (auth instanceof NextResponse) return auth;
-
   const parsed = await parseBody(request, CreateCalendarEventBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
   const { date, start_minutes, duration_minutes, title, tags, color, type } = parsed.data;
   try {
-    const event = await calendarService.createCalendarEvent(auth.uid, {
+    const event = await calendarService.createCalendarEvent({
       date: date as string,
       start_minutes: Number(start_minutes) ?? 0,
       duration_minutes: Number(duration_minutes),

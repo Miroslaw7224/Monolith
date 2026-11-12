@@ -28,12 +28,12 @@ function taskDueDateInRange(
   return true;
 }
 
-export async function getCalendarEvents(
-  userId: string,
-  options?: { startDate?: string; endDate?: string }
-): Promise<CalendarEventWithType[]> {
-  const events = await firestoreDb.getCalendarEvents(userId, options);
-  const tasks = await firestoreDb.getTasks(userId);
+export async function getCalendarEvents(options?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<CalendarEventWithType[]> {
+  const events = await firestoreDb.getCalendarEvents(options);
+  const tasks = await firestoreDb.getTasks();
   const deadlineEvents: CalendarEventWithType[] = tasks
     .filter((task) => task.due_date && task.status !== "done")
     .filter((task) => taskDueDateInRange(task.due_date!, options))
@@ -52,24 +52,20 @@ export async function getCalendarEvents(
   );
 }
 
-export async function createCalendarEvent(
-  userId: string,
-  data: {
-    date: string;
-    start_minutes: number;
-    duration_minutes: number;
-    title: string;
-    tags: string[];
-    color: string;
-    type?: "work" | "meeting";
-  }
-) {
+export async function createCalendarEvent(data: {
+  date: string;
+  start_minutes: number;
+  duration_minutes: number;
+  title: string;
+  tags: string[];
+  color: string;
+  type?: "work" | "meeting";
+}) {
   assertDurationMultipleOf15(data.duration_minutes);
-  return firestoreDb.createCalendarEvent(userId, data);
+  return firestoreDb.createCalendarEvent(data);
 }
 
 export async function updateCalendarEvent(
-  userId: string,
   id: string,
   data: Partial<{
     date: string;
@@ -82,9 +78,9 @@ export async function updateCalendarEvent(
   }>
 ) {
   assertDurationMultipleOf15(data.duration_minutes);
-  return firestoreDb.updateCalendarEvent(userId, id, data);
+  return firestoreDb.updateCalendarEvent(id, data);
 }
 
-export async function deleteCalendarEvent(userId: string, id: string) {
-  return firestoreDb.deleteCalendarEvent(userId, id);
+export async function deleteCalendarEvent(id: string) {
+  return firestoreDb.deleteCalendarEvent(id);
 }

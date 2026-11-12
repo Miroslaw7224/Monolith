@@ -19,7 +19,7 @@ Struktura pliku: `version: 1`, lista rekordów pod kluczem. Czas to tekst ISO 86
 - Po pierwszym zapisie aplikacji znika `generated_by`, więc ponowny import 0b zapisze pliki obok zamiast je nadpisać.
 - Plik, który się nie parsuje, nie jest nadpisywany; operacja kończy się błędem z nazwą pliku.
 - Odczyt jest posortowany niezależnie od kolejności w pliku: tagi i szablony rosnąco po `created`, zasoby malejąco po `created`; remisy po `id`.
-- `userId` nie jest zapisywany (jednoużytkownikowy vault do etapu 0d).
+- Vault jest jednoużytkownikowy; `userId` nie istnieje (usunięty w 0d-1).
 - Ręcznie wpisane `favorite: yes` jest czytane jako tekst (YAML 1.2), czyli nie jako „ulubiony”. Używaj `true`/`false`.
 
 ## Zadania: `Tasks/tasks.md`
@@ -83,7 +83,7 @@ Jeden plik na mapę; `id` (20 znaków alfanumerycznych) to nazwa pliku. JSON z w
   "colWidths": { "0": 200 }, "createdAt": "ISO", "updatedAt": "ISO" }
 ```
 
-- `userId` nie jest zapisywany. Notatki węzłów (`note`) zostają w HTML (inny edytor niż notatki).
+- Vault jest jednoużytkownikowy; `userId` nie istnieje. Notatki węzłów (`note`) zostają w HTML (inny edytor niż notatki).
 - Uszkodzony plik JSON jest pomijany na liście map, a przy otwarciu tej mapy aplikacja zgłasza błąd z nazwą pliku.
 - `id` z adresu spoza `[A-Za-z0-9_-]{1,64}` jest traktowany jak nieistniejący.
 

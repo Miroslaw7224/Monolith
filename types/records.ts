@@ -17,7 +17,6 @@ export type NoteRecord = {
 export interface NoteResourceRecord {
   id: string;
   noteId?: string; // opcjonalne – zasoby są na poziomie użytkownika, nie notatki
-  userId: string;
   description: string;
   url: string;
   title: string;
@@ -77,7 +76,6 @@ export type TaskTemplateRecord = {
 
 export interface MindMap {
   id: string;
-  userId: string;
   title: string;
   rootNode: MindMapNode;
   /** Column widths in px per depth level. */

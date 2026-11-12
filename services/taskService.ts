@@ -2,29 +2,25 @@ import { DomainError } from "@/lib/errors";
 import type { TaskRecord } from "@/lib/firestore-db";
 import * as firestoreDb from "@/lib/firestore-db";
 
-export async function getTasks(userId: string) {
-  return firestoreDb.getTasks(userId);
+export async function getTasks() {
+  return firestoreDb.getTasks();
 }
 
-export async function createTask(
-  userId: string,
-  data: {
-    title: string;
-    link?: string;
-    description?: string;
-    status?: TaskRecord["status"];
-    due_date?: string | null;
-    priority?: number | null;
-  }
-) {
+export async function createTask(data: {
+  title: string;
+  link?: string;
+  description?: string;
+  status?: TaskRecord["status"];
+  due_date?: string | null;
+  priority?: number | null;
+}) {
   if (!data.title || typeof data.title !== "string") {
     throw new DomainError("title required");
   }
-  return firestoreDb.createTask(userId, data);
+  return firestoreDb.createTask(data);
 }
 
 export async function updateTask(
-  userId: string,
   id: string,
   data: Partial<{
     title: string;
@@ -36,13 +32,13 @@ export async function updateTask(
     order: number;
   }>
 ) {
-  return firestoreDb.updateTask(userId, id, data);
+  return firestoreDb.updateTask(id, data);
 }
 
-export async function reorderTasks(userId: string, taskIds: string[]) {
-  return firestoreDb.reorderTasks(userId, taskIds);
+export async function reorderTasks(taskIds: string[]) {
+  return firestoreDb.reorderTasks(taskIds);
 }
 
-export async function deleteTask(userId: string, id: string) {
-  return firestoreDb.deleteTask(userId, id);
+export async function deleteTask(id: string) {
+  return firestoreDb.deleteTask(id);
 }

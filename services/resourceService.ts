@@ -10,13 +10,14 @@ import {
 // CRUD (zasoby na poziomie użytkownika, niezależne od notatek)
 // -----------------------------------------------
 
-export async function addResource(
-  userId: string,
-  data: { description: string; url: string; tags?: string[]; noteId?: string }
-): Promise<NoteResourceRecord> {
+export async function addResource(data: {
+  description: string;
+  url: string;
+  tags?: string[];
+  noteId?: string;
+}): Promise<NoteResourceRecord> {
   const { title, thumbnailUrl } = await fetchPageMetadata(data.url);
-  const resource = await addResourceToFirestore(userId, {
-    userId,
+  const resource = await addResourceToFirestore({
     description: data.description,
     url: data.url,
     title,
@@ -27,16 +28,15 @@ export async function addResource(
   return resource;
 }
 
-export async function getResources(userId: string): Promise<NoteResourceRecord[]> {
-  return getResourcesFromFirestore(userId);
+export async function getResources(): Promise<NoteResourceRecord[]> {
+  return getResourcesFromFirestore();
 }
 
-export async function deleteResource(userId: string, resourceId: string): Promise<void> {
-  return deleteResourceFromFirestore(userId, resourceId);
+export async function deleteResource(resourceId: string): Promise<void> {
+  return deleteResourceFromFirestore(resourceId);
 }
 
 export async function updateResource(
-  userId: string,
   resourceId: string,
   data: {
     title?: string;
@@ -46,7 +46,7 @@ export async function updateResource(
     isFavorite?: boolean;
   }
 ): Promise<void> {
-  return updateResourceInFirestore(userId, resourceId, data);
+  return updateResourceInFirestore(resourceId, data);
 }
 
 // -----------------------------------------------
@@ -72,11 +72,8 @@ async function fetchPageMetadata(url: string): Promise<{ title: string; thumbnai
 // Integracja z RAG (keyword search)
 // -----------------------------------------------
 
-export async function searchResources(
-  userId: string,
-  keywords: string[]
-): Promise<NoteResourceRecord[]> {
-  const allResources = await getResourcesFromFirestore(userId);
+export async function searchResources(keywords: string[]): Promise<NoteResourceRecord[]> {
+  const allResources = await getResourcesFromFirestore();
 
   if (keywords.length === 0) {
     return allResources;

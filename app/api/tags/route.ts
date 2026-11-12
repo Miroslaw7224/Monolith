@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
 import { parseBody } from "@/lib/parseBody";
 import { CreateTagBodySchema } from "@/lib/validation/tags";
 import * as tagService from "@/services/tagService";
 
 export async function GET(request: NextRequest) {
-  const auth = await getAuthUserId(request);
-  if (auth instanceof NextResponse) return auth;
   try {
-    const list = await tagService.getUserTags(auth.uid);
+    const list = await tagService.getUserTags();
     return NextResponse.json(list);
   } catch (err) {
     return handleServiceError(err);
@@ -17,15 +14,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await getAuthUserId(request);
-  if (auth instanceof NextResponse) return auth;
-
   const parsed = await parseBody(request, CreateTagBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
   const { tag, title, color } = parsed.data;
   try {
-    const created = await tagService.createUserTag(auth.uid, {
+    const created = await tagService.createUserTag({
       tag: (tag as string).trim(),
       title: typeof title === "string" ? title.trim() : "",
       color: typeof color === "string" ? color.trim() || undefined : undefined,

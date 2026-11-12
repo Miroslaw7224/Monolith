@@ -8,7 +8,6 @@ import type { NoteResource } from "@/src/components/resources/resourceTypes";
 function mockResource(overrides?: Partial<NoteResource>): NoteResource {
   return {
     id: "res-1",
-    userId: "user-1",
     description: "Test description",
     url: "https://example.com",
     title: "Example Title",

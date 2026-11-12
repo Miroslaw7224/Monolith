@@ -31,7 +31,7 @@ describe("tagService", () => {
       const tags = [{ id: "tag1", tag: "work", title: "Work" }];
       mockGetUserTags.mockResolvedValue(tags);
 
-      const result = await getUserTags("user-1");
+      const result = await getUserTags();
 
       expect(result).toEqual(tags);
     });
@@ -39,7 +39,7 @@ describe("tagService", () => {
     it("given getUserTags throws, when getUserTags is called, then propagates the error", async () => {
       mockGetUserTags.mockRejectedValue(new Error("DB error"));
 
-      await expect(getUserTags("user-1")).rejects.toThrow("DB error");
+      await expect(getUserTags()).rejects.toThrow("DB error");
     });
   });
 
@@ -47,7 +47,7 @@ describe("tagService", () => {
     it("given valid data, when createUserTag is called, then returns created tag (happy path)", async () => {
       mockCreateUserTag.mockResolvedValue({ id: "tag1", tag: "work", title: "Work" });
 
-      const result = await createUserTag("user-1", { tag: "work", title: "Work" });
+      const result = await createUserTag({ tag: "work", title: "Work" });
 
       expect(result).toEqual({ id: "tag1", tag: "work", title: "Work" });
     });
@@ -55,9 +55,7 @@ describe("tagService", () => {
     it("given createUserTag throws, when createUserTag is called, then propagates the error", async () => {
       mockCreateUserTag.mockRejectedValue(new Error("Create failed"));
 
-      await expect(createUserTag("user-1", { tag: "x", title: "y" })).rejects.toThrow(
-        "Create failed"
-      );
+      await expect(createUserTag({ tag: "x", title: "y" })).rejects.toThrow("Create failed");
     });
 
     it("given data with color, when createUserTag is called, then passes color to firestore", async () => {
@@ -68,9 +66,9 @@ describe("tagService", () => {
         color: "#FF0000",
       });
 
-      await createUserTag("user-1", { tag: "work", title: "Work", color: "#FF0000" });
+      await createUserTag({ tag: "work", title: "Work", color: "#FF0000" });
 
-      expect(mockCreateUserTag).toHaveBeenCalledWith("user-1", {
+      expect(mockCreateUserTag).toHaveBeenCalledWith({
         tag: "work",
         title: "Work",
         color: "#FF0000",
@@ -82,31 +80,31 @@ describe("tagService", () => {
     it("given valid id and data, when updateUserTag is called, then delegates to firestore (happy path)", async () => {
       mockUpdateUserTag.mockResolvedValue(undefined);
 
-      await updateUserTag("user-1", "tag1", { title: "New Title" });
+      await updateUserTag("tag1", { title: "New Title" });
 
-      expect(mockUpdateUserTag).toHaveBeenCalledWith("user-1", "tag1", { title: "New Title" });
+      expect(mockUpdateUserTag).toHaveBeenCalledWith("tag1", { title: "New Title" });
     });
 
     it("given updateUserTag throws, when updateUserTag is called, then propagates the error", async () => {
       mockUpdateUserTag.mockRejectedValue(new Error("Update failed"));
 
-      await expect(updateUserTag("user-1", "tag1", { tag: "x" })).rejects.toThrow("Update failed");
+      await expect(updateUserTag("tag1", { tag: "x" })).rejects.toThrow("Update failed");
     });
 
     it("given data with color, when updateUserTag is called, then passes color to firestore", async () => {
       mockUpdateUserTag.mockResolvedValue(undefined);
 
-      await updateUserTag("user-1", "tag1", { color: "#00FF00" });
+      await updateUserTag("tag1", { color: "#00FF00" });
 
-      expect(mockUpdateUserTag).toHaveBeenCalledWith("user-1", "tag1", { color: "#00FF00" });
+      expect(mockUpdateUserTag).toHaveBeenCalledWith("tag1", { color: "#00FF00" });
     });
 
     it("given color null, when updateUserTag is called, then passes color null to firestore", async () => {
       mockUpdateUserTag.mockResolvedValue(undefined);
 
-      await updateUserTag("user-1", "tag1", { color: null });
+      await updateUserTag("tag1", { color: null });
 
-      expect(mockUpdateUserTag).toHaveBeenCalledWith("user-1", "tag1", { color: null });
+      expect(mockUpdateUserTag).toHaveBeenCalledWith("tag1", { color: null });
     });
   });
 
@@ -114,15 +112,15 @@ describe("tagService", () => {
     it("given valid id, when deleteUserTag is called, then delegates to firestore (happy path)", async () => {
       mockDeleteUserTag.mockResolvedValue(undefined);
 
-      await deleteUserTag("user-1", "tag1");
+      await deleteUserTag("tag1");
 
-      expect(mockDeleteUserTag).toHaveBeenCalledWith("user-1", "tag1");
+      expect(mockDeleteUserTag).toHaveBeenCalledWith("tag1");
     });
 
     it("given deleteUserTag throws, when deleteUserTag is called, then propagates the error", async () => {
       mockDeleteUserTag.mockRejectedValue(new Error("Delete failed"));
 
-      await expect(deleteUserTag("user-1", "tag1")).rejects.toThrow("Delete failed");
+      await expect(deleteUserTag("tag1")).rejects.toThrow("Delete failed");
     });
   });
 });

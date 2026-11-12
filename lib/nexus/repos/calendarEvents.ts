@@ -58,10 +58,10 @@ function readAll(): Entry[] {
   return [...byId.values()];
 }
 
-export async function getCalendarEvents(
-  _userId: string,
-  options?: { startDate?: string; endDate?: string }
-): Promise<CalendarEventRecord[]> {
+export async function getCalendarEvents(options?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<CalendarEventRecord[]> {
   let list = readAll().map((entry) => toEvent(entry.record));
   const { startDate, endDate } = options ?? {};
   if (startDate && endDate) {
@@ -77,18 +77,15 @@ export async function getCalendarEvents(
   );
 }
 
-export async function createCalendarEvent(
-  _userId: string,
-  data: {
-    date: string;
-    start_minutes: number;
-    duration_minutes: number;
-    title: string;
-    tags: string[];
-    color: string;
-    type?: "work" | "meeting";
-  }
-): Promise<CalendarEventRecord> {
+export async function createCalendarEvent(data: {
+  date: string;
+  start_minutes: number;
+  duration_minutes: number;
+  title: string;
+  tags: string[];
+  color: string;
+  type?: "work" | "meeting";
+}): Promise<CalendarEventRecord> {
   const file = monthFile(data.date);
   const record = await appendRecord(file, KEY, (taken) => ({
     id: generateId(taken),
@@ -105,7 +102,6 @@ export async function createCalendarEvent(
 }
 
 export async function updateCalendarEvent(
-  _userId: string,
   eventId: string,
   data: Partial<{
     date: string;
@@ -141,7 +137,7 @@ export async function updateCalendarEvent(
   await removeRecord(entry.file, KEY, eventId);
 }
 
-export async function deleteCalendarEvent(_userId: string, eventId: string): Promise<void> {
+export async function deleteCalendarEvent(eventId: string): Promise<void> {
   for (const file of monthFiles()) {
     if (readList(file, KEY).some((r) => str(r.id) === eventId)) {
       await removeRecord(file, KEY, eventId);

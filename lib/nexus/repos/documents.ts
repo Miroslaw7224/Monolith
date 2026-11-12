@@ -14,14 +14,15 @@ function toDocument(entry: MarkdownEntry): DocumentRecord {
   };
 }
 
-export async function getDocuments(_userId: string): Promise<DocumentRecord[]> {
+export async function getDocuments(): Promise<DocumentRecord[]> {
   return sortByCreated(listEntries(DIR).map(toDocument), (d) => d.created_at, "desc");
 }
 
-export async function createDocument(
-  _userId: string,
-  data: { name: string; content: string; type: string }
-): Promise<{ id: string; name: string }> {
+export async function createDocument(data: {
+  name: string;
+  content: string;
+  type: string;
+}): Promise<{ id: string; name: string }> {
   const { id } = createEntry(DIR, data.name, (newId) => ({
     meta: { id: newId, name: data.name, type: data.type, created: nowIso() },
     body: data.content,
@@ -29,6 +30,6 @@ export async function createDocument(
   return { id, name: data.name };
 }
 
-export async function deleteDocument(_userId: string, docId: string): Promise<void> {
+export async function deleteDocument(docId: string): Promise<void> {
   deleteEntry(DIR, docId);
 }

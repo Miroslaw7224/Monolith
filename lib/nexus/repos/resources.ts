@@ -15,11 +15,10 @@ import {
 const FILE = "Resources/resources.yaml";
 const KEY = "resources";
 
-function toResource(record: YamlRecord, userId: string): NoteResourceRecord {
+function toResource(record: YamlRecord): NoteResourceRecord {
   return {
     id: str(record.id),
     noteId: optStr(record.note_id),
-    userId,
     description: str(record.description),
     url: str(record.url),
     title: str(record.title),
@@ -32,7 +31,6 @@ function toResource(record: YamlRecord, userId: string): NoteResourceRecord {
 }
 
 export async function addResourceToFirestore(
-  userId: string,
   data: Omit<NoteResourceRecord, "id" | "createdAt" | "updatedAt">
 ): Promise<NoteResourceRecord> {
   const record = await appendRecord(FILE, KEY, (taken) => {
@@ -50,23 +48,19 @@ export async function addResourceToFirestore(
       updated: now,
     };
   });
-  return toResource(record, userId);
+  return toResource(record);
 }
 
-export async function getResourcesFromFirestore(userId: string): Promise<NoteResourceRecord[]> {
-  const list = readList(FILE, KEY).map((record) => toResource(record, userId));
+export async function getResourcesFromFirestore(): Promise<NoteResourceRecord[]> {
+  const list = readList(FILE, KEY).map((record) => toResource(record));
   return sortByCreated(list, (r) => r.createdAt, "desc");
 }
 
-export async function deleteResourceFromFirestore(
-  _userId: string,
-  resourceId: string
-): Promise<void> {
+export async function deleteResourceFromFirestore(resourceId: string): Promise<void> {
   await removeRecord(FILE, KEY, resourceId);
 }
 
 export async function updateResourceInFirestore(
-  _userId: string,
   resourceId: string,
   data: {
     title?: string;

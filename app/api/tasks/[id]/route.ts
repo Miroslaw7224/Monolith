@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUserId } from "@/lib/getAuth";
 import { handleServiceError } from "@/lib/apiError";
 import { parseBody } from "@/lib/parseBody";
 import { UpdateTaskBodySchema } from "@/lib/validation/tasks";
 import * as taskService from "@/services/taskService";
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await getAuthUserId(request);
-  if (auth instanceof NextResponse) return auth;
   const { id } = await params;
 
   const parsed = await parseBody(request, UpdateTaskBodySchema, { details: false });
@@ -15,7 +12,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { title, link, description, status, due_date, priority, order } = parsed.data;
   try {
-    await taskService.updateTask(auth.uid, id, {
+    await taskService.updateTask(id, {
       title: title as string | undefined,
       link: link as string | undefined,
       description: description as string | undefined,
@@ -41,11 +38,9 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await getAuthUserId(_request);
-  if (auth instanceof NextResponse) return auth;
   const { id } = await params;
   try {
-    await taskService.deleteTask(auth.uid, id);
+    await taskService.deleteTask(id);
     return NextResponse.json({ success: true });
   } catch (err) {
     return handleServiceError(err);

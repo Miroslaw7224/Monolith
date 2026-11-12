@@ -22,14 +22,14 @@ function toNote(entry: MarkdownEntry): NoteRecord {
   };
 }
 
-export async function getNotes(_userId: string): Promise<NoteRecord[]> {
+export async function getNotes(): Promise<NoteRecord[]> {
   return sortByCreated(listEntries(DIR).map(toNote), (n) => n.created_at, "desc");
 }
 
-export async function createNote(
-  _userId: string,
-  data: { title: string; content: string }
-): Promise<{ id: string; title: string; content: string }> {
+export async function createNote(data: {
+  title: string;
+  content: string;
+}): Promise<{ id: string; title: string; content: string }> {
   const now = nowIso();
   const { id } = createEntry(DIR, data.title, (newId) => ({
     meta: { id: newId, title: data.title, created: now, updated: now },
@@ -39,7 +39,6 @@ export async function createNote(
 }
 
 export async function updateNote(
-  _userId: string,
   noteId: string,
   data: { title: string; content: string }
 ): Promise<void> {
@@ -49,6 +48,6 @@ export async function updateNote(
   }));
 }
 
-export async function deleteNote(_userId: string, noteId: string): Promise<void> {
+export async function deleteNote(noteId: string): Promise<void> {
   deleteEntry(DIR, noteId);
 }

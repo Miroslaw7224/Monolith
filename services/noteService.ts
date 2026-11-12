@@ -1,21 +1,17 @@
 import * as firestoreDb from "@/lib/firestore-db";
 
-export async function listNotes(userId: string) {
-  return firestoreDb.getNotes(userId);
+export async function listNotes() {
+  return firestoreDb.getNotes();
 }
 
-export async function createNote(userId: string, data: { title: string; content: string }) {
-  return firestoreDb.createNote(userId, data);
+export async function createNote(data: { title: string; content: string }) {
+  return firestoreDb.createNote(data);
 }
 
-export async function updateNote(
-  userId: string,
-  id: string,
-  data: { title: string; content: string }
-) {
-  return firestoreDb.updateNote(userId, id, data);
+export async function updateNote(id: string, data: { title: string; content: string }) {
+  return firestoreDb.updateNote(id, data);
 }
 
-export async function deleteNote(userId: string, id: string) {
-  return firestoreDb.deleteNote(userId, id);
+export async function deleteNote(id: string) {
+  return firestoreDb.deleteNote(id);
 }

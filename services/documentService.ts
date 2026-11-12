@@ -1,17 +1,14 @@
 import * as firestoreDb from "@/lib/firestore-db";
 
-export async function listDocuments(userId: string) {
-  return firestoreDb.getDocuments(userId);
+export async function listDocuments() {
+  return firestoreDb.getDocuments();
 }
 
-export async function ingestDocument(
-  userId: string,
-  data: { name: string; content: string; type: string }
-) {
-  const { id } = await firestoreDb.createDocument(userId, data);
+export async function ingestDocument(data: { name: string; content: string; type: string }) {
+  const { id } = await firestoreDb.createDocument(data);
   return { id, name: data.name };
 }
 
-export async function deleteDocument(userId: string, id: string) {
-  return firestoreDb.deleteDocument(userId, id);
+export async function deleteDocument(id: string) {
+  return firestoreDb.deleteDocument(id);
 }

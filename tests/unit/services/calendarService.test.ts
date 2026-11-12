@@ -46,7 +46,7 @@ describe("calendarService", () => {
       ];
       mockGetCalendarEvents.mockResolvedValue(events);
 
-      const result = await getCalendarEvents("user-1");
+      const result = await getCalendarEvents();
 
       expect(result).toEqual(events);
     });
@@ -54,7 +54,7 @@ describe("calendarService", () => {
     it("given getCalendarEvents throws, when getCalendarEvents is called, then propagates the error", async () => {
       mockGetCalendarEvents.mockRejectedValue(new Error("DB error"));
 
-      await expect(getCalendarEvents("user-1")).rejects.toThrow("DB error");
+      await expect(getCalendarEvents()).rejects.toThrow("DB error");
     });
 
     it("given a task with a due_date in range and status not done, when getCalendarEvents is called, then includes a task_deadline pseudo-event", async () => {
@@ -70,7 +70,7 @@ describe("calendarService", () => {
         },
       ]);
 
-      const result = await getCalendarEvents("user-1", {
+      const result = await getCalendarEvents({
         startDate: "2025-02-01",
         endDate: "2025-02-28",
       });
@@ -98,7 +98,7 @@ describe("calendarService", () => {
         },
       ]);
 
-      const result = await getCalendarEvents("user-1", {
+      const result = await getCalendarEvents({
         startDate: "2025-02-01",
         endDate: "2025-02-28",
       });
@@ -119,7 +119,7 @@ describe("calendarService", () => {
         },
       ]);
 
-      const result = await getCalendarEvents("user-1", {
+      const result = await getCalendarEvents({
         startDate: "2025-02-01",
         endDate: "2025-02-28",
       });
@@ -141,7 +141,7 @@ describe("calendarService", () => {
       };
       mockCreateCalendarEvent.mockResolvedValue(event);
 
-      const result = await createCalendarEvent("user-1", {
+      const result = await createCalendarEvent({
         date: "2025-02-20",
         start_minutes: 540,
         duration_minutes: 60,
@@ -159,7 +159,7 @@ describe("calendarService", () => {
       );
 
       await expect(
-        createCalendarEvent("user-1", {
+        createCalendarEvent({
           date: "2025-02-20",
           start_minutes: 540,
           duration_minutes: 30,
@@ -175,17 +175,15 @@ describe("calendarService", () => {
     it("given valid id and data, when updateCalendarEvent is called, then delegates to firestore (happy path)", async () => {
       mockUpdateCalendarEvent.mockResolvedValue(undefined);
 
-      await updateCalendarEvent("user-1", "e1", { title: "Updated" });
+      await updateCalendarEvent("e1", { title: "Updated" });
 
-      expect(mockUpdateCalendarEvent).toHaveBeenCalledWith("user-1", "e1", { title: "Updated" });
+      expect(mockUpdateCalendarEvent).toHaveBeenCalledWith("e1", { title: "Updated" });
     });
 
     it("given updateCalendarEvent throws, when updateCalendarEvent is called, then propagates the error", async () => {
       mockUpdateCalendarEvent.mockRejectedValue(new Error("Update failed"));
 
-      await expect(updateCalendarEvent("user-1", "e1", { title: "X" })).rejects.toThrow(
-        "Update failed"
-      );
+      await expect(updateCalendarEvent("e1", { title: "X" })).rejects.toThrow("Update failed");
     });
   });
 
@@ -193,15 +191,15 @@ describe("calendarService", () => {
     it("given valid id, when deleteCalendarEvent is called, then delegates to firestore (happy path)", async () => {
       mockDeleteCalendarEvent.mockResolvedValue(undefined);
 
-      await deleteCalendarEvent("user-1", "e1");
+      await deleteCalendarEvent("e1");
 
-      expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("user-1", "e1");
+      expect(mockDeleteCalendarEvent).toHaveBeenCalledWith("e1");
     });
 
     it("given deleteCalendarEvent throws, when deleteCalendarEvent is called, then propagates the error", async () => {
       mockDeleteCalendarEvent.mockRejectedValue(new Error("Delete failed"));
 
-      await expect(deleteCalendarEvent("user-1", "e1")).rejects.toThrow("Delete failed");
+      await expect(deleteCalendarEvent("e1")).rejects.toThrow("Delete failed");
     });
   });
 });

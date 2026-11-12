@@ -29,14 +29,15 @@ function toTag(record: YamlRecord): UserTagRecord {
   };
 }
 
-export async function getUserTags(_userId: string): Promise<UserTagRecord[]> {
+export async function getUserTags(): Promise<UserTagRecord[]> {
   return sortByCreated(readList(FILE, KEY).map(toTag), (t) => t.created_at, "asc");
 }
 
-export async function createUserTag(
-  _userId: string,
-  data: { tag: string; title: string; color?: string }
-): Promise<UserTagRecord> {
+export async function createUserTag(data: {
+  tag: string;
+  title: string;
+  color?: string;
+}): Promise<UserTagRecord> {
   const color = normColor(data.color);
   const record = await appendRecord(FILE, KEY, (taken) => ({
     id: generateId(taken),
@@ -49,7 +50,6 @@ export async function createUserTag(
 }
 
 export async function updateUserTag(
-  _userId: string,
   tagId: string,
   data: { tag?: string; title?: string; color?: string | null }
 ): Promise<void> {
@@ -61,6 +61,6 @@ export async function updateUserTag(
   await patchRecord(FILE, KEY, tagId, patch, "Tag not found");
 }
 
-export async function deleteUserTag(_userId: string, tagId: string): Promise<void> {
+export async function deleteUserTag(tagId: string): Promise<void> {
   await removeRecord(FILE, KEY, tagId);
 }

@@ -4,7 +4,6 @@ import type { MindMap } from "@/src/features/mind-maps/mindMapTypes";
 
 const map: MindMap = {
   id: "m1",
-  userId: "u1",
   title: "Client X",
   rootNode: {
     id: "n1",

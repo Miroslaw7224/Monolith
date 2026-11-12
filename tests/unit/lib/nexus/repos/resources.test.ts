@@ -42,15 +42,14 @@ const seed = () => vault.write(FILE, formatYamlList("resources", STORED, GENERAT
 
 describe("resources repository", () => {
   it("returns [] when the file does not exist", async () => {
-    expect(await getResourcesFromFirestore("u1")).toEqual([]);
+    expect(await getResourcesFromFirestore()).toEqual([]);
   });
 
-  it("maps a 0b file, adds userId and sorts descending by createdAt", async () => {
+  it("maps a 0b file and sorts descending by createdAt", async () => {
     seed();
-    expect(await getResourcesFromFirestore("u1")).toEqual([
+    expect(await getResourcesFromFirestore()).toEqual([
       {
         id: "resB",
-        userId: "u1",
         title: "Strona B",
         url: "https://b.example.com",
         description: "Opis B",
@@ -61,7 +60,6 @@ describe("resources repository", () => {
       },
       {
         id: "resA",
-        userId: "u1",
         noteId: "note-1",
         title: "Strona A",
         url: "https://a.example.com",
@@ -83,12 +81,11 @@ describe("resources repository", () => {
         { id: "a", title: "a", url: "u", description: "d", tags: [], favorite: false },
       ])
     );
-    expect((await getResourcesFromFirestore("u1")).map((r) => r.id)).toEqual(["a", "b"]);
+    expect((await getResourcesFromFirestore()).map((r) => r.id)).toEqual(["a", "b"]);
   });
 
   it("creates a resource with defaults and the 0b key order", async () => {
-    const res = await addResourceToFirestore("u1", {
-      userId: "u1",
+    const res = await addResourceToFirestore({
       title: "Nowa",
       url: "https://n.example.com",
       description: "Opis",
@@ -96,7 +93,7 @@ describe("resources repository", () => {
       thumbnailUrl: "https://n.example.com/t.png",
     });
     expect(res.id).toMatch(/^[A-Za-z0-9]{20}$/);
-    expect(res).toMatchObject({ userId: "u1", isFavorite: false, tags: [] });
+    expect(res).toMatchObject({ isFavorite: false, tags: [] });
     expect(res.noteId).toBeUndefined();
     expect(res.createdAt).toBe(res.updatedAt);
     expect(new Date(res.createdAt!).toISOString()).toBe(res.createdAt);
@@ -119,8 +116,7 @@ describe("resources repository", () => {
 
   it("stores note_id only when given and appends after existing records", async () => {
     seed();
-    const res = await addResourceToFirestore("u1", {
-      userId: "u1",
+    const res = await addResourceToFirestore({
       title: "T",
       url: "u",
       description: "d",
@@ -136,7 +132,7 @@ describe("resources repository", () => {
 
   it("updates only the passed fields, trims text and bumps updated", async () => {
     seed();
-    await updateResourceInFirestore("u1", "resA", { title: " Nowy tytuł ", isFavorite: false });
+    await updateResourceInFirestore("resA", { title: " Nowy tytuł ", isFavorite: false });
     const [a, b] = readList(FILE, "resources");
     expect(a).toMatchObject({
       ...STORED[0],
@@ -153,7 +149,7 @@ describe("resources repository", () => {
   it("update of a missing id is a 404 and leaves the file untouched", async () => {
     seed();
     const before = vault.read(FILE);
-    await expect(updateResourceInFirestore("u1", "nope", { title: "x" })).rejects.toMatchObject({
+    await expect(updateResourceInFirestore("nope", { title: "x" })).rejects.toMatchObject({
       statusCode: 404,
     });
     expect(vault.read(FILE)).toBe(before);
@@ -161,24 +157,23 @@ describe("resources repository", () => {
 
   it("deletes a resource; deleting a missing id does not touch the file", async () => {
     seed();
-    await deleteResourceFromFirestore("u1", "resA");
+    await deleteResourceFromFirestore("resA");
     expect(readList(FILE, "resources").map((r) => r.id)).toEqual(["resB"]);
     const before = vault.read(FILE);
-    await deleteResourceFromFirestore("u1", "nope");
+    await deleteResourceFromFirestore("nope");
     expect(vault.read(FILE)).toBe(before);
   });
 
   it("round-trips special characters and YAML 1.1 words as text", async () => {
     const title = 'Google&apos;s: "app" #1 — zażółć gęślą jaźń';
     const tags = ["yes", "no", "on", "off", "123"];
-    const res = await addResourceToFirestore("u1", {
-      userId: "u1",
+    const res = await addResourceToFirestore({
       title,
       url: "https://x.dev",
       description: "yes",
       tags,
     });
-    const [read] = await getResourcesFromFirestore("u1");
+    const [read] = await getResourcesFromFirestore();
     expect(read).toMatchObject({ id: res.id, title, description: "yes", tags });
     expect(vault.read(FILE)).not.toMatch(/- yes\n/);
   });
@@ -188,8 +183,8 @@ describe("resources repository", () => {
       FILE,
       "version: 1\nresources:\n  - id: h1\n    title: t\n    url: u\n    description: d\n    tags: []\n    favorite: yes\n"
     );
-    expect((await getResourcesFromFirestore("u1"))[0].isFavorite).toBe(false);
-    await updateResourceInFirestore("u1", "h1", { title: "t2" });
+    expect((await getResourcesFromFirestore())[0].isFavorite).toBe(false);
+    await updateResourceInFirestore("h1", { title: "t2" });
     const item = parseYamlList(vault.read(FILE)!, "resources").items[0];
     expect(item.favorite).toBe("yes");
   });

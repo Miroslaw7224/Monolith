@@ -4,7 +4,7 @@ import { nowIso } from "./common";
 
 const FILE = "Board/board.json";
 
-export async function getBoard(_userId: string): Promise<BoardDoc | null> {
+export async function getBoard(): Promise<BoardDoc | null> {
   const file = readVaultFile(FILE);
   if (file === null) return null;
   let data: unknown;
@@ -22,10 +22,11 @@ export async function getBoard(_userId: string): Promise<BoardDoc | null> {
 }
 
 /** Zawsze nadpisuje (jak `set` w Firestore); poprawny zapis naprawia uszkodzony plik. */
-export async function saveBoard(
-  _userId: string,
-  board: { tiles: unknown; frames: unknown; edges: unknown }
-): Promise<void> {
+export async function saveBoard(board: {
+  tiles: unknown;
+  frames: unknown;
+  edges: unknown;
+}): Promise<void> {
   const { tiles, frames, edges } = board;
   await updateVaultFile(
     FILE,

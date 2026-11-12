@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-const mockGetAuthUserId = vi.hoisted(() => vi.fn());
 const mockUpdateTask = vi.hoisted(() => vi.fn());
 const mockDeleteTask = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/getAuth", () => ({ getAuthUserId: mockGetAuthUserId }));
 vi.mock("@/services/taskService", () => ({
   updateTask: mockUpdateTask,
   deleteTask: mockDeleteTask,
@@ -16,7 +14,7 @@ import { PUT, DELETE } from "@/app/api/tasks/[id]/route";
 const params = Promise.resolve({ id: "task-1" });
 
 function makeRequest(method: string, body?: unknown): NextRequest {
-  const headers: Record<string, string> = { authorization: "Bearer valid" };
+  const headers: Record<string, string> = {};
   if (body) headers["content-type"] = "application/json";
   return new NextRequest("http://localhost/api/tasks/task-1", {
     method,
@@ -28,15 +26,6 @@ function makeRequest(method: string, body?: unknown): NextRequest {
 describe("PUT /api/tasks/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockGetAuthUserId.mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await PUT(makeRequest("PUT", { title: "Test" }), { params });
-    expect(res.status).toBe(401);
   });
 
   it("updates task and returns success", async () => {
@@ -48,7 +37,6 @@ describe("PUT /api/tasks/[id]", () => {
     const body = await res.json();
     expect(body.success).toBe(true);
     expect(mockUpdateTask).toHaveBeenCalledWith(
-      "user-1",
       "task-1",
       expect.objectContaining({ title: "Updated", status: "in_progress" })
     );
@@ -68,15 +56,6 @@ describe("PUT /api/tasks/[id]", () => {
 describe("DELETE /api/tasks/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockGetAuthUserId.mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await DELETE(makeRequest("DELETE"), { params });
-    expect(res.status).toBe(401);
   });
 
   it("deletes task and returns success", async () => {
@@ -85,6 +64,6 @@ describe("DELETE /api/tasks/[id]", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(mockDeleteTask).toHaveBeenCalledWith("user-1", "task-1");
+    expect(mockDeleteTask).toHaveBeenCalledWith("task-1");
   });
 });
