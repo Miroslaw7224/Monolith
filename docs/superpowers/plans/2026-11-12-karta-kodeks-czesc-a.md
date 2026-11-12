@@ -350,7 +350,7 @@ W `src/features/cards/cards.css` w bloku `@media (min-width: 768px) { .card-rail
 overflow-y: auto;
 ```
 
-Wskaźnik aktywnej karty (`::before`, `left: -8px` względem przycisku 60 px wyśrodkowanego w pasku 76 px) i poświata `box-shadow` (14 px przy polu 28 px) mieszczą się w szerokości paska, więc przycięcie osi X przez `overflow-y: auto` ich nie ucina.
+Uwaga z review `agy`: klasyczny pasek przewijania (15 px) zwęża obszar zawartości do 60 px, przycisk ląduje przy x=0, a wskaźnik `::before` (`left: -8px`) wypada poza obszar przewijania. Dlatego pasek dostaje też `overflow-x: hidden` i `scrollbar-width: none` (przewijanie kółkiem i klawiaturą działa dalej).
 
 - [ ] **Step 3: Akcent i nagłówek w `tokens.css`**
 

@@ -32,7 +32,10 @@
     border-right: 1px solid var(--shell-line);
     color: var(--shell-text);
     z-index: 2;
+    overflow-x: hidden;
     overflow-y: auto;
+    /* Klasyczny pasek przewijania (15 px) przesunąłby przyciski i ukrył wskaźnik ::before. */
+    scrollbar-width: none;
   }
 }
 
