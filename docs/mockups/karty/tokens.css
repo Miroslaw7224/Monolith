@@ -1,6 +1,6 @@
 /* =========================================================================
    Second Brain — tokeny kart (makiety)
-   Wspólne zmienne + 8 motywów włączanych atrybutem data-card na <html>.
+   Wspólne zmienne + 9 motywów włączanych atrybutem data-card na <html>.
    Kontrast sprawdzony (WCAG AA): --text i --muted na --bg/--surface >= 4.5,
    --accent-text na --bg >= 4.5, --accent-ink na --accent >= 4.5.
    Tło (--bg/--surface/--surface-2/--line/--pattern) jest wspólne dla wszystkich kart
@@ -52,6 +52,7 @@
   --c-plotno: #22d3ee;
   --c-arsenal: #b47bff;
   --c-mapa: #ff2bd6;
+  --c-kodeks: #3ddc84;
 
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -228,6 +229,30 @@
   --warn: #facc15;
   --danger: #ff6b6b;
   --font-display: "Chakra Petch", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+9 Kodeks: wspólny grafit + zieleń ---------- */
+/* Zieleń leży blisko --ok (decyzja K6): --ok jest tu teal (#5eead4), nie zielony,
+   a odznaka sukcesu w części B dostaje dodatkowo ikonę (nie sam kolor). */
+[data-card="kodeks"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #3ddc84;
+  --accent-text: #5ee89b;
+  --accent-ink: #03150a;
+  --accent-soft: rgba(61, 220, 132, 0.14);
+  --glow: rgba(61, 220, 132, 0.5);
+  --ok: #5eead4;
+  --warn: #facc15;
+  --danger: #ff6b6b;
+  --font-display: "Manrope", var(--font-body);
   --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
     22px 22px;
   color-scheme: dark;

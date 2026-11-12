@@ -8,6 +8,7 @@
   --c-plotno: #22d3ee;
   --c-arsenal: #b47bff;
   --c-mapa: #ff2bd6;
+  --c-kodeks: #3ddc84;
   --shell-bg: #0d0d10;
   --shell-line: #26262c;
   --shell-text: #e8e8ec;
@@ -31,6 +32,7 @@
     border-right: 1px solid var(--shell-line);
     color: var(--shell-text);
     z-index: 2;
+    overflow-y: auto;
   }
 }
 
