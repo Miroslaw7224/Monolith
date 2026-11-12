@@ -1,6 +1,6 @@
-# Format plików YAML w vaulcie (tagi, szablony zadań, zasoby)
+# Format plików w vaulcie (tagi, szablony, zasoby, zadania, kalendarz)
 
-Aplikacja czyta i zapisuje trzy pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, `lib/nexus/repos/`.
+Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, `lib/nexus/repos/`.
 
 | Plik                       | Klucz listy | Pola rekordu (kolejność)                                                                                      |
 | -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
@@ -21,3 +21,25 @@ Struktura pliku: `version: 1`, lista rekordów pod kluczem. Czas to tekst ISO 86
 - Odczyt jest posortowany niezależnie od kolejności w pliku: tagi i szablony rosnąco po `created`, zasoby malejąco po `created`; remisy po `id`.
 - `userId` nie jest zapisywany (jednoużytkownikowy vault do etapu 0d).
 - Ręcznie wpisane `favorite: yes` jest czytane jako tekst (YAML 1.2), czyli nie jako „ulubiony”. Używaj `true`/`false`.
+
+## Zadania: `Tasks/tasks.md`
+
+Frontmatter (po pierwszym zapisie aplikacji bez `generated_by`), nagłówek `# Zadania`, potem jedna linia na zadanie:
+
+`- [ ] Tytuł [id:: …] [status:: todo] [due:: RRRR-MM-DD] [priority:: n] [order:: n] [link:: …] [desc:: …] [created:: ISO] [updated:: ISO]`
+
+- Pola `due`, `priority`, `link`, `desc` są pomijane, gdy puste. `status`: `todo`, `in_progress`, `to_review`, `done`; pole wyboru `[x]` oznacza `done`.
+- W tytule i wartościach pól ucieczki: `\[`, `\]`, `\\`, `\n`. Parser: `lib/nexus/task-line.ts`, edycja: `lib/nexus/markdown-edit.ts`.
+- Aplikacja zmienia **tylko** linię zadania, którego dotyczy żądanie; reszta pliku (nagłówki, notatki, inne linie) zostaje bajtowo. Dodane zadanie trafia na koniec pliku.
+- Linie bez `id` lub z uszkodzonymi polami nie pojawiają się w aplikacji i nie są zmieniane. Przy duplikacie `id` obowiązuje pierwsza linia.
+- Edytowana linia jest formatowana od nowa: **nieznane pola inline w tej linii giną** (np. `[project:: x]`). Dodatkowe informacje wpisuj w `desc`.
+- Przeciąganie zadań (`reorder`) zmienia tylko `order` i tylko w liniach, w których wartość się zmienia; edycja zmienia `updated`.
+
+## Kalendarz: `Calendar/RRRR-MM.yaml`
+
+Jeden plik na miesiąc **daty początku** wydarzenia. Klucz listy `events`, pola rekordu: `id`, `date` (`RRRR-MM-DD`), `start_minutes`, `duration_minutes` (wielokrotność 15), `title`, `tags` (lista), `color`, `type` (`work` lub `meeting`), `created`, `updated` (opcjonalne, ustawiane przy edycji).
+
+- Wydarzenie przechodzące przez północ lub granicę miesiąca jest jednym rekordem w pliku miesiąca początku. Aplikacja czyta wszystkie pliki miesięcy; pliki o innych nazwach są ignorowane.
+- Zmiana `date` na inny miesiąc przenosi rekord do pliku tego miesiąca.
+- Zasady zapisu jak w pozostałych plikach YAML (nieznane klucze rekordu przeżywają, komentarze giną, uszkodzony plik nie jest nadpisywany).
+- Terminy zadań (`due`) nie są zapisywane w kalendarzu: aplikacja dolicza je w locie.
