@@ -1,6 +1,7 @@
 import React, { type ComponentProps } from "react";
 import dynamic from "next/dynamic";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { markdownToHtml } from "@/lib/markdown/html-markdown";
 import { cn } from "@/src/lib/cn";
 import type { Note } from "./useNotesData";
 
@@ -129,8 +130,11 @@ export function NotesPanel({
                 </div>
                 <NoteEditor
                   key={selectedNote.id || "new"}
+                  format="markdown"
                   content={selectedNote.content}
-                  onContentChange={(html) => setSelectedNote({ ...selectedNote, content: html })}
+                  onContentChange={(markdown) =>
+                    setSelectedNote({ ...selectedNote, content: markdown })
+                  }
                   placeholder={noteContentPlaceholder}
                 />
               </>
@@ -160,11 +164,9 @@ export function NotesPanel({
                 <div
                   className="prose prose-lg max-w-none min-h-[20vh] text-[var(--text)] leading-relaxed prose-p:my-2 prose-headings:font-bold prose-headings:text-[var(--text)]"
                   dangerouslySetInnerHTML={{
-                    __html: selectedNote.content
-                      ? selectedNote.content.trim().startsWith("<")
-                        ? selectedNote.content
-                        : `<p>${selectedNote.content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`
-                      : '<p class="text-[var(--text3)]">' + noteContentPlaceholder + "</p>",
+                    __html:
+                      markdownToHtml(selectedNote.content) ||
+                      '<p class="text-[var(--text3)]">' + noteContentPlaceholder + "</p>",
                   }}
                 />
               </>
