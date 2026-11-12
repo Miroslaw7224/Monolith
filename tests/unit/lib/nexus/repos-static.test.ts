@@ -9,7 +9,7 @@ const REPOS = ["common", "tags", "taskTemplates", "resources"].map(
   (name) => `lib/nexus/repos/${name}.ts`
 );
 const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
-const FILE_REPOS = ["tasks", "calendarEvents", "markdown-dir", "mindMaps"].map(
+const FILE_REPOS = ["tasks", "calendarEvents", "markdown-dir", "mindMaps", "board"].map(
   (name) => `lib/nexus/repos/${name}.ts`
 );
 const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
@@ -64,6 +64,7 @@ describe("0c-2 / 0c-3 static guards", () => {
     expect(importers.sort()).toEqual(
       [
         STORE,
+        "lib/nexus/repos/board.ts",
         "lib/nexus/repos/calendarEvents.ts",
         "lib/nexus/repos/markdown-dir.ts",
         "lib/nexus/repos/mindMaps.ts",
