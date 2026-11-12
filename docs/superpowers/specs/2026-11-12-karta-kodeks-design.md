@@ -31,16 +31,21 @@ Podział prac:
 ## 3. Część A: karta w szkielecie
 
 | Miejsce                                  | Zmiana                                                                                                                                                                               |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `src/features/cards/cards.ts`            | `CardId` dostaje `"kodeks"`. `CARDS` dostaje `{ id: "kodeks", label: "Kodeks", hotkey: 9, target: { kind: "placeholder", stage: "po etapie 0c" } }`. Karta jest dziewiąta i ostatnia |
 | `src/features/cards/useCardHotkeys.ts`   | wyrażenie `Digit([1-8])` zmienia się na `Digit([1-9])`                                                                                                                               |
 | `src/features/cards/cards.css`           | nowy akcent `--c-kodeks: #2ee6a8` (miętowy; z dziewięciu barw najmniej zlewa się z istniejącymi, a limonkowa zieleń `--c-zadania` jest wyraźnie inna)                                |
 | `docs/mockups/karty/tokens.css`          | ten sam akcent oraz blok motywu `[data-card="kodeks"]` (grafit wspólny dla kart, akcent miętowy)                                                                                     |
 | `src/features/cards/CardPlaceholder.tsx` | bez zmian. Ścieżka makiety `0${hotkey}-${id}.html` daje `09-kodeks.html`                                                                                                             |
 | Paleta `Ctrl+K`                          | komenda „Przejdź: Kodeks” z hintem `Alt+9` powstaje automatycznie z `buildCardCommands`                                                                                              |
-| Spec §6.6, `STYLEGUIDE.md`               | „8 kart” → „9 kart”; wiersz `Alt+9                                                                                                                                                   | Kodeks`; skróty `Alt+1…9`; opis `tokens.css` na „9 motywów” |
+| Spec §6.6, `STYLEGUIDE.md`               | „8 kart” → „9 kart”; nowy wiersz tabeli (skrót `Alt+9`, karta Kodeks); skróty `Alt+1…9`; opis `tokens.css` na „9 motywów”                                                            |
+| `docs/mockups/karty/shell.js`            | tablica kart dostaje 9. wpis (`09-kodeks.html`), regex `Digit[1-8]` → `Digit[1-9]`, napis paska stanu `Alt+1…9` (pliki makiet mają własną kopię logiki szkieletu)                    |
+| `docs/mockups/karty/index.html`          | statyczna siatka kart dostaje kafelek 9. karty linkujący do `cards/09-kodeks.html`                                                                                                   |
+| `docs/mockups/karty/STAN-W-KODZIE.md`    | wiersz „Ctrl+K i Alt+1…8” → `Alt+1…9`; karta Kodeks jako „brak” do części B                                                                                                          |
 
-Testy (czerwone najpierw): `cards.test.ts` (dziewięć kart, klawisz 9, `cardByHotkey(10)` i `cardByHotkey(0)` dają `undefined`, `cardFromHash("#kodeks")`), `useCardHotkeys.test.ts` (`Alt+9` wybiera Kodeks, `Alt+0` nie), `CardRail.test.tsx` (dziewięć kart zamiast ośmiu, Kodeks ostatni), `CardPlaceholder.test.tsx` (Kodeks pokazuje etap i ścieżkę `09-kodeks.html`).
+Testy (czerwone najpierw): `cards.test.ts` (dziewięć kart, klawisz 9, `cardByHotkey(10)` i `cardByHotkey(0)` dają `undefined`, `cardFromHash("#kodeks")`), `useCardHotkeys.test.ts` (`Alt+9` wybiera Kodeks, `Alt+0` nie), `CardRail.test.tsx` (dziewięć kart zamiast ośmiu, Kodeks ostatni), `cardCommands.test.ts` (dziś `toHaveLength(8)`: dziewięć komend, ostatnia `go-kodeks` z hintem `Alt+9`), `useCardNavigation.test.ts` (przejście placeholder → placeholder, np. Projekty → Kodeks, ustawia poprawną kartę i adres), `CardPlaceholder.test.tsx` (Kodeks pokazuje etap i ścieżkę `09-kodeks.html`).
+
+Pasek `.card-rail` jest kolumną flex bez przewijania (`src/features/cards/cards.css`). Przy dziewięciu przyciskach w niskim oknie ostatni może wypaść poza ekran, więc w tej części dochodzi `overflow-y: auto` dla paska (sprawdzone ręcznie w oknie ok. 600 px wysokości). Nawigacja mobilna (`MobileNav`) opiera się na `PlanningTab`, nie na rejestrze kart, więc część A jej nie dotyka (telefon jest poza zakresem, §10 nadrzędnego specu). Plan szkieletu `2026-11-11-karty-szkielet.md` zostaje bez zmian jako zapis historyczny.
 
 Ryzyko: `Alt+9` w Chrome na Linuksie przełącza na ostatnią kartę przeglądarki, tak jak `Alt+1…8` przełączają karty. W przeglądarce z Windows (aplikacja w WSL) skrót jest wolny. To jest to samo ograniczenie, które spec §6.6 już opisuje.
 
@@ -76,6 +81,8 @@ Uruchomienia dla projektów `owner: work` trafiają do `Vault/Work/Checklists/`,
 - `lib/nexus/checklists.ts`: dopisywanie zdarzeń i odtwarzanie stanu.
 - Trasy `/api/nexus/codex` (GET) i `/api/nexus/checklists` (GET, POST).
 - Interfejs w `src/features/codex/`.
+- `CardTarget` w `cards.ts` dostaje nowy wariant `{ kind: "codex" }`, bo Kodeks nie jest zakładką `PlanningTab`; wpis karty zmienia się z `placeholder` na ten wariant, a `App.tsx` renderuje widok Kodeksu.
+- Nadrzędny spec §4.3 (układ plików vaulta) dostaje katalogi `Checklists/` i `Work/Checklists/` oraz `Knowledge/kodeks.md`, przy specu części B.
 - Zależność: renderer Markdowna (`react-markdown` z `remark-gfm`). W `package.json` nie ma dziś żadnej biblioteki do renderowania Markdowna.
 
 ### 4.5 Obsługa błędów
