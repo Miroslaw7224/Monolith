@@ -5,6 +5,23 @@ Monolith (Next.js 14; dawniej Second Brain, katalog repo nadal `Second_brain`) w
 zob. `docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md`.
 Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/`.
 
+## Struktura kodu
+
+Nowy kod domeny leży w `contexts/bc_<nazwa>/` (ADR-021, spec `docs/superpowers/specs/2026-11-12-struktura-kontekstow-design.md`).
+Każdy kontekst ma te same pięć plików (plik urósł → folder o tej samej nazwie z `index.ts`):
+
+- `router.ts`: handlery HTTP (parsowanie przez `schemas`, wywołanie `services`, mapowanie model → DTO, `handleServiceError`);
+- `schemas.ts`: zod wejścia, typy DTO, mapery model → DTO; bezpieczny dla klienta (UI wolno importować tylko ten plik);
+- `models.ts`: typy wewnętrzne domeny;
+- `services.ts`: reguły domeny; jedyne miejsce, które woła inny kontekst (i to tylko jego `services`);
+- `repositories.ts`: jedyny dostęp do vaulta (`lib/nexus`), mapowanie plik ↔ model.
+
+Kierunek: `app/api/**/route.ts` (tylko re-eksport handlera) → `router` → `services` → `repositories` → `lib/nexus`.
+Infrastruktura wspólna: `lib/nexus/`, `lib/http/`, `lib/schema/`, `lib/errors.ts`. UI (`src/**`) importuje z kontekstu tylko `schemas`.
+Test `tests/unit/architecture.static.test.ts` pilnuje reguł 1–9; **zmiany testu i listy wyjątków (baseline) zawsze osobnym commitem,
+nigdy razem z kodem**, a pękający test naprawia się kodem, nie testem. Stary kod (`services/`, `lib/nexus/repos/`, `lib/validation/`)
+jest migrowany po jednej domenie na PR.
+
 ## Współpraca wielu agentów (herdr-core / `hc`)
 
 Trzy agenty działają w terminalach tego samego workspace `hc` („Brain_7224"):
