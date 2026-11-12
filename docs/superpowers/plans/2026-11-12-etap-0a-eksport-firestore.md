@@ -724,12 +724,14 @@ git commit -m "feat(export): CLI argument parsing" -m "Co-Authored-By: Claude So
 
 ### Task 4: Eksport kolekcji (stronicowanie, `.part`, wznawianie)
 
-Czyste pomocniki (`fileFor`, `truncateToLastFullLine`, `describeFile`) dostają testy jednostkowe. `exportCollection` (rozmowa z Firestore) jest pokryty testami integracyjnymi w Task 5.
+Czyste pomocniki (`fileFor`, `truncateToLastFullLine`, `describeFile`) dostają testy jednostkowe. `exportCollection` (rozmowa z Firestore) dostaje własny test integracyjny na emulatorze, napisany i uruchomiony na czerwono przed implementacją. Wspólne pomocniki testów integracyjnych (`export-helpers.ts`) powstają tutaj i są używane też w Task 5–7.
 
 **Files:**
 
 - Create: `scripts/export-firestore/exporter.ts`
+- Create: `tests/integration/scripts/export-helpers.ts`
 - Test: `tests/unit/scripts/export-firestore/exporter.test.ts`
+- Test: `tests/integration/scripts/exporter.integration.test.ts`
 
 - [ ] **Step 1: Napisz test (failing)**
 
@@ -813,12 +815,173 @@ describe("describeFile", () => {
 });
 ```
 
-- [ ] **Step 2: Uruchom test i potwierdź, że pada**
+- [ ] **Step 2: Pomocniki testów integracyjnych i test integracyjny `exportCollection` (failing)**
 
-Run: `npx vitest run tests/unit/scripts/export-firestore/exporter.test.ts`
-Expected: FAIL (brak modułu `exporter`).
+Utwórz `tests/integration/scripts/export-helpers.ts`:
 
-- [ ] **Step 3: Napisz `exporter.ts`**
+```ts
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { Timestamp, type Firestore } from "firebase-admin/firestore";
+
+export const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
+export const integrationEnabled = !!process.env.RUN_INTEGRATION_TESTS && !!emulatorHost;
+
+/** Czyści WYŁĄCZNIE emulator (URL budowany z FIRESTORE_EMULATOR_HOST). */
+export async function wipeEmulator(): Promise<void> {
+  if (!emulatorHost) throw new Error("FIRESTORE_EMULATOR_HOST nie jest ustawiony");
+  const project = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? "demo-nexus";
+  const res = await fetch(
+    `http://${emulatorHost}/emulator/v1/projects/${project}/databases/(default)/documents`,
+    { method: "DELETE" }
+  );
+  if (!res.ok) throw new Error(`Czyszczenie emulatora nie powiodło się: ${res.status}`);
+}
+
+export const SEED_TIMESTAMP = new Timestamp(1767323045, 678901234);
+
+/** withUnknown dodaje kolekcję mystery i podkolekcję board/main/history (obie nieznane). */
+export async function seed(db: Firestore, opts: { withUnknown: boolean }): Promise<void> {
+  await db.doc("users/u1").set({ email: "a@example.test" });
+  for (const id of ["t-a", "t-b", "t-c"]) {
+    await db
+      .doc(`users/u1/tasks/${id}`)
+      .set({ title: id, createdAt: SEED_TIMESTAMP, tags: ["x", { n: 1 }], priority: null });
+  }
+  await db
+    .doc("users/u1/notes/n1")
+    .set({ title: "n", content: "<p>hi</p>", createdAt: SEED_TIMESTAMP });
+  await db.doc("users/u1/board/main").set({ nodes: [] });
+  await db.doc("users/ghost/tasks/t1").set({ title: "ghost" });
+  await db.doc("waitlist/w1").set({ email: "w@example.test" });
+  if (opts.withUnknown) {
+    await db.doc("users/u1/board/main/history/h1").set({ at: SEED_TIMESTAMP });
+    await db.doc("mystery/m1").set({ a: 1 });
+  }
+}
+
+export function readJsonl(file: string): Array<{ _id: string; _path: string; data: unknown }> {
+  const text = fs.readFileSync(file, "utf8");
+  return text === ""
+    ? []
+    : text
+        .slice(0, -1)
+        .split("\n")
+        .map((line) => JSON.parse(line));
+}
+
+export function tmpDir(created: string[]): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fsx-int-"));
+  created.push(dir);
+  return dir;
+}
+```
+
+Utwórz `tests/integration/scripts/exporter.integration.test.ts`:
+
+```ts
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+import { getFirestore } from "../../../lib/firebase-admin.js";
+import { exportCollection } from "../../../scripts/export-firestore/exporter.js";
+import { decodeValue } from "../../../scripts/export-firestore/serialize.js";
+import {
+  integrationEnabled,
+  readJsonl,
+  SEED_TIMESTAMP,
+  seed,
+  tmpDir,
+  wipeEmulator,
+} from "./export-helpers.js";
+
+const created: string[] = [];
+afterEach(() => {
+  for (const dir of created.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe.skipIf(!integrationEnabled)("exportCollection (emulator)", () => {
+  beforeEach(async () => {
+    await wipeEmulator();
+    await seed(getFirestore(), { withUnknown: false });
+  });
+
+  it.each([1, 2, 3, 500])("pages through a collection with page size %i", async (pageSize) => {
+    const col = getFirestore().collection("users/u1/tasks");
+    const outDir = tmpDir(created);
+
+    const result = await exportCollection(col, outDir, { pageSize, resume: false });
+
+    expect(result).toMatchObject({
+      path: "users/u1/tasks",
+      file: "users/u1/tasks.jsonl",
+      lines: 3,
+    });
+    expect(readJsonl(path.join(outDir, result.file)).map((row) => row._id)).toEqual([
+      "t-a",
+      "t-b",
+      "t-c",
+    ]);
+    expect(fs.existsSync(path.join(outDir, `${result.file}.part`))).toBe(false);
+  });
+
+  it("writes full-fidelity documents (path and timestamps)", async () => {
+    const col = getFirestore().collection("users/u1/tasks");
+    const outDir = tmpDir(created);
+    const result = await exportCollection(col, outDir, { pageSize: 500, resume: false });
+
+    const [first] = readJsonl(path.join(outDir, result.file));
+    expect(first._path).toBe("users/u1/tasks/t-a");
+    const data = decodeValue(first.data) as { createdAt: typeof SEED_TIMESTAMP; priority: null };
+    expect(data.createdAt.isEqual(SEED_TIMESTAMP)).toBe(true);
+    expect(data.priority).toBeNull();
+  });
+
+  it("with resume, skips a collection whose final file already exists", async () => {
+    const col = getFirestore().collection("users/u1/tasks");
+    const outDir = tmpDir(created);
+    fs.mkdirSync(path.join(outDir, "users/u1"), { recursive: true });
+    fs.writeFileSync(path.join(outDir, "users/u1/tasks.jsonl"), "sentinel\n");
+
+    const result = await exportCollection(col, outDir, { pageSize: 500, resume: true });
+
+    expect(result.lines).toBe(1);
+    expect(fs.readFileSync(path.join(outDir, "users/u1/tasks.jsonl"), "utf8")).toBe("sentinel\n");
+  });
+
+  it("with resume, continues from a truncated .part file and matches a fresh export", async () => {
+    const col = getFirestore().collection("users/u1/tasks");
+    const fresh = tmpDir(created);
+    const freshResult = await exportCollection(col, fresh, { pageSize: 1, resume: false });
+    const freshText = fs.readFileSync(path.join(fresh, freshResult.file), "utf8");
+
+    const resumed = tmpDir(created);
+    fs.mkdirSync(path.join(resumed, "users/u1"), { recursive: true });
+    fs.writeFileSync(
+      path.join(resumed, "users/u1/tasks.jsonl.part"),
+      `${freshText.split("\n")[0]}\n{"_id":"t-b","_pa`
+    );
+
+    const result = await exportCollection(col, resumed, { pageSize: 1, resume: true });
+
+    expect(fs.readFileSync(path.join(resumed, result.file), "utf8")).toBe(freshText);
+    expect(result.sha256).toBe(freshResult.sha256);
+    expect(fs.existsSync(path.join(resumed, `${result.file}.part`))).toBe(false);
+  });
+});
+```
+
+- [ ] **Step 3: Uruchom testy i potwierdź, że padają**
+
+```bash
+npx vitest run tests/unit/scripts/export-firestore/exporter.test.ts
+FIRESTORE_EMULATOR_HOST=localhost:8080 RUN_INTEGRATION_TESTS=1 npx vitest run --config vitest.integration.config.ts tests/integration/scripts/exporter.integration.test.ts
+```
+
+Expected: oba FAIL (brak modułu `exporter`).
+
+- [ ] **Step 4: Napisz `exporter.ts`**
 
 Utwórz `scripts/export-firestore/exporter.ts`:
 
@@ -929,15 +1092,19 @@ export async function exportCollection(
 }
 ```
 
-- [ ] **Step 4: Uruchom test i potwierdź, że przechodzi**
-
-Run: `npx vitest run tests/unit/scripts/export-firestore/exporter.test.ts`
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Uruchom testy i potwierdź, że przechodzą**
 
 ```bash
-git add scripts/export-firestore/exporter.ts tests/unit/scripts/export-firestore/exporter.test.ts
+npx vitest run tests/unit/scripts/export-firestore/exporter.test.ts
+FIRESTORE_EMULATOR_HOST=localhost:8080 RUN_INTEGRATION_TESTS=1 npx vitest run --config vitest.integration.config.ts tests/integration/scripts/exporter.integration.test.ts
+```
+
+Expected: jednostkowe PASS; integracyjne PASS (7 przypadków: 4 rozmiary strony + 3 pozostałe). Jeśli któryś pada, napraw kod, nie oczekiwania.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add scripts/export-firestore/exporter.ts tests/unit/scripts/export-firestore/exporter.test.ts tests/integration/scripts
 git commit -m "feat(export): paged collection export with .part files and resume" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 ```
 
@@ -951,8 +1118,8 @@ git commit -m "feat(export): paged collection export with .part files and resume
 - Create: `scripts/export-firestore/manifest.ts`
 - Create: `scripts/export-firestore/auth-export.ts`
 - Create: `scripts/export-firestore/run.ts`
-- Create: `tests/integration/scripts/export-helpers.ts`
 - Test: `tests/unit/scripts/export-firestore/manifest.test.ts`
+- Test: `tests/unit/scripts/export-firestore/auth-export.test.ts`
 - Test: `tests/integration/scripts/export-firestore.integration.test.ts`
 
 - [ ] **Step 1: Napisz test jednostkowy manifestu (failing)**
@@ -1013,67 +1180,88 @@ describe("computeStatus", () => {
 });
 ```
 
-- [ ] **Step 2: Napisz wspólne pomocniki testów integracyjnych**
+- [ ] **Step 2: Napisz test jednostkowy `exportAuthUsers` (failing)**
 
-Utwórz `tests/integration/scripts/export-helpers.ts`:
+Utwórz `tests/unit/scripts/export-firestore/auth-export.test.ts` (atrapa `Auth`, bez emulatora; mocki tworzone wewnątrz testów, bo `vitest.config.ts` ma `resetMocks: true`):
 
 ```ts
+// @vitest-environment node
+import { describe, it, expect, afterEach, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Timestamp, type Firestore } from "firebase-admin/firestore";
+import type { Auth } from "firebase-admin/auth";
+import { exportAuthUsers } from "@/scripts/export-firestore/auth-export";
 
-export const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
-export const integrationEnabled = !!process.env.RUN_INTEGRATION_TESTS && !!emulatorHost;
-
-/** Czyści WYŁĄCZNIE emulator (URL budowany z FIRESTORE_EMULATOR_HOST). */
-export async function wipeEmulator(): Promise<void> {
-  if (!emulatorHost) throw new Error("FIRESTORE_EMULATOR_HOST nie jest ustawiony");
-  const project = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? "demo-nexus";
-  const res = await fetch(
-    `http://${emulatorHost}/emulator/v1/projects/${project}/databases/(default)/documents`,
-    { method: "DELETE" }
-  );
-  if (!res.ok) throw new Error(`Czyszczenie emulatora nie powiodło się: ${res.status}`);
-}
-
-export const SEED_TIMESTAMP = new Timestamp(1767323045, 678901234);
-
-/** withUnknown dodaje kolekcję mystery i podkolekcję board/main/history (obie nieznane). */
-export async function seed(db: Firestore, opts: { withUnknown: boolean }): Promise<void> {
-  await db.doc("users/u1").set({ email: "a@example.test" });
-  for (const id of ["t-a", "t-b", "t-c"]) {
-    await db
-      .doc(`users/u1/tasks/${id}`)
-      .set({ title: id, createdAt: SEED_TIMESTAMP, tags: ["x", { n: 1 }], priority: null });
-  }
-  await db
-    .doc("users/u1/notes/n1")
-    .set({ title: "n", content: "<p>hi</p>", createdAt: SEED_TIMESTAMP });
-  await db.doc("users/u1/board/main").set({ nodes: [] });
-  await db.doc("users/ghost/tasks/t1").set({ title: "ghost" });
-  await db.doc("waitlist/w1").set({ email: "w@example.test" });
-  if (opts.withUnknown) {
-    await db.doc("users/u1/board/main/history/h1").set({ at: SEED_TIMESTAMP });
-    await db.doc("mystery/m1").set({ a: 1 });
-  }
-}
-
-export function readJsonl(file: string): Array<{ _id: string; _path: string; data: unknown }> {
-  const text = fs.readFileSync(file, "utf8");
-  return text === ""
-    ? []
-    : text
-        .slice(0, -1)
-        .split("\n")
-        .map((line) => JSON.parse(line));
-}
-
-export function tmpDir(created: string[]): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fsx-int-"));
-  created.push(dir);
+const made: string[] = [];
+function tmp(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fsx-auth-"));
+  made.push(dir);
   return dir;
 }
+afterEach(() => {
+  for (const dir of made.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+});
+
+function user(uid: string) {
+  return {
+    uid,
+    email: `${uid}@example.test`,
+    disabled: false,
+    metadata: { creationTime: "2026-01-01T00:00:00Z", lastSignInTime: "2026-02-01T00:00:00Z" },
+    providerData: [{ providerId: "password" }],
+    passwordHash: "SECRET-HASH",
+    passwordSalt: "SECRET-SALT",
+  };
+}
+
+describe("exportAuthUsers", () => {
+  it("follows page tokens and writes only account metadata (no hashes)", async () => {
+    const listUsers = vi
+      .fn()
+      .mockResolvedValueOnce({ users: [user("u1")], pageToken: "next" })
+      .mockResolvedValueOnce({ users: [user("u2")], pageToken: undefined });
+    const dir = tmp();
+
+    const result = await exportAuthUsers({ listUsers } as unknown as Auth, dir);
+
+    expect(result).toEqual({ ok: true, users: 2, file: "auth-users.json" });
+    expect(listUsers).toHaveBeenNthCalledWith(1, 1000, undefined);
+    expect(listUsers).toHaveBeenNthCalledWith(2, 1000, "next");
+    const file = path.join(dir, "auth-users.json");
+    const text = fs.readFileSync(file, "utf8");
+    expect(JSON.parse(text)).toEqual([
+      {
+        uid: "u1",
+        email: "u1@example.test",
+        disabled: false,
+        createdAt: "2026-01-01T00:00:00Z",
+        lastSignInAt: "2026-02-01T00:00:00Z",
+        providers: ["password"],
+      },
+      {
+        uid: "u2",
+        email: "u2@example.test",
+        disabled: false,
+        createdAt: "2026-01-01T00:00:00Z",
+        lastSignInAt: "2026-02-01T00:00:00Z",
+        providers: ["password"],
+      },
+    ]);
+    expect(text).not.toContain("SECRET");
+    expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+  });
+
+  it("reports a failure instead of throwing, and writes no file", async () => {
+    const listUsers = vi.fn().mockRejectedValue(new Error("boom"));
+    const dir = tmp();
+
+    const result = await exportAuthUsers({ listUsers } as unknown as Auth, dir);
+
+    expect(result).toEqual({ ok: false, error: "boom" });
+    expect(fs.existsSync(path.join(dir, "auth-users.json"))).toBe(false);
+  });
+});
 ```
 
 - [ ] **Step 3: Napisz test integracyjny eksportu (failing)**
@@ -1197,11 +1385,11 @@ describe.skipIf(!integrationEnabled)("runExport (emulator)", () => {
 - [ ] **Step 4: Uruchom testy i potwierdź, że padają**
 
 ```bash
-npx vitest run tests/unit/scripts/export-firestore/manifest.test.ts
+npx vitest run tests/unit/scripts/export-firestore/manifest.test.ts tests/unit/scripts/export-firestore/auth-export.test.ts
 FIRESTORE_EMULATOR_HOST=localhost:8080 RUN_INTEGRATION_TESTS=1 npx vitest run --config vitest.integration.config.ts tests/integration/scripts/export-firestore.integration.test.ts
 ```
 
-Expected: oba FAIL (brak modułów `manifest` / `run`).
+Expected: oba polecenia FAIL (brak modułów `manifest`, `auth-export` i `run`).
 
 - [ ] **Step 5: Napisz `discover.ts`**
 
@@ -1425,16 +1613,16 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
 - [ ] **Step 9: Uruchom testy i potwierdź, że przechodzą**
 
 ```bash
-npx vitest run tests/unit/scripts/export-firestore/manifest.test.ts
+npx vitest run tests/unit/scripts/export-firestore/manifest.test.ts tests/unit/scripts/export-firestore/auth-export.test.ts
 FIRESTORE_EMULATOR_HOST=localhost:8080 RUN_INTEGRATION_TESTS=1 npx vitest run --config vitest.integration.config.ts tests/integration/scripts/export-firestore.integration.test.ts
 ```
 
-Expected: manifest PASS; integracyjne PASS (4 testy). Jeśli test „exports every collection…" pokaże inną listę ścieżek niż oczekiwana, popraw **oczekiwanie w teście** tylko wtedy, gdy różnica wynika z faktycznej struktury danych seeda (np. dodatkowe kolekcje emulatora), nie z błędu w `discoverCollections`.
+Expected: testy jednostkowe PASS (manifest i auth-export); integracyjne PASS (4 testy). Jeśli któryś test pada, napraw **kod**. Nie zmieniaj oczekiwań w teście, żeby przeszedł. Gdy oczekiwanie wygląda na błędne założenie o danych (np. inna lista kolekcji, niż wynika ze specu §4.3), zatrzymaj się i zgłoś rozbieżność zamiast ją maskować.
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add scripts/export-firestore tests/unit/scripts/export-firestore/manifest.test.ts tests/integration/scripts
+git add scripts/export-firestore tests/unit/scripts/export-firestore/manifest.test.ts tests/unit/scripts/export-firestore/auth-export.test.ts tests/integration/scripts
 git commit -m "feat(export): collection discovery, manifest and runExport orchestration" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 ```
 
@@ -1946,7 +2134,7 @@ git commit -m "feat(export): CLI entry point and read-only guard test" -m "Co-Au
 - [ ] **Step 1: Wszystkie testy jednostkowe nowych modułów**
 
 Run: `npx vitest run tests/unit/scripts`
-Expected: PASS (serialize, guard, args, exporter, manifest, report, read-only).
+Expected: PASS (serialize, guard, args, exporter, manifest, auth-export, report, read-only).
 
 - [ ] **Step 2: Cały zestaw jednostkowy (czy nic innego nie pękło)**
 
@@ -1956,7 +2144,7 @@ Expected: PASS jak przed zmianami (stan bazowy: wszystkie testy przechodziły pr
 - [ ] **Step 3: Testy integracyjne skryptu na emulatorze**
 
 Run: `FIRESTORE_EMULATOR_HOST=localhost:8080 RUN_INTEGRATION_TESTS=1 npx vitest run --config vitest.integration.config.ts tests/integration/scripts`
-Expected: PASS (5 testów eksportu i 6 testów weryfikacji).
+Expected: PASS (7 przypadków `exportCollection`, 5 testów `runExport`/count-only i 6 testów weryfikacji).
 
 - [ ] **Step 4: Typecheck i lint**
 
@@ -2034,18 +2222,18 @@ Dopisz do `docs/superpowers/specs/2026-11-12-etap-0-odpiecie-firebase-design.md`
 
 **1. Pokrycie specu (§4):**
 
-| Wymóg specu                                                           | Zadanie                                                                                                                             |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 4.1 tylko odczyt, test statyczny                                      | Task 8 (test), reguła przekrojowa                                                                                                   |
-| 4.1 pełna wierność                                                    | Task 1 (serialize), Task 4 (zapis bez konwersji)                                                                                    |
-| 4.1 wyjście poza repo, odmowa w drzewie gita, 0700/0600               | Task 2, Task 4 (tryb 0o600), Task 5 (testy trybów)                                                                                  |
-| 4.2 format JSONL, znaczniki typów, manifest z sha256                  | Task 1, 4, 5                                                                                                                        |
-| 4.2 `auth-users.json` bez haszy                                       | Task 5 (`auth-export.ts`); działanie na prawdziwym Auth sprawdzane dopiero w Task 10 (emulator Auth nie jest uruchamiany w testach) |
-| 4.3 dynamiczne wykrywanie, nieznane, widma                            | Task 5 (`discover.ts`), Task 0 (sonda)                                                                                              |
-| 4.4 count przed/po, niezgodność ≠ 0                                   | Task 5 (`computeStatus`), Task 8 (kody wyjścia)                                                                                     |
-| 4.5 `--count-only`, pełny, `--verify`                                 | Task 7, 5, 6; CLI w Task 8                                                                                                          |
-| 4.6 koszt odczytów, `--resume`, ostrzeżenie 40 tys.                   | Task 7 (ostrzeżenie), Task 4/5 (resume)                                                                                             |
-| 4.7 testy na emulatorze, odmowa w gicie, niezgodność, uszkodzony plik | Task 5, 6                                                                                                                           |
+| Wymóg specu                                                           | Zadanie                                                                                                                                                       |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 4.1 tylko odczyt, test statyczny                                      | Task 8 (test), reguła przekrojowa                                                                                                                             |
+| 4.1 pełna wierność                                                    | Task 1 (serialize), Task 4 (zapis bez konwersji)                                                                                                              |
+| 4.1 wyjście poza repo, odmowa w drzewie gita, 0700/0600               | Task 2, Task 4 (tryb 0o600), Task 5 (testy trybów)                                                                                                            |
+| 4.2 format JSONL, znaczniki typów, manifest z sha256                  | Task 1, 4, 5                                                                                                                                                  |
+| 4.2 `auth-users.json` bez haszy                                       | Task 5 (`auth-export.ts`, test jednostkowy na atrapie `Auth`: paginacja, brak haszy, błąd bez wyjątku); działanie na prawdziwym Auth sprawdza dopiero Task 10 |
+| 4.3 dynamiczne wykrywanie, nieznane, widma                            | Task 5 (`discover.ts`), Task 0 (sonda)                                                                                                                        |
+| 4.4 count przed/po, niezgodność ≠ 0                                   | Task 5 (`computeStatus`), Task 8 (kody wyjścia)                                                                                                               |
+| 4.5 `--count-only`, pełny, `--verify`                                 | Task 7, 5, 6; CLI w Task 8                                                                                                                                    |
+| 4.6 koszt odczytów, `--resume`, ostrzeżenie 40 tys.                   | Task 7 (ostrzeżenie), Task 4/5 (resume)                                                                                                                       |
+| 4.7 testy na emulatorze, odmowa w gicie, niezgodność, uszkodzony plik | Task 5, 6                                                                                                                                                     |
 
 Rozbieżność względem specu: spec 4.2 mówił `root/<kolekcja>.jsonl` i `users/<uid>/<kolekcja>.jsonl`; plan doprecyzowuje reguły dla głębszych zagnieżdżeń (`fileFor`, Task 4). Po zakończeniu planu warto jednym zdaniem zsynchronizować spec 4.2.
 
