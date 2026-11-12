@@ -26,10 +26,6 @@ export function boardDoc(userId: string) {
   return userCollection(userId, "board").doc("main");
 }
 
-export function userResourcesCol(userId: string) {
-  return userCollection(userId, "resources");
-}
-
 export function chunksCol(userId: string) {
   return userCollection(userId, "chunks");
 }
@@ -40,14 +36,6 @@ export function calendarEventsCol(userId: string) {
 
 export function tasksCol(userId: string) {
   return userCollection(userId, "tasks");
-}
-
-export function userTagsCol(userId: string) {
-  return userCollection(userId, "user_tags");
-}
-
-export function taskTemplatesCol(userId: string) {
-  return userCollection(userId, "task_templates");
 }
 
 export function agentLogCol(userId: string) {
