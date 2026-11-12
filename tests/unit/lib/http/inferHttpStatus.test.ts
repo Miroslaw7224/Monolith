@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { inferHttpStatus } from "@/lib/inferHttpStatus";
+import { inferHttpStatus } from "@/lib/http/inferHttpStatus";
 
 describe("inferHttpStatus", () => {
   it("extracts status from object.status", () => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleServiceError } from "@/lib/apiError";
-import { parseUploadFormFile } from "@/lib/uploadFormFile";
+import { handleServiceError } from "@/lib/http/apiError";
+import { parseUploadFormFile } from "@/lib/http/uploadFormFile";
 import * as documentService from "@/services/documentService";
 
 export async function POST(request: NextRequest) {

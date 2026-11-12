@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { checkRequest, isAllowedHost, type GuardInput } from "@/lib/localGuard";
+import { checkRequest, isAllowedHost, type GuardInput } from "@/lib/http/localGuard";
 
 const req = (over: Partial<GuardInput> = {}): GuardInput => ({
   method: "GET",

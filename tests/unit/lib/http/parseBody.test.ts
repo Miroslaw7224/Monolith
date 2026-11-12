@@ -1,7 +1,7 @@
 /** @vitest-environment node */
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { parseBody } from "../../../lib/parseBody.js";
+import { parseBody } from "@/lib/http/parseBody";
 
 describe("lib/parseBody", () => {
   it("returns validated data on valid JSON and schema match", async () => {

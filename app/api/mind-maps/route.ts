@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { handleServiceError } from "@/lib/apiError";
-import { parseBody } from "@/lib/parseBody";
+import { handleServiceError } from "@/lib/http/apiError";
+import { parseBody } from "@/lib/http/parseBody";
 import * as mindMapService from "@/services/mindMapService";
 
 const CreateMindMapBodySchema = z.object({

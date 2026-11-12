@@ -1,6 +1,6 @@
 /** @vitest-environment node */
 import { describe, it, expect } from "vitest";
-import { parseUploadFormFile } from "../../../lib/uploadFormFile.js";
+import { parseUploadFormFile } from "@/lib/http/uploadFormFile";
 
 describe("lib/uploadFormFile", () => {
   it("returns 400 when file missing or not File", async () => {

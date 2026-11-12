@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { handleServiceError } from "@/lib/apiError";
-import { parseBody } from "@/lib/parseBody";
+import { handleServiceError } from "@/lib/http/apiError";
+import { parseBody } from "@/lib/http/parseBody";
 import { CreateCalendarEventBodySchema } from "@/lib/validation/calendarEvents";
 import * as calendarService from "@/services/calendarService";
 

@@ -1,9 +1,9 @@
 /** @vitest-environment node */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { NextResponse } from "next/server";
-import { DomainError } from "../../../lib/errors.js";
-import { handleServiceError } from "../../../lib/apiError.js";
-import { VaultConfigError } from "../../../lib/nexus/vault-path.js";
+import { DomainError } from "@/lib/errors";
+import { handleServiceError } from "@/lib/http/apiError";
+import { VaultConfigError } from "@/lib/nexus/vault-path";
 
 describe("lib/apiError", () => {
   afterEach(() => {
