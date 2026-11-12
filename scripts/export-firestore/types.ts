@@ -48,6 +48,8 @@ export type Manifest = {
   exportedAt: string;
   projectId: string | null;
   pageSize: number;
+  /** Gdy ustawione, eksport objął tylko users/<uid>/… (pozostałe konta i kolekcje główne pominięto). */
+  uid: string | null;
   status: ManifestStatus;
   collections: CollectionEntry[];
   /** Ścieżki dokumentów, które nie istnieją, ale mają podkolekcje (np. users/ghost). */

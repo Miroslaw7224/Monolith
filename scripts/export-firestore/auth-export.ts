@@ -4,12 +4,19 @@ import type { Auth } from "firebase-admin/auth";
 import { AUTH_USERS_FILE, type AuthExport } from "./types";
 
 /** Zapisuje tylko metadane kont (bez haszy haseł i tokenów). Błąd nie przerywa eksportu danych. */
-export async function exportAuthUsers(auth: Auth, outDir: string): Promise<AuthExport> {
+export async function exportAuthUsers(
+  auth: Auth,
+  outDir: string,
+  opts: { uid?: string } = {}
+): Promise<AuthExport> {
   try {
     const users: Array<Record<string, unknown>> = [];
     let pageToken: string | undefined;
     do {
-      const page = await auth.listUsers(1000, pageToken);
+      // Z uid pobieramy wyłącznie to jedno konto, bez listowania pozostałych.
+      const page = opts.uid
+        ? { users: [await auth.getUser(opts.uid)], pageToken: undefined }
+        : await auth.listUsers(1000, pageToken);
       for (const user of page.users) {
         users.push({
           uid: user.uid,

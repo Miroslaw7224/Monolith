@@ -13,6 +13,8 @@ export type RunExportParams = {
   outDir: string;
   pageSize: number;
   resume: boolean;
+  /** Ogranicza eksport do users/<uid>/… */
+  uid?: string;
   now?: Date;
   log?: (message: string) => void;
 };
@@ -21,7 +23,7 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
   const log = params.log ?? (() => {});
   prepareOutDir(params.outDir, { resume: params.resume });
 
-  const { collections, ghosts } = await discoverCollections(params.db);
+  const { collections, ghosts } = await discoverCollections(params.db, { uid: params.uid });
   log(`Wykryto kolekcji: ${collections.length}, dokumentów-widm: ${ghosts.length}`);
 
   const before: Record<string, number> = {};
@@ -54,7 +56,7 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
   }
 
   const auth = params.auth
-    ? await exportAuthUsers(params.auth, params.outDir)
+    ? await exportAuthUsers(params.auth, params.outDir, { uid: params.uid })
     : ({ skipped: true } as const);
 
   const manifest: Manifest = {
@@ -63,6 +65,7 @@ export async function runExport(params: RunExportParams): Promise<Manifest> {
     exportedAt: (params.now ?? new Date()).toISOString(),
     projectId: process.env.FIREBASE_PROJECT_ID ?? null,
     pageSize: params.pageSize,
+    uid: params.uid ?? null,
     status: computeStatus(entries),
     collections: entries,
     ghosts,

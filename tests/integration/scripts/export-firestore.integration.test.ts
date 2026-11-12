@@ -100,6 +100,23 @@ describe.skipIf(!integrationEnabled)("runExport (emulator)", () => {
     expect(sha(manifest)).toBe(sha(fullManifest));
   });
 
+  it("with a uid exports only that account and nothing else", async () => {
+    const db = getFirestore();
+    await seed(db, { withUnknown: true });
+    const outDir = path.join(tmpDir(created), "dump");
+
+    const manifest = await runExport({ db, outDir, pageSize: 500, resume: false, uid: "u1" });
+
+    expect(manifest.uid).toBe("u1");
+    const paths = manifest.collections.map((c) => c.path).sort();
+    expect(paths).toEqual(
+      ["users/u1/board", "users/u1/board/main/history", "users/u1/notes", "users/u1/tasks"].sort()
+    );
+    expect(manifest.ghosts).toEqual([]);
+    expect(fs.existsSync(path.join(outDir, "root"))).toBe(false);
+    expect(fs.existsSync(path.join(outDir, "users/ghost"))).toBe(false);
+  });
+
   it("refuses to write inside this repository", async () => {
     const db = getFirestore();
     const inside = path.join(process.cwd(), "tests", "tmp-dump-should-not-exist");

@@ -26,6 +26,16 @@ describe.skipIf(!integrationEnabled)("verifyDump (emulator)", () => {
     expect(await verifyDump(outDir, getFirestore())).toEqual({ ok: true, problems: [] });
   });
 
+  it("verifies a single-account dump against that account only", async () => {
+    const db = getFirestore();
+    const scoped = path.join(tmpDir(created), "scoped");
+    await runExport({ db, outDir: scoped, pageSize: 500, resume: false, uid: "u1" });
+    // zmiana w innym koncie i w kolekcji głównej nie dotyczy tego zrzutu
+    await db.doc("users/ghost/tasks/t2").set({ title: "other account" });
+    await db.doc("fresh/f1").set({ a: 1 });
+    expect(await verifyDump(scoped, db)).toEqual({ ok: true, problems: [] });
+  });
+
   it("fails when a document was added to Firestore after the export", async () => {
     const db = getFirestore();
     await db.doc("users/u1/tasks/t-new").set({ title: "late" });

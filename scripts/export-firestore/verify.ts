@@ -26,7 +26,7 @@ export async function verifyDump(dir: string, db: Firestore): Promise<VerifyResu
     problems.push(`status eksportu to "${manifest.status}", a nie "ok"`);
   }
 
-  const { collections } = await discoverCollections(db);
+  const { collections } = await discoverCollections(db, { uid: manifest.uid ?? undefined });
 
   for (const entry of manifest.collections) {
     if (!fs.existsSync(path.join(dir, entry.file))) {

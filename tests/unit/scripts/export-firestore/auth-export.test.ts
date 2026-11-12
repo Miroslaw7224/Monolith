@@ -74,4 +74,20 @@ describe("exportAuthUsers", () => {
     expect(result).toEqual({ ok: false, error: "boom" });
     expect(fs.existsSync(path.join(dir, "auth-users.json"))).toBe(false);
   });
+
+  it("with a uid fetches only that account and never lists the others", async () => {
+    const getUser = vi.fn().mockResolvedValue(user("u9"));
+    const listUsers = vi.fn();
+    const dir = tmp();
+
+    const result = await exportAuthUsers({ getUser, listUsers } as unknown as Auth, dir, {
+      uid: "u9",
+    });
+
+    expect(result).toEqual({ ok: true, users: 1, file: "auth-users.json" });
+    expect(getUser).toHaveBeenCalledWith("u9");
+    expect(listUsers).not.toHaveBeenCalled();
+    const written = JSON.parse(fs.readFileSync(path.join(dir, "auth-users.json"), "utf8"));
+    expect(written.map((u: { uid: string }) => u.uid)).toEqual(["u9"]);
+  });
 });

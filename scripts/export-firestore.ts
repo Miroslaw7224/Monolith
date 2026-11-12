@@ -2,7 +2,7 @@
  * Eksport Firestore do plików (etap 0a). Tylko odczyt.
  *
  *   npx tsx --env-file=.env scripts/export-firestore.ts --count-only
- *   npx tsx --env-file=.env scripts/export-firestore.ts [--out <katalog>] [--skip-auth]
+ *   npx tsx --env-file=.env scripts/export-firestore.ts [--out <katalog>] [--skip-auth] [--uid <uid>]
  *   npx tsx --env-file=.env scripts/export-firestore.ts --resume --out <katalog>
  *   npx tsx --env-file=.env scripts/export-firestore.ts --verify <katalog>
  *
@@ -45,6 +45,7 @@ async function main(): Promise<number> {
     outDir,
     pageSize: args.pageSize,
     resume: args.resume,
+    uid: args.uid,
     log: (message) => console.log(message),
   });
 

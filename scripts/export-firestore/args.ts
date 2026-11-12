@@ -10,6 +10,7 @@ export type CliArgs =
       resume: boolean;
       skipAuth: boolean;
       pageSize: number;
+      uid: string | undefined;
     };
 
 export function parseCliArgs(argv: string[]): CliArgs {
@@ -23,6 +24,7 @@ export function parseCliArgs(argv: string[]): CliArgs {
       resume: { type: "boolean" },
       "skip-auth": { type: "boolean" },
       "page-size": { type: "string" },
+      uid: { type: "string" },
     },
   });
 
@@ -32,7 +34,8 @@ export function parseCliArgs(argv: string[]): CliArgs {
     values.out !== undefined ||
     values.resume === true ||
     values["skip-auth"] === true ||
-    values["page-size"] !== undefined;
+    values["page-size"] !== undefined ||
+    values.uid !== undefined;
 
   if (countOnly && verifyDir !== undefined) {
     throw new Error("--count-only i --verify uruchamia się osobno.");
@@ -63,5 +66,6 @@ export function parseCliArgs(argv: string[]): CliArgs {
     resume: values.resume === true,
     skipAuth: values["skip-auth"] === true,
     pageSize,
+    uid: values.uid,
   };
 }

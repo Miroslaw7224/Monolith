@@ -12,7 +12,10 @@ export type Discovery = {
  * czyli takie, które nie istnieją, ale mają podkolekcje (get na kolekcji ich nie pokaże).
  * Koszt: jeden odczyt na dokument (uwzględnia go count-only).
  */
-export async function discoverCollections(db: Firestore): Promise<Discovery> {
+export async function discoverCollections(
+  db: Firestore,
+  opts: { uid?: string } = {}
+): Promise<Discovery> {
   const collections: CollectionReference[] = [];
 
   async function walk(col: CollectionReference): Promise<void> {
@@ -22,7 +25,11 @@ export async function discoverCollections(db: Firestore): Promise<Discovery> {
     }
   }
 
-  for (const col of await db.listCollections()) await walk(col);
+  // Z uid zaczynamy od podkolekcji jednego konta i nie dotykamy reszty bazy.
+  const roots = opts.uid
+    ? await db.doc(`users/${opts.uid}`).listCollections()
+    : await db.listCollections();
+  for (const col of roots) await walk(col);
   collections.sort((a, b) => a.path.localeCompare(b.path));
 
   const parentPaths: string[] = [];

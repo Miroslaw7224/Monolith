@@ -31,6 +31,12 @@ describe("parseCliArgs", () => {
     });
   });
 
+  it("parses --uid and refuses it together with --count-only or --verify", () => {
+    expect(parseCliArgs(["--uid", "abc"])).toMatchObject({ mode: "export", uid: "abc" });
+    expect(() => parseCliArgs(["--count-only", "--uid", "abc"])).toThrow(/osobno/);
+    expect(() => parseCliArgs(["--verify", "/tmp/d", "--uid", "abc"])).toThrow(/osobno/);
+  });
+
   it("requires --out together with --resume", () => {
     expect(() => parseCliArgs(["--resume"])).toThrow(/--resume wymaga --out/);
     expect(parseCliArgs(["--resume", "--out", "/tmp/d"])).toMatchObject({ resume: true });
