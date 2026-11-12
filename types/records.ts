@@ -37,8 +37,8 @@ export interface NoteResourceRecord {
   thumbnailUrl?: string;
   tags: string[];
   isFavorite?: boolean;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt?: string; // ISO 8601
+  updatedAt?: string; // ISO 8601
 }
 
 /** Stored events are work | meeting; createCalendarEvent does not persist task_deadline. */
@@ -81,7 +81,6 @@ export type UserTagRecord = {
   title: string;
   color?: string;
   created_at?: string;
-  createdAt?: Timestamp;
 };
 
 export type TaskTemplateRecord = {
@@ -90,7 +89,6 @@ export type TaskTemplateRecord = {
   title: string;
   link: string;
   created_at?: string;
-  createdAt?: Timestamp;
 };
 
 export interface MindMap {

@@ -14,8 +14,6 @@ function mockResource(overrides?: Partial<NoteResource>): NoteResource {
     title: "Example Title",
     tags: ["tag1", "tag2"],
     isFavorite: false,
-    createdAt: null,
-    updatedAt: null,
     ...overrides,
   };
 }
