@@ -16,7 +16,7 @@ type ImportRef = { specifier: string; typeOnly: boolean; statement: string };
 
 /** Ścieżka względem korzenia repo, separator `/`, bez rozszerzenia i bez `/index`. */
 function normalizePath(p: string): string {
-  let out = path.posix.normalize(p.replace(/\\/g, "/")).replace(/\.(?:js|jsx|ts|tsx)$/, "");
+  let out = path.posix.normalize(p.replace(/\\/g, "/")).replace(/\.(?:[cm]?[jt]s|[jt]sx)$/, "");
   if (out.endsWith("/index")) out = out.slice(0, -"/index".length);
   return out;
 }
@@ -38,11 +38,11 @@ function extractImports(text: string): ImportRef[] {
   for (const m of src.matchAll(staticRe)) {
     out.push({ specifier: m[2], typeOnly: m[1] !== undefined, statement: m[0].trim() });
   }
-  for (const m of src.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)) {
-    out.push({ specifier: m[1], typeOnly: false, statement: m[0].trim() });
+  for (const m of src.matchAll(/import\(\s*(["'`])([^"'`$]+)\1\s*\)/g)) {
+    out.push({ specifier: m[2], typeOnly: false, statement: m[0].trim() });
   }
-  for (const m of src.matchAll(/require\(\s*["']([^"']+)["']\s*\)/g)) {
-    out.push({ specifier: m[1], typeOnly: false, statement: m[0].trim() });
+  for (const m of src.matchAll(/require\(\s*(["'`])([^"'`$]+)\1\s*\)/g)) {
+    out.push({ specifier: m[2], typeOnly: false, statement: m[0].trim() });
   }
   return out;
 }
@@ -51,10 +51,10 @@ const within = (p: string, dir: string) => p === dir || p.startsWith(`${dir}/`);
 const isRoute = (p: string) => within(p, "app/api") && p.endsWith("/route");
 
 type CtxInfo = { ctx: string; layer: string };
-/** `contexts/bc_x/<layer>/…` → `{ ctx: "bc_x", layer }`; `layer` pusty, gdy brak segmentu. */
+/** `contexts/<ctx>/<layer>/…` → `{ ctx, layer }` (każdy podkatalog `contexts/` to kontekst, także bez prefiksu `bc_`, żeby reguł nie dało się ominąć nazwą); `layer` pusty, gdy brak segmentu. */
 function ctxInfo(p: string): CtxInfo | null {
   const parts = p.split("/");
-  if (parts[0] !== "contexts" || !parts[1]?.startsWith("bc_")) return null;
+  if (parts[0] !== "contexts" || !parts[1]) return null;
   return { ctx: parts[1], layer: parts[2] ?? "" };
 }
 
@@ -67,7 +67,7 @@ const LAYER_ALLOWED: Record<string, string[]> = {
   models: [],
 };
 
-const ROUTE_REEXPORT = /^export\s*\{[^}]*\}\s*from\s*["'][^"']*\/router["']/;
+const ROUTE_REEXPORT = /^export\s*(?:\{[^}]*\}|\*)\s*from\s*["'][^"']*\/router(?:\/[^"']+)?["']/;
 
 /**
  * Zwraca posortowaną listę naruszeń bez duplikatów: `<from> → <to> (reguła N)`;
@@ -232,6 +232,10 @@ describe("reguły na danych testowych", () => {
         "contexts/bc_a/repositories"
       );
     });
+    it("ucina też .mjs/.cjs/.mts/.cts", () => {
+      expect(normalize("lib/a.ts", "./models.mjs")).toBe("lib/models");
+      expect(normalize("lib/a.ts", "./models.cts")).toBe("lib/models");
+    });
     it("css i inne pliki zachowują rozszerzenie", () => {
       expect(normalize("src/features/p/V.tsx", "./projects.css")).toBe(
         "src/features/p/projects.css"
@@ -262,6 +266,15 @@ describe("reguły na danych testowych", () => {
       expect(r.map((x) => x.specifier).sort()).toEqual(
         ["./all", "./dyn", "./req", "./side", "@/x/router"].sort()
       );
+    });
+    it("import dynamiczny i require z template literal bez interpolacji", () => {
+      const r = extractImports(
+        "const a = import(`@/lib/nexus/vault-fs`);\nconst b = require(`./x`);"
+      );
+      expect(r.map((x) => x.specifier)).toEqual(["@/lib/nexus/vault-fs", "./x"]);
+    });
+    it("template literal z interpolacją jest pomijany (ścieżka nieznana statycznie)", () => {
+      expect(extractImports("const a = import(`./x/${name}`);")).toEqual([]);
     });
     it("import { type X } liczy się jako runtime", () => {
       const r = extractImports('import { type X } from "./m";');
@@ -432,6 +445,17 @@ describe("reguły na danych testowych", () => {
       ]);
       expect(violations(edge, routes)).toEqual([
         "app/api/p/route → @/contexts/bc_a/router (reguła 4)",
+      ]);
+    });
+    it("r4e: re-eksport z podpliku router/ i z rozszerzeniem jest dozwolony", () => {
+      for (const spec of ["@/contexts/bc_a/router/index.js", "@/contexts/bc_a/router/list"]) {
+        const routes = new Map([["app/api/p/route", `export { list as GET } from "${spec}";`]]);
+        expect(violations(edge, routes)).toEqual([]);
+      }
+    });
+    it("kontekst bez prefiksu bc_ też podlega regułom", () => {
+      expect(violations([e("contexts/foo/router", "contexts/foo/repositories")], none)).toEqual([
+        rule("contexts/foo/router", "contexts/foo/repositories", 3),
       ]);
     });
     it("trasa bez krawędzi do contexts/ nie podlega kontroli treści (stare trasy)", () => {
