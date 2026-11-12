@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="pl" data-card="mapa" data-project="second-brain" data-branch="main">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa · Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Oxanium:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Exo+2:wght@500;700&family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;800&family=Chakra+Petch:wght@500;700&display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../shell.css">
+<style>
+  /* --- Mapa: radar taktyczny i graf zależności (prefiks .map-) --- */
+  :root {
+    --map-radar-ring: color-mix(in srgb, var(--accent) 14%, transparent);
+    --map-radar-axis: color-mix(in srgb, var(--line) 40%, transparent);
+    --map-edge-blocker: var(--danger);
+    --map-edge-shared: color-mix(in srgb, var(--accent) 70%, var(--line));
+    --map-edge-flow: var(--muted);
+  }
+
+  /* kafle liczbowe u góry */
+  .map-tiles { --cols: 4; margin-bottom: var(--s-5); }
+  .map-tiles .tile__value { font-size: var(--fs-2xl); }
+
+  /* układ główny: graf radaru + panele boczne */
+  .map-layout {
+    display: grid; grid-template-columns: 1fr 340px; gap: var(--s-4); align-items: start;
+  }
+
+  /* panel z radarem i grafem */
+  .map-panel {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .map-panel__head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+    padding: var(--s-3) var(--s-4); background: var(--surface-2); border-bottom: 1px solid var(--line);
+  }
+  .map-legend { display: flex; align-items: center; gap: var(--s-4); font-size: var(--fs-xs); }
+  .map-legend-item { display: flex; align-items: center; gap: 6px; }
+  .map-legend-line { width: 18px; height: 2px; display: inline-block; }
+  .map-legend-line--blocker { background: var(--map-edge-blocker); }
+  .map-legend-line--shared { background: var(--accent); }
+  .map-legend-line--flow { background: var(--muted); }
+  .map-legend-line { position: relative; }
+  .map-legend-line::after { content: ""; position: absolute; left: 6px; top: -2px; width: 6px; height: 6px; border-radius: 50%; background: inherit; box-shadow: 0 0 6px currentColor; }
+
+  /* płótno radaru SVG */
+  .map-canvas {
+    width: 100%; height: 580px; position: relative; background: var(--surface);
+    overflow: hidden;
+  }
+  .map-svg { width: 100%; height: 100%; display: block; }
+  .map-neuro { width: 100%; height: 100%; display: block; cursor: crosshair; }
+  .map-neuro-tip {
+    position: absolute; pointer-events: none; z-index: 3;
+    padding: 6px 10px; border-radius: var(--r-sm);
+    background: color-mix(in srgb, var(--bg) 92%, transparent); border: 1px solid var(--accent);
+    font: 500 var(--fs-xs)/1.4 var(--font-mono); color: var(--text); max-width: 320px;
+    box-shadow: 0 0 18px -6px var(--glow);
+  }
+
+  /* elementy radaru */
+  .map-ring { fill: none; stroke: var(--map-radar-ring); stroke-width: 1; }
+  .map-axis { stroke: var(--map-radar-axis); stroke-width: 1; stroke-dasharray: 2 4; }
+  .map-sweep {
+    stroke: color-mix(in srgb, var(--accent) 70%, transparent); stroke-width: 1.5;
+    transform-origin: 450px 290px;
+    animation: map-rotate 16s linear infinite;
+  }
+  @keyframes map-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .map-sweep { animation: none; opacity: 0; }
+  }
+
+  /* krawędzie grafu (edges) */
+  .map-edge { fill: none; }
+  .map-edge--blocker { stroke: var(--map-edge-blocker); stroke-width: 2; }
+  .map-edge--shared { stroke: var(--map-edge-shared); stroke-width: 1.5; stroke-dasharray: 5 4; }
+  .map-edge--flow { stroke: var(--map-edge-flow); stroke-width: 1.2; stroke-dasharray: 2 4; }
+
+  /* węzły grafu (bez transform w :hover wg instrukcji) */
+  .map-node { cursor: pointer; }
+  .map-node-rect {
+    fill: var(--surface-2); stroke: var(--line); stroke-width: 1.5; rx: 6px;
+    transition: stroke .15s, fill .15s;
+  }
+  .map-node:hover .map-node-rect {
+    stroke: var(--accent); fill: color-mix(in srgb, var(--surface-2) 80%, var(--accent-soft));
+  }
+  .map-node-rect--sel {
+    stroke: var(--accent); stroke-width: 2.5; fill: var(--accent-soft);
+    filter: drop-shadow(0 0 14px var(--glow));
+  }
+  .map-node-text {
+    fill: var(--text); font-family: var(--font-display); font-size: 11px; font-weight: 700;
+    dominant-baseline: middle; text-anchor: middle;
+  }
+  .map-node-sub {
+    fill: var(--muted); font-family: var(--font-mono); font-size: 9px;
+    dominant-baseline: middle; text-anchor: middle;
+  }
+
+  /* PRAWA KOLUMNA: RADAR BLOKAD I AGENCI */
+  .map-sidebar { display: flex; flex-direction: column; gap: var(--s-4); }
+  .map-card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+    padding: var(--s-3) var(--s-4); display: flex; flex-direction: column; gap: var(--s-2);
+  }
+  .map-card__head {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+    padding-bottom: var(--s-2); border-bottom: 1px solid var(--line);
+  }
+  .map-card__title {
+    font: 700 var(--fs-xs)/1.2 var(--font-mono); text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); margin: 0;
+  }
+  .map-card__title b { color: var(--text); }
+
+  /* lista blokad */
+  .map-blockers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+  .map-blocker-item {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: var(--s-2) var(--s-3); display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-xs);
+  }
+  .map-blocker-item--crit { border-left: 3px solid var(--danger); }
+  .map-blocker-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+  .map-blocker-title { font-weight: 600; color: var(--text); }
+  .map-blocker-desc { color: var(--muted); line-height: 1.35; font-family: var(--font-mono); }
+
+  /* boks rekomendacji taktycznej */
+  .map-tactic-box {
+    background: color-mix(in srgb, var(--surface-2) 80%, var(--accent-soft));
+    border: 1px solid var(--accent); border-radius: var(--r-sm);
+    padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-2);
+    margin-top: var(--s-1);
+  }
+  .map-tactic-title { font: 700 var(--fs-xs)/1 var(--font-mono); color: var(--accent-text); text-transform: uppercase; letter-spacing: 1px; }
+  .map-tactic-desc { font-size: var(--fs-xs); line-height: 1.4; color: var(--text); }
+
+  /* lista agentów Herdr */
+  .map-agents { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+  .map-agent-item {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: var(--s-2) var(--s-3); display: flex; flex-direction: column; gap: 3px;
+    font-size: var(--fs-xs);
+  }
+  .map-agent-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); }
+  .map-agent-name { font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .map-agent-task { font-family: var(--font-mono); color: var(--muted); line-height: 1.3; }
+  .map-agent-meta { display: flex; align-items: center; justify-content: space-between; font: 500 10px/1 var(--font-mono); color: var(--muted); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="app">
+<main class="view">
+
+  <header class="view-head">
+    <div>
+      <p class="view-head__eyebrow">Alt+8 · Mapa</p>
+      <h1 class="view-head__title">Sieć projektów</h1>
+      <p class="view-head__sub">Środa, 11 listopada 2026 · cały NEXUS jako mózg · 3 aktywne blokery · 3 agenci Herdr na żywo</p>
+    </div>
+    <div class="view-head__actions">
+      <button class="btn" data-toast="Odświeżono status agentów Herdr">Odśwież stan</button>
+      <button class="btn btn--primary" data-toast="Przeliczono ścieżkę krytyczną i blokery">Analizuj blokery</button>
+    </div>
+  </header>
+
+  <!-- kafle statystyk u góry -->
+  <section class="tiles map-tiles" aria-label="Statystyki ekosystemu">
+    <div class="tile tile--accent" data-src="NEXUS: liczba plików .md">
+      <span class="tile__label">Neurony NEXUS</span>
+      <span class="tile__value">305</span>
+      <span class="tile__meta">223 wiedza · 41 skille · 28 projekty · 13 inne</span>
+    </div>
+    <div class="tile" data-src="Vault/tech-stack-wspolny.md · edges">
+      <span class="tile__label">Zależności</span>
+      <span class="tile__value">19</span>
+      <span class="tile__meta">twarde, współdzielone i przepływy</span>
+    </div>
+    <div class="tile" data-src="Projects/*/bugs.md · blockers">
+      <span class="tile__label">Aktywne blokery</span>
+      <span class="tile__value">3</span>
+      <span class="tile__meta">GP-001 blokerem nadrzędnym</span>
+    </div>
+    <div class="tile" data-src="Herdr / hc ls · agents">
+      <span class="tile__label">Agenci na żywo</span>
+      <span class="tile__value">3</span>
+      <span class="tile__meta">Claude Code · agy · cursor</span>
+    </div>
+  </section>
+
+  <!-- główny układ: radar po lewej, panele po prawej -->
+  <div class="map-layout">
+
+    <!-- LEWA KOLUMNA: GRAF RADARU W SVG -->
+    <section class="map-panel" aria-label="Radar zależności ekosystemu" data-src="Vault/tech-stack-wspolny.md · radar_graph">
+      <div class="map-panel__head">
+        <span class="mono muted" style="font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 1px">
+          NEXUS · 305 notatek · 17 synaps
+        </span>
+        <div class="map-legend">
+          <div class="map-legend-item">
+            <span class="map-legend-line map-legend-line--blocker"></span>
+            <span>Bloker (sygnał hamujący)</span>
+          </div>
+          <div class="map-legend-item">
+            <span class="map-legend-line map-legend-line--shared"></span>
+            <span>Synapsa: współdzielenie</span>
+          </div>
+          <div class="map-legend-item">
+            <span class="map-legend-line map-legend-line--flow"></span>
+            <span>Impuls: przepływ danych</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-canvas" data-src="NEXUS: Vault/Knowledge, Vault/Projects, Vault/AI-2030, Superpower/, docs/ + tech-stack-wspolny.md · relacje">
+        <canvas class="map-neuro" aria-label="Sieć neuronowa NEXUS: 12 projektów i usług, 17 połączeń, płaty Wiedza, Skille, AI-2030, Docs"></canvas>
+        <div class="map-neuro-tip" hidden></div>
+      </div>
+    </section>
+
+    <!-- PRAWA KOLUMNA: RADAR BLOKAD I AGENCI Z HERDR -->
+    <aside class="map-sidebar" aria-label="Szczegóły taktyczne i agenci">
+
+      <!-- Panel 1: Radar blokad -->
+      <section class="map-card" data-src="Projects/*/bugs.md · blockers">
+        <div class="map-card__head">
+          <h2 class="map-card__title"><b>Radar blokad</b> · 3 punkty</h2>
+          <span class="chip chip--danger">Wąskie gardła</span>
+        </div>
+
+        <ul class="map-blockers">
+          <li class="map-blocker-item map-blocker-item--crit">
+            <div class="map-blocker-top">
+              <span class="map-blocker-title">Konflikt portów V2 (GP-001)</span>
+              <span class="chip chip--danger" style="height: 18px; padding: 0 4px">Krytyczny</span>
+            </div>
+            <div class="map-blocker-desc">
+              Blokuje testy E2E w <b>tester-ai</b> oraz weryfikację endpointu /health w <b>gen-podsum-ai</b>.
+            </div>
+          </li>
+
+          <li class="map-blocker-item">
+            <div class="map-blocker-top">
+              <span class="map-blocker-title">Brak lokalnej bazy Ollama</span>
+              <span class="chip chip--warn" style="height: 18px; padding: 0 4px">Wysoki</span>
+            </div>
+            <div class="map-blocker-desc">
+              Odsuwa wdrożenie modułu offline w <b>gen-podsum-ai</b> i syntezy mowy w <b>english-agent</b>.
+            </div>
+          </li>
+
+          <li class="map-blocker-item">
+            <div class="map-blocker-top">
+              <span class="map-blocker-title">Complexity 74 w answer/route.ts</span>
+              <span class="chip chip--warn" style="height: 18px; padding: 0 4px">Wysoki</span>
+            </div>
+            <div class="map-blocker-desc">
+              Blokuje wydanie stabilnego pipelineu pytań i odpowiedzi w projekcie <b>code-sensei</b>.
+            </div>
+          </li>
+        </ul>
+
+        <!-- Rekomendacja taktyczna: złoty ruch -->
+        <div class="map-tactic-box">
+          <span class="map-tactic-title">Rekomendacja taktyczna</span>
+          <p class="map-tactic-desc" style="margin: 0">
+            <b>Złoty ruch:</b> Rozwiązanie GP-001 (ustawienie PORT=5000 w server.js) odblokowuje jednocześnie 3 węzły: gen-podsum-ai, tester-ai i pipeline E2E.
+          </p>
+          <button class="btn btn--sm btn--primary" data-toast="Przejście do zadania GP-001 w karcie Zadania">Odblokuj GP-001 (Zadania Alt+3)</button>
+        </div>
+      </section>
+
+      <!-- Panel 2: Agenci z Herdr -->
+      <section class="map-card" data-src="Herdr / hc ls · agents">
+        <div class="map-card__head">
+          <h2 class="map-card__title"><b>Agenci z Herdr</b></h2>
+          <span class="chip">hc runtime</span>
+        </div>
+
+        <ul class="map-agents">
+          <!-- Agent 1: Claude Code -->
+          <li class="map-agent-item">
+            <div class="map-agent-top">
+              <span class="map-agent-name">
+                <span class="dot dot--ok"></span>
+                <span>Claude Code</span>
+              </span>
+              <span class="chip chip--ok">pracuje</span>
+            </div>
+            <div class="map-agent-task">Makiety statyczne kart 1..8 w Next.js</div>
+            <div class="map-agent-meta">
+              <span>projekt: <b>second-brain</b></span>
+              <span>aktywny: 42 min</span>
+            </div>
+          </li>
+
+          <!-- Agent 2: agy -->
+          <li class="map-agent-item">
+            <div class="map-agent-top">
+              <span class="map-agent-name">
+                <span class="dot dot--accent"></span>
+                <span>agy</span>
+              </span>
+              <span class="chip chip--accent">gotowy</span>
+            </div>
+            <div class="map-agent-task">Oczekiwanie na zadanie naprawy portów V2</div>
+            <div class="map-agent-meta">
+              <span>projekt: <b>gen-podsum-ai</b></span>
+              <span>idle: 8 min</span>
+            </div>
+          </li>
+
+          <!-- Agent 3: cursor -->
+          <li class="map-agent-item">
+            <div class="map-agent-top">
+              <span class="map-agent-name">
+                <span class="dot dot--warn"></span>
+                <span>cursor</span>
+              </span>
+              <span class="chip chip--warn">czeka na zgodę</span>
+            </div>
+            <div class="map-agent-task">Refaktor złożoności route.ts (complexity 74)</div>
+            <div class="map-agent-meta">
+              <span>projekt: <b>code-sensei</b></span>
+              <span>oczekuje na zatwierdzenie diffa</span>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+    </aside>
+
+  </div>
+
+</main>
+</div>
+<script src="../shell.js"></script>
+<script>
+/* Mapa jako sieć neuronowa: neurony = projekty/usługi, synapsy = relacje.
+   Tło: drobne neurony w kształcie mózgu. Impulsy biegną po aksonach.
+   Kolory z tokenów karty; przy prefers-reduced-motion rysuje jedną klatkę. */
+(() => {
+  const cv = document.querySelector(".map-neuro"); if (!cv) return;
+  const tip = document.querySelector(".map-neuro-tip");
+  const ctx = cv.getContext("2d");
+  const css = getComputedStyle(document.documentElement);
+  const C = (n) => css.getPropertyValue(n).trim();
+  const col = { accent: C("--accent"), danger: C("--danger"), muted: C("--muted"), text: C("--text"), line: C("--line"), bg: C("--surface") };
+  const font = C("--font-display"), mono = C("--font-mono");
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const N = [
+    { id: "vault", l: "Vault NEXUS", s: "pamięć · źródło prawdy", x: 450, y: 300, r: 13 },
+    { id: "nexus", l: "nexus", s: "biblioteka", x: 485, y: 180, r: 9 },
+    { id: "sb", l: "second-brain", s: "makiety kart", x: 615, y: 255, r: 10 },
+    { id: "gp", l: "gen-podsum-ai", s: "bloker: porty V2", x: 290, y: 215, r: 11, sel: true },
+    { id: "ta", l: "tester-ai", s: "czeka na E2E", x: 205, y: 355, r: 8 },
+    { id: "ea", l: "english-agent", s: "19 dni bez zmian", x: 330, y: 445, r: 8 },
+    { id: "cs", l: "code-sensei", s: "complexity 74", x: 640, y: 405, r: 9 },
+    { id: "pf", l: "portfolio", s: "README 4→7", x: 765, y: 320, r: 8 },
+    { id: "ah", l: "ask-helper", s: "agenci CLI", x: 590, y: 120, r: 7 },
+    { id: "ol", l: "Ollama", s: "modele lokalne", x: 165, y: 185, r: 8 },
+    { id: "fs", l: "Firestore", s: "do wygaszenia", x: 770, y: 165, r: 7 },
+    { id: "et", l: "Etat · system A", s: "", x: 470, y: 480, r: 7 },
+  ];
+  const by = Object.fromEntries(N.map((n) => [n.id, n]));
+  const E = [
+    ["gp", "ta", "b"], ["ol", "ea", "b"], ["gp", "ea", "b"],
+    ["nexus", "vault", "s"], ["nexus", "sb", "s"], ["nexus", "cs", "s"], ["ah", "sb", "s"], ["ah", "nexus", "s"],
+    ["pf", "sb", "s"], ["ta", "cs", "s"], ["gp", "nexus", "s"],
+    ["ol", "gp", "f"], ["vault", "gp", "f"], ["vault", "sb", "f"], ["vault", "ea", "f"], ["sb", "fs", "f"], ["et", "vault", "f"],
+  ].map(([a, b, t], i) => ({ a: by[a], b: by[b], t, bend: ((i * 37) % 7 - 3) * 14, ph: (i * 0.137) % 1 }));
+  const TYPE = { b: { c: col.danger, w: 2, sp: 0.10, n: 1, name: "bloker" }, s: { c: col.accent, w: 1.4, sp: 0.18, n: 2, name: "współdzielenie" }, f: { c: col.muted, w: 1.1, sp: 0.26, n: 2, name: "przepływ danych" } };
+
+  // tło: zawartość NEXUS jako płaty mózgu (prawdziwe nazwy notatek, bez Developer/Sejf_prywatny)
+  const REG = {
+    kn: { name: "WIEDZA · Knowledge", count: 223, lx: 110, ly: 92, anchors: [[190, 230, 1.45], [235, 430, 1.25]],
+      notes: ["semantic-kernel.md","llama.md","redis.md","alembic.md","docker.md","clerk.md","kubernetes.md","faiss.md","chromadb.md","langsmith.md","haystack.md","crewai.md","cursor.md","cursor-bugbot.md","n8n.md","sentry.md","perplexity.md","notebooklm.md","github-copilot.md","amazon-bedrock.md","amazon-textract.md","uv.md","grok.md","metryki-modeli-ml.md","spadek-gradientu.md","struktury-danych-podstawy.md","struktury-projektu.md","audyt-jakosci-danych.md","adnotacja-datasetow.md","event-storming.md","ai-security/indirect-prompt-injection.md","ai-tools-landscape-genai-13.md","agent-browser-segmentacja.md","prompty/","sql/","testowanie/","otter-ai.md","bolt-new.md","mintlify.md","notion.md"] },
+    sp: { name: "SKILLE · Superpower", count: 41, lx: 770, ly: 78, anchors: [[705, 165, 1.1]],
+      notes: ["brainstorming","writing-plans","executing-plans","systematic-debugging","test-driven-development","verification-before-completion","requesting-code-review","receiving-code-review","subagent-driven-development","dispatching-parallel-agents","using-git-worktrees","finishing-a-development-branch","writing-skills","using-superpowers","agents/code-reviewer.md","commands/brainstorm.md","commands/write-plan.md","commands/execute-plan.md"] },
+    ai: { name: "AI-2030", count: 4, lx: 815, ly: 520, anchors: [[765, 440, .62]], notes: ["AI-2030.md","biznes.md","backend.md","_index.md"] },
+    dc: { name: "DOCS · szablony", count: 9, lx: 560, ly: 566, anchors: [[540, 515, .62]], notes: ["jak-dodac-projekt.md","mozliwe-rozszerzenia.md","update-portfolio.md","_template/index.md","_template/tasks.md","_template/bugs.md","_template/nazwa-projektu.md","superpowers/specs/"] },
+  };
+  const pathOf = { kn: "Vault/Knowledge/", sp: "Superpower/skills/", ai: "Vault/AI-2030/", dc: "docs/" };
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const G = [], cnt = { kn: 0, sp: 0, ai: 0, dc: 0 };
+  while (G.length < 250) {
+    const x = 60 + rnd() * 780, y = 45 + rnd() * 490;
+    const dx = (x - 450) / 395, dy = (y - 295) / (240 + 22 * Math.sin(x / 55));
+    if (dx * dx + dy * dy > 1) continue;
+    if (Math.abs(x - 450) < 9 && y < 220) continue; // szczelina między półkulami
+    let best = null, bd = 1e9;
+    for (const [k, r] of Object.entries(REG)) for (const [ax, ay, w] of r.anchors) { const d = Math.hypot(x - ax, y - ay) / w; if (d < bd) { bd = d; best = k; } }
+    const list = REG[best].notes;
+    G.push({ x, y, r: 1 + rnd() * 1.7, tw: rnd() * 6.28, reg: best, note: pathOf[best] + list[cnt[best]++ % list.length] });
+  }
+  // pliki projektu krążą wokół jego neuronu
+  N.forEach((n, i) => {
+    if (["ol", "fs", "et", "vault"].includes(n.id)) return;
+    ["index.md", "tasks.md", "bugs.md", "state.md"].forEach((f, j) => {
+      const a = j * 1.57 + i * .7, d = n.r + 15 + (j % 2) * 6;
+      G.push({ x: n.x + Math.cos(a) * d, y: n.y + Math.sin(a) * d, r: 1.6, tw: j, reg: "pr", note: `Vault/Projects/${n.l}/${f}`, own: n });
+    });
+  });
+  const near = (p, list, k) => list.filter((q) => q !== p).map((q) => [q, (q.x - p.x) ** 2 + (q.y - p.y) ** 2]).sort((a, b) => a[1] - b[1]).slice(0, k).map((z) => z[0]);
+  const GL = []; G.forEach((p) => near(p, G.filter((q) => q.reg === p.reg), 2).forEach((q) => GL.push([p, q])));
+  // projekt korzysta z wiedzy i skilli: najbliższe notatki z płatów kn + sp
+  N.forEach((n) => {
+    n.uses = [...near(n, G.filter((g) => g.reg === "kn"), 3), ...near(n, G.filter((g) => g.reg === "sp"), 2)];
+    near(n, G, 5).forEach((q) => GL.push([n, q]));
+  });
+  N.forEach((n) => { n.den = Array.from({ length: 6 }, (_, i) => ({ a: i * 1.047 + rnd() * .6, l: n.r + 6 + rnd() * 10 })); });
+  let hoverNote = null;
+
+  let W = 0, H = 0, k = 1, ox = 0, oy = 0, hover = null;
+  const resize = () => {
+    const r = cv.getBoundingClientRect(), d = devicePixelRatio || 1;
+    W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0);
+    k = Math.min(W / 900, H / 580); ox = (W - 900 * k) / 2; oy = (H - 580 * k) / 2;
+  };
+  const P = (x, y) => [ox + x * k, oy + y * k];
+  const ctrl = (e) => { const mx = (e.a.x + e.b.x) / 2, my = (e.a.y + e.b.y) / 2, dx = e.b.x - e.a.x, dy = e.b.y - e.a.y, L = Math.hypot(dx, dy) || 1; return [mx - dy / L * e.bend, my + dx / L * e.bend]; };
+  const at = (e, t) => { const [cx, cy] = ctrl(e); const u = 1 - t; return [u * u * e.a.x + 2 * u * t * cx + t * t * e.b.x, u * u * e.a.y + 2 * u * t * cy + t * t * e.b.y]; };
+  const linked = (e) => hover && (e.a === hover || e.b === hover);
+  const alpha = (hex, a) => `color-mix(in srgb, ${hex} ${Math.round(a * 100)}%, transparent)`;
+
+  const draw = (time) => {
+    const T = time / 1000;
+    ctx.clearRect(0, 0, W, H);
+    // sieć tła
+    ctx.lineWidth = 0.6;
+    ctx.strokeStyle = alpha(col.muted, hover ? .08 : .16);
+    ctx.beginPath(); GL.forEach(([p, q]) => { const [x1, y1] = P(p.x, p.y), [x2, y2] = P(q.x, q.y); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); }); ctx.stroke();
+    ctx.textAlign = "left"; ctx.font = `600 ${Math.max(9, 10 * k)}px ${mono}`;
+    Object.values(REG).forEach((r) => { const [x, y] = P(r.lx, r.ly); ctx.fillStyle = alpha(col.muted, .75); ctx.textAlign = "center"; ctx.fillText(`${r.name} · ${r.count}`, x, y); });
+    const lit = new Set(hover ? [...hover.uses, ...G.filter((g) => g.own === hover)] : []);
+    if (hover) { ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.strokeStyle = alpha(col.accent, .8);
+      lit.forEach((g) => { const [x1, y1] = P(hover.x, hover.y), [x2, y2] = P(g.x, g.y); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); });
+      ctx.setLineDash([]); }
+    G.forEach((g) => { const [x, y] = P(g.x, g.y), on = lit.has(g) || g === hoverNote;
+      ctx.fillStyle = on ? col.accent : alpha(g.reg === "pr" ? col.muted : col.text, .18 + .14 * Math.sin(T * 1.3 + g.tw));
+      ctx.beginPath(); ctx.arc(x, y, (on ? g.r + 1.4 : g.r) * k, 0, 6.29); ctx.fill(); });
+    // aksony
+    E.forEach((e) => {
+      const ty = TYPE[e.t], on = linked(e), dim = hover && !on;
+      const [x1, y1] = P(e.a.x, e.a.y), [x2, y2] = P(e.b.x, e.b.y), [cx, cy] = P(...ctrl(e));
+      ctx.strokeStyle = alpha(ty.c, dim ? .12 : on ? .95 : .5); ctx.lineWidth = ty.w * (on ? 1.6 : 1) * Math.max(k, .7);
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cx, cy, x2, y2); ctx.stroke();
+      // impulsy
+      if (!dim) for (let i = 0; i < ty.n; i++) {
+        const t = ((still ? .35 : T * ty.sp) + e.ph + i / ty.n) % 1, [px, py] = P(...at(e, t));
+        const g = ctx.createRadialGradient(px, py, 0, px, py, 7 * k + 2);
+        g.addColorStop(0, ty.c); g.addColorStop(1, alpha(ty.c, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, 7 * k + 2, 0, 6.29); ctx.fill();
+      }
+    });
+    // neurony
+    N.forEach((n) => {
+      const [x, y] = P(n.x, n.y), r = n.r * k, on = n === hover || n.sel, dim = hover && n !== hover && !E.some((e) => linked(e) && (e.a === n || e.b === n));
+      const c = n.sel ? col.accent : col.text;
+      ctx.strokeStyle = alpha(c, dim ? .15 : .45); ctx.lineWidth = 1;
+      n.den.forEach((d) => { ctx.beginPath(); ctx.moveTo(x + Math.cos(d.a) * r, y + Math.sin(d.a) * r); ctx.lineTo(x + Math.cos(d.a + .25) * d.l * k, y + Math.sin(d.a + .25) * d.l * k); ctx.stroke(); });
+      const pulse = still ? 1 : 1 + .12 * Math.sin(T * 2 + n.x);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * (on ? 4 : 2.6) * pulse);
+      g.addColorStop(0, alpha(c, dim ? .15 : on ? .55 : .3)); g.addColorStop(1, alpha(c, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 4 * pulse, 0, 6.29); ctx.fill();
+      ctx.fillStyle = col.bg; ctx.strokeStyle = alpha(c, dim ? .3 : 1); ctx.lineWidth = n.sel ? 2.2 : 1.4;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 6.29); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = alpha(c, dim ? .3 : .9); ctx.beginPath(); ctx.arc(x, y, r * .38, 0, 6.29); ctx.fill();
+      ctx.textAlign = "center";
+      ctx.fillStyle = alpha(col.text, dim ? .35 : 1); ctx.font = `600 ${Math.max(11, 13 * k)}px ${font}`; ctx.fillText(n.l, x, y + r + 16 * Math.max(k, .8));
+      if (n.s) { ctx.fillStyle = alpha(col.muted, dim ? .35 : 1); ctx.font = `400 ${Math.max(9, 10 * k)}px ${mono}`; ctx.fillText(n.s, x, y + r + 29 * Math.max(k, .8)); }
+    });
+    if (!still) requestAnimationFrame(draw);
+  };
+
+  cv.addEventListener("mousemove", (ev) => {
+    const b = cv.getBoundingClientRect(), mx = ev.clientX - b.left, my = ev.clientY - b.top;
+    hover = N.find((n) => { const [x, y] = P(n.x, n.y); return Math.hypot(mx - x, my - y) < Math.max(18, n.r * k + 8); }) || null;
+    hoverNote = hover ? null : G.find((g) => { const [x, y] = P(g.x, g.y); return Math.hypot(mx - x, my - y) < 6; }) || null;
+    if (hover || hoverNote) {
+      if (hover) {
+        const rel = E.filter(linked).map((e) => `${e.a === hover ? "→ " + e.b.l : "← " + e.a.l} (${TYPE[e.t].name})`);
+        const uses = hover.uses.map((g) => g.note.split("/").slice(-1)[0] || g.note).slice(0, 5).join(", ");
+        tip.innerHTML = `<b>${hover.l}</b><br>${rel.join("<br>")}<br><span style="color: var(--muted)">korzysta z: ${uses}</span>`;
+      } else tip.innerHTML = `<b>${hoverNote.note}</b>`;
+      tip.hidden = false; tip.style.left = Math.min(mx + 14, W - 336) + "px"; tip.style.top = Math.min(my + 14, H - tip.offsetHeight - 8) + "px";
+    } else tip.hidden = true;
+    if (still) draw(0);
+  });
+  cv.addEventListener("mouseleave", () => { hover = null; hoverNote = null; tip.hidden = true; if (still) draw(0); });
+  cv.addEventListener("click", () => { if (!window.sbToast) return; if (hover) sbToast(`Otwieram ${hover.l} w Projektach (atrapa)`); else if (hoverNote) sbToast(`Otwieram ${hoverNote.note} w Notatkach (atrapa)`); });
+  new ResizeObserver(() => { resize(); if (still) draw(0); }).observe(cv);
+  resize();
+  document.fonts.ready.then(() => requestAnimationFrame(draw));
+})();
+</script>
+
+</body>
+</html>

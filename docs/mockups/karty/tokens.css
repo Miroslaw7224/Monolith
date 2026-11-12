@@ -1,0 +1,259 @@
+/* =========================================================================
+   Second Brain — tokeny kart (makiety)
+   Wspólne zmienne + 9 motywów włączanych atrybutem data-card na <html>.
+   Kontrast sprawdzony (WCAG AA): --text i --muted na --bg/--surface >= 4.5,
+   --accent-text na --bg >= 4.5, --accent-ink na --accent >= 4.5.
+   Tło (--bg/--surface/--surface-2/--line/--pattern) jest wspólne dla wszystkich kart
+   (decyzja 2026-11-11); karty różni akcent, krój i motyw.
+   Nowe kolory w karcie dodawaj WYŁĄCZNIE jako zmienne w bloku jej motywu.
+   ========================================================================= */
+
+:root {
+  /* skala odstępów */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  /* promienie */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* typografia wspólna */
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 34px;
+  --fs-3xl: 48px;
+
+  /* szkielet (neutralny, ten sam dla każdej karty) */
+  --shell-bg: #0d0d10;
+  --shell-line: #26262c;
+  --shell-text: #e8e8ec;
+  --shell-muted: #9a9aa6;
+  --rail-w: 76px;
+  --status-h: 30px;
+
+  /* akcenty kart (do podświetlenia paska kart) */
+  --c-kokpit: #ff9f1c;
+  --c-kalendarz: #ff3b1f;
+  --c-zadania: #b6ff2e;
+  --c-projekty: #3d95ff;
+  --c-notatki: #f3ff3a;
+  --c-plotno: #22d3ee;
+  --c-arsenal: #b47bff;
+  --c-mapa: #ff2bd6;
+  --c-kodeks: #3ddc84;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ---------- Alt+1 Kokpit: ciemny grafit + bursztyn ---------- */
+[data-card="kokpit"] {
+  --bg: #16171a;
+  --surface: #1f2125;
+  --surface-2: #2a2d32;
+  --line: #383c43;
+  --text: #f1ede6;
+  --muted: #a9a59d;
+  --accent: #ff9f1c;
+  --accent-text: #ffb04d;
+  --accent-ink: #1a1206;
+  --accent-soft: rgba(255, 159, 28, 0.14);
+  --glow: rgba(255, 159, 28, 0.45);
+  --ok: #5ee08a;
+  --warn: #ffd166;
+  --danger: #ff6b5e;
+  --font-display: "Space Grotesk", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+2 Kalendarz: jasny krem + pomidorowa czerwień ---------- */
+[data-card="kalendarz"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #ff5a4e;
+  --accent-text: #ff7a70;
+  --accent-ink: #1a0503;
+  --accent-soft: rgba(255, 90, 78, 0.1);
+  --glow: rgba(255, 90, 78, 0.35);
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --danger: #ff6a5c;
+  --font-display: "Oxanium", var(--font-mono);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+3 Zadania: wspólny grafit + kwaśna limonka ---------- */
+[data-card="zadania"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #b6ff2e;
+  --accent-text: #b6ff2e;
+  --accent-ink: #0b120d;
+  --accent-soft: rgba(182, 255, 46, 0.12);
+  --glow: rgba(182, 255, 46, 0.4);
+  --ok: #b6ff2e;
+  --warn: #ffd84d;
+  --danger: #ff6e6e;
+  --font-display: "IBM Plex Mono", var(--font-mono);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+4 Projekty: wspólny grafit + elektryczny błękit ---------- */
+[data-card="projekty"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #3d95ff;
+  --accent-text: #6aaeff;
+  --accent-ink: #04122a;
+  --accent-soft: rgba(61, 149, 255, 0.16);
+  --glow: rgba(61, 149, 255, 0.5);
+  --ok: #4ade9b;
+  --warn: #ffc857;
+  --danger: #ff7272;
+  --font-display: "Exo 2", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+5 Notatki: złamana biel + atrament + zakreślacz ---------- */
+[data-card="notatki"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #f3ff3a;
+  --accent-text: #f3ff3a;
+  --accent-ink: #0b0b0c;
+  --accent-soft: rgba(243, 255, 58, 0.14);
+  --highlight: #f3ff3a;
+  --glow: rgba(243, 255, 58, 0.45);
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --danger: #ff6b6b;
+  --font-display: "Sora", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+6 Płótno: wspólny grafit + cyjan (siatka tylko na płótnie) ---------- */
+[data-card="plotno"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #22d3ee;
+  --accent-text: #22d3ee;
+  --accent-ink: #03202a;
+  --accent-soft: rgba(34, 211, 238, 0.14);
+  --glow: rgba(34, 211, 238, 0.5);
+  --ok: #4ade80;
+  --warn: #fcd34d;
+  --danger: #fb7185;
+  --font-display: "Space Mono", var(--font-mono);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+7 Arsenał: wspólny grafit + fiolet ---------- */
+[data-card="arsenal"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #b47bff;
+  --accent-text: #c69bff;
+  --accent-ink: #160a22;
+  --accent-soft: rgba(180, 123, 255, 0.16);
+  --glow: rgba(180, 123, 255, 0.5);
+  --ok: #6ee7a8;
+  --warn: #fcd34d;
+  --danger: #ff7a90;
+  --font-display: "Syne", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+8 Mapa: wspólny grafit + neonowa magenta ---------- */
+[data-card="mapa"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #ff2bd6;
+  --accent-text: #ff5ce0;
+  --accent-ink: #1a0016;
+  --accent-soft: rgba(255, 43, 214, 0.14);
+  --glow: rgba(255, 43, 214, 0.5);
+  --ok: #4ade80;
+  --warn: #facc15;
+  --danger: #ff6b6b;
+  --font-display: "Chakra Petch", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+9 Kodeks: wspólny grafit + zieleń ---------- */
+/* Zieleń leży blisko --ok (decyzja K6): --ok jest tu teal (#5eead4), nie zielony,
+   a odznaka sukcesu w części B dostaje dodatkowo ikonę (nie sam kolor). */
+[data-card="kodeks"] {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  --accent: #3ddc84;
+  --accent-text: #5ee89b;
+  --accent-ink: #03150a;
+  --accent-soft: rgba(61, 220, 132, 0.14);
+  --glow: rgba(61, 220, 132, 0.5);
+  --ok: #5eead4;
+  --warn: #facc15;
+  --danger: #ff6b6b;
+  --font-display: "Manrope", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}

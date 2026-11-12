@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/src/features/cards/cards.css";
 import { ThemeScript } from "@/src/components/theme/ThemeScript";
 import { ThemeProvider } from "@/src/components/theme/ThemeProvider";
 

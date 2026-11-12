@@ -1,0 +1,125 @@
+<title>Second Brain: karty</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+  /* Układ: nagłówek z zasadami + siatka 9 żywych miniatur kart (iframe), klik otwiera kartę.
+     Strona celowo tylko ciemna, jak same makiety. */
+  :root {
+    --bg: #15161a;
+    --surface: #1e1f24;
+    --line: #373a42;
+    --text: #f0f0f2;
+    --muted: #a8aab2;
+    --font-display: "Space Grotesk", "IBM Plex Sans", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, .045) 1px, transparent 0) 0 0 / 22px 22px, var(--bg);
+    color: var(--text); font: 400 15px/1.55 var(--font-body);
+  }
+  .wrap {
+    max-width: 1320px; margin: 0 auto;
+    padding-block: 40px 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .eyebrow { font: 500 11px/1 var(--font-mono); letter-spacing: 1.6px; text-transform: uppercase; color: #ffb04d; margin: 0 0 10px; }
+  h1 { font: 700 clamp(28px, 4vw, 40px)/1.05 var(--font-display); margin: 0; letter-spacing: -.5px; text-wrap: balance; }
+  .lead { color: var(--muted); max-width: 68ch; margin: 12px 0 0; }
+  .rules { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 32px; padding: 0; list-style: none; }
+  .rules li { font: 500 12px/1 var(--font-mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; }
+  .rules b { color: var(--text); font-weight: 500; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 20px; }
+  .card {
+    --c: #888;
+    display: flex; flex-direction: column; min-width: 0;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+    color: inherit; text-decoration: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .card:hover, .card:focus-visible { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 0 28px -10px var(--c); outline: none; }
+  .thumb { position: relative; aspect-ratio: 1440 / 900; max-width: 100%; overflow: hidden; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .thumb iframe { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none; }
+  .meta { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px 16px; }
+  .num {
+    flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px;
+    background: var(--c); color: #0d0d10; font: 600 13px/1 var(--font-mono);
+    box-shadow: 0 0 14px -2px var(--c);
+  }
+  .meta h2 { margin: 0; font: 700 18px/1.2 var(--font-display); }
+  .meta p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .key { margin-left: auto; font: 500 11px/1 var(--font-mono); color: var(--muted); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+  footer code { font-family: var(--font-mono); color: var(--text); }
+  @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">Makiety · 11 listopada 2026</p>
+  <h1>Second Brain: 9 kart</h1>
+  <p class="lead">Statyczne makiety widoków przed wdrożeniem w Next.js. Kliknij kartę, aby ją otworzyć. W środku działają skróty Alt+1…9, paleta Ctrl+K i Alt+0, który pokazuje, z jakich plików vaulta czyta każdy blok.</p>
+  <ul class="rules">
+    <li><b>styl Kokpitu</b> we wszystkich kartach</li>
+    <li><b>wspólne ciemne tło</b></li>
+    <li>karty różni <b>akcent, krój i jeden motyw</b></li>
+    <li><b>akcent oszczędnie</b></li>
+    <li>dane fikcyjne lub z projektów własnych</li>
+  </ul>
+
+  <div class="grid">
+    <a class="card" href="cards/01-kokpit.html" style="--c: #ff9f1c">
+      <div class="thumb"><iframe src="cards/01-kokpit.html" title="Podgląd: Kokpit" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">1</span><div><h2>Kokpit</h2><p>Dzień na jednym ekranie: spotkania, punkty skupienia z Save State, kolejka, inbox.</p></div><span class="key">Alt+1</span></div>
+    </a>
+    <a class="card" href="cards/02-kalendarz.html" style="--c: #ff5a4e">
+      <div class="thumb"><iframe src="cards/02-kalendarz.html" title="Podgląd: Kalendarz" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">2</span><div><h2>Kalendarz</h2><p>Tydzień z siatką godzin, etat i projekty, brief spotkania, planer slotów.</p></div><span class="key">Alt+2</span></div>
+    </a>
+    <a class="card" href="cards/03-zadania.html" style="--c: #b6ff2e">
+      <div class="thumb"><iframe src="cards/03-zadania.html" title="Podgląd: Zadania" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">3</span><div><h2>Zadania</h2><p>Wspólna lista ze wszystkich projektów, Deep Work / Quick Win, checklista w stylu terminala.</p></div><span class="key">Alt+3</span></div>
+    </a>
+    <a class="card" href="cards/04-projekty.html" style="--c: #3d95ff">
+      <div class="thumb"><iframe src="cards/04-projekty.html" title="Podgląd: Projekty" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">4</span><div><h2>Projekty</h2><p>Rejestr, metryczka, Save State, tablica zadań, devlog i paczka kontekstu dla agenta.</p></div><span class="key">Alt+4</span></div>
+    </a>
+    <a class="card" href="cards/05-notatki.html" style="--c: #f3ff3a">
+      <div class="thumb"><iframe src="cards/05-notatki.html" title="Podgląd: Notatki" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">5</span><div><h2>Notatki</h2><p>Drzewo plików Markdown, edytor z zakreślaczem, linki zwrotne, wyszukiwarka decyzji.</p></div><span class="key">Alt+5</span></div>
+    </a>
+    <a class="card" href="cards/06-plotno.html" style="--c: #22d3ee">
+      <div class="thumb"><iframe src="cards/06-plotno.html" title="Podgląd: Płótno" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">6</span><div><h2>Płótno</h2><p>Tablica i mapa myśli na siatce blueprint, minimapa, właściwości węzła.</p></div><span class="key">Alt+6</span></div>
+    </a>
+    <a class="card" href="cards/07-arsenal.html" style="--c: #b47bff">
+      <div class="thumb"><iframe src="cards/07-arsenal.html" title="Podgląd: Arsenał" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">7</span><div><h2>Arsenał</h2><p>Skille i prompty jako moduły, zasoby, kursy z postępem, baza rozwiązań bugów.</p></div><span class="key">Alt+7</span></div>
+    </a>
+    <a class="card" href="cards/08-mapa.html" style="--c: #ff2bd6">
+      <div class="thumb"><iframe src="cards/08-mapa.html" title="Podgląd: Mapa" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">8</span><div><h2>Mapa</h2><p>Projekty jako sieć neuronowa z impulsami, radar blokad, agenci z Herdr na żywo.</p></div><span class="key">Alt+8</span></div>
+    </a>
+    <a class="card" href="cards/09-kodeks.html" style="--c: #3ddc84">
+      <div class="thumb"><iframe src="cards/09-kodeks.html" title="Podgląd: Kodeks" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="meta"><span class="num">9</span><div><h2>Kodeks</h2><p>Zasady pracy nad kodem: czytnik kodeksu z regułami MUST/SHOULD i checklisty do zadań.</p></div><span class="key">Alt+9</span></div>
+    </a>
+  </div>
+
+  <footer>Źródło: <code>docs/mockups/karty/</code> · zasady dla autorów kart w <code>STYLEGUIDE.md</code>. Tylko desktop; mobile powstanie przy wdrożeniu.</footer>
+</div>
+
+<script>
+  // Skaluje podgląd 1440×900 do szerokości miniatury.
+  const fit = (box) => {
+    const f = box.querySelector("iframe");
+    f.style.transform = `scale(${box.clientWidth / 1440})`;
+  };
+  const ro = new ResizeObserver((entries) => entries.forEach((e) => fit(e.target)));
+  document.querySelectorAll(".thumb").forEach((t) => { fit(t); ro.observe(t); });
+</script>

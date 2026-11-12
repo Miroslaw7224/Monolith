@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="pl" data-card="zadania" data-project="gen-podsum-ai" data-branch="fix/gp-001-porty">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zadania · Second Brain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Oxanium:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Exo+2:wght@500;700&family=Sora:wght@400;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;800&family=Chakra+Petch:wght@500;700&display=swap">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../shell.css">
+<style>
+  /* --- Zadania: motyw terminala i checklisty (prefiks .zad-) --- */
+  :root {
+    --zad-p1: #ff6e6e;
+    --zad-p2: #ffd84d;
+    --zad-p3: #8fae96;
+  }
+
+  /* pasek szybkiego dodawania z promptem terminala */
+  .zad-cli {
+    display: flex; align-items: center; gap: var(--s-3);
+    padding: var(--s-2) var(--s-4); margin-bottom: var(--s-5);
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+  }
+  .zad-cli:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 16px -4px var(--glow);
+  }
+  .zad-cli__prompt {
+    font: 700 var(--fs-md)/1 var(--font-mono);
+    color: var(--accent-text); user-select: none;
+  }
+  .zad-cli__input {
+    flex: 1; border: none; background: transparent; height: 32px; padding: 0;
+    font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text);
+  }
+  .zad-cli__input:focus { outline: none; }
+  .zad-cli__meta { display: flex; align-items: center; gap: var(--s-2); }
+
+  /* kafle liczbowe */
+  .zad-tiles { --cols: 4; margin-bottom: var(--s-5); }
+  .zad-tiles .tile__value { font-size: var(--fs-2xl); }
+
+  /* układ główny: lista + podgląd szczegółów */
+  .zad-layout {
+    display: grid; grid-template-columns: 1fr 380px; gap: var(--s-4); align-items: start;
+  }
+
+  /* pasek filtrów */
+  .zad-filters {
+    display: flex; flex-direction: column; gap: var(--s-2);
+    padding: var(--s-3) var(--s-4); background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--r-md); margin-bottom: var(--s-4);
+  }
+  .zad-filter-row { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+  .zad-filter-label {
+    font: 600 var(--fs-xs)/1 var(--font-mono); text-transform: uppercase;
+    letter-spacing: 1px; color: var(--muted); width: 84px; flex: none;
+  }
+
+  /* pasek przełączania widoków */
+  .zad-view-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: var(--s-3);
+  }
+  .zad-view-title {
+    font: 600 var(--fs-sm)/1.2 var(--font-display); text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--muted); margin: 0;
+  }
+  .zad-view-title b { color: var(--text); }
+
+  /* grupy zadań */
+  .zad-group { margin-bottom: var(--s-5); }
+  .zad-group__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: var(--s-2) var(--s-1); margin-bottom: var(--s-2);
+    border-bottom: 1px dashed var(--line);
+  }
+  .zad-group__title {
+    font: 600 var(--fs-xs)/1.2 var(--font-mono); text-transform: uppercase;
+    letter-spacing: 1.4px; color: var(--accent-text); margin: 0;
+    display: flex; align-items: center; gap: var(--s-2);
+  }
+  .zad-group__meta { font: 500 var(--fs-xs)/1 var(--font-mono); color: var(--muted); }
+
+  /* element zadania w liście */
+  .zad-item {
+    display: grid; grid-template-columns: 28px auto 1fr auto; gap: var(--s-3);
+    align-items: center; padding: var(--s-2) var(--s-3);
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-sm); margin-bottom: var(--s-2);
+    transition: border-color .15s var(--ease), background .15s var(--ease);
+    cursor: pointer; text-decoration: none; color: inherit;
+  }
+  .zad-item:hover {
+    background: var(--surface-2);
+    border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  }
+  .zad-item--sel {
+    border-color: var(--accent);
+    background: var(--surface-2);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 16px -4px var(--glow);
+  }
+  .zad-item--done { opacity: .55; }
+  .zad-item--done .zad-title { text-decoration: line-through; }
+
+  /* znacznik terminala [ ] / [x] */
+  .zad-mark {
+    font: 600 13px/1 var(--font-mono); color: var(--accent-text);
+    background: transparent; border: 0; padding: 0; cursor: pointer;
+    text-align: center;
+  }
+  .zad-item--done .zad-mark { color: var(--muted); }
+
+  .zad-ticket {
+    font: 600 var(--fs-xs)/1 var(--font-mono); color: var(--text);
+    padding: 3px 6px; border-radius: var(--r-sm); background: var(--surface-2);
+    border: 1px solid var(--line); white-space: nowrap;
+  }
+  .zad-main { min-width: 0; }
+  .zad-title {
+    font-weight: 500; font-size: var(--fs-sm); line-height: 1.35;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .zad-meta {
+    display: flex; align-items: center; gap: var(--s-2); margin-top: 3px;
+    font-size: var(--fs-xs); color: var(--muted); flex-wrap: wrap;
+  }
+  .zad-due { font-family: var(--font-mono); }
+  .zad-due--today { color: var(--text); font-weight: 600; }
+  .zad-badges { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+
+  /* priorytety */
+  .zad-pri--p1 { color: var(--zad-p1); border-color: color-mix(in srgb, var(--zad-p1) 50%, transparent); }
+  .zad-pri--p2 { color: var(--zad-p2); border-color: color-mix(in srgb, var(--zad-p2) 50%, transparent); }
+  .zad-pri--p3 { color: var(--zad-p3); border-color: color-mix(in srgb, var(--zad-p3) 50%, transparent); }
+
+  /* prawy panel: szczegóły zadania */
+  .zad-detail {
+    position: sticky; top: var(--s-5);
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: var(--s-4);
+  }
+  .zad-detail__head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-2);
+    margin-bottom: var(--s-3); padding-bottom: var(--s-3); border-bottom: 1px solid var(--line);
+  }
+  .zad-detail__title {
+    font: 600 var(--fs-lg)/1.25 var(--font-display); margin: var(--s-1) 0;
+    color: var(--text);
+  }
+  .zad-kv {
+    display: grid; grid-template-columns: 96px 1fr; gap: 6px var(--s-3);
+    margin: var(--s-3) 0; font-size: var(--fs-xs);
+  }
+  .zad-kv dt {
+    font: 500 var(--fs-xs)/1.5 var(--font-mono); color: var(--muted);
+    text-transform: uppercase; letter-spacing: .8px;
+  }
+  .zad-kv dd { margin: 0; font-family: var(--font-mono); line-height: 1.5; }
+  .zad-kv dd b { font-weight: 600; color: var(--text); }
+
+  .zad-section {
+    margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--line);
+  }
+  .zad-section__title {
+    font: 600 11px/1 var(--font-mono); text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--muted); margin: 0 0 var(--s-2);
+  }
+  .zad-checklist { list-style: none; margin: 0; padding: 0; }
+  .zad-checklist__item {
+    display: flex; align-items: flex-start; gap: var(--s-2);
+    padding: 3px 0; font: 400 var(--fs-xs)/1.4 var(--font-mono);
+  }
+  .zad-checklist__item > :first-child { flex: none; white-space: nowrap; }
+  .zad-checklist__item--done { color: var(--muted); text-decoration: line-through; }
+  .zad-termbox {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: var(--s-3); font: 400 var(--fs-xs)/1.5 var(--font-mono); color: var(--text);
+    margin: var(--s-2) 0; overflow-x: auto;
+  }
+  .zad-termbox code { font: inherit; }
+  .zad-actions { display: flex; gap: var(--s-2); margin-top: var(--s-4); flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="app">
+<main class="view">
+
+  <header class="view-head">
+    <div>
+      <p class="view-head__eyebrow">Alt+3 · Zadania</p>
+      <h1 class="view-head__title">Zadania projektowe</h1>
+      <p class="view-head__sub">Środa, 11 listopada 2026 · 11 zadań aktywnych w 7 projektach · 5 deep work · 6 quick win</p>
+    </div>
+    <div class="view-head__actions">
+      <div class="tabs" role="tablist" data-group="zad-tabs">
+        <button class="tabs__btn" role="tab" data-tab="groups" aria-selected="true">Grupy (Teraz / Kolejka)</button>
+        <button class="tabs__btn" role="tab" data-tab="by-project" aria-selected="false">Wg projektów</button>
+        <button class="tabs__btn" role="tab" data-tab="done" aria-selected="false">Ukończone (12)</button>
+      </div>
+      <button class="btn btn--primary" data-toast="Nowe zadanie (atrapa)">+ Zadanie</button>
+    </div>
+  </header>
+
+  <!-- terminalowy prompt szybkiego dodawania zadania -->
+  <div class="zad-cli" data-src="Inbox/inbox.md · szybki zrzut">
+    <span class="zad-cli__prompt">&gt;</span>
+    <input class="zad-cli__input" placeholder="dodaj: [gen-podsum-ai] nazwa zadania [due:: 2026-11-12] #deep #p1..." aria-label="Szybkie dodawanie zadania">
+    <div class="zad-cli__meta">
+      <kbd class="kbd">Enter</kbd>
+      <button class="btn btn--sm btn--primary" data-toast="Zadanie dodane do tasks.md">Zapisz</button>
+    </div>
+  </div>
+
+  <!-- kafle z liczbami -->
+  <section class="tiles zad-tiles" aria-label="Statystyki zadań">
+    <div class="tile tile--accent" data-src="Projects/*/tasks.md · Teraz">
+      <span class="tile__label">Teraz (Dziś)</span>
+      <span class="tile__value">4</span>
+      <span class="tile__meta">2 deep work · 2 quick win</span>
+    </div>
+    <div class="tile" data-src="Projects/*/tasks.md · Następne">
+      <span class="tile__label">W kolejce (Następne)</span>
+      <span class="tile__value">5</span>
+      <span class="tile__meta">najbliższy termin: jutro</span>
+    </div>
+    <div class="tile" data-src="Projects/*/tasks.md · [energy:: deep]">
+      <span class="tile__label">Czas Deep Work</span>
+      <span class="tile__value">4<span class="muted" style="font-size: var(--fs-lg)"> h 30</span></span>
+      <span class="tile__meta">2 bloki zaplanowane na dziś</span>
+    </div>
+    <div class="tile" data-src="Projects/*/tasks.md · ukończone w tyg. 46">
+      <span class="tile__label">Ukończone w tygodniu</span>
+      <span class="tile__value">12</span>
+      <span class="tile__meta">85% celów tygodnia 46</span>
+    </div>
+  </section>
+
+  <!-- filtry projektów i energii -->
+  <section class="zad-filters" aria-label="Filtry zadań" data-src="_registry.yaml · projects">
+    <div class="zad-filter-row">
+      <span class="zad-filter-label">Projekty</span>
+      <button class="chip" aria-pressed="true">wszystkie (11)</button>
+      <button class="chip" aria-pressed="false">gen-podsum-ai (2)</button>
+      <button class="chip" aria-pressed="false">code-sensei (2)</button>
+      <button class="chip" aria-pressed="false">tester-ai (1)</button>
+      <button class="chip" aria-pressed="false">english-agent (2)</button>
+      <button class="chip" aria-pressed="false">portfolio (2)</button>
+      <button class="chip" aria-pressed="false">nexus (1)</button>
+      <button class="chip" aria-pressed="false">second-brain (1)</button>
+    </div>
+    <div class="zad-filter-row">
+      <span class="zad-filter-label">Energia</span>
+      <button class="chip" aria-pressed="false"><span class="dot dot--accent"></span>Deep Work (5)</button>
+      <button class="chip" aria-pressed="false">Quick Win (6)</button>
+      <span class="zad-filter-label" style="width: 70px; margin-left: var(--s-3)">Priorytet</span>
+      <button class="chip chip--danger" aria-pressed="false">P1 Krytyczny</button>
+      <button class="chip chip--warn" aria-pressed="false">P2 Wysoki</button>
+      <button class="chip" aria-pressed="false">P3 Normalny</button>
+    </div>
+  </section>
+
+  <!-- główny układ dwukolumnowy -->
+  <div class="zad-layout">
+
+    <!-- lewa kolumna: listy zadań w zakładkach -->
+    <div class="zad-col-main">
+
+      <!-- ZAKŁADKA 1: GRUPY TERAZ / NASTĘPNE / ICEBOX -->
+      <div data-tab-group="zad-tabs" data-tab="groups">
+
+        <!-- GRUPA: TERAZ -->
+        <section class="zad-group" aria-labelledby="grp-teraz-h" data-src="Projects/*/tasks.md · Teraz">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title" id="grp-teraz-h">
+              <span class="dot dot--accent"></span>
+              <span>Teraz (aktywne dziś)</span>
+            </h2>
+            <span class="zad-group__meta">4 zadania · 2 deep · 2 quick</span>
+          </div>
+
+          <!-- Zadanie 1: GP-001 (wybrane, szczegóły w prawym panelu) -->
+          <article class="zad-item zad-item--sel" data-src="Projects/gen-podsum-ai/tasks.md · GP-001" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">GP-001</span>
+            <div class="zad-main">
+              <div class="zad-title">GP-001 porty V2</div>
+              <div class="zad-meta">
+                <span class="mono">gen-podsum-ai</span>
+                <span>·</span>
+                <span class="zad-due zad-due--today">[due:: 2026-11-11]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:18</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--deep">Deep Work</span>
+              <span class="chip chip--danger zad-pri--p1">P1</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 2: Tester AI -->
+          <article class="zad-item" data-src="Projects/tester-ai/tasks.md · TA-014" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">TA-014</span>
+            <div class="zad-main">
+              <div class="zad-title">uruchomić Tester AI i sprawdzić DoD</div>
+              <div class="zad-meta">
+                <span class="mono">tester-ai</span>
+                <span>·</span>
+                <span class="zad-due zad-due--today">[due:: 2026-11-11]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:32</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--deep">Deep Work</span>
+              <span class="chip chip--danger zad-pri--p1">P1</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 3: README portfolio -->
+          <article class="zad-item" data-src="Projects/portfolio/tasks.md · PF-042" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">PF-042</span>
+            <div class="zad-main">
+              <div class="zad-title">README portfolio 4-&gt;7 projektów</div>
+              <div class="zad-meta">
+                <span class="mono">portfolio</span>
+                <span>·</span>
+                <span class="zad-due zad-due--today">[due:: 2026-11-11]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:12</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--quick">Quick Win</span>
+              <span class="chip chip--warn zad-pri--p2">P2</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 4: Second Brain skróty -->
+          <article class="zad-item" data-src="Projects/second-brain/tasks.md · SB-102" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">SB-102</span>
+            <div class="zad-main">
+              <div class="zad-title">weryfikacja skrótów Alt+1..8 i testy nawigacji</div>
+              <div class="zad-meta">
+                <span class="mono">second-brain</span>
+                <span>·</span>
+                <span class="zad-due zad-due--today">[due:: 2026-11-11]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:44</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--quick">Quick Win</span>
+              <span class="chip chip--warn zad-pri--p2">P2</span>
+            </div>
+          </article>
+        </section>
+
+        <!-- GRUPA: NASTĘPNE -->
+        <section class="zad-group" aria-labelledby="grp-nast-h" data-src="Projects/*/tasks.md · Następne">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title" id="grp-nast-h">
+              <span class="dot dot--warn"></span>
+              <span>Następne (kolejka bieżąca)</span>
+            </h2>
+            <span class="zad-group__meta">5 zadań · 2 deep · 3 quick</span>
+          </div>
+
+          <!-- Zadanie 5: GP-002 -->
+          <article class="zad-item" data-src="Projects/gen-podsum-ai/tasks.md · GP-002" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">GP-002</span>
+            <div class="zad-main">
+              <div class="zad-title">GP-002 test end-to-end V2</div>
+              <div class="zad-meta">
+                <span class="mono">gen-podsum-ai</span>
+                <span>·</span>
+                <span class="zad-due">[due:: 2026-11-13]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:27</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--deep">Deep Work</span>
+              <span class="chip chip--warn zad-pri--p2">P2</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 6: Fiszki -->
+          <article class="zad-item" data-src="Projects/english-agent/tasks.md · EA-031" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">EA-031</span>
+            <div class="zad-main">
+              <div class="zad-title">weryfikacja fiszek A1-C2</div>
+              <div class="zad-meta">
+                <span class="mono">english-agent</span>
+                <span>·</span>
+                <span class="zad-due">[due:: 2026-11-14]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:15</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--quick">Quick Win</span>
+              <span class="chip zad-pri--p3">P3</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 7: Linki w portfolio -->
+          <article class="zad-item" data-src="Projects/portfolio/tasks.md · PF-043" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">PF-043</span>
+            <div class="zad-main">
+              <div class="zad-title">sprawdzić linki w portfolio</div>
+              <div class="zad-meta">
+                <span class="mono">portfolio</span>
+                <span>·</span>
+                <span class="zad-due">[due:: 2026-11-15]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:19</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--quick">Quick Win</span>
+              <span class="chip zad-pri--p3">P3</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 8: Refaktor complexity 74 -->
+          <article class="zad-item" data-src="Projects/code-sensei/tasks.md · CS-088" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">CS-088</span>
+            <div class="zad-main">
+              <div class="zad-title">refaktor session/answer/route.ts (complexity 74)</div>
+              <div class="zad-meta">
+                <span class="mono">code-sensei</span>
+                <span>·</span>
+                <span class="zad-due">[due:: 2026-11-16]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:58</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--deep">Deep Work</span>
+              <span class="chip chip--danger zad-pri--p1">P1</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 9: NEXUS standaryzacja schematu -->
+          <article class="zad-item" data-src="Projects/nexus/tasks.md · NX-019" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">NX-019</span>
+            <div class="zad-main">
+              <div class="zad-title">NEXUS: standaryzacja schematu tasks.md i statusów</div>
+              <div class="zad-meta">
+                <span class="mono">nexus</span>
+                <span>·</span>
+                <span class="zad-due">[due:: 2026-11-17]</span>
+                <span>·</span>
+                <span class="mono">tasks.md:08</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--quick">Quick Win</span>
+              <span class="chip chip--warn zad-pri--p2">P2</span>
+            </div>
+          </article>
+        </section>
+
+        <!-- GRUPA: ICEBOX -->
+        <section class="zad-group" aria-labelledby="grp-ice-h" data-src="Projects/*/tasks.md · Icebox">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title" id="grp-ice-h">
+              <span class="dot"></span>
+              <span>Icebox (zamrażarka pomysłów)</span>
+            </h2>
+            <span class="zad-group__meta">2 zadania odłożone</span>
+          </div>
+
+          <!-- Zadanie 10: Code Sensei pgvector -->
+          <article class="zad-item" data-src="Projects/code-sensei/tasks.md · CS-095" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">CS-095</span>
+            <div class="zad-main">
+              <div class="zad-title">migracja bazy wektorowej na pgvector</div>
+              <div class="zad-meta">
+                <span class="mono">code-sensei</span>
+                <span>·</span>
+                <span class="mono">tasks.md:92</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--deep">Deep Work</span>
+              <span class="chip zad-pri--p3">P3</span>
+            </div>
+          </article>
+
+          <!-- Zadanie 11: English Agent podcasty -->
+          <article class="zad-item" data-src="Projects/english-agent/tasks.md · EA-050" tabindex="0">
+            <button class="zad-mark" type="button" aria-label="Stan zadania" data-toast="Zmieniono stan zadania">[ ]</button>
+            <span class="zad-ticket">EA-050</span>
+            <div class="zad-main">
+              <div class="zad-title">generator audio podcastów z lekcji gramatyki</div>
+              <div class="zad-meta">
+                <span class="mono">english-agent</span>
+                <span>·</span>
+                <span class="mono">tasks.md:71</span>
+              </div>
+            </div>
+            <div class="zad-badges">
+              <span class="energy energy--deep">Deep Work</span>
+              <span class="chip zad-pri--p3">P3</span>
+            </div>
+          </article>
+        </section>
+      </div>
+
+      <!-- ZAKŁADKA 2: GRUPOWANIE WG PROJEKTÓW -->
+      <div data-tab-group="zad-tabs" data-tab="by-project" hidden>
+        <!-- Sekcja gen-podsum-ai -->
+        <section class="zad-group" data-src="Projects/gen-podsum-ai/tasks.md">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title"><span class="dot dot--accent"></span> gen-podsum-ai</h2>
+            <span class="zad-group__meta">2 zadania</span>
+          </div>
+          <article class="zad-item zad-item--sel">
+            <span class="zad-mark">[ ]</span>
+            <span class="zad-ticket">GP-001</span>
+            <div class="zad-main">
+              <div class="zad-title">GP-001 porty V2</div>
+              <div class="zad-meta"><span class="zad-due zad-due--today">[due:: 2026-11-11]</span></div>
+            </div>
+            <span class="energy energy--deep">Deep Work</span>
+          </article>
+          <article class="zad-item">
+            <span class="zad-mark">[ ]</span>
+            <span class="zad-ticket">GP-002</span>
+            <div class="zad-main">
+              <div class="zad-title">GP-002 test end-to-end V2</div>
+              <div class="zad-meta"><span class="zad-due">[due:: 2026-11-13]</span></div>
+            </div>
+            <span class="energy energy--deep">Deep Work</span>
+          </article>
+        </section>
+
+        <!-- Sekcja portfolio -->
+        <section class="zad-group" data-src="Projects/portfolio/tasks.md">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title"><span class="dot dot--ok"></span> portfolio</h2>
+            <span class="zad-group__meta">2 zadania</span>
+          </div>
+          <article class="zad-item">
+            <span class="zad-mark">[ ]</span>
+            <span class="zad-ticket">PF-042</span>
+            <div class="zad-main">
+              <div class="zad-title">README portfolio 4-&gt;7 projektów</div>
+              <div class="zad-meta"><span class="zad-due zad-due--today">[due:: 2026-11-11]</span></div>
+            </div>
+            <span class="energy energy--quick">Quick Win</span>
+          </article>
+          <article class="zad-item">
+            <span class="zad-mark">[ ]</span>
+            <span class="zad-ticket">PF-043</span>
+            <div class="zad-main">
+              <div class="zad-title">sprawdzić linki w portfolio</div>
+              <div class="zad-meta"><span class="zad-due">[due:: 2026-11-15]</span></div>
+            </div>
+            <span class="energy energy--quick">Quick Win</span>
+          </article>
+        </section>
+
+        <!-- Sekcja code-sensei -->
+        <section class="zad-group" data-src="Projects/code-sensei/tasks.md">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title"><span class="dot dot--warn"></span> code-sensei</h2>
+            <span class="zad-group__meta">2 zadania</span>
+          </div>
+          <article class="zad-item">
+            <span class="zad-mark">[ ]</span>
+            <span class="zad-ticket">CS-088</span>
+            <div class="zad-main">
+              <div class="zad-title">refaktor session/answer/route.ts (complexity 74)</div>
+              <div class="zad-meta"><span class="zad-due">[due:: 2026-11-16]</span></div>
+            </div>
+            <span class="energy energy--deep">Deep Work</span>
+          </article>
+          <article class="zad-item">
+            <span class="zad-mark">[ ]</span>
+            <span class="zad-ticket">CS-095</span>
+            <div class="zad-main">
+              <div class="zad-title">migracja bazy wektorowej na pgvector</div>
+              <div class="zad-meta"><span class="mono">Icebox</span></div>
+            </div>
+            <span class="energy energy--deep">Deep Work</span>
+          </article>
+        </section>
+      </div>
+
+      <!-- ZAKŁADKA 3: UKOŃCZONE -->
+      <div data-tab-group="zad-tabs" data-tab="done" hidden>
+        <section class="zad-group" data-src="Projects/*/tasks.md · stan: done">
+          <div class="zad-group__head">
+            <h2 class="zad-group__title"><span class="dot dot--ok"></span> Ukończone w tym tygodniu</h2>
+            <span class="zad-group__meta">12 zadań zamkniętych</span>
+          </div>
+          <article class="zad-item zad-item--done">
+            <span class="zad-mark">[x]</span>
+            <span class="zad-ticket">GP-000</span>
+            <div class="zad-main">
+              <div class="zad-title">audyt konfiguracji portów i zmiennych środowiskowych</div>
+              <div class="zad-meta"><span class="mono">gen-podsum-ai · zamknięte 2026-11-10</span></div>
+            </div>
+            <span class="chip chip--ok">zamknięte</span>
+          </article>
+          <article class="zad-item zad-item--done">
+            <span class="zad-mark">[x]</span>
+            <span class="zad-ticket">TA-013</span>
+            <div class="zad-main">
+              <div class="zad-title">konfiguracja środowiska wirtualnego Python 3.11</div>
+              <div class="zad-meta"><span class="mono">tester-ai · zamknięte 2026-11-09</span></div>
+            </div>
+            <span class="chip chip--ok">zamknięte</span>
+          </article>
+          <article class="zad-item zad-item--done">
+            <span class="zad-mark">[x]</span>
+            <span class="zad-ticket">NX-018</span>
+            <div class="zad-main">
+              <div class="zad-title">walidacja formatu registry.yaml i kluczy projektów</div>
+              <div class="zad-meta"><span class="mono">nexus · zamknięte 2026-11-09</span></div>
+            </div>
+            <span class="chip chip--ok">zamknięte</span>
+          </article>
+        </section>
+      </div>
+
+    </div>
+
+    <!-- prawa kolumna: szczegóły wybranego zadania -->
+    <aside class="zad-detail" aria-labelledby="zad-det-h" data-src="Projects/gen-podsum-ai/tasks.md · GP-001">
+      <div class="zad-detail__head">
+        <div>
+          <span class="zad-ticket">GP-001</span>
+          <h2 class="zad-detail__title" id="zad-det-h">GP-001 porty V2</h2>
+        </div>
+        <span class="chip chip--accent">Teraz</span>
+      </div>
+
+      <dl class="zad-kv">
+        <dt>Projekt</dt>
+        <dd><b>gen-podsum-ai</b></dd>
+        <dt>Energia</dt>
+        <dd><span class="energy energy--deep">Deep Work (90 min)</span></dd>
+        <dt>Priorytet</dt>
+        <dd><span class="chip chip--danger zad-pri--p1">P1 Krytyczny</span></dd>
+        <dt>Termin</dt>
+        <dd><span class="zad-due zad-due--today">[due:: 2026-11-11] (Dziś)</span></dd>
+        <dt>Ścieżka</dt>
+        <dd><span class="mono">Projects/gen-podsum-ai/tasks.md:18</span></dd>
+        <dt>Branch</dt>
+        <dd><span class="mono">fix/gp-001-porty</span></dd>
+      </dl>
+
+      <div class="zad-section">
+        <h3 class="zad-section__title">Kroki checklisty</h3>
+        <ul class="zad-checklist">
+          <li class="zad-checklist__item zad-checklist__item--done">
+            <span>[x]</span>
+            <span>zidentyfikować konflikt portu 3000 z frontendem</span>
+          </li>
+          <li class="zad-checklist__item">
+            <span class="accent">[ ]</span>
+            <span>zmienić domyślny PORT w server.js na 5000</span>
+          </li>
+          <li class="zad-checklist__item">
+            <span class="accent">[ ]</span>
+            <span>zweryfikować skrypt start_v2.ps1 pod kątem flag</span>
+          </li>
+          <li class="zad-checklist__item">
+            <span class="accent">[ ]</span>
+            <span>wykonać test manualny endpointu /health</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="zad-section">
+        <h3 class="zad-section__title">Notatka z devlogu</h3>
+        <div class="zad-termbox">
+          <code>&gt; konflikt występuje przy równoległym starcie Vite.<br>&gt; ustawić PORT=5000 w server.js i odwołać start_v2.ps1.</code>
+        </div>
+      </div>
+
+      <div class="zad-actions">
+        <button class="btn btn--primary" data-toast="Zadanie GP-001 oznaczone jako wykonane">[x] Ukończ zadanie</button>
+        <button class="btn" data-toast="Otwarto tasks.md w edytorze">Edytuj tasks.md</button>
+        <button class="btn btn--ghost" data-toast="Przeniesiono do Icebox">Odłóż</button>
+      </div>
+    </aside>
+
+  </div>
+
+</main>
+</div>
+<script src="../shell.js"></script>
+</body>
+</html>
