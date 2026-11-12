@@ -1,11 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-const mockGetAuthUserId = vi.hoisted(() => vi.fn());
 const mockGetTasks = vi.hoisted(() => vi.fn());
 const mockCreateTask = vi.hoisted(() => vi.fn());
 
-vi.mock("@/lib/getAuth", () => ({ getAuthUserId: mockGetAuthUserId }));
 vi.mock("@/services/taskService", () => ({
   getTasks: mockGetTasks,
   createTask: mockCreateTask,
@@ -14,7 +12,7 @@ vi.mock("@/services/taskService", () => ({
 import { GET, POST } from "@/app/api/tasks/route";
 
 function makeRequest(options?: { method?: string; body?: unknown }): NextRequest {
-  const headers: Record<string, string> = { authorization: "Bearer valid" };
+  const headers: Record<string, string> = {};
   if (options?.body) headers["content-type"] = "application/json";
   return new NextRequest("http://localhost/api/tasks", {
     method: options?.method ?? "GET",
@@ -25,7 +23,6 @@ function makeRequest(options?: { method?: string; body?: unknown }): NextRequest
 
 const fakeTask = {
   id: "task-1",
-  userId: "user-1",
   title: "Napisać testy",
   description: "",
   link: "",
@@ -40,15 +37,6 @@ const fakeTask = {
 describe("GET /api/tasks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockGetAuthUserId.mockResolvedValue(
-      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    );
-    const res = await GET(makeRequest());
-    expect(res.status).toBe(401);
   });
 
   it("returns tasks array for authenticated user", async () => {
@@ -58,14 +46,13 @@ describe("GET /api/tasks", () => {
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);
     expect(body[0].title).toBe("Napisać testy");
-    expect(mockGetTasks).toHaveBeenCalledWith("user-1");
+    expect(mockGetTasks).toHaveBeenCalledWith();
   });
 });
 
 describe("POST /api/tasks", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAuthUserId.mockResolvedValue({ uid: "user-1" });
   });
 
   it("returns 400 when title is missing", async () => {
@@ -84,7 +71,6 @@ describe("POST /api/tasks", () => {
     const body = await res.json();
     expect(body.title).toBe("Napisać testy");
     expect(mockCreateTask).toHaveBeenCalledWith(
-      "user-1",
       expect.objectContaining({ title: "Napisać testy", status: "todo" })
     );
   });

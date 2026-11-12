@@ -45,7 +45,7 @@ describe("taskService", () => {
       ];
       mockGetTasks.mockResolvedValue(tasks);
 
-      const result = await getTasks("user-1");
+      const result = await getTasks();
 
       expect(result).toEqual(tasks);
     });
@@ -53,7 +53,7 @@ describe("taskService", () => {
     it("given getTasks throws, when getTasks is called, then propagates the error", async () => {
       mockGetTasks.mockRejectedValue(new Error("DB error"));
 
-      await expect(getTasks("user-1")).rejects.toThrow("DB error");
+      await expect(getTasks()).rejects.toThrow("DB error");
     });
   });
 
@@ -70,7 +70,7 @@ describe("taskService", () => {
       };
       mockCreateTask.mockResolvedValue(task);
 
-      const result = await createTask("user-1", { title: "T", description: "D" });
+      const result = await createTask({ title: "T", description: "D" });
 
       expect(result).toEqual(task);
     });
@@ -78,7 +78,7 @@ describe("taskService", () => {
     it("given createTask throws, when createTask is called, then propagates the error", async () => {
       mockCreateTask.mockRejectedValue(new Error("Create failed"));
 
-      await expect(createTask("user-1", { title: "T" })).rejects.toThrow("Create failed");
+      await expect(createTask({ title: "T" })).rejects.toThrow("Create failed");
     });
   });
 
@@ -86,15 +86,15 @@ describe("taskService", () => {
     it("given valid id and data, when updateTask is called, then delegates to firestore (happy path)", async () => {
       mockUpdateTask.mockResolvedValue(undefined);
 
-      await updateTask("user-1", "t1", { status: "done" });
+      await updateTask("t1", { status: "done" });
 
-      expect(mockUpdateTask).toHaveBeenCalledWith("user-1", "t1", { status: "done" });
+      expect(mockUpdateTask).toHaveBeenCalledWith("t1", { status: "done" });
     });
 
     it("given updateTask throws, when updateTask is called, then propagates the error", async () => {
       mockUpdateTask.mockRejectedValue(new Error("Update failed"));
 
-      await expect(updateTask("user-1", "t1", { title: "X" })).rejects.toThrow("Update failed");
+      await expect(updateTask("t1", { title: "X" })).rejects.toThrow("Update failed");
     });
   });
 
@@ -102,15 +102,15 @@ describe("taskService", () => {
     it("given valid id, when deleteTask is called, then delegates to firestore (happy path)", async () => {
       mockDeleteTask.mockResolvedValue(undefined);
 
-      await deleteTask("user-1", "t1");
+      await deleteTask("t1");
 
-      expect(mockDeleteTask).toHaveBeenCalledWith("user-1", "t1");
+      expect(mockDeleteTask).toHaveBeenCalledWith("t1");
     });
 
     it("given deleteTask throws, when deleteTask is called, then propagates the error", async () => {
       mockDeleteTask.mockRejectedValue(new Error("Delete failed"));
 
-      await expect(deleteTask("user-1", "t1")).rejects.toThrow("Delete failed");
+      await expect(deleteTask("t1")).rejects.toThrow("Delete failed");
     });
   });
 
@@ -118,15 +118,15 @@ describe("taskService", () => {
     it("given taskIds, when reorderTasks is called, then delegates to firestore", async () => {
       mockReorderTasks.mockResolvedValue(undefined);
 
-      await reorderTasks("user-1", ["t1", "t2", "t3"]);
+      await reorderTasks(["t1", "t2", "t3"]);
 
-      expect(mockReorderTasks).toHaveBeenCalledWith("user-1", ["t1", "t2", "t3"]);
+      expect(mockReorderTasks).toHaveBeenCalledWith(["t1", "t2", "t3"]);
     });
 
     it("given reorderTasks throws, when reorderTasks is called, then propagates the error", async () => {
       mockReorderTasks.mockRejectedValue(new Error("Reorder failed"));
 
-      await expect(reorderTasks("user-1", ["t1"])).rejects.toThrow("Reorder failed");
+      await expect(reorderTasks(["t1"])).rejects.toThrow("Reorder failed");
     });
   });
 });

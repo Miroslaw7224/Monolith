@@ -62,22 +62,19 @@ function compare(a: TaskRecord, b: TaskRecord): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
-export async function getTasks(_userId: string): Promise<TaskRecord[]> {
+export async function getTasks(): Promise<TaskRecord[]> {
   const text = readVaultFile(FILE)?.text ?? null;
   return readTasks(text).map(toRecord).sort(compare);
 }
 
-export async function createTask(
-  _userId: string,
-  data: {
-    title: string;
-    link?: string;
-    description?: string;
-    status?: TaskRecord["status"];
-    due_date?: string | null;
-    priority?: number | null;
-  }
-): Promise<TaskRecord> {
+export async function createTask(data: {
+  title: string;
+  link?: string;
+  description?: string;
+  status?: TaskRecord["status"];
+  due_date?: string | null;
+  priority?: number | null;
+}): Promise<TaskRecord> {
   let created: TaskLine | undefined;
   await edit((current) => {
     const now = nowIso();
@@ -100,7 +97,6 @@ export async function createTask(
 }
 
 export async function updateTask(
-  _userId: string,
   taskId: string,
   data: Partial<{
     title: string;
@@ -124,7 +120,7 @@ export async function updateTask(
   });
 }
 
-export async function reorderTasks(_userId: string, taskIds: string[]): Promise<void> {
+export async function reorderTasks(taskIds: string[]): Promise<void> {
   if (taskIds.length === 0) return;
   const index = new Map<string, number>();
   taskIds.forEach((id, position) => index.set(id, position));
@@ -140,6 +136,6 @@ export async function reorderTasks(_userId: string, taskIds: string[]): Promise<
   });
 }
 
-export async function deleteTask(_userId: string, taskId: string): Promise<void> {
+export async function deleteTask(taskId: string): Promise<void> {
   await edit((current) => removeTaskLine(current ?? "", taskId));
 }
