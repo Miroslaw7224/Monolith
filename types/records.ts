@@ -14,8 +14,7 @@ export type NoteRecord = {
   title: string;
   content: string;
   created_at?: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
+  updated_at?: string;
 };
 
 export type ChunkRecord = {
