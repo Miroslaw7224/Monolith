@@ -128,7 +128,7 @@ hc send "$TARGET" "$FULL" >/dev/null
 deadline=$(( $(date +%s) + TIMEOUT ))
 prev=""; stable=0; started=$(date +%s); seen_working=""; sleep 3
 while :; do
-  cur="$(hc read "$TARGET" 2>/dev/null || true)"
+  cur="$(hc read --lines 500 "$TARGET" 2>/dev/null || true)"
   st="$(hc get "$TARGET" | python3 -I -c 'import json,sys; s=json.load(sys.stdin).get("status"); print((s.get("state") if isinstance(s,dict) else s) or "")' 2>/dev/null || true)"
   if [[ "$st" == "blocked" ]]; then
     echo "$WHO ($TARGET) zablokował się na prośbie o zgodę. Zatwierdź w jego panelu." >&2
