@@ -1,7 +1,7 @@
 # Etap 0c: warstwa plikowa `lib/nexus/` — projekt
 
 Data: 2026-11-12
-Status: projekt zatwierdzony w brainstormie, plany podkroków jeszcze nie napisane
+Status: projekt zatwierdzony w brainstormie; krok 0c-1 zaimplementowany na gałęzi `feat/etap-0c-1-fundament` (czeka na ręczny przegląd UI i PR), plany 0c-2…0c-4 jeszcze nie napisane
 Nadrzędne specy: `2026-11-11-asystent-lokalny-nexus-design.md` (§4.1–4.3), `2026-11-12-etap-0-odpiecie-firebase-design.md` (§6), `2026-11-12-etap-0b-import-do-vaultu-design.md` (formaty plików)
 
 Ten dokument jest publiczny (repo na GitHubie). Nie zawiera identyfikatorów projektu Firebase, kluczy ani danych użytkownika, i tak ma zostać.
@@ -117,3 +117,4 @@ Niezależny review diffa przez pomocnika po 0c-1 i 0c-3 (logika zapisu). Przed u
 
 - **P1.** Dokładny schemat `Calendar/RRRR-MM.yaml` (wydarzenia wielodniowe przechodzące przez granicę miesiąca): do ustalenia w planie 0c-3.
 - **P2.** Zakres zmian w toolbarze edytora (które przyciski zostają): do ustalenia w planie 0c-4.
+- **P3.** Sanityzacja slugów notatek i dokumentów (0c-4): `vault-fs` odrzuca `..` i ścieżki bezwzględne, ale ukośnik wsteczny w nazwie na Linuksie tworzy plik z dosłownym `\\` w nazwie, więc generator slugów musi go usuwać.

@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { ConflictError, DomainError } from "@/lib/errors";
-import { getVaultRoot } from "./vault-path";
+import { VaultConfigError, getVaultRoot } from "./vault-path";
 
 export class PathOutsideVaultError extends DomainError {
   constructor(message: string) {
@@ -53,10 +53,10 @@ export function resolveInsideVault(vaultRoot: string, rel: string): string {
   try {
     realRoot = fs.realpathSync(vaultRoot);
   } catch {
-    throw new Error(`Vault root does not exist: ${vaultRoot}`);
+    throw new VaultConfigError(`Katalog vaulta nie istnieje: ${vaultRoot}`);
   }
   if (!fs.statSync(realRoot).isDirectory()) {
-    throw new Error(`Vault root is not a directory: ${vaultRoot}`);
+    throw new VaultConfigError(`Ścieżka vaulta nie jest katalogiem: ${vaultRoot}`);
   }
   if (typeof rel !== "string" || rel === "") throw new PathOutsideVaultError("Empty path");
   if (path.isAbsolute(rel) || path.win32.isAbsolute(rel) || rel.includes("\0")) {

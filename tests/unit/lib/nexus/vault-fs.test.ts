@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, DomainError } from "@/lib/errors";
+import { VaultConfigError } from "@/lib/nexus/vault-path";
 import {
   PathOutsideVaultError,
   readVaultFile,
@@ -26,6 +27,12 @@ afterEach(() => {
 });
 
 describe("resolveInsideVault", () => {
+  it("throws VaultConfigError when the vault root is missing or is a file", () => {
+    expect(() => resolveInsideVault(path.join(tmp, "nope"), "a.md")).toThrow(VaultConfigError);
+    const file = path.join(tmp, "file.txt");
+    fs.writeFileSync(file, "x");
+    expect(() => resolveInsideVault(file, "a.md")).toThrow(VaultConfigError);
+  });
   it("rejects traversal, absolute paths, empty path and NUL", () => {
     for (const bad of ["../x", "a/../../x", "/etc/passwd", "C:\\x", "", "a\0b"]) {
       expect(() => resolveInsideVault(root, bad), bad).toThrow(PathOutsideVaultError);
