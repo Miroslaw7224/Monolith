@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DomainError } from "../../../lib/errors.js";
+import { DomainError, ConflictError } from "../../../lib/errors.js";
 
 describe("lib/errors", () => {
   describe("DomainError", () => {
@@ -25,5 +25,15 @@ describe("lib/errors", () => {
       expect(err).toBeInstanceOf(Error);
       expect(err).toBeInstanceOf(DomainError);
     });
+  });
+});
+
+describe("ConflictError", () => {
+  it("is a DomainError with name ConflictError and statusCode 409", () => {
+    const err = new ConflictError("File changed");
+    expect(err).toBeInstanceOf(DomainError);
+    expect(err.name).toBe("ConflictError");
+    expect(err.statusCode).toBe(409);
+    expect(err.message).toBe("File changed");
   });
 });
