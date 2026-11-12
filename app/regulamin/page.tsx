@@ -31,7 +31,7 @@ export default function RegulaminPage() {
       <main className="mx-auto max-w-3xl px-6 py-12 sm:px-8 lg:px-12 flex-1">
         <h1 className="text-3xl font-bold text-[var(--text)] mb-2">Regulamin</h1>
         <p className="text-sm text-[var(--text3)] mb-10">
-          Nexus · Freelancer Edition · Ostatnia aktualizacja: luty 2025
+          Monolith · Freelancer Edition · Ostatnia aktualizacja: luty 2025
         </p>
 
         <div className="prose prose-invert max-w-none space-y-8 text-[var(--footer-link)] text-sm leading-relaxed [&_strong]:text-[var(--text)] [&_a]:text-[var(--accent)] [&_a]:underline [&_a]:underline-offset-2">
@@ -40,7 +40,7 @@ export default function RegulaminPage() {
               1. Postanowienia ogólne
             </h2>
             <p>
-              Niniejszy regulamin określa zasady korzystania z usługi Nexus (Freelancer Edition)
+              Niniejszy regulamin określa zasady korzystania z usługi Monolith (Freelancer Edition)
               dostępnej w serwisie internetowym. Usługodawcą jest Mirosław Baczkowski. Kontakt:{" "}
               <a href="mailto:miro.job7224@gmail.com">miro.job7224@gmail.com</a>. Korzystanie z
               usługi oznacza akceptację regulaminu. Jeżeli nie akceptujesz któregoś z postanowień,

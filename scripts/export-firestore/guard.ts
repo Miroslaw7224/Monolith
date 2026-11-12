@@ -5,7 +5,7 @@ import path from "node:path";
 
 export function defaultOutDir(now: Date = new Date()): string {
   const stamp = now.toISOString().slice(0, 16).replace(":", "");
-  return path.join(os.homedir(), "backups", "second-brain-firestore", stamp);
+  return path.join(os.homedir(), "backups", "monolith-firestore", stamp);
 }
 
 function nearestExistingDir(target: string): string {
@@ -36,7 +36,7 @@ export function assertOutsideGitWorkTree(outDir: string): void {
   if (inside === "true") {
     throw new Error(
       `Katalog wyjściowy ${outDir} leży w drzewie roboczym gita. ` +
-        `Wskaż katalog poza repozytoriami, np. ~/backups/second-brain-firestore/...`
+        `Wskaż katalog poza repozytoriami, np. ~/backups/monolith-firestore/...`
     );
   }
 }

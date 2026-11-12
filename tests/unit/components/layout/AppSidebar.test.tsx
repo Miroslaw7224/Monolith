@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { AppSidebar } from "@/src/components/layout/AppSidebar";
 
 const t = {
-  title: "Nexus",
+  title: "Monolith",
   subtitle: "Freelancer Edition",
   logout: "Wyloguj",
   proPlan: "PRO",
@@ -31,7 +31,7 @@ describe("AppSidebar", () => {
       </AppSidebar>
     );
 
-    expect(screen.getByRole("heading", { name: "Nexus" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Monolith" })).toBeInTheDocument();
     expect(screen.getByText("Jan K")).toBeInTheDocument();
     expect(screen.getByText("Panel content")).toBeInTheDocument();
   });

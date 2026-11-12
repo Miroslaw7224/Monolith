@@ -1,4 +1,4 @@
-# Nexus (Freelancer Edition)
+# Monolith (Freelancer Edition)
 
 Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, notatki, zasoby, mapy myśli). Stack: Next.js 14 (App Router), Firebase (Auth, Firestore).
 

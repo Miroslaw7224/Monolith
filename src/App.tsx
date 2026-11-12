@@ -200,7 +200,7 @@ export default function App({ authenticated = false }: AppProps = {}) {
                 <Brain className="text-white w-6 h-6" />
               </div>
               <div>
-                <h1 className="font-bold text-lg tracking-tight text-[var(--text)]">Nexus</h1>
+                <h1 className="font-bold text-lg tracking-tight text-[var(--text)]">Monolith</h1>
                 <p className="text-xs text-[var(--text2)] font-medium uppercase tracking-wider">
                   Freelancer Edition
                 </p>

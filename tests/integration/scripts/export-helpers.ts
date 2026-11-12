@@ -9,7 +9,7 @@ export const integrationEnabled = !!process.env.RUN_INTEGRATION_TESTS && !!emula
 /** Czyści WYŁĄCZNIE emulator (URL budowany z FIRESTORE_EMULATOR_HOST). */
 export async function wipeEmulator(): Promise<void> {
   if (!emulatorHost) throw new Error("FIRESTORE_EMULATOR_HOST nie jest ustawiony");
-  const project = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? "demo-nexus";
+  const project = process.env.FIREBASE_PROJECT_ID ?? process.env.GCLOUD_PROJECT ?? "demo-monolith";
   const res = await fetch(
     `http://${emulatorHost}/emulator/v1/projects/${project}/databases/(default)/documents`,
     { method: "DELETE" }

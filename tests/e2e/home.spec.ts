@@ -6,7 +6,7 @@ test.describe("Strona główna", () => {
     await expect(page.getByRole("heading", { name: /Nexus/i })).toBeVisible({
       timeout: 15000,
     });
-    await expect(page).toHaveTitle(/Nexus|Vite/);
+    await expect(page).toHaveTitle(/Monolith|Vite/);
     await expect(page.getByRole("link", { name: /^Zaloguj się$/i })).toBeVisible();
   });
 });
@@ -14,7 +14,7 @@ test.describe("Strona główna", () => {
 test.describe("/auth/login", () => {
   test("wyświetla tytuł aplikacji i formularz logowania", async ({ page }) => {
     await page.goto("/auth/login");
-    await expect(page.getByRole("heading", { name: /^Nexus$/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Monolith$/i })).toBeVisible({
       timeout: 15000,
     });
     await expect(page.getByText(/Freelancer Edition/i)).toBeVisible();
@@ -32,7 +32,7 @@ test.describe("/auth/login", () => {
 
   test("przełączenie na rejestrację pokazuje formularz rejestracji", async ({ page }) => {
     await page.goto("/auth/login");
-    await expect(page.getByRole("heading", { name: /^Nexus$/i })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /^Monolith$/i })).toBeVisible({
       timeout: 15000,
     });
     await page

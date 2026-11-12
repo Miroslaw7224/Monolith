@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Second Brain (Next.js 14) wchodzi w skład ekosystemu NEXUS: vault Markdown/YAML w `~/projects/Brain_7224/NEXUS/`
+Monolith (Next.js 14; dawniej Second Brain, katalog repo nadal `Second_brain`) wchodzi w skład ekosystemu NEXUS: vault Markdown/YAML w `~/projects/Brain_7224/NEXUS/`
 (źródło prawdy o projektach). Kierunek: lokalny asystent pracy,
 zob. `docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md`.
 Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/`.
