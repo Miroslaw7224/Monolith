@@ -10,6 +10,7 @@ export interface CardNavigation {
   planningTab: PlanningTab;
   setPlanningTab: (tab: PlanningTab) => void;
   placeholder: CardId | null;
+  projectsOpen: boolean;
   activeCard: CardId;
   selectCard: (id: CardId) => void;
 }
@@ -17,25 +18,25 @@ export interface CardNavigation {
 export function useCardNavigation(): CardNavigation {
   const [appMode, setAppModeRaw] = useState<AppMode>("home");
   const [planningTab, setPlanningTabRaw] = useState<PlanningTab>("tasks");
-  const [placeholder, setPlaceholder] = useState<CardId | null>(null);
+  const [standalone, setStandalone] = useState<CardId | null>(null);
 
   const setAppMode = useCallback((mode: AppMode) => {
-    setPlaceholder(null);
+    setStandalone(null);
     setAppModeRaw(mode);
   }, []);
 
   const setPlanningTab = useCallback((tab: PlanningTab) => {
-    setPlaceholder(null);
+    setStandalone(null);
     setPlanningTabRaw(tab);
   }, []);
 
   const selectCard = useCallback((id: CardId) => {
     const { target } = getCard(id);
-    if (target.kind === "placeholder") {
-      setPlaceholder(id);
+    if (target.kind === "placeholder" || target.kind === "projects") {
+      setStandalone(id);
       return;
     }
-    setPlaceholder(null);
+    setStandalone(null);
     if (target.kind === "home") {
       setAppModeRaw("home");
     } else {
@@ -44,7 +45,10 @@ export function useCardNavigation(): CardNavigation {
     }
   }, []);
 
-  const activeCard = placeholder ?? cardForView(appMode, planningTab);
+  const placeholder =
+    standalone && getCard(standalone).target.kind === "placeholder" ? standalone : null;
+  const projectsOpen = standalone === "projekty";
+  const activeCard = standalone ?? cardForView(appMode, planningTab);
 
   // Hash czytamy tylko raz: w StrictMode efekty biegną dwa razy, a drugi odczyt
   // trafiłby już na hash nadpisany przez efekt poniżej.
@@ -67,6 +71,7 @@ export function useCardNavigation(): CardNavigation {
     planningTab,
     setPlanningTab,
     placeholder,
+    projectsOpen,
     activeCard,
     selectCard,
   };

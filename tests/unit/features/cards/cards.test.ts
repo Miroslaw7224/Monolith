@@ -24,10 +24,13 @@ describe("CARDS", () => {
     ]);
   });
 
-  test("projekty, mapa i kodeks to zaślepki", () => {
-    expect(getCard("projekty").target).toEqual({ kind: "placeholder", stage: "etap 1" });
+  test("mapa i kodeks to zaślepki", () => {
     expect(getCard("mapa").target).toEqual({ kind: "placeholder", stage: "etap 4" });
     expect(getCard("kodeks").target).toEqual({ kind: "placeholder", stage: "po etapie 0c" });
+  });
+
+  test("projekty celuje w widok projects", () => {
+    expect(getCard("projekty").target).toEqual({ kind: "projects" });
   });
 
   test("Kodeks jest ostatnią kartą z etykietą Kodeks", () => {
