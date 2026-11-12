@@ -12,11 +12,11 @@ Dodać do aplikacji dziewiątą kartę **Kodeks**: uniwersalny zbiór zasad prac
 
 Podział prac:
 
-| Część | Zakres                                                                    | Zależy od                               | Kiedy                                  |
-| ----- | ------------------------------------------------------------------------- | --------------------------------------- | -------------------------------------- |
-| A     | Karta w szkielecie kart: rejestr, `Alt+9`, pasek, paleta, motyw, zaślepka | nic (szkielet nie zależy od danych)     | teraz, na gałęzi `feat/karty-szkielet` |
-| B     | Czytnik kodeksu i checklisty (odczyt pliku, dziennik uruchomień)          | warstwa plikowa `lib/nexus/` z etapu 0c | po etapie 0c, osobny spec i plan       |
-| C     | Treść kodeksu (tekst reguł), tor niekodowy                                | nic                                     | równolegle                             |
+| Część | Zakres                                                                    | Zależy od                                                                                               | Kiedy                                  |
+| ----- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| A     | Karta w szkielecie kart: rejestr, `Alt+9`, pasek, paleta, motyw, zaślepka | nic (szkielet nie zależy od danych)                                                                     | teraz, na gałęzi `feat/karty-szkielet` |
+| B     | Czytnik kodeksu i checklisty (odczyt pliku, dziennik uruchomień)          | warstwa plikowa `lib/nexus/` (0c); dla uruchomień `owner: work` także `Work/` w `.gitignore` NEXUS (0f) | po etapach 0c i 0f, osobny spec i plan |
+| C     | Treść kodeksu (tekst reguł), tor niekodowy                                | nic                                                                                                     | równolegle                             |
 
 ## 2. Podjęte decyzje
 
@@ -63,17 +63,40 @@ Plik `Vault/Knowledge/kodeks.md`. Reguła to punkt listy z identyfikatorem i poz
 - **[TDD-1] MUST** Brak kodu produkcyjnego bez czerwonego testu (komenda, exit ≠ 0, powód).
 ```
 
-Czytnik z identyfikatorów i poziomów buduje odznaki MUST/SHOULD, filtr, linkowalne kotwice i spis treści z nagłówków. Linia, która nie pasuje do wzorca, jest renderowana jako zwykły tekst; żadna treść nie ginie. Zduplikowany identyfikator jest zgłaszany ostrzeżeniem w UI, a nie błędem, który blokuje czytanie.
+Formalny wzorzec reguły (jedna linia, początek listy najwyższego poziomu):
+
+```
+^- \*\*\[([A-Z][A-Z0-9]*-[0-9]+)\] (MUST|SHOULD)\*\*[ \t]+(.+)$
+```
+
+- Identyfikator: wielkie litery i cyfry, myślnik, numer (`TDD-1`, `ASERCJE-3`). Treść może mieć polskie znaki i Markdown inline.
+- Kontynuacja: następne linie wcięte co najmniej dwiema spacjami należą do tej samej reguły. Zagnieżdżone punkty listy są częścią treści reguły rodzica, nie osobnymi regułami.
+- Odwołania w checklistach mają postać `- [ ] [TDD-1] krótki opis`. Odwołanie do nieistniejącego identyfikatora daje ostrzeżenie w UI.
+- Czytnik z identyfikatorów i poziomów buduje odznaki MUST/SHOULD, filtr, linkowalne kotwice i spis treści z nagłówków. Linia, która nie pasuje do wzorca, jest renderowana jako zwykły tekst; żadna treść nie ginie. Zduplikowany identyfikator jest zgłaszany ostrzeżeniem w UI, a nie błędem, który blokuje czytanie.
+
+Plik stosuje konwencje notatek z `Knowledge/` (frontmatter: `name`, `slug`, `type`, `categories`, `status`, itd.) i ma wpis w `Knowledge/_index.md`. W `Knowledge/` jest już `ai-coding-guardrails.md` (wiedza o strażnicach i pętli zwrotnej w AI-codingu). Kodeks jest od niego **normatywny** (MUST/SHOULD) i odwołuje się do niego przez `[[ai-coding-guardrails]]`, nie kopiuje treści.
 
 ### 4.2 Checklisty
 
 Definicje (np. „Definition of Done”, „Przed PR”) są w tym samym pliku, w sekcji `## Checklisty`, jako punkty `- [ ]` z odwołaniem do identyfikatorów reguł (`[TDD-1]`).
 
-Uruchomienie checklisty przy zadaniu zapisuje się jako **dziennik zdarzeń dopisywany do** `Vault/Checklists/RRRR-MM.jsonl`. Jedna linia to jedno zdarzenie: `{ "run": "<id>", "ts": "…", "type": "start" | "toggle" | "note", … }` z polami: nazwa checklisty, identyfikator zadania lub tekst, id punktu, stan, notatka (jedna linia tekstu). Stan bieżący odtwarza się ze zdarzeń. Zgodność z §4.2 nadrzędnego specu: logi tylko dopisywane, stabilne `id`, zapis atomowy, brak konfliktów przy edycji w dwóch miejscach.
+Uruchomienie checklisty przy zadaniu zapisuje się jako **dziennik zdarzeń dopisywany do** `Vault/Checklists/RRRR-MM.jsonl`. Jedna linia to jedno zdarzenie:
+
+```
+{ "run": "<id>", "ts": "…", "type": "start" | "toggle" | "note", "owner": "work" | "personal", "projectId": "…", … }
+```
+
+Pola zależne od typu: `start` ma nazwę checklisty i opis zadania, `toggle` ma id punktu i stan, `note` ma id punktu i jedną linię tekstu. `owner` jest **wymagane** w każdym zdarzeniu.
+
+Zasady zapisu (doprecyzowanie względem §4.2 nadrzędnego specu):
+
+- **Dziennik jest tylko dopisywany.** Zdarzenie to jeden zapis jednej linii zakończonej `\n` w trybie dopisywania. Zapis atomowy przez plik tymczasowy i `rename` oraz kontrola `mtime` dotyczą plików nadpisywanych, nie tego dziennika (przepisanie całego `.jsonl` zaprzeczałoby „tylko dopisywane”). Wykorzystujemy pomocnik dopisywania z `lib/nexus/` (etap 0c), nie drugi model I/O.
+- **Współbieżność:** zapisy w obrębie procesu serializuje kolejka (jedna linia naraz). Dopisywanie z dwóch procesów na lokalnym systemie plików jest atomowe dla krótkich linii (zdarzenia mają rozmiar rzędu setek bajtów), ale vault na dysku Windows widocznym w WSL (`/mnt/...`) może dawać słabsze gwarancje, więc podstawą jest kolejka w procesie, a dopisywanie z drugiego procesu (Obsidian, agent) jest traktowane jako rzadkie i objęte pomijaniem uszkodzonych linii.
+- **Odtwarzanie stanu:** kolejność zdarzeń to kolejność w pliku (`ts` informacyjnie, remis rozstrzyga pozycja w pliku). Dla pary (uruchomienie, punkt) obowiązuje ostatnie zdarzenie `toggle`. Linia uszkodzona (niepoprawny JSON) jest pomijana i liczona w ostrzeżeniu w UI. Ostatnia linia bez `\n` jest ignorowana, dopóki nie zostanie dokończona.
 
 ### 4.3 Prywatność
 
-Uruchomienia dla projektów `owner: work` trafiają do `Vault/Work/Checklists/`, strefy ignorowanej przez git (§5). Sam kodeks jest uniwersalny i nie zawiera danych etatu.
+Ścieżka zapisu wynika wyłącznie z pola `owner`: `personal` do `Vault/Checklists/`, `work` do `Vault/Work/Checklists/` (strefa ignorowana przez git, §5). Zdarzenie bez `owner` jest odrzucane (domyślnie nic nie trafia do strefy śledzonej przez git). Opis zadania i notatki dla projektu `work` zapisują się tylko w pliku ze strefy `Work/`. Przed pierwszym zapisem do `Vault/Work/` obowiązuje kontrola `git check-ignore Vault/Work/` (§5 nadrzędnego specu). W repo NEXUS `.gitignore` nie ma dziś wpisu `Work/` (to krok 0f etapu 0), dlatego **część B startuje po 0c i 0f**. Sam kodeks jest uniwersalny i nie zawiera danych etatu.
 
 ### 4.4 Warstwy
 
@@ -83,17 +106,17 @@ Uruchomienia dla projektów `owner: work` trafiają do `Vault/Work/Checklists/`,
 - Interfejs w `src/features/codex/`.
 - `CardTarget` w `cards.ts` dostaje nowy wariant `{ kind: "codex" }`, bo Kodeks nie jest zakładką `PlanningTab`; wpis karty zmienia się z `placeholder` na ten wariant, a `App.tsx` renderuje widok Kodeksu.
 - Nadrzędny spec §4.3 (układ plików vaulta) dostaje katalogi `Checklists/` i `Work/Checklists/` oraz `Knowledge/kodeks.md`, przy specu części B.
-- Zależność: renderer Markdowna (`react-markdown` z `remark-gfm`). W `package.json` nie ma dziś żadnej biblioteki do renderowania Markdowna.
+- Zależność: renderer Markdowna tylko do odczytu (`react-markdown` z `remark-gfm`). TipTap w `package.json` służy do edycji notatek, a nie do renderowania pliku Markdown, i nie ma w nim rozszerzenia Markdown.
 
 ### 4.5 Obsługa błędów
 
 - Brak vaulta (`NEXUS_VAULT_PATH` puste): błąd konfiguracji, jak w §4.2 nadrzędnego specu.
 - Brak pliku kodeksu: pusty stan z instrukcją utworzenia pliku.
-- Zmiana pliku w trakcie sesji: wykrywana po `mtime`, widok się odświeża.
+- Zmiana pliku w trakcie sesji: karta tylko czyta, więc nie ma konfliktu zapisu. Widok sprawdza `mtime` przy powrocie na kartę i co kilkanaście sekund oraz odświeża się bez okna rozstrzygania konfliktu.
 
 ### 4.6 Testy
 
-Zgodnie z samym kodeksem, czerwone najpierw. Parser reguł: wzorzec poprawny, zniekształcone linie, zduplikowane identyfikatory, polskie znaki. Dziennik: odtwarzanie stanu, atomowy zapis, kolejność zdarzeń, uruchomienia dla `owner: work` we właściwej strefie. Komponenty: filtr MUST/SHOULD, odhaczanie, notatka. Trasy API: błąd konfiguracji, brak pliku.
+Zgodnie z samym kodeksem, czerwone najpierw. Parser reguł: wzorzec poprawny, zniekształcone linie, zduplikowane identyfikatory, polskie znaki. Dziennik: odtwarzanie stanu, dopisywanie jednej linii, kolejność zdarzeń i remis `ts`, uszkodzona linia JSON i niedokończona ostatnia linia, równoległe dopisywanie z kolejki. Prywatność: zdarzenie bez `owner` odrzucone, `owner: work` trafia tylko do `Vault/Work/Checklists/`, brak śladu zdarzeń `work` w `Vault/Checklists/`, odmowa zapisu do `Work/`, gdy `git check-ignore` go nie obejmuje. Komponenty: filtr MUST/SHOULD, odhaczanie, notatka. Trasy API: błąd konfiguracji, brak pliku.
 
 ### 4.7 Makieta
 
@@ -101,7 +124,7 @@ Przed kodem powstaje `docs/mockups/karty/cards/09-kodeks.html`, według tego sam
 
 ## 5. Część C: treść kodeksu
 
-Tor niekodowy. Punkt wyjścia: opinie `agy` i `cursor` z 2026-11-12 (rozdziały: zakres i hierarchia, TDD i dowód czerwieni, jakość asercji, warstwy testów, dowody przed twierdzeniami, zakres zmian i małe commity, bezpieczeństwo i dane, praca z agentami, egzekucja, anty-wzorce). Zasady przekrojowe: język MUST/SHOULD, krótko (rzędu 80–100 linii na plik, bez rozrostu), kodeks jako kontrakt z odwołaniami do skilli zamiast duplikowania ich treści, każda reguła weryfikowalna.
+Tor niekodowy. Punkt wyjścia: opinie `agy` i `cursor` z 2026-11-12 (rozdziały: zakres i hierarchia, TDD i dowód czerwieni, jakość asercji, warstwy testów, dowody przed twierdzeniami, zakres zmian i małe commity, bezpieczeństwo i dane, praca z agentami, egzekucja, anty-wzorce). Zasady przekrojowe: język MUST/SHOULD, krótko, kodeks jako kontrakt z odwołaniami zamiast duplikowania treści (do skilli oraz do istniejących notatek, np. `[[ai-coding-guardrails]]` w `Knowledge/`), każda reguła weryfikowalna. **Rdzeń `kodeks.md` ma rzędu 100 linii**; rozdziały wymagające szerszego omówienia (np. strategia testów wielopoziomowych) są osobnymi notatkami w `Knowledge/` linkowanymi z rdzenia, żeby limit nie zmuszał do płytkich reguł.
 
 Do rozstrzygnięcia przy pisaniu: język dokumentu (polski dla czytelności vs angielski dla skuteczności reguł u agentów) oraz sposób podlinkowania z projektowych `CLAUDE.md` jedną linią.
 
@@ -112,7 +135,9 @@ Edycja kodeksu w aplikacji, wymagany dowód (komenda, exit code) per punkt check
 ## 7. Ryzyka
 
 - **Rozjazd formatu reguł.** Konwencja `[ID] MUST` musi być prosta, bo plik edytuje człowiek. Ograniczenie: łagodny parser (nierozpoznane linie zostają tekstem).
-- **Zależność od etapu 0c.** Część B nie ruszy przed `lib/nexus/`. Ograniczenie: część A jest samodzielna, a B ma jawny warunek wejścia.
+- **Zależność od etapów 0c i 0f.** Część B nie ruszy przed `lib/nexus/` (0c) ani, dla uruchomień `owner: work`, przed wpisem `Work/` w `.gitignore` NEXUS (0f). Ograniczenie: część A jest samodzielna, a B ma jawny warunek wejścia.
+- **Wyciek danych etatu przez zdarzenia.** Ograniczenie: wymagane `owner`, routing ścieżki tylko z `owner`, kontrola `git check-ignore`, testy prywatności (§4.6).
+- **Duplikacja wiedzy z `Knowledge/`.** Ograniczenie: kodeks jest normatywny i linkuje do notatek, a nie ich kopiuje.
 - **Kolizja skrótu `Alt+9`** z przeglądarką (opisane w części A).
 - **Rozrost kodeksu.** Ograniczenie: limit długości w części C i podział na MUST/SHOULD.
 
