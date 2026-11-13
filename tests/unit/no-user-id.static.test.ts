@@ -29,7 +29,7 @@ describe("0d-1 static guard: the server layer has no userId and no auth", () => 
     expect(files).toContain("services/noteService.ts");
     expect(files).toContain("app/api/notes/route.ts");
     expect(files).toContain("contexts/bc_tasks/repositories/tasks.ts");
-    expect(files).toContain("src/lib/activeSession.ts");
+    expect(files).toContain("src/components/sessions/activeSession.ts");
     expect(files.some((f) => f.startsWith("app/api/waitlist/"))).toBe(false);
   });
 

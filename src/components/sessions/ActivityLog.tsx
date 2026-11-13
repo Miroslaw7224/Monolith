@@ -12,8 +12,8 @@ import {
 import { Play, Square } from "lucide-react";
 import { formatDuration, CALENDAR_COLORS } from "@/src/lib/calendarConstants";
 import type { UserTag } from "@/src/features/tags/TagsSection";
-import { eventMinutesInInclusiveRange } from "@/lib/calendarRange";
-import type { ActiveSession } from "@/src/lib/activeSession";
+import { eventMinutesInInclusiveRange } from "./activityRange";
+import type { ActiveSession } from "@/src/components/sessions/activeSession";
 import type { CalendarEvent } from "@/types/records";
 
 type TranslationDict = Record<string, string | string[]>;

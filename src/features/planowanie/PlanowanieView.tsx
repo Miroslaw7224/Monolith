@@ -21,14 +21,14 @@ import {
   setActiveSession,
   clearActiveSession,
   type ActiveSession,
-} from "@/src/lib/activeSession";
+} from "@/src/components/sessions/activeSession";
 import type { translations } from "@/src/translations";
 
 type TranslationsEn = (typeof translations)["en"];
 
 const ActivityLog = dynamic<
-  ComponentProps<typeof import("@/src/components/ActivityLog").ActivityLog>
->(() => import("@/src/components/ActivityLog").then((mod) => mod.ActivityLog), {
+  ComponentProps<typeof import("@/src/components/sessions/ActivityLog").ActivityLog>
+>(() => import("@/src/components/sessions/ActivityLog").then((mod) => mod.ActivityLog), {
   loading: () => <div className="flex-1 min-h-[24rem]" />,
 });
 

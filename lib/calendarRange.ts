@@ -38,21 +38,3 @@ export function eventOverlapsInclusiveRange(
   if (ev.duration_minutes <= 0) return false;
   return evStart < reEx && evEnd > rs;
 }
-
-/** Minutes of the event that fall inside [rangeStart 00:00, rangeEnd+1day) (same semantics as overlap). */
-export function eventMinutesInInclusiveRange(
-  ev: { date: string; start_minutes: number; duration_minutes: number },
-  rangeStart: string,
-  rangeEnd: string
-): number {
-  if (ev.duration_minutes <= 0) return 0;
-  const rs = parseLocalMidnight(rangeStart);
-  const reEx = parseLocalMidnight(rangeEnd) + MINS_PER_DAY * MS_PER_MIN;
-  if (Number.isNaN(rs) || Number.isNaN(reEx) || reEx <= rs) return 0;
-  const evS = eventStartMs(ev);
-  const evE = eventEndMs(ev);
-  const overlapStart = Math.max(evS, rs);
-  const overlapEnd = Math.min(evE, reEx);
-  if (overlapStart >= overlapEnd) return 0;
-  return Math.round((overlapEnd - overlapStart) / MS_PER_MIN);
-}

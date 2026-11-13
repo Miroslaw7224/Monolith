@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { clearActiveSession, getActiveSession, setActiveSession } from "@/src/lib/activeSession";
+import {
+  clearActiveSession,
+  getActiveSession,
+  setActiveSession,
+} from "@/src/components/sessions/activeSession";
 
 const SESSION = {
   title: "Praca",

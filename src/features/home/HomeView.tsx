@@ -2,15 +2,15 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import type { translations } from "@/src/translations";
-import { ActivityLog } from "@/src/components/ActivityLog";
+import { ActivityLog } from "@/src/components/sessions/ActivityLog";
 import type { UserTag } from "@/src/features/tags/TagsSection";
-import { StartSessionModal } from "@/src/components/StartSessionModal";
+import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
 import {
   getActiveSession,
   setActiveSession,
   clearActiveSession,
   type ActiveSession,
-} from "@/src/lib/activeSession";
+} from "@/src/components/sessions/activeSession";
 import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import {
