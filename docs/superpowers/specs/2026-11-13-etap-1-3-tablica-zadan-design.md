@@ -1,7 +1,7 @@
 # Etap 1-3: tablica zadań projektu (zapis `tasks.md`) — projekt
 
 Data: 2026-11-13
-Status: zatwierdzony (2026-11-13)
+Status: wykonany (2026-11-13)
 Nadrzędne: `2026-11-11-asystent-lokalny-nexus-design.md` (§6.1 tablica zadań, §7 etap 1), `2026-11-13-etap-1-2-save-state-devlog-design.md` (wzorzec zapisu z wersją pliku, D6/D8/D9/D10), `2026-11-12-struktura-kontekstow-design.md` (siatka kontekstu, reguły importów)
 
 ## 1. Cel i zakres
