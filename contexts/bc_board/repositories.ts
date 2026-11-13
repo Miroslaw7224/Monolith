@@ -1,10 +1,10 @@
-import type { BoardDoc } from "@/types/records";
-import { readVaultFile, updateVaultFile } from "../vault-fs";
-import { nowIso } from "../record-helpers";
+import type { StoredBoard } from "./models";
+import { readVaultFile, updateVaultFile } from "@/lib/nexus/vault-fs";
+import { nowIso } from "@/lib/nexus/record-helpers";
 
 const FILE = "Board/board.json";
 
-export async function getBoard(): Promise<BoardDoc | null> {
+export async function getBoard(): Promise<StoredBoard | null> {
   const file = readVaultFile(FILE);
   if (file === null) return null;
   let data: unknown;
@@ -22,11 +22,7 @@ export async function getBoard(): Promise<BoardDoc | null> {
 }
 
 /** Zawsze nadpisuje (jak `set` w Firestore); poprawny zapis naprawia uszkodzony plik. */
-export async function saveBoard(board: {
-  tiles: unknown;
-  frames: unknown;
-  edges: unknown;
-}): Promise<void> {
+export async function saveBoard(board: StoredBoard): Promise<void> {
   const { tiles, frames, edges } = board;
   await updateVaultFile(
     FILE,

@@ -1,4 +1,5 @@
-import type { Board, BoardBox } from "@/src/features/board/boardTypes";
+import type { BoardDto as Board } from "@/contexts/bc_board/schemas";
+import type { BoardBox } from "@/src/features/board/boardTypes";
 import { boxChanged, centeredBox, frameAt, withMembership } from "@/src/features/board/boardLayout";
 
 export const NEW_TILE = { w: 240, h: 120 };

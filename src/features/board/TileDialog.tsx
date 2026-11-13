@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import type { BoardTile } from "@/src/features/board/boardTypes";
+import type { BoardTileDto as BoardTile } from "@/contexts/bc_board/schemas";
 
 function keepFocusInDialog(event: KeyboardEvent<HTMLDivElement>) {
   if (event.key !== "Tab") return;

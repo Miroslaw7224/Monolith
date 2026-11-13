@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Board } from "@/src/features/board/boardTypes";
+import type { BoardDto as Board } from "@/contexts/bc_board/schemas";
 import { applyDelete, deleteCopy, deletePlan } from "@/src/features/board/boardDelete";
 
 const board: Board = {

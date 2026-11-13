@@ -2,7 +2,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { EMPTY_BOARD } from "@/src/features/board/boardTypes";
+import { EMPTY_BOARD } from "@/contexts/bc_board/schemas";
 import { BoardCanvas } from "@/src/features/board/BoardCanvas";
 
 afterEach(() => cleanup());

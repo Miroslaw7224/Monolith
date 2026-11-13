@@ -1,6 +1,6 @@
 import React from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
-import type { BoardTile } from "@/src/features/board/boardTypes";
+import type { BoardTileDto as BoardTile } from "@/contexts/bc_board/schemas";
 
 export type TileNodeData = {
   tile: BoardTile;

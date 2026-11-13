@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { BoardFrame, BoardTile } from "@/src/features/board/boardTypes";
+import type {
+  BoardFrameDto as BoardFrame,
+  BoardTileDto as BoardTile,
+} from "@/contexts/bc_board/schemas";
 import {
   boxChanged,
   frameAt,

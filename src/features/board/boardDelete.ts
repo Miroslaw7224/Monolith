@@ -1,4 +1,8 @@
-import type { Board, BoardFrame, BoardTile } from "@/src/features/board/boardTypes";
+import type {
+  BoardDto as Board,
+  BoardFrameDto as BoardFrame,
+  BoardTileDto as BoardTile,
+} from "@/contexts/bc_board/schemas";
 import { frameAt } from "@/src/features/board/boardLayout";
 
 export interface DeletePlan {

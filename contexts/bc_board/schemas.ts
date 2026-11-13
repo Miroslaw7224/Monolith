@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { DomainError } from "@/lib/errors";
-import type { Board } from "@/src/features/board/boardTypes";
+import type { Board } from "./models";
+
+// ── wejście (zod) ──────────────────────────────────────────────────────────────
 
 export const BoardBodySchema = z
   .object({
@@ -56,7 +57,27 @@ export const BoardBodySchema = z
     }
   });
 
-export function parseBoard(input: unknown): Board {
+export type BoardBody = z.infer<typeof BoardBodySchema>;
+
+/** Normalizacja zwalidowanego body: przycina tytuły kafelków (tytuły ramek przycina sam schemat). */
+export function normalizeBoard(body: BoardBody): Board {
+  return {
+    tiles: body.tiles.map((tile) => ({
+      ...tile,
+      title: tile.title.trim(),
+      frame: tile.frame ?? null,
+    })),
+    frames: body.frames,
+    edges: body.edges,
+  };
+}
+
+export type ParseBoardResult =
+  | { success: true; board: Board }
+  | { success: false; message: string };
+
+/** Waliduje dowolne dane (np. zawartość pliku); błąd zwraca jako komunikat (`DomainError` rzuca router: `schemas` nie importuje `lib/errors`). */
+export function parseBoard(input: unknown): ParseBoardResult {
   const result = BoardBodySchema.safeParse(input);
   if (!result.success) {
     const tooSmall = result.error.issues.find(
@@ -65,11 +86,51 @@ export function parseBoard(input: unknown): Board {
     const message = tooSmall
       ? "Tile or frame is too small"
       : (result.error.issues[0]?.message ?? "Invalid board");
-    throw new DomainError(message, 400);
+    return { success: false, message };
   }
+  return { success: true, board: normalizeBoard(result.data) };
+}
+
+// ── wyjście (DTO) ──────────────────────────────────────────────────────────────
+
+export type BoardTileDto = {
+  id: string;
+  title: string;
+  note: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  frame: string | null;
+};
+
+export type BoardFrameDto = {
+  id: string;
+  title: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+export type BoardEdgeDto = {
+  id: string;
+  source: string;
+  target: string;
+};
+
+export type BoardDto = {
+  tiles: BoardTileDto[];
+  frames: BoardFrameDto[];
+  edges: BoardEdgeDto[];
+};
+
+export const EMPTY_BOARD: BoardDto = { tiles: [], frames: [], edges: [] };
+
+export function toBoardDto(board: Board): BoardDto {
   return {
-    tiles: result.data.tiles.map((tile) => ({ ...tile, title: tile.title.trim(), frame: tile.frame ?? null })),
-    frames: result.data.frames,
-    edges: result.data.edges,
+    tiles: board.tiles.map((tile) => ({ ...tile })),
+    frames: board.frames.map((frame) => ({ ...frame })),
+    edges: board.edges.map((edge) => ({ ...edge })),
   };
 }

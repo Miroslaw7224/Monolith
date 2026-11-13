@@ -1,6 +1,6 @@
 import React from "react";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
-import type { BoardFrame } from "@/src/features/board/boardTypes";
+import type { BoardFrameDto as BoardFrame } from "@/contexts/bc_board/schemas";
 
 export type FrameNodeData = {
   frame: BoardFrame;

@@ -13,7 +13,8 @@ import {
   type OnBeforeDelete,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { Board, BoardBox, BoardFrame } from "@/src/features/board/boardTypes";
+import type { BoardDto as Board, BoardFrameDto as BoardFrame } from "@/contexts/bc_board/schemas";
+import type { BoardBox } from "@/src/features/board/boardTypes";
 import { boxChanged, withMembership } from "@/src/features/board/boardLayout";
 import {
   addFrame,

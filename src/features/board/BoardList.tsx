@@ -1,5 +1,5 @@
 import React from "react";
-import type { Board } from "@/src/features/board/boardTypes";
+import type { BoardDto as Board } from "@/contexts/bc_board/schemas";
 
 export function BoardList({
   board,
