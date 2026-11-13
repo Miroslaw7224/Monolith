@@ -25,7 +25,7 @@ export async function createCalendarEvent(request: NextRequest): Promise<NextRes
   const parsed = await parseBody(request, CreateCalendarEventBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
-  const { date, start_minutes, duration_minutes, title, tags, color, type } = parsed.data;
+  const { date, start_minutes, duration_minutes, title, tags, color, type, link } = parsed.data;
   try {
     const event = await services.createCalendarEvent({
       date: date as string,
@@ -35,6 +35,7 @@ export async function createCalendarEvent(request: NextRequest): Promise<NextRes
       tags: (Array.isArray(tags) ? tags : tags ? [tags] : []) as string[],
       color: (color ?? "#3B82F6") as string,
       type: type === "meeting" ? "meeting" : "work",
+      link: typeof link === "string" ? link : undefined,
     });
     return NextResponse.json(toCalendarEventDto(event));
   } catch (err) {
@@ -61,6 +62,7 @@ export async function updateCalendarEvent(
       tags: body.tags as string[] | undefined,
       color: body.color as string | undefined,
       type: body.type !== undefined ? (body.type === "meeting" ? "meeting" : "work") : undefined,
+      link: typeof body.link === "string" ? body.link : undefined,
     });
     return NextResponse.json({ success: true });
   } catch (err) {

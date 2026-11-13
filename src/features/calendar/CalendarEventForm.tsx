@@ -15,6 +15,8 @@ export interface CalendarEventFormData {
   tags: string[];
   color: string;
   type: "work" | "meeting";
+  /** Adres spotkania online; pusty tekst usuwa istniejący link. */
+  link: string;
 }
 
 interface CalendarEventFormProps {
@@ -45,6 +47,7 @@ export function CalendarEventForm({
   );
   const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? 60);
   const [title, setTitle] = useState(initial?.title ?? "");
+  const [link, setLink] = useState(initial?.link ?? "");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInputFocused, setTagInputFocused] = useState(false);
@@ -89,6 +92,7 @@ export function CalendarEventForm({
       tags,
       color,
       type: eventType,
+      link: link.trim(),
     });
   };
 
@@ -116,6 +120,19 @@ export function CalendarEventForm({
           placeholder="e.g. QA testing, Learning"
           className="kal-input"
           required
+        />
+      </div>
+      <div className="kal-form-group">
+        <label className="kal-label" htmlFor="kal-link">
+          Meeting link
+        </label>
+        <input
+          id="kal-link"
+          type="url"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="https://meet.google.com/…"
+          className="kal-input"
         />
       </div>
       <div className="kal-form-group">

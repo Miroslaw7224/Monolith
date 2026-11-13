@@ -34,7 +34,7 @@ export function CommitHistory({
   }, [apiFetch]);
 
   if (!history || !history.available || history.days.length === 0) return null;
-  const max = Math.max(1, ...history.days.map((d) => d.total));
+  const max = Math.max(1, ...history.days.flatMap((d) => [d.total, d.prs]));
 
   return (
     <section className="kok-panel kok-history" aria-label="Historia commitów">
@@ -42,29 +42,49 @@ export function CommitHistory({
         <h3 className="kok-panel__title">
           <b>Commity</b> · ostatnie dni
         </h3>
-        <span className="kok-chip">
-          {commitsLabel(history.total)} w {history.days.length} dni
-        </span>
+        <div className="kok-panel__tools">
+          <span className="kok-history__legend">
+            <i className="kok-history__swatch" aria-hidden="true" /> commity
+          </span>
+          <span className="kok-history__legend-pr kok-history__legend">
+            <i className="kok-history__swatch kok-history__swatch--pr" aria-hidden="true" />
+            PR
+          </span>
+          <span className="kok-chip">
+            {commitsLabel(history.total)} · {history.totalPrs} PR w {history.days.length} dni
+          </span>
+        </div>
       </div>
       <div className="kok-history__bars">
         {history.days.map((d) => {
           const date = parseDay(d.date);
           const long = date.toLocaleDateString("pl-PL", { day: "numeric", month: "long" });
           const split = d.projects.map((p) => `${p.name} ${p.count}`).join(", ");
-          const name =
+          const commitsText =
             d.total === 0
               ? `${long}: brak commitów`
               : `${long}: ${commitsLabel(d.total)} (${split})`;
+          const name = d.prs > 0 ? `${commitsText}, ${d.prs} PR` : commitsText;
           return (
             <div key={d.date} className="kok-history__col">
-              <span className="kok-history__value">{d.total || ""}</span>
-              <div
-                role="img"
-                aria-label={name}
-                title={name}
-                className={`kok-history__bar${d.total === 0 ? " is-empty" : ""}`}
-                style={{ height: `${d.total === 0 ? 2 : Math.max(6, (d.total / max) * 100)}%` }}
-              />
+              <span className="kok-history__value">
+                {d.total || ""}
+                {d.prs > 0 ? <b className="kok-history__pr-value"> · {d.prs}</b> : null}
+              </span>
+              <div className="kok-history__pair">
+                <div
+                  role="img"
+                  aria-label={name}
+                  title={name}
+                  className={`kok-history__bar${d.total === 0 ? " is-empty" : ""}`}
+                  style={{ height: `${d.total === 0 ? 2 : Math.max(6, (d.total / max) * 100)}%` }}
+                />
+                <div
+                  aria-hidden="true"
+                  className={`kok-history__bar kok-history__bar--pr${d.prs === 0 ? " is-empty" : ""}`}
+                  style={{ height: `${d.prs === 0 ? 0 : Math.max(6, (d.prs / max) * 100)}%` }}
+                />
+              </div>
               <span className="kok-history__day">
                 {date.toLocaleDateString("pl-PL", { weekday: "short" })} {date.getDate()}
               </span>

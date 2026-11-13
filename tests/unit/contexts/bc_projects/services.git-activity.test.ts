@@ -68,10 +68,10 @@ describe("listGitHistory", () => {
     mockReadGitHistory.mockImplementation((e: RegistryEntry) => {
       if (e.id === "b") return { ok: false };
       if (e.id === "c") throw new Error("boom");
-      return { ok: true, days: { "2026-11-12": 2 } };
+      return { ok: true, days: { "2026-11-12": 2 }, prs: { "2026-11-12": 1 } };
     });
     expect(listGitHistory("2026-11-01", "2026-11-13")).toEqual([
-      { projectId: "a", name: "A", days: { "2026-11-12": 2 } },
+      { projectId: "a", name: "A", days: { "2026-11-12": 2 }, prs: { "2026-11-12": 1 } },
     ]);
     expect(mockReadGitHistory).toHaveBeenCalledWith(
       expect.objectContaining({ id: "a" }),

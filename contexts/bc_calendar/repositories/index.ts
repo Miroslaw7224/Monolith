@@ -44,6 +44,7 @@ function toEvent(r: YamlRecord): CalendarEvent {
     tags: Array.isArray(r.tags) ? r.tags.map(String) : r.tags ? [String(r.tags)] : [],
     color: optStr(r.color) ?? "#3B82F6",
     type: r.type === "meeting" ? "meeting" : "work",
+    link: optStr(r.link),
     created_at: optStr(r.created),
   };
 }
@@ -93,6 +94,7 @@ export async function createCalendarEvent(data: {
   tags: string[];
   color: string;
   type?: "work" | "meeting";
+  link?: string;
 }): Promise<CalendarEvent> {
   const file = monthFile(data.date);
   const record = await appendRecord(file, KEY, (taken) => ({
@@ -104,6 +106,7 @@ export async function createCalendarEvent(data: {
     tags: data.tags ?? [],
     color: data.color ?? "#3B82F6",
     type: data.type === "meeting" ? "meeting" : "work",
+    ...(data.link ? { link: data.link } : {}),
     created: nowIso(),
   }));
   return toEvent(record);
@@ -119,6 +122,8 @@ export async function updateCalendarEvent(
     tags: string[];
     color: string;
     type: "work" | "meeting";
+    /** Pusty tekst usuwa link. */
+    link: string;
   }>
 ): Promise<void> {
   const patch: YamlRecord = {};
@@ -129,6 +134,7 @@ export async function updateCalendarEvent(
   if (data.tags !== undefined) patch.tags = data.tags;
   if (data.color !== undefined) patch.color = data.color;
   if (data.type !== undefined) patch.type = data.type === "meeting" ? "meeting" : "work";
+  if (data.link !== undefined) patch.link = data.link === "" ? undefined : data.link;
   if (Object.keys(patch).length === 0) return;
   const newFile = data.date !== undefined ? monthFile(data.date) : undefined;
   patch.updated = nowIso();

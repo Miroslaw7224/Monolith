@@ -9,6 +9,7 @@ const mockReadFile = vi.hoisted(() => vi.fn());
 const mockCommitsSince = vi.hoisted(() => vi.fn());
 const mockCurrentBranch = vi.hoisted(() => vi.fn());
 const mockCommitsByDay = vi.hoisted(() => vi.fn());
+const mockMergedPrsByDay = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/git/repo-path", () => ({ resolveRepoPath: mockResolve }));
 vi.mock("@/lib/git/project-git", () => ({
@@ -16,6 +17,7 @@ vi.mock("@/lib/git/project-git", () => ({
   commitsSince: mockCommitsSince,
   currentBranch: mockCurrentBranch,
   commitsByDay: mockCommitsByDay,
+  mergedPrsByDay: mockMergedPrsByDay,
 }));
 vi.mock("@/lib/git/repo-file", () => ({ readRepoFile: mockReadFile }));
 
@@ -191,13 +193,27 @@ describe("readGitHistory", () => {
     expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
   });
 
-  it("ścieżka ok: liczby po dniach z gita", () => {
+  it("błąd tylko przy liczeniu PR nie psuje commitów: prs puste", () => {
     mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
     mockCommitsByDay.mockReturnValue({ ok: true, days: { "2026-11-12": 2 } });
+    mockMergedPrsByDay.mockReturnValue({ ok: false });
     expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({
       ok: true,
       days: { "2026-11-12": 2 },
+      prs: {},
     });
+  });
+
+  it("ścieżka ok: liczby po dniach z gita", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsByDay.mockReturnValue({ ok: true, days: { "2026-11-12": 2 } });
+    mockMergedPrsByDay.mockReturnValue({ ok: true, prs: { "2026-11-12": 1 } });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({
+      ok: true,
+      days: { "2026-11-12": 2 },
+      prs: { "2026-11-12": 1 },
+    });
+    expect(mockMergedPrsByDay).toHaveBeenCalledWith("/h/p", "2026-11-01", "2026-11-13");
     expect(mockCommitsByDay).toHaveBeenCalledWith("/h/p", "2026-11-01", "2026-11-13");
   });
 });

@@ -204,7 +204,14 @@ export function listGitHistory(from: string, to: string): GitHistory[] {
   for (const entry of readRegistry().entries) {
     try {
       const history = readGitHistory(entry, from, to);
-      if (history.ok) result.push({ projectId: entry.id, name: entry.name, days: history.days });
+      if (history.ok) {
+        result.push({
+          projectId: entry.id,
+          name: entry.name,
+          days: history.days,
+          prs: history.prs,
+        });
+      }
     } catch {
       // jeden zepsuty projekt nie wyłącza pozostałych
     }

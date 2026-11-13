@@ -193,6 +193,17 @@ function EventRow({ event, current }: { event: DayEventDto; current: boolean }) 
         <div className="kok-tl__meta">
           <span className="kok-chip">{event.durationMinutes} min</span>
           {event.type ? <span className="kok-chip">{event.type}</span> : null}
+          {event.link ? (
+            <a
+              className="kok-btn kok-btn--sm"
+              href={event.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Dołącz do spotkania: ${event.title}`}
+            >
+              Dołącz ↗
+            </a>
+          ) : null}
         </div>
       </div>
     </li>

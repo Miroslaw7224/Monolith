@@ -73,6 +73,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       durationMinutes: e.durationMinutes,
       type: e.type,
       color: e.color,
+      link: e.link,
     })),
     nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
     git: c.git ? { ...c.git } : null,
@@ -95,9 +96,11 @@ export function toCommitHistoryDto(h: CommitHistory): CommitHistoryDto {
     to: h.to,
     available: h.available,
     total: h.total,
+    totalPrs: h.totalPrs,
     days: h.days.map((d) => ({
       date: d.date,
       total: d.total,
+      prs: d.prs,
       projects: d.projects.map((p) => ({ projectId: p.projectId, name: p.name, count: p.count })),
     })),
   };

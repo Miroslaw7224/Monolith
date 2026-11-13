@@ -17,7 +17,13 @@ import {
   type VersionToken,
 } from "@/contexts/bc_projects/models";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
-import { commitsByDay, commitsSince, currentBranch, snapshotRepo } from "@/lib/git/project-git";
+import {
+  commitsByDay,
+  commitsSince,
+  currentBranch,
+  mergedPrsByDay,
+  snapshotRepo,
+} from "@/lib/git/project-git";
 import { readRepoFile } from "@/lib/git/repo-file";
 import { resolveRepoPath } from "@/lib/git/repo-path";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
@@ -310,10 +316,13 @@ export function readGitHistory(
   entry: RegistryEntry,
   from: string,
   to: string
-): { ok: true; days: Record<string, number> } | { ok: false } {
+): { ok: true; days: Record<string, number>; prs: Record<string, number> } | { ok: false } {
   const repo = resolveRepoPath(entry.localPath);
   if (repo.ok === false) return { ok: false };
-  return commitsByDay(repo.path, from, to);
+  const commits = commitsByDay(repo.path, from, to);
+  if (commits.ok === false) return { ok: false };
+  const prs = mergedPrsByDay(repo.path, from, to);
+  return { ok: true, days: commits.days, prs: prs.ok ? prs.prs : {} };
 }
 
 /** `CLAUDE.md` z repozytorium projektu (zwykły plik, do 64 KB). */

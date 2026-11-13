@@ -11,6 +11,20 @@ function assertDurationMultipleOf15(durationMinutes: number | null | undefined):
   }
 }
 
+const LINK_RE = /^https?:\/\/[^\s/$.?#][^\s]*$/i;
+const MAX_LINK_LENGTH = 500;
+
+/** Pusty = brak linku (usunięcie); poza tym tylko adres http(s) bez spacji. */
+function normalizeLink(link: string | undefined): string | undefined {
+  if (link === undefined) return undefined;
+  const trimmed = link.trim();
+  if (trimmed === "") return "";
+  if (trimmed.length > MAX_LINK_LENGTH || !LINK_RE.test(trimmed)) {
+    throw new DomainError("link must be an http(s) URL");
+  }
+  return trimmed;
+}
+
 const TASK_DEADLINE_START_MINUTES = 23 * 60 + 30; // 23:30 — a fixed end-of-day slot
 const TASK_DEADLINE_DURATION_MINUTES = 30;
 const TASK_DEADLINE_COLOR = "#6B7280";
@@ -59,9 +73,10 @@ export async function createCalendarEvent(data: {
   tags: string[];
   color: string;
   type?: "work" | "meeting";
+  link?: string;
 }) {
   assertDurationMultipleOf15(data.duration_minutes);
-  return repositories.createCalendarEvent(data);
+  return repositories.createCalendarEvent({ ...data, link: normalizeLink(data.link) });
 }
 
 export async function updateCalendarEvent(
@@ -74,10 +89,11 @@ export async function updateCalendarEvent(
     tags: string[];
     color: string;
     type: "work" | "meeting";
+    link: string;
   }>
 ) {
   assertDurationMultipleOf15(data.duration_minutes);
-  return repositories.updateCalendarEvent(id, data);
+  return repositories.updateCalendarEvent(id, { ...data, link: normalizeLink(data.link) });
 }
 
 export async function deleteCalendarEvent(id: string) {

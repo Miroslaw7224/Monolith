@@ -122,7 +122,13 @@ export type GitActivity = {
 };
 
 /** Commity projektu po dniach (`RRRR-MM-DD` → liczba); dni bez commitów pominięte. */
-export type GitHistory = { projectId: string; name: string; days: Record<string, number> };
+export type GitHistory = {
+  projectId: string;
+  name: string;
+  days: Record<string, number>;
+  /** Zmergowane PR-y po dniach (z tematów commitów); dni bez PR pominięte. */
+  prs: Record<string, number>;
+};
 
 export type RepoRulesResult =
   | { ok: true; text: string }

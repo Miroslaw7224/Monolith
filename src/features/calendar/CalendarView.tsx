@@ -319,6 +319,7 @@ export function CalendarView({
                       title: editingEvent.title,
                       tags: editingEvent.tags,
                       type: editingEvent.type === "meeting" ? "meeting" : "work",
+                      link: editingEvent.link ?? "",
                     }
                   : addDate
                     ? {

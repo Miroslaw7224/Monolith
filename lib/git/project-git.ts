@@ -111,6 +111,44 @@ export function commitsByDay(
   return { ok: true, days };
 }
 
+const PR_MERGE = /^Merge pull request #\d+/;
+const PR_SQUASH = /\(#\d+\)\s*$/;
+
+/**
+ * Zmergowane pull requesty pogrupowane po dniu zatwierdzenia (czas lokalny) w zakresie `from`–`to`.
+ * Rozpoznaje je po temacie commitu: „Merge pull request #N …” (merge) albo „… (#N)” (squash/rebase).
+ * Widzi tylko to, co jest w lokalnych gałęziach (po `git pull`); otwartych PR git nie zna.
+ */
+export function mergedPrsByDay(
+  repoDir: string,
+  from: string,
+  to: string
+): { ok: true; prs: Record<string, number> } | { ok: false } {
+  if (!DAY_RE.test(from)) throw new Error(`git: zła data (oczekiwano RRRR-MM-DD): ${from}`);
+  if (!DAY_RE.test(to)) throw new Error(`git: zła data (oczekiwano RRRR-MM-DD): ${to}`);
+  if (from > to) throw new Error(`git: zły zakres dat: ${from} > ${to}`);
+  const res = execGit(repoDir, [
+    "log",
+    "--branches",
+    "--date=format-local:%Y-%m-%d",
+    "--format=%H%x09%cd%x09%s",
+    `--since=${from}T00:00:00`,
+    `--until=${to}T23:59:59`,
+  ]);
+  if (res.status !== 0) return { ok: false };
+  const seen = new Set<string>();
+  const prs: Record<string, number> = {};
+  for (const line of res.stdout.split("\n")) {
+    const [hash, day, ...rest] = line.split("\t");
+    const subject = rest.join("\t");
+    if (!hash || !day || seen.has(hash)) continue;
+    if (!PR_MERGE.test(subject) && !PR_SQUASH.test(subject)) continue;
+    seen.add(hash);
+    prs[day] = (prs[day] ?? 0) + 1;
+  }
+  return { ok: true, prs };
+}
+
 /** Nazwa bieżącej gałęzi; `null` dla odłączonego HEAD, repo bez commitów i błędu gita. */
 export function currentBranch(repoDir: string): string | null {
   const res = execGit(repoDir, ["rev-parse", "--abbrev-ref", "HEAD"]);

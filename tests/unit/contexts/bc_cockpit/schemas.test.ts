@@ -98,6 +98,7 @@ describe("mapery DTO", () => {
         durationMinutes: 30,
         type: "meeting",
         color: "#fff",
+        link: "https://meet.google.com/abc-defg-hij",
       },
     ],
     nextMeeting: { title: "Spotkanie", startMinutes: 570, durationMinutes: 30 },
@@ -138,13 +139,26 @@ describe("toCommitHistoryDto", () => {
       to: "2026-11-13",
       available: true,
       total: 2,
+      totalPrs: 1,
       days: [
-        { date: "2026-11-12", total: 0, projects: [] },
-        { date: "2026-11-13", total: 2, projects: [{ projectId: "a", name: "A", count: 2 }] },
+        { date: "2026-11-12", total: 0, prs: 0, projects: [] },
+        {
+          date: "2026-11-13",
+          total: 2,
+          prs: 1,
+          projects: [{ projectId: "a", name: "A", count: 2 }],
+        },
       ],
     };
     const dto = toCommitHistoryDto({ ...model, extra: 1 } as never);
     expect(dto).toEqual(model);
-    expect(Object.keys(dto).sort()).toEqual(["available", "days", "from", "to", "total"]);
+    expect(Object.keys(dto).sort()).toEqual([
+      "available",
+      "days",
+      "from",
+      "to",
+      "total",
+      "totalPrs",
+    ]);
   });
 });

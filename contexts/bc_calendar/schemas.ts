@@ -12,6 +12,7 @@ export const CreateCalendarEventBodySchema = looseObject({
   tags: z.unknown().optional(),
   color: z.unknown().optional(),
   type: z.unknown().optional(),
+  link: z.unknown().optional(),
 }).superRefine((body, ctx) => {
   const missingDuration = body.duration_minutes === undefined || body.duration_minutes === null;
   if (!body.date || missingDuration) {
@@ -27,6 +28,7 @@ export const UpdateCalendarEventBodySchema = looseObject({
   tags: z.unknown().optional(),
   color: z.unknown().optional(),
   type: z.unknown().optional(),
+  link: z.unknown().optional(),
 });
 
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
@@ -40,6 +42,7 @@ export type CalendarEventDto = {
   tags: string[];
   color: string;
   type: "work" | "meeting" | "task_deadline";
+  link?: string;
   created_at?: string;
 };
 
@@ -53,6 +56,7 @@ export function toCalendarEventDto(entry: CalendarEntry): CalendarEventDto {
     tags: entry.tags,
     color: entry.color,
     type: entry.type,
+    link: entry.link,
     created_at: entry.created_at,
   };
 }

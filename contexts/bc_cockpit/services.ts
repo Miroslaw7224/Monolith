@@ -216,6 +216,7 @@ async function loadEvents(date: string, warnings: string[]): Promise<DayEvent[]>
               durationMinutes: e.duration_minutes,
               type: e.type,
               color: e.color,
+              link: e.link ?? null,
             },
           ]
     );
@@ -358,19 +359,21 @@ export async function getCommitHistory(
   const from = dates[0];
   const to = dates[dates.length - 1];
   const history = projectsServices.listGitHistory(from, to);
-  if (history.length === 0) return { from, to, available: false, total: 0, days: [] };
+  if (history.length === 0) return { from, to, available: false, total: 0, totalPrs: 0, days: [] };
   const result = dates.map((date) => {
     const projects = history
       .map((h) => ({ projectId: h.projectId, name: h.name, count: h.days[date] ?? 0 }))
       .filter((p) => p.count > 0)
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pl"));
-    return { date, total: projects.reduce((sum, p) => sum + p.count, 0), projects };
+    const prs = history.reduce((sum, h) => sum + (h.prs[date] ?? 0), 0);
+    return { date, total: projects.reduce((sum, p) => sum + p.count, 0), prs, projects };
   });
   return {
     from,
     to,
     available: true,
     total: result.reduce((sum, d) => sum + d.total, 0),
+    totalPrs: result.reduce((sum, d) => sum + d.prs, 0),
     days: result,
   };
 }

@@ -125,7 +125,7 @@ describe("PUT /api/cockpit/closing", () => {
 
 describe("GET /api/cockpit/commits", () => {
   const get = (qs = "") => new NextRequest(`http://localhost/api/cockpit/commits${qs}`);
-  const history = { from: "a", to: "b", available: true, total: 0, days: [] };
+  const history = { from: "a", to: "b", available: true, total: 0, totalPrs: 0, days: [] };
 
   it("domyślnie 14 dni", async () => {
     mockGetCommitHistory.mockResolvedValue(history);

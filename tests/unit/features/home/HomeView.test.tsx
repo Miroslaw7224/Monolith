@@ -98,6 +98,16 @@ const FULL: CockpitDto = {
       durationMinutes: 30,
       type: "meeting",
       color: "#111",
+      link: "https://meet.google.com/gon-fztr-zrn",
+    },
+    {
+      id: "e2",
+      title: "Praca głęboka",
+      startMinutes: 780,
+      durationMinutes: 60,
+      type: "work",
+      color: "#222",
+      link: null,
     },
   ],
   nextMeeting: { title: "Spotkanie zespołu", startMinutes: 570, durationMinutes: 30 },
@@ -115,17 +125,24 @@ const HISTORY = {
   to: "2026-11-13",
   available: true,
   total: 7,
+  totalPrs: 1,
   days: [
-    { date: "2026-11-11", total: 0, projects: [] },
+    { date: "2026-11-11", total: 0, prs: 0, projects: [] },
     {
       date: "2026-11-12",
       total: 5,
+      prs: 1,
       projects: [
         { projectId: "nexus", name: "NEXUS", count: 4 },
         { projectId: "monolith", name: "Monolith", count: 1 },
       ],
     },
-    { date: "2026-11-13", total: 2, projects: [{ projectId: "nexus", name: "NEXUS", count: 2 }] },
+    {
+      date: "2026-11-13",
+      total: 2,
+      prs: 0,
+      projects: [{ projectId: "nexus", name: "NEXUS", count: 2 }],
+    },
   ],
 };
 
@@ -517,12 +534,15 @@ describe("K1: układ wg makiety", () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);
     const panel = await screen.findByRole("region", { name: "Historia commitów" });
-    expect(panel).toHaveTextContent("7 commitów w 3 dni");
+    expect(panel).toHaveTextContent("7 commitów · 1 PR w 3 dni");
+    expect(
+      within(panel).getByText("PR", { selector: ".kok-history__legend-pr" })
+    ).toBeInTheDocument();
     expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=14");
     const bars = within(panel).getAllByRole("img");
     expect(bars).toHaveLength(3);
     expect(bars[0]).toHaveAccessibleName("11 listopada: brak commitów");
-    expect(bars[1]).toHaveAccessibleName("12 listopada: 5 commitów (NEXUS 4, Monolith 1)");
+    expect(bars[1]).toHaveAccessibleName("12 listopada: 5 commitów (NEXUS 4, Monolith 1), 1 PR");
     expect(bars[2]).toHaveAccessibleName("13 listopada: 2 commity (NEXUS 2)");
   });
 
@@ -654,5 +674,16 @@ describe("K1: układ wg makiety", () => {
       .closest(".kok-tile") as HTMLElement;
     expect(tile).toHaveTextContent("2 grup projektowych");
     expect(within(queue).queryByRole("button", { name: "deep" })).not.toBeInTheDocument();
+  });
+
+  test("oś dnia: „Dołącz” tylko dla wydarzeń z linkiem, w nowej karcie (K4)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("Spotkanie zespołu");
+    const links = screen.getAllByRole("link", { name: /Dołącz/ });
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "https://meet.google.com/gon-fztr-zrn");
+    expect(links[0]).toHaveAttribute("target", "_blank");
+    expect(links[0]).toHaveAttribute("rel", "noopener noreferrer");
   });
 });

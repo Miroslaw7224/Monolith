@@ -284,6 +284,7 @@ describe("następne spotkanie", () => {
     durationMinutes: dur,
     type,
     color: "#000",
+    link: null,
   });
   const events = [
     ev("work", 540, 60, "Praca"),
@@ -458,6 +459,7 @@ describe("oś dnia", () => {
         tags: [],
         color: "#111",
         type: "meeting",
+        link: "https://meet.google.com/abc-defg-hij",
       },
       {
         id: "task:1",
@@ -489,6 +491,7 @@ describe("oś dnia", () => {
         durationMinutes: 30,
         type: "meeting",
         color: "#111",
+        link: "https://meet.google.com/abc-defg-hij",
       },
       {
         id: "e2",
@@ -497,6 +500,7 @@ describe("oś dnia", () => {
         durationMinutes: 60,
         type: "work",
         color: "#222",
+        link: null,
       },
     ]);
   });
@@ -700,25 +704,37 @@ describe("zamknięcie dnia (K6)", () => {
 describe("historia commitów (K8)", () => {
   it("zakres to `days` dni kończących się dziś; dni bez commitów mają 0; sumy i projekty malejąco", async () => {
     mockListGitHistory.mockReturnValue([
-      { projectId: "a", name: "A", days: { "2026-11-12": 2, "2026-11-13": 1 } },
-      { projectId: "b", name: "B", days: { "2026-11-12": 5 } },
+      {
+        projectId: "a",
+        name: "A",
+        days: { "2026-11-12": 2, "2026-11-13": 1 },
+        prs: { "2026-11-12": 1 },
+      },
+      { projectId: "b", name: "B", days: { "2026-11-12": 5 }, prs: { "2026-11-12": 2 } },
     ]);
     const h = await getCommitHistory(3, TODAY);
     expect(mockListGitHistory).toHaveBeenCalledWith("2026-11-11", "2026-11-13");
     expect(h.from).toBe("2026-11-11");
     expect(h.to).toBe("2026-11-13");
     expect(h.total).toBe(8);
+    expect(h.totalPrs).toBe(3);
     expect(h.days).toEqual([
-      { date: "2026-11-11", total: 0, projects: [] },
+      { date: "2026-11-11", total: 0, prs: 0, projects: [] },
       {
         date: "2026-11-12",
         total: 7,
+        prs: 3,
         projects: [
           { projectId: "b", name: "B", count: 5 },
           { projectId: "a", name: "A", count: 2 },
         ],
       },
-      { date: "2026-11-13", total: 1, projects: [{ projectId: "a", name: "A", count: 1 }] },
+      {
+        date: "2026-11-13",
+        total: 1,
+        prs: 0,
+        projects: [{ projectId: "a", name: "A", count: 1 }],
+      },
     ]);
   });
 
@@ -732,18 +748,23 @@ describe("historia commitów (K8)", () => {
     expect(h.available).toBe(false);
     expect(h.days).toEqual([]);
     expect(h.total).toBe(0);
+    expect(h.totalPrs).toBe(0);
   });
 
   it("dostępne repo bez commitów: `available: true` i dni z zerami", async () => {
-    mockListGitHistory.mockReturnValue([{ projectId: "a", name: "A", days: {} }]);
+    mockListGitHistory.mockReturnValue([{ projectId: "a", name: "A", days: {}, prs: {} }]);
     const h = await getCommitHistory(2, TODAY);
     expect(h.available).toBe(true);
     expect(h.days.map((d) => d.total)).toEqual([0, 0]);
   });
 
   it("ignoruje dni spoza zakresu; `days` poza 1–90 to DomainError", async () => {
-    mockListGitHistory.mockReturnValue([{ projectId: "a", name: "A", days: { "2020-01-01": 9 } }]);
-    expect((await getCommitHistory(2, TODAY)).total).toBe(0);
+    mockListGitHistory.mockReturnValue([
+      { projectId: "a", name: "A", days: { "2020-01-01": 9 }, prs: { "2020-01-01": 4 } },
+    ]);
+    const out = await getCommitHistory(2, TODAY);
+    expect(out.total).toBe(0);
+    expect(out.totalPrs).toBe(0);
     await expect(getCommitHistory(0, TODAY)).rejects.toBeInstanceOf(DomainError);
     await expect(getCommitHistory(91, TODAY)).rejects.toBeInstanceOf(DomainError);
     await expect(getCommitHistory(2.5, TODAY)).rejects.toBeInstanceOf(DomainError);

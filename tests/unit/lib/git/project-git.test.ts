@@ -8,6 +8,7 @@ import {
   commitsByDay,
   commitsSince,
   currentBranch,
+  mergedPrsByDay,
   runGit,
   snapshotRepo,
   type GitCommand,
@@ -212,5 +213,64 @@ describe("commitsByDay", () => {
     expect(() => commitsByDay(r.dir, "--all", "2026-11-13")).toThrow(/data/);
     expect(() => commitsByDay(r.dir, "2026-11-01", "x")).toThrow(/data/);
     expect(() => commitsByDay(r.dir, "2026-11-13", "2026-11-01")).toThrow(/zakres/);
+  });
+});
+
+describe("mergedPrsByDay", () => {
+  const run = (cwd: string, args: string[], day?: string) =>
+    execFileSync(
+      "git",
+      ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", ...args],
+      {
+        cwd,
+        stdio: "ignore",
+        env: day
+          ? {
+              ...process.env,
+              GIT_AUTHOR_DATE: `${day}T12:00:00`,
+              GIT_COMMITTER_DATE: `${day}T12:00:00`,
+            }
+          : process.env,
+      }
+    );
+
+  it("liczy merge'e „Merge pull request #N” i squashe „(#N)”, pomija zwykłe commity i merge'e gałęzi", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("start", "2026-11-09");
+    run(r.dir, ["checkout", "-q", "-b", "feat/a"]);
+    r.write("b.txt", "2");
+    r.commit("praca na gałęzi", "2026-11-10");
+    run(r.dir, ["checkout", "-q", "main"]);
+    run(
+      r.dir,
+      ["merge", "--no-ff", "-q", "-m", "Merge pull request #7 from u/feat/a", "feat/a"],
+      "2026-11-11"
+    );
+    r.write("c.txt", "3");
+    r.commit("Napraw coś (#9)", "2026-11-11");
+    r.write("d.txt", "4");
+    r.commit("Zwykły commit z (#) w środku (nie PR)", "2026-11-12");
+    run(r.dir, ["checkout", "-q", "-b", "feat/b"]);
+    r.write("e.txt", "5");
+    r.commit("na b", "2026-11-12");
+    run(r.dir, ["checkout", "-q", "main"]);
+    run(r.dir, ["merge", "--no-ff", "-q", "-m", "Merge branch 'feat/b'", "feat/b"], "2026-11-12");
+    expect(mergedPrsByDay(r.dir, "2026-11-09", "2026-11-13")).toEqual({
+      ok: true,
+      prs: { "2026-11-11": 2 },
+    });
+    expect(mergedPrsByDay(r.dir, "2026-11-12", "2026-11-13")).toEqual({ ok: true, prs: {} });
+  });
+
+  it("katalog bez .git: błąd; zła data: wyjątek", () => {
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(mergedPrsByDay(plain, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+    const r = repos.create();
+    expect(() => mergedPrsByDay(r.dir, "x", "2026-11-13")).toThrow(/data/);
   });
 });

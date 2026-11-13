@@ -62,6 +62,8 @@ export type DayEvent = {
   durationMinutes: number;
   type: "work" | "meeting";
   color: string;
+  /** Adres spotkania online (http/https) albo `null`. */
+  link: string | null;
 };
 
 /** Najbliższe jeszcze nie rozpoczęte wydarzenie typu `meeting` z dzisiejszego dnia. */
@@ -88,6 +90,8 @@ export type Closing = {
 export type CommitDay = {
   date: string;
   total: number;
+  /** Zmergowane PR-y dnia (z tematów commitów, wszystkie projekty). */
+  prs: number;
   projects: { projectId: string; name: string; count: number }[];
 };
 
@@ -98,6 +102,7 @@ export type CommitHistory = {
   /** `false`, gdy żadne repozytorium nie jest dostępne (wtedy `days` jest puste). */
   available: boolean;
   total: number;
+  totalPrs: number;
   days: CommitDay[];
 };
 
