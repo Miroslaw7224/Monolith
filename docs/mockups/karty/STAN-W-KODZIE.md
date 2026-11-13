@@ -4,6 +4,11 @@ Przegląd gałęzi `main` (app/, src/, lib/, types/) oraz gałęzi `feat/tablica
 Źródło: agy (karty 1–4), cursor (karty 5–8), wyrywkowa weryfikacja Claude.
 Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 
+**Wygląd (2026-11-13):** karty Kokpit, Kalendarz, Zadania, Projekty, Notatki, Płótno i Arsenał mają wygląd z makiet
+(osobny plik CSS z motywem `[data-card]`: `home.css`, `calendar.css`, `tasks.css`, `projects.css`, `notes.css`,
+`board.css`, `resources.css`). Odmalowany jest tylko **wygląd istniejących funkcji**: statusy funkcji w tabelach
+poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu `09-kodeks.html` jest pełna, kod: część B specu Kodeksu).
+
 ## 1. Kokpit (`src/features/home/HomeView.tsx`)
 
 | Funkcja                         | Stan          | Gdzie / uwagi                                                                                          |
