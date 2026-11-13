@@ -1008,3 +1008,34 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* ---------- K2: energia deep/quick ---------- */
+.kok-panel__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.kok-chip--btn {
+  cursor: pointer;
+  background: transparent;
+}
+
+.kok-chip--btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kok-energy {
+  flex-shrink: 0;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-energy--deep {
+  border-color: var(--accent);
+  color: var(--accent);
+}

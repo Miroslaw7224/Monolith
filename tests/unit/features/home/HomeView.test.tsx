@@ -62,6 +62,7 @@ const FULL: CockpitDto = {
           due: "2026-11-10",
           projectName: null,
           priority: null,
+          energy: "quick",
         },
         {
           kind: "today",
@@ -69,6 +70,7 @@ const FULL: CockpitDto = {
           due: "2026-11-13",
           projectName: null,
           priority: null,
+          energy: null,
         },
       ],
     },
@@ -83,6 +85,7 @@ const FULL: CockpitDto = {
           due: null,
           projectName: "Projekt firmowy",
           priority: "high",
+          energy: "deep",
         },
       ],
     },
@@ -601,5 +604,55 @@ describe("K1: układ wg makiety", () => {
     const input = await screen.findByLabelText("Szybki zapis");
     await waitFor(() => expect(input).toHaveFocus());
     expect(onInboxFocused).toHaveBeenCalled();
+  });
+
+  test("energia: znaczniki w kolejce, podsumowanie w kaflu i filtr deep/quick (K2)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    const tile = screen
+      .getByText("Kolejka zadań", { selector: ".kok-tile__label" })
+      .closest(".kok-tile") as HTMLElement;
+    expect(tile).toHaveTextContent("1 deep · 1 quick");
+
+    expect(within(queue).getByText("Zaległa faktura")).toBeInTheDocument();
+    expect(within(queue).getByText("Wysłać wniosek")).toBeInTheDocument();
+    expect(within(queue).getByText("Przejrzeć raport")).toBeInTheDocument();
+    expect(within(queue).getByRole("button", { name: "wszystko" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+
+    fireEvent.click(within(queue).getByRole("button", { name: "deep" }));
+    expect(within(queue).getByRole("button", { name: "deep" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(within(queue).getByText("Przejrzeć raport")).toBeInTheDocument();
+    expect(within(queue).queryByText("Zaległa faktura")).not.toBeInTheDocument();
+    expect(within(queue).queryByText("Wysłać wniosek")).not.toBeInTheDocument();
+    expect(queue).toHaveTextContent("1 zadań");
+
+    fireEvent.click(within(queue).getByRole("button", { name: "quick" }));
+    expect(within(queue).getByText("Zaległa faktura")).toBeInTheDocument();
+    expect(within(queue).queryByText("Przejrzeć raport")).not.toBeInTheDocument();
+
+    fireEvent.click(within(queue).getByRole("button", { name: "wszystko" }));
+    expect(within(queue).getByText("Wysłać wniosek")).toBeInTheDocument();
+  });
+
+  test("bez zadań z energią: kafel pokazuje liczbę grup, filtry się nie pojawiają", async () => {
+    const noEnergy: CockpitDto = {
+      ...FULL,
+      queue: FULL.queue.map((g) => ({ ...g, items: g.items.map((i) => ({ ...i, energy: null })) })),
+    };
+    respond(noEnergy);
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    const tile = screen
+      .getByText("Kolejka zadań", { selector: ".kok-tile__label" })
+      .closest(".kok-tile") as HTMLElement;
+    expect(tile).toHaveTextContent("2 grup projektowych");
+    expect(within(queue).queryByRole("button", { name: "deep" })).not.toBeInTheDocument();
   });
 });

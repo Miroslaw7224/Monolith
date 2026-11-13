@@ -10,6 +10,7 @@ import {
   type Cockpit,
   type Confidence,
   type DayEvent,
+  type Energy,
   type GitSummary,
   type InboxSummary,
   type NextMeeting,
@@ -104,6 +105,22 @@ function loadTopics(today: Date, warnings: string[]): Topic[] {
 
 // ── kolejka na dziś ────────────────────────────────────────────────────────────
 
+const ENERGY_MARK =
+  /\s*(?:(?<!\S)#(deep|quick)(?![\p{L}\p{N}_-])|\[energy::\s*(deep|quick)\s*\])/giu;
+
+/** Energia z tekstu zadania (pierwszy znacznik wygrywa); zwraca tytuł bez znaczników energii. */
+export function extractEnergy(raw: string): { energy: Energy | null; title: string } {
+  let energy: Energy | null = null;
+  const title = raw
+    .replace(ENERGY_MARK, (_m, tag: string | undefined, field: string | undefined) => {
+      energy ??= (tag ?? field ?? "").toLowerCase() as Energy;
+      return "";
+    })
+    .replace(/\s+/g, " ")
+    .trim();
+  return { energy, title: energy === null ? raw : title };
+}
+
 type QueueEntry = { projectId: string | null; name: string; owner: Owner; item: QueueItem };
 
 const KIND_RANK: Record<QueueItem["kind"], number> = { overdue: 0, today: 1, now: 2 };
@@ -141,10 +158,11 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         owner: t.owner,
         item: {
           kind: "now",
-          title: t.text,
+          title: extractEnergy(t.text).title,
           due: null,
           projectName: t.projectName,
           priority: t.priority || null,
+          energy: extractEnergy(t.text).energy,
         },
       });
     }
@@ -167,10 +185,11 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         owner: "personal",
         item: {
           kind: t.due_date < date ? "overdue" : "today",
-          title: t.title,
+          title: extractEnergy(t.title).title,
           due: t.due_date,
           projectName: null,
           priority: null,
+          energy: extractEnergy(t.title).energy,
         },
       });
     }

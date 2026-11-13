@@ -85,6 +85,7 @@ describe("mapery DTO", () => {
             due: "2026-11-13",
             projectName: null,
             priority: null,
+            energy: "quick",
           },
         ],
       },

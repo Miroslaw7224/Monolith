@@ -63,6 +63,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
         due: i.due,
         projectName: i.projectName,
         priority: i.priority,
+        energy: i.energy,
       })),
     })),
     events: c.events.map((e) => ({

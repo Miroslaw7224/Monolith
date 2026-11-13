@@ -34,6 +34,7 @@ vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCa
 
 import {
   closeDay,
+  extractEnergy,
   getCommitHistory,
   getCockpit,
   isPlausibleDate,
@@ -362,6 +363,7 @@ describe("kolejka na dziś", () => {
             due: "2026-11-10",
             projectName: null,
             priority: null,
+            energy: null,
           },
           {
             kind: "today",
@@ -369,6 +371,7 @@ describe("kolejka na dziś", () => {
             due: "2026-11-13",
             projectName: null,
             priority: null,
+            energy: null,
           },
         ],
       },
@@ -377,7 +380,14 @@ describe("kolejka na dziś", () => {
         name: "Projekt 1",
         owner: "personal",
         items: [
-          { kind: "now", title: "Plan", due: null, projectName: "Projekt 1", priority: "high" },
+          {
+            kind: "now",
+            title: "Plan",
+            due: null,
+            projectName: "Projekt 1",
+            priority: "high",
+            energy: null,
+          },
         ],
       },
       {
@@ -385,7 +395,14 @@ describe("kolejka na dziś", () => {
         name: "Projekt 2",
         owner: "work",
         items: [
-          { kind: "now", title: "Raport", due: null, projectName: "Projekt 2", priority: null },
+          {
+            kind: "now",
+            title: "Raport",
+            due: null,
+            projectName: "Projekt 2",
+            priority: null,
+            energy: null,
+          },
         ],
       },
     ]);
@@ -746,5 +763,48 @@ describe("inbox (K3)", () => {
     const res = await getCockpit(TODAY);
     expect(res.inbox).toBeNull();
     expect(res.warnings).toEqual(["Inbox: Nie można odczytać pliku Inbox/inbox.md: x"]);
+  });
+});
+
+describe("energia deep/quick (K2)", () => {
+  it.each([
+    ["Naprawić porty #deep", "deep", "Naprawić porty"],
+    ["#quick Sprawdzić linki", "quick", "Sprawdzić linki"],
+    ["Mail do klienta #Quick.", "quick", "Mail do klienta."],
+    ["Coś [energy:: deep] ważnego", "deep", "Coś ważnego"],
+    ["Zadanie #deep #quick", "deep", "Zadanie"],
+    ["Zadanie #deeper", null, "Zadanie #deeper"],
+    ["Zadanie bez tagu", null, "Zadanie bez tagu"],
+    ["C# i F# #quick", "quick", "C# i F#"],
+  ])("extractEnergy(%j)", (input, energy, title) => {
+    expect(extractEnergy(input)).toEqual({ energy, title });
+  });
+
+  it("kolejka: zadania projektów i ogólne dostają energię, a tytuł jest czysty", async () => {
+    mockListNowTasks.mockReturnValue({
+      tasks: [
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "high",
+          text: "Porty #deep",
+        },
+        { projectId: "p", projectName: "P", owner: "personal", priority: "high", text: "Bez tagu" },
+      ],
+      warnings: [],
+    });
+    mockGetTasks.mockResolvedValue([
+      task({ id: "1", title: "Faktura #quick", due_date: "2026-11-13" }),
+    ]);
+    const { queue } = await getCockpit(TODAY);
+    const items = queue.flatMap((g) => g.items).map((i) => [i.title, i.energy]);
+    expect(items).toEqual(
+      expect.arrayContaining([
+        ["Porty", "deep"],
+        ["Bez tagu", null],
+        ["Faktura", "quick"],
+      ])
+    );
   });
 });

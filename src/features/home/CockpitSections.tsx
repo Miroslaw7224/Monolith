@@ -133,6 +133,13 @@ function TopicCard({
   );
 }
 
+type EnergyFilter = "all" | "deep" | "quick";
+const ENERGY_FILTERS: { value: EnergyFilter; label: string }[] = [
+  { value: "all", label: "wszystko" },
+  { value: "deep", label: "deep" },
+  { value: "quick", label: "quick" },
+];
+
 function QueueGroupCard({ group }: { group: QueueGroupDto }) {
   return (
     <section className="kok-group" aria-label={`Kolejka: ${group.name}`}>
@@ -160,6 +167,9 @@ function QueueGroupCard({ group }: { group: QueueGroupDto }) {
                 </small>
               ) : null}
             </span>
+            {item.energy ? (
+              <span className={`kok-energy kok-energy--${item.energy}`}>{item.energy}</span>
+            ) : null}
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
@@ -234,7 +244,19 @@ export function CockpitSections({
   focusInbox?: boolean;
   onInboxFocused?: () => void;
 }) {
-  const totalQueueTasks = data.queue.reduce((acc, g) => acc + g.items.length, 0);
+  const [energyFilter, setEnergyFilter] = useState<EnergyFilter>("all");
+  const allItems = data.queue.flatMap((g) => g.items);
+  const totalQueueTasks = allItems.length;
+  const deepCount = allItems.filter((i) => i.energy === "deep").length;
+  const quickCount = allItems.filter((i) => i.energy === "quick").length;
+  const hasEnergy = deepCount + quickCount > 0;
+  const visibleQueue = data.queue
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => energyFilter === "all" || i.energy === energyFilter),
+    }))
+    .filter((g) => g.items.length > 0);
+  const visibleCount = visibleQueue.reduce((acc, g) => acc + g.items.length, 0);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const range = timelineRange(data.events);
   const next = data.nextMeeting;
@@ -257,7 +279,11 @@ export function CockpitSections({
         <div className="kok-tile tile">
           <span className="kok-tile__label">Kolejka zadań</span>
           <span className="kok-tile__value">{totalQueueTasks}</span>
-          <span className="kok-tile__meta">{data.queue.length} grup projektowych</span>
+          <span className="kok-tile__meta">
+            {hasEnergy
+              ? `${deepCount} deep · ${quickCount} quick`
+              : `${data.queue.length} grup projektowych`}
+          </span>
         </div>
         <div className="kok-tile tile">
           <span className="kok-tile__label">Aktywne tematy</span>
@@ -353,13 +379,30 @@ export function CockpitSections({
             <h3 className="kok-panel__title">
               <b>Kolejka</b> · dziś
             </h3>
-            <span className="kok-chip">{totalQueueTasks} zadań</span>
+            <div className="kok-panel__tools">
+              {hasEnergy
+                ? ENERGY_FILTERS.map((f) => (
+                    <button
+                      key={f.value}
+                      type="button"
+                      className="kok-chip kok-chip--btn"
+                      aria-pressed={energyFilter === f.value}
+                      onClick={() => setEnergyFilter(f.value)}
+                    >
+                      {f.label}
+                    </button>
+                  ))
+                : null}
+              <span className="kok-chip">{visibleCount} zadań</span>
+            </div>
           </div>
           {data.queue.length === 0 ? (
             <p className="kok-empty-msg">Nic w kolejce</p>
+          ) : visibleCount === 0 ? (
+            <p className="kok-empty-msg">Brak zadań z tą energią</p>
           ) : (
             <div className="kok-queue">
-              {data.queue.map((group) => (
+              {visibleQueue.map((group) => (
                 <QueueGroupCard key={group.projectId ?? "general"} group={group} />
               ))}
             </div>

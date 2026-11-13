@@ -49,7 +49,12 @@ Utwórz `tests/unit/features/board/boardLayout.test.ts`:
 ```ts
 import { describe, expect, it } from "vitest";
 import type { BoardFrame, BoardTile } from "@/src/features/board/boardTypes";
-import { boxChanged, frameAt, movedChildren, withMembership } from "@/src/features/board/boardLayout";
+import {
+  boxChanged,
+  frameAt,
+  movedChildren,
+  withMembership,
+} from "@/src/features/board/boardLayout";
 
 const frameA: BoardFrame = { id: "a", title: "A", x: 0, y: 0, w: 100, h: 100 };
 const frameB: BoardFrame = { id: "b", title: "B", x: 50, y: 50, w: 100, h: 100 };
@@ -168,15 +173,14 @@ export function frameAt(box: BoardBox, frames: BoardFrame[]): string | null {
   const hit = [...frames]
     .reverse()
     .find(
-      (frame) => cx >= frame.x && cx <= frame.x + frame.w && cy >= frame.y && cy <= frame.y + frame.h
+      (frame) =>
+        cx >= frame.x && cx <= frame.x + frame.w && cy >= frame.y && cy <= frame.y + frame.h
     );
   return hit ? hit.id : null;
 }
 
 export function boxChanged(before: BoardBox, after: BoardBox): boolean {
-  return (["x", "y", "w", "h"] as const).some(
-    (key) => Math.abs(after[key] - before[key]) >= 0.5
-  );
+  return (["x", "y", "w", "h"] as const).some((key) => Math.abs(after[key] - before[key]) >= 0.5);
 }
 
 export function movedChildren(
@@ -350,7 +354,10 @@ export function applyDelete(board: Board, ids: string[]): Board {
   };
 }
 
-export function deleteCopy(plan: DeletePlan, lang: "pl" | "en"): { title: string; lines: string[] } {
+export function deleteCopy(
+  plan: DeletePlan,
+  lang: "pl" | "en"
+): { title: string; lines: string[] } {
   const pl = lang === "pl";
   if (plan.tiles.length + plan.frames.length > 1) {
     const lines = [
@@ -401,9 +408,7 @@ export function deleteCopy(plan: DeletePlan, lang: "pl" | "en"): { title: string
     return { title: pl ? "Usunąć ramkę?" : "Delete the frame?", lines };
   }
   const title = plan.tiles[0]?.title ?? "";
-  const lines = [
-    pl ? `„${title}” zniknie z tablicy.` : `“${title}” will leave the board.`,
-  ];
+  const lines = [pl ? `„${title}” zniknie z tablicy.` : `“${title}” will leave the board.`];
   if (plan.edgeIds.length > 0) {
     lines.push(
       pl
@@ -610,7 +615,12 @@ export function removeEdge(board: Board, id: string): Board {
   return { ...board, edges: board.edges.filter((edge) => edge.id !== id) };
 }
 
-export function updateTileText(board: Board, id: string, title: string, note: string): Board | null {
+export function updateTileText(
+  board: Board,
+  id: string,
+  title: string,
+  note: string
+): Board | null {
   if (!board.tiles.some((tile) => tile.id === id)) return null;
   return {
     ...board,
@@ -881,9 +891,7 @@ describe("boardService", () => {
   it("reads back a saved board", async () => {
     setupDoc();
     const saved = await saveBoard("u1", {
-      tiles: [
-        { id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: null },
-      ],
+      tiles: [{ id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: null }],
       frames: [],
       edges: [],
     });
@@ -896,9 +904,7 @@ describe("boardService", () => {
     setupDoc();
     await expect(
       saveBoard("u1", {
-        tiles: [
-          { id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: "nope" },
-        ],
+        tiles: [{ id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: "nope" }],
         frames: [],
         edges: [],
       })
@@ -1350,7 +1356,11 @@ export function ConfirmDeleteDialog({
   onCancel: () => void;
 }) {
   return (
-    <div role="dialog" aria-labelledby="board-delete-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      role="dialog"
+      aria-labelledby="board-delete-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    >
       <div className="w-full max-w-md rounded-xl bg-[var(--surface)] p-4">
         <h2 id="board-delete-title" className="text-base font-bold text-[var(--text)]">
           {title}
@@ -1361,10 +1371,19 @@ export function ConfirmDeleteDialog({
           </p>
         ))}
         <div className="mt-4 flex justify-end gap-2">
-          <button type="button" className="rounded-lg px-3 py-2 text-sm" autoFocus onClick={onCancel}>
+          <button
+            type="button"
+            className="rounded-lg px-3 py-2 text-sm"
+            autoFocus
+            onClick={onCancel}
+          >
             {cancelLabel}
           </button>
-          <button type="button" className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm text-white" onClick={onConfirm}>
+          <button
+            type="button"
+            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm text-white"
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </button>
         </div>
@@ -1396,7 +1415,11 @@ export function FrameNameDialog({
 }) {
   const [value, setValue] = useState(initialTitle);
   return (
-    <div role="dialog" aria-label={title} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      role="dialog"
+      aria-label={title}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    >
       <form
         className="w-full max-w-md rounded-xl bg-[var(--surface)] p-4"
         onSubmit={(event) => {
@@ -1446,7 +1469,11 @@ export function TileDialog({
   const [title, setTitle] = useState(tile.title);
   const [note, setNote] = useState(tile.note);
   return (
-    <div role="dialog" aria-label={titleLabel} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div
+      role="dialog"
+      aria-label={titleLabel}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+    >
       <div className="w-full max-w-md rounded-xl bg-[var(--surface)] p-4">
         <label className="block text-sm text-[var(--text)]">
           {titleLabel}
@@ -1467,7 +1494,9 @@ export function TileDialog({
         <div className="mt-4 flex justify-end">
           <button
             type="button"
-            onClick={() => onSave({ title: title.trim().slice(0, 200), note: note.slice(0, 10000) })}
+            onClick={() =>
+              onSave({ title: title.trim().slice(0, 200), note: note.slice(0, 10000) })
+            }
           >
             {closeLabel}
           </button>
@@ -1612,7 +1641,13 @@ vi.mock("@xyflow/react", () => {
   const React = require("react");
   return {
     ReactFlowProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    ReactFlow: ({ children, deleteKeyCode }: { children?: React.ReactNode; deleteKeyCode?: string | null }) => (
+    ReactFlow: ({
+      children,
+      deleteKeyCode,
+    }: {
+      children?: React.ReactNode;
+      deleteKeyCode?: string | null;
+    }) => (
       <div data-testid="flow" data-delete-key={deleteKeyCode ?? ""}>
         {children}
       </div>
@@ -1733,7 +1768,12 @@ export function TileNode({ id, data, selected }: NodeProps<TileFlowNode>) {
       <div className="h-full w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm font-semibold text-[var(--text)]">
         {data.tile.title}
         {selected ? (
-          <button type="button" aria-label="delete-tile" className="ml-2" onClick={() => data.onDelete(id)}>
+          <button
+            type="button"
+            aria-label="delete-tile"
+            className="ml-2"
+            onClick={() => data.onDelete(id)}
+          >
             ×
           </button>
         ) : null}
@@ -1751,7 +1791,11 @@ import React from "react";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import type { BoardFrame } from "@/src/features/board/boardTypes";
 
-export type FrameNodeData = { frame: BoardFrame; onRename: (id: string) => void; onDelete: (id: string) => void };
+export type FrameNodeData = {
+  frame: BoardFrame;
+  onRename: (id: string) => void;
+  onDelete: (id: string) => void;
+};
 export type FrameFlowNode = Node<FrameNodeData, "frame">;
 
 export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
@@ -1759,7 +1803,11 @@ export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
     <>
       <NodeResizer isVisible={selected} minWidth={200} minHeight={120} />
       <div className="h-full w-full rounded-xl border border-dashed border-[var(--border)]">
-        <button type="button" className="px-2 py-1 text-xs font-bold" onDoubleClick={() => data.onRename(id)}>
+        <button
+          type="button"
+          className="px-2 py-1 text-xs font-bold"
+          onDoubleClick={() => data.onRename(id)}
+        >
           {data.frame.title}
         </button>
         {selected ? (
@@ -1777,7 +1825,13 @@ export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
 
 ```tsx
 import React from "react";
-import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath, type Edge, type EdgeProps } from "@xyflow/react";
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
+  type Edge,
+  type EdgeProps,
+} from "@xyflow/react";
 
 export type BoardEdgeData = { onRemove: (id: string) => void };
 export type BoardFlowEdge = Edge<BoardEdgeData, "board">;
@@ -1852,7 +1906,11 @@ import {
   renameFrame,
 } from "@/src/features/board/boardActions";
 import { applyDelete, deleteCopy, deletePlan } from "@/src/features/board/boardDelete";
-import { readViewport, storeViewport, type BoardViewport } from "@/src/features/board/boardViewport";
+import {
+  readViewport,
+  storeViewport,
+  type BoardViewport,
+} from "@/src/features/board/boardViewport";
 import { BoardEdge, type BoardFlowEdge } from "@/src/features/board/BoardEdge";
 import { FrameNode, type FrameFlowNode } from "@/src/features/board/FrameNode";
 import { TileNode, type TileFlowNode } from "@/src/features/board/TileNode";
@@ -1874,7 +1932,11 @@ const edgeTypes = { board: BoardEdge };
 
 function buildGraph(
   board: Board,
-  actions: { onDelete: (id: string) => void; onRename: (id: string) => void; onRemoveEdge: (id: string) => void }
+  actions: {
+    onDelete: (id: string) => void;
+    onRename: (id: string) => void;
+    onRemoveEdge: (id: string) => void;
+  }
 ) {
   const frames = new Map(board.frames.map((frame) => [frame.id, frame]));
   const frameNodes: FrameFlowNode[] = board.frames.map((frame) => ({
@@ -1909,9 +1971,7 @@ function buildGraph(
 
 function absoluteOrigin(node: Node, frames: BoardFrame[]) {
   const frame = frames.find((item) => item.id === node.parentId);
-  return frame
-    ? { x: node.position.x + frame.x, y: node.position.y + frame.y }
-    : node.position;
+  return frame ? { x: node.position.x + frame.x, y: node.position.y + frame.y } : node.position;
 }
 
 function CanvasInner({
@@ -2029,7 +2089,14 @@ function CanvasInner({
           defaultViewport={stored ?? { x: 0, y: 0, zoom: 0.75 }}
           onMoveEnd={(_event, viewport: BoardViewport) => storeViewport(userId, viewport)}
           onBeforeDelete={onBeforeDelete}
-          onNodesDelete={(deleted) => onChange(applyDelete(board, deleted.map((node) => node.id)))}
+          onNodesDelete={(deleted) =>
+            onChange(
+              applyDelete(
+                board,
+                deleted.map((node) => node.id)
+              )
+            )
+          }
           onConnect={(connection) => {
             if (!connection.source || !connection.target) return;
             const next = connectTiles(board, connection.source, connection.target);
@@ -2183,13 +2250,24 @@ const labels = {
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 describe("BoardTab", () => {
   it("shows a retry when the load fails and does not draw the canvas", async () => {
     const apiFetch = vi.fn().mockResolvedValue(jsonResponse({ error: "nope" }, 500));
-    render(<BoardTab apiFetch={apiFetch} userId="u1" lang="pl" labels={labels} canvasLabels={{} as never} />);
+    render(
+      <BoardTab
+        apiFetch={apiFetch}
+        userId="u1"
+        lang="pl"
+        labels={labels}
+        canvasLabels={{} as never}
+      />
+    );
     expect(await screen.findByText("Nie udało się wczytać tablicy")).toBeInTheDocument();
     expect(screen.queryByTestId("flow")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "change" })).not.toBeInTheDocument();
@@ -2208,7 +2286,15 @@ describe("BoardTab", () => {
           edges: [],
         })
       );
-    render(<BoardTab apiFetch={apiFetch} userId="u1" lang="pl" labels={labels} canvasLabels={{} as never} />);
+    render(
+      <BoardTab
+        apiFetch={apiFetch}
+        userId="u1"
+        lang="pl"
+        labels={labels}
+        canvasLabels={{} as never}
+      />
+    );
     await user.click(await screen.findByRole("button", { name: "change" }));
     expect(await screen.findByText("Nie zapisano zmian")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "change" }));
