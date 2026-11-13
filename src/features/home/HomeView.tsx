@@ -2,6 +2,7 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import type { translations } from "@/src/translations";
+import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
 import { ActivityLog } from "@/src/components/sessions/ActivityLog";
 import type { UserTag } from "@/src/features/tags/TagsSection";
 import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
@@ -17,21 +18,10 @@ import {
   PlanowanieSidebarContent,
   type PlanningTab,
 } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import { CockpitSections } from "./CockpitSections";
+import { PinPicker } from "./PinPicker";
 
 type T = (typeof translations)["en"];
-
-interface HomeTask {
-  id: string;
-  title: string;
-  status: string;
-  due_date?: string | null;
-}
-
-interface HomeEvent {
-  id: string;
-  title: string;
-  date: string;
-}
 
 interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -46,16 +36,6 @@ interface HomeViewProps {
   setLang: (lang: "en" | "pl") => void;
 }
 
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
-function in48hISO() {
-  const d = new Date();
-  d.setHours(d.getHours() + 48);
-  return d.toISOString().split("T")[0];
-}
-
 export default function HomeView({
   apiFetch,
   lang,
@@ -68,47 +48,32 @@ export default function HomeView({
   setPlanningTab,
   setLang,
 }: HomeViewProps) {
-  const [tasks, setTasks] = useState<HomeTask[]>([]);
-  const [events, setEvents] = useState<HomeEvent[]>([]);
-  const [notesCount, setNotesCount] = useState(0);
-  const [resourcesCount, setResourcesCount] = useState(0);
-  const [mindMapsCount, setMindMapsCount] = useState(0);
+  const [cockpit, setCockpit] = useState<CockpitDto | null>(null);
+  const [cockpitError, setCockpitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [userTags, setUserTags] = useState<UserTag[]>([]);
   const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
   const [sessionEndError, setSessionEndError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const today = todayISO();
-    const limit48h = in48hISO();
+  const loadCockpit = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      apiFetch("/api/tasks")
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-      apiFetch(`/api/calendar/events?startDate=${today}&endDate=${limit48h}`)
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-      apiFetch("/api/notes")
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-      apiFetch("/api/resources")
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-      apiFetch("/api/mind-maps")
-        .then((r) => (r.ok ? r.json() : []))
-        .catch(() => []),
-    ])
-      .then(([tasksData, eventsData, notesData, resourcesData, mindMapsData]) => {
-        setTasks(Array.isArray(tasksData) ? tasksData : []);
-        setEvents(Array.isArray(eventsData) ? eventsData : []);
-        setNotesCount(Array.isArray(notesData) ? notesData.length : 0);
-        setResourcesCount(Array.isArray(resourcesData) ? resourcesData.length : 0);
-        setMindMapsCount(Array.isArray(mindMapsData) ? mindMapsData.length : 0);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const res = await apiFetch("/api/cockpit");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setCockpit((await res.json()) as CockpitDto);
+      setCockpitError(null);
+    } catch (err) {
+      setCockpitError(err instanceof Error ? err.message : "Błąd");
+    } finally {
+      setLoading(false);
+    }
   }, [apiFetch]);
+
+  useEffect(() => {
+    void loadCockpit();
+  }, [loadCockpit]);
 
   useEffect(() => {
     apiFetch("/api/tags")
@@ -167,16 +132,6 @@ export default function HomeView({
     }
   }, [activeSession, apiFetch]);
 
-  const today = todayISO();
-  const limit48h = in48hISO();
-
-  const todayTasks = tasks.filter(
-    (n) => n.due_date && n.due_date.startsWith(today) && n.status !== "done"
-  );
-  const upcomingEvents = events.filter(
-    (n) => n.date && n.date >= today && n.date <= limit48h && !n.id.startsWith("task:")
-  );
-
   const goToTab = (tab: PlanningTab) => {
     setPlanningTab(tab);
     setAppMode("planowanie");
@@ -232,93 +187,25 @@ export default function HomeView({
             <p className="text-sm text-[var(--text2)] mt-1">{dateStr}</p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {[
-              { label: t.homeTodayTasks, value: todayTasks.length, color: "var(--accent)" },
-              { label: t.homeUpcoming, value: upcomingEvents.length, color: "var(--green)" },
-              {
-                label: lang === "pl" ? "Notatki" : "Notes",
-                value: notesCount,
-                color: "var(--text2)",
-              },
-              {
-                label: t.tabResources,
-                value: resourcesCount,
-                color: "var(--text2)",
-              },
-              {
-                label: t.tabMindMaps,
-                value: mindMapsCount,
-                color: "var(--text2)",
-              },
-            ].map(({ label, value, color }) => (
-              <div
-                key={label}
-                className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4"
-              >
-                <p className="text-2xl font-bold" style={{ color }}>
-                  {loading ? "—" : value}
-                </p>
-                <p className="text-xs text-[var(--text2)] mt-1">{label}</p>
-              </div>
-            ))}
-          </div>
+          {loading && cockpit === null ? (
+            <p className="text-sm text-[var(--text3)]">…</p>
+          ) : cockpitError !== null ? (
+            <p className="text-sm text-red-500">Nie udało się wczytać Kokpitu ({cockpitError})</p>
+          ) : cockpit !== null ? (
+            <CockpitSections data={cockpit} onChangeActive={() => setPickerOpen(true)} />
+          ) : null}
 
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)]">
-                {t.homeTodayTasks}
-              </h3>
-              <button
-                onClick={() => goToTab("tasks")}
-                className="text-xs text-[var(--accent)] hover:underline"
-              >
-                {t.homeShowAll}
-              </button>
-            </div>
-            {loading ? (
-              <p className="text-sm text-[var(--text3)]">…</p>
-            ) : todayTasks.length === 0 ? (
-              <p className="text-sm text-[var(--text3)]">{t.homeNoTasks}</p>
-            ) : (
-              <ul className="space-y-2">
-                {todayTasks.slice(0, 5).map((task) => (
-                  <li
-                    key={task.id}
-                    className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl"
-                  >
-                    <div className="w-4 h-4 rounded border-2 border-[var(--accent)] flex-shrink-0" />
-                    <span className="text-sm text-[var(--text)] flex-1">{task.title}</span>
-                    <span className="text-xs text-[var(--accent)]">{task.due_date}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)] mb-3">
-              {t.homeUpcoming}
-            </h3>
-            {loading ? (
-              <p className="text-sm text-[var(--text3)]">…</p>
-            ) : upcomingEvents.length === 0 ? (
-              <p className="text-sm text-[var(--text3)]">{t.homeNoEvents}</p>
-            ) : (
-              <ul className="space-y-2">
-                {upcomingEvents.slice(0, 3).map((ev) => (
-                  <li
-                    key={ev.id}
-                    className="flex items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--border)] rounded-xl"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-[var(--green)] flex-shrink-0" />
-                    <span className="text-sm text-[var(--text)] flex-1">{ev.title}</span>
-                    <span className="text-xs text-[var(--text2)]">{ev.date}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          {pickerOpen && (
+            <PinPicker
+              apiFetch={apiFetch}
+              currentIds={cockpit?.topics.map((topic) => topic.id) ?? []}
+              onCancel={() => setPickerOpen(false)}
+              onSaved={() => {
+                setPickerOpen(false);
+                void loadCockpit();
+              }}
+            />
+          )}
 
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)] mb-3">
