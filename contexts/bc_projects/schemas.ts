@@ -7,6 +7,7 @@ import type {
   ContextPack,
   DevlogEntry,
   Freshness,
+  Owner,
   Project,
   ProjectState,
   ProjectType,
@@ -14,7 +15,7 @@ import type {
   TasksBoard,
 } from "./models";
 
-export type { ProjectType };
+export type { Owner, ProjectType };
 
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
 
@@ -206,7 +207,7 @@ export type ProjectSummaryDto = {
   localPath: string;
   deploy?: string;
   github?: string;
-  owner: "personal";
+  owner: Owner;
   lastWorked?: string;
   stateConfidence?: string;
   type?: ProjectType;
