@@ -278,8 +278,10 @@ export function readRepoRules(entry: RegistryEntry): RepoRulesResult {
   const repo = resolveRepoPath(entry.localPath);
   if (repo.ok === false) return { ok: false, reason: repo.reason };
   const file = readRepoFile(repo.path, "CLAUDE.md");
-  if (file.ok) return { ok: true, text: file.text };
-  return { ok: false, reason: file.reason === "missing" ? "no-file" : "unsafe-file" };
+  if (file.ok === false) {
+    return { ok: false, reason: file.reason === "missing" ? "no-file" : "unsafe-file" };
+  }
+  return { ok: true, text: file.text };
 }
 
 /** `Projects/<id>/ai-context.md` z vaulta; brak pliku albo pusta treść = `null`. */
