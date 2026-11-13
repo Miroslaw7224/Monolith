@@ -125,11 +125,17 @@ export function extractEnergy(raw: string): { energy: Energy | null; title: stri
 
 type QueueEntry = { projectId: string | null; name: string; owner: Owner; item: QueueItem };
 
-const KIND_RANK: Record<QueueItem["kind"], number> = { today: 0, overdue: 1, now: 2, undated: 3 };
+const KIND_RANK: Record<QueueItem["kind"], number> = {
+  today: 0,
+  overdue: 1,
+  now: 2,
+  upcoming: 3,
+  undated: 4,
+};
 
 /**
  * Sortuje wg najbliższej daty: dziś → zaległe (od najświeższego, bo najstarsze zaległości zasłaniałyby
- * bieżące) → `[now::]` → bez terminu; potem grupuje wg kolejności pierwszego wystąpienia.
+ * bieżące) → `[now::]` → z terminem w przyszłości (najbliższy pierwszy) → bez terminu; potem grupuje wg kolejności pierwszego wystąpienia.
  */
 function groupQueue(entries: QueueEntry[]): QueueGroup[] {
   const sorted = [...entries].sort((a, b) => {
@@ -189,14 +195,19 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         warnings.push(`Zadanie "${t.title}": pominięto błędny termin ${t.due_date}`);
         continue;
       }
-      if (t.due_date && t.due_date > date) continue;
       // Zadania ogólne nie mają pola `owner`: w 2-1 traktowane jako prywatne (spec D7).
       entries.push({
         projectId: null,
         name: GENERAL_NAME,
         owner: "personal",
         item: {
-          kind: !t.due_date ? "undated" : t.due_date < date ? "overdue" : "today",
+          kind: !t.due_date
+            ? "undated"
+            : t.due_date < date
+              ? "overdue"
+              : t.due_date === date
+                ? "today"
+                : "upcoming",
           title: extractEnergy(t.title).title,
           due: t.due_date || null,
           projectName: null,

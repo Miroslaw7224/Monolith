@@ -426,6 +426,15 @@ describe("kolejka na dziś", () => {
             source: { type: "task", taskId: "a" },
           },
           {
+            kind: "upcoming",
+            title: "Jutro",
+            due: "2026-11-14",
+            projectName: null,
+            priority: null,
+            energy: null,
+            source: { type: "task", taskId: "c" },
+          },
+          {
             kind: "undated",
             title: "Bez terminu",
             due: null,
@@ -487,7 +496,7 @@ describe("kolejka na dziś", () => {
     ]);
   });
 
-  it("zadania ogólne bez terminu trafiają na koniec kolejki jako „undated”; ukończone i przyszłe nie", async () => {
+  it("zadania ogólne: dziś → „upcoming” (termin w przyszłości, najbliższy pierwszy) → „undated”; ukończone nie", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
         {
@@ -507,14 +516,24 @@ describe("kolejka na dziś", () => {
       task({ id: "3", title: "Zrobione bez daty", due_date: null, status: "done" }),
       task({ id: "4", title: "Za tydzień", due_date: "2026-11-20" }),
       task({ id: "5", title: "Dziś #deep", due_date: "2026-11-13" }),
+      task({ id: "6", title: "Jutro", due_date: "2026-11-14" }),
     ]);
     const { queue, warnings } = await getCockpit(TODAY);
     expect(warnings).toEqual([]);
     expect(queue.map((g) => [g.name, g.items.map((i) => `${i.kind}:${i.title}`)])).toEqual([
-      ["Ogólne", ["today:Dziś", "undated:Bez daty", "undated:W toku bez daty"]],
+      [
+        "Ogólne",
+        [
+          "today:Dziś",
+          "upcoming:Jutro",
+          "upcoming:Za tydzień",
+          "undated:Bez daty",
+          "undated:W toku bez daty",
+        ],
+      ],
       ["P", ["now:Teraz"]],
     ]);
-    expect(queue[0].items[1].due).toBeNull();
+    expect(queue[0].items[3].due).toBeNull();
   });
 
   it("złe daty due (0006-08-26 i inne) są pomijane z ostrzeżeniem, poprawne zostają", async () => {

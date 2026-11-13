@@ -8,6 +8,7 @@ export type QueueItemView = QueueGroupDto["items"][number];
 const KIND_TEXT: Record<QueueItemView["kind"], string> = {
   today: "termin: dziś",
   overdue: "zaległe",
+  upcoming: "termin w przyszłości",
   now: "w kolumnie „Teraz”",
   undated: "bez terminu",
 };
@@ -49,7 +50,9 @@ export function QueueItemDialog({
             <dt>Status</dt>
             <dd>
               {KIND_TEXT[item.kind]}
-              {item.kind === "overdue" && item.due ? ` (${item.due})` : null}
+              {(item.kind === "overdue" || item.kind === "upcoming") && item.due
+                ? ` (${item.due})`
+                : null}
             </dd>
           </div>
           {item.priority ? (

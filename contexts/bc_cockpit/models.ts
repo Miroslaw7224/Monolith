@@ -39,8 +39,8 @@ export type QueueSource =
   | { type: "task"; taskId: string }
   | { type: "project"; projectId: string; text: string; occurrence: number };
 
-/** `overdue`: `due` < dziś, `today`: `due` = dziś, `now`: zadanie `[now::]` projektu, `undated`: otwarte zadanie ogólne bez terminu. */
-export type QueueKind = "overdue" | "today" | "now" | "undated";
+/** `overdue`: `due` < dziś, `today`: `due` = dziś, `upcoming`: `due` > dziś (termin ostateczny; zadanie jest do zrobienia już teraz), `now`: zadanie `[now::]` projektu, `undated`: otwarte zadanie ogólne bez terminu. */
+export type QueueKind = "overdue" | "today" | "upcoming" | "now" | "undated";
 export type QueueItem = {
   kind: QueueKind;
   title: string;

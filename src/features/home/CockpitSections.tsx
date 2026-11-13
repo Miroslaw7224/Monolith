@@ -213,6 +213,9 @@ function QueueGroupCard({
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
+            {item.kind === "upcoming" && item.due ? (
+              <span className="kok-badge">do {item.due}</span>
+            ) : null}
             {item.kind === "undated" ? <span className="kok-badge">bez terminu</span> : null}
             {item.kind === "today" ? (
               <span className="kok-badge kok-badge--accent">dziś</span>
