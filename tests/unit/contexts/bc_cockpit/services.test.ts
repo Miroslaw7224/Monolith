@@ -327,11 +327,14 @@ describe("następne spotkanie", () => {
     ]);
     const result = await getCockpit(new Date(2026, 10, 13, 9, 48));
     expect(result.nextMeeting).toEqual({
+      date: "2026-11-13",
       title: "A",
       startMinutes: 630,
       durationMinutes: 30,
       link: "https://meet.google.com/abc-defg-hij",
     });
+    // dzisiejsze spotkanie wystarcza: kalendarz nie jest pytany o przyszłość
+    expect(mockGetCalendarEvents).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1053,5 +1056,73 @@ describe("domykanie zadań z kolejki", () => {
     await expect(
       completeQueueItem({ type: "project", projectId: "x", text: "t" })
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("następne spotkanie poza dniem dzisiejszym", () => {
+  const cal = (date: string, over: Record<string, unknown> = {}) => ({
+    id: `e-${date}`,
+    date,
+    start_minutes: 1200,
+    duration_minutes: 60,
+    title: "Career Guide",
+    tags: [],
+    color: "#00802b",
+    type: "meeting",
+    link: "https://meet.google.com/gon-fztr-zrn",
+    ...over,
+  });
+  const future = [
+    cal("2026-11-25"),
+    cal("2026-11-16", { type: "work", title: "Praca" }),
+    cal("2026-11-18"),
+    cal("2026-11-17", { type: "task_deadline", title: "Termin" }),
+  ];
+
+  it("bez spotkań dziś bierze najbliższe przyszłe (tylko typ meeting) i podaje jego dzień", async () => {
+    mockGetCalendarEvents.mockImplementation(async (r: { startDate: string; endDate: string }) =>
+      r.startDate === r.endDate ? [] : future
+    );
+    const { nextMeeting } = await getCockpit(TODAY);
+    expect(nextMeeting).toEqual({
+      date: "2026-11-18",
+      title: "Career Guide",
+      startMinutes: 1200,
+      durationMinutes: 60,
+      link: "https://meet.google.com/gon-fztr-zrn",
+    });
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith({
+      startDate: "2026-11-14",
+      endDate: "2027-01-12",
+    });
+  });
+
+  it("gdy dzisiejsze spotkania już się skończyły, bierze przyszłe", async () => {
+    mockGetCalendarEvents.mockImplementation(async (r: { startDate: string; endDate: string }) =>
+      r.startDate === r.endDate
+        ? [cal("2026-11-13", { start_minutes: 540, duration_minutes: 30 })]
+        : future
+    );
+    const { nextMeeting } = await getCockpit(new Date(2026, 10, 13, 15, 0));
+    expect(nextMeeting?.date).toBe("2026-11-18");
+  });
+
+  it("odpowiedź kalendarza z dzisiejszymi wydarzeniami w zapytaniu o przyszłość jest ignorowana", async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      cal("2026-11-13", { start_minutes: 540, duration_minutes: 30 }),
+    ]);
+    expect((await getCockpit(new Date(2026, 10, 13, 15, 0))).nextMeeting).toBeNull();
+  });
+
+  it("brak spotkań w ciągu 60 dni to null", async () => {
+    mockGetCalendarEvents.mockResolvedValue([]);
+    expect((await getCockpit(TODAY)).nextMeeting).toBeNull();
+  });
+
+  it("awaria kalendarza: jedno ostrzeżenie (bez dublowania), nextMeeting null", async () => {
+    mockGetCalendarEvents.mockRejectedValue(new Error("boom"));
+    const res = await getCockpit(TODAY);
+    expect(res.nextMeeting).toBeNull();
+    expect(res.warnings).toEqual(["Kalendarz: boom"]);
   });
 });

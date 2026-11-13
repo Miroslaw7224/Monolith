@@ -115,6 +115,7 @@ const FULL: CockpitDto = {
     },
   ],
   nextMeeting: {
+    date: "2026-11-13",
     title: "Spotkanie zespołu",
     startMinutes: 570,
     durationMinutes: 30,
@@ -932,5 +933,54 @@ describe("K1: układ wg makiety", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Zamknij" }));
     expect(screen.queryByRole("dialog", { name: "Podgląd zadania" })).not.toBeInTheDocument();
     expect(within(queue).getByText("Wysłać wniosek")).toBeInTheDocument();
+  });
+
+  test("następne spotkanie z innego dnia: godzina i dzień, odnośnik Dołącz", async () => {
+    respond({
+      ...FULL,
+      nextMeeting: {
+        date: "2026-11-18",
+        title: "Career Guide",
+        startMinutes: 1200,
+        durationMinutes: 60,
+        link: "https://meet.google.com/gon-fztr-zrn",
+      },
+    });
+    render(<HomeView {...defaultProps} />);
+    const tile = (
+      await screen.findByText("Następne spotkanie", { selector: ".kok-tile__label" })
+    ).closest(".kok-tile") as HTMLElement;
+    expect(tile).toHaveTextContent("20:00");
+    expect(tile).toHaveTextContent("Środa, 18 listopada · Career Guide");
+    expect(tile).not.toHaveTextContent("za ");
+    expect(within(tile).getByRole("link", { name: /Dołącz/ })).toHaveAttribute(
+      "href",
+      "https://meet.google.com/gon-fztr-zrn"
+    );
+  });
+
+  test("jutrzejsze spotkanie jest podpisane „jutro”; brak spotkań to „brak nadchodzących spotkań”", async () => {
+    respond({
+      ...FULL,
+      nextMeeting: {
+        date: "2026-11-14",
+        title: "Daily",
+        startMinutes: 540,
+        durationMinutes: 15,
+        link: null,
+      },
+    });
+    const { unmount } = render(<HomeView {...defaultProps} />);
+    const tile = (
+      await screen.findByText("Następne spotkanie", { selector: ".kok-tile__label" })
+    ).closest(".kok-tile") as HTMLElement;
+    expect(tile).toHaveTextContent("jutro · Daily");
+    unmount();
+    respond({ ...FULL, nextMeeting: null });
+    render(<HomeView {...defaultProps} />);
+    const tile2 = (
+      await screen.findByText("Następne spotkanie", { selector: ".kok-tile__label" })
+    ).closest(".kok-tile") as HTMLElement;
+    expect(tile2).toHaveTextContent("brak nadchodzących spotkań");
   });
 });

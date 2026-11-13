@@ -104,6 +104,7 @@ describe("mapery DTO", () => {
       },
     ],
     nextMeeting: {
+      date: "2026-11-18",
       title: "Spotkanie",
       startMinutes: 570,
       durationMinutes: 30,

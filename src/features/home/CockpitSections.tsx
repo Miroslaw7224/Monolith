@@ -12,6 +12,7 @@ import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
 import {
   hhmm,
+  meetingDayLabel,
   minutesUntil,
   projectsLabel,
   relativeDays,
@@ -397,10 +398,12 @@ export function CockpitSections({
           <span className="kok-tile__value">{next ? hhmm(next.startMinutes) : "—"}</span>
           <span className="kok-tile__meta">
             {next
-              ? next.startMinutes <= nowMinutes
-                ? `trwa · ${next.title}`
-                : `za ${minutesUntil(nowMinutes, next.startMinutes)} min · ${next.title}`
-              : "brak spotkań dziś"}
+              ? next.date !== data.date
+                ? `${meetingDayLabel(next.date, data.date)} · ${next.title}`
+                : next.startMinutes <= nowMinutes
+                  ? `trwa · ${next.title}`
+                  : `za ${minutesUntil(nowMinutes, next.startMinutes)} min · ${next.title}`
+              : "brak nadchodzących spotkań"}
           </span>
           {next?.link ? (
             <a

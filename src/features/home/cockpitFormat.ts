@@ -68,6 +68,16 @@ export function commitsLabel(count: number): string {
   return `${count} ${few ? "commity" : "commitów"}`;
 }
 
+/** „jutro” albo „Środa, 18 listopada” (dzień spotkania względem `todayIso`). */
+export function meetingDayLabel(dateIso: string, todayIso: string): string {
+  const parse = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const days = Math.round((parse(dateIso).getTime() - parse(todayIso).getTime()) / 86_400_000);
+  return days === 1 ? "jutro" : formatLongDate(parse(dateIso));
+}
+
 /** Meta kafla „Commity dziś”: „jeszcze bez commitów” / „1 projekt” / „2 projekty” / „5 projektów”. */
 export function projectsLabel(count: number): string {
   if (count === 0) return "jeszcze bez commitów";

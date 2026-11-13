@@ -72,8 +72,10 @@ export type DayEvent = {
   link: string | null;
 };
 
-/** Najbliższe jeszcze nie rozpoczęte wydarzenie typu `meeting` z dzisiejszego dnia. */
+/** Najbliższe jeszcze nie zakończone wydarzenie typu `meeting`: z dziś albo, gdy nie ma, z najbliższych 60 dni. */
 export type NextMeeting = {
+  /** Dzień spotkania `RRRR-MM-DD` (dziś albo jeden z najbliższych dni). */
+  date: string;
   title: string;
   startMinutes: number;
   durationMinutes: number;

@@ -234,8 +234,45 @@ async function loadEvents(date: string, warnings: string[]): Promise<DayEvent[]>
   }
 }
 
+const UPCOMING_DAYS = 60;
+
+/** Najbliższe spotkanie po dniu `date` w ciągu `UPCOMING_DAYS` dni; `null`, gdy brak albo kalendarz zawiódł. */
+async function loadUpcomingMeeting(
+  today: Date,
+  date: string,
+  warnings: string[]
+): Promise<NextMeeting | null> {
+  const day = (offset: number) =>
+    localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset));
+  try {
+    const entries = await calendarServices.getCalendarEvents({
+      startDate: day(1),
+      endDate: day(UPCOMING_DAYS),
+    });
+    const next = entries
+      .filter((e) => e.type === "meeting" && e.date > date)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes)[0];
+    return next
+      ? {
+          date: next.date,
+          title: next.title,
+          startMinutes: next.start_minutes,
+          durationMinutes: next.duration_minutes,
+          link: next.link ?? null,
+        }
+      : null;
+  } catch (err) {
+    const message = `Kalendarz: ${reason(err)}`;
+    if (!warnings.includes(message)) warnings.push(message);
+    return null;
+  }
+}
+
 /** Pierwsze dzisiejsze `meeting`, które jeszcze się nie skończyło (trwające liczy się jako następne). */
-export function pickNextMeeting(events: DayEvent[], nowMinutes: number): NextMeeting | null {
+export function pickNextMeeting(
+  events: DayEvent[],
+  nowMinutes: number
+): Omit<NextMeeting, "date"> | null {
   const upcoming = events
     .filter((e) => e.type === "meeting" && e.startMinutes + e.durationMinutes > nowMinutes)
     .sort((a, b) => a.startMinutes - b.startMinutes)[0];
@@ -360,7 +397,10 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const topics = loadTopics(today, warnings);
   const queue = await loadQueue(date, warnings);
   const events = await loadEvents(date, warnings);
-  const nextMeeting = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
+  const todays = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
+  const nextMeeting: NextMeeting | null = todays
+    ? { date, ...todays }
+    : await loadUpcomingMeeting(today, date, warnings);
   const git = loadGit(today, topics, warnings);
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
