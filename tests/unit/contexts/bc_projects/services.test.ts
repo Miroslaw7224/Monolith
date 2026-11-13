@@ -39,6 +39,7 @@ import {
   effectiveLastWorked,
   freshness,
   getProject,
+  isWorkProject,
   listProjects,
   saveState,
   setProjectType,
@@ -249,6 +250,13 @@ describe("bc_projects services", () => {
       throw err;
     });
     expect(() => getProject("a", TODAY)).toThrow(err);
+  });
+});
+
+describe("isWorkProject", () => {
+  it("true tylko dla owner work", () => {
+    expect(isWorkProject({ owner: "work" })).toBe(true);
+    expect(isWorkProject({ owner: "personal" })).toBe(false);
   });
 });
 

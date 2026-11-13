@@ -28,6 +28,7 @@ vi.mock("@/contexts/bc_projects/repositories", () => ({
 }));
 
 import { buildContextPack } from "@/contexts/bc_projects/services";
+import { OWNER_WORK_WARNING } from "@/contexts/bc_projects/services/context-pack";
 
 const TODAY = new Date(2026, 10, 12);
 
@@ -88,6 +89,18 @@ describe("buildContextPack", () => {
     expect(pack.markdown).toContain("Repozytorium niedostępne (ścieżka spoza WSL).");
     expect(pack.warnings).toContain("Kod: repozytorium niedostępne (ścieżka spoza WSL)");
     expect(pack.markdown).toContain("## Save State");
+  });
+
+  it("owner work: ostrzeżenie jest pierwsze, markdown bez zmian", () => {
+    mockReadGitSnapshot.mockReturnValue({ ok: false, reason: "unsupported-path" });
+    const personal = buildContextPack("a", TODAY);
+    mockReadRegistry.mockReturnValue({ entries: [{ ...entry, owner: "work" }], warnings: [] });
+    const work = buildContextPack("a", TODAY);
+    expect(work.warnings[0]).toBe("Dane z firmy: sprawdź, gdzie wklejasz");
+    expect(work.warnings[0]).toBe(OWNER_WORK_WARNING);
+    expect(work.warnings[1]).toContain("repozytorium niedostępne");
+    expect(work.markdown).toBe(personal.markdown);
+    expect(personal.warnings).not.toContain(OWNER_WORK_WARNING);
   });
 
   it("priorytet źródeł zasad: ai-context.md → CLAUDE.md → index.md → brak", () => {

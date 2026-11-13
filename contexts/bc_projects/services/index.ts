@@ -26,7 +26,12 @@ import {
   writeProjectType,
 } from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
-import { composeContextPack, REPO_REASON_TEXT, type PackRules } from "./context-pack";
+import {
+  composeContextPack,
+  OWNER_WORK_WARNING,
+  REPO_REASON_TEXT,
+  type PackRules,
+} from "./context-pack";
 
 export const STALE_AFTER_DAYS = 14;
 
@@ -186,10 +191,15 @@ function pickRules(entry: RegistryEntry, warnings: string[]): PackRules | null {
  * Paczka kontekstu dla agenta (spec etapu 1-4): Markdown z zasadami, Save State, gitem, zadaniami,
  * bugami i devlogiem w budżecie tokenów. Tylko odczyt; brak jednego źródła nie przerywa składania.
  */
+/** Jedno miejsce sprawdzenia dla funkcji, które nie mogą obejmować danych etatu (przyszłe AI lokalne, eksport). */
+export function isWorkProject(entry: Pick<RegistryEntry, "owner">): boolean {
+  return entry.owner === "work";
+}
+
 export function buildContextPack(id: string, today: Date = new Date()): ContextPack {
   const entry = findEntry(id);
   const project = getProject(id, today);
-  const warnings: string[] = [];
+  const warnings: string[] = isWorkProject(entry) ? [OWNER_WORK_WARNING] : [];
 
   const git = readGitSnapshot(entry);
   if (git.ok === false) {
