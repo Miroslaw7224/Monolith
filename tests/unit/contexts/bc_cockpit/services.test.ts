@@ -250,7 +250,14 @@ describe("tematy", () => {
     });
     mockListNowTasks.mockReturnValue({
       tasks: [
-        { projectId: "p", projectName: "P", owner: "personal", priority: "high", text: "Zadanie" },
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "high",
+          text: "Zadanie",
+          occurrence: 0,
+        },
       ],
       warnings: [],
     });
@@ -371,6 +378,7 @@ describe("kolejka na dziś", () => {
           owner: "personal",
           priority: "high",
           text: "Plan",
+          occurrence: 0,
         },
         {
           projectId: "p2",
@@ -378,6 +386,7 @@ describe("kolejka na dziś", () => {
           owner: "work",
           priority: "",
           text: "Raport",
+          occurrence: 0,
         },
       ],
       warnings: [],
@@ -439,7 +448,7 @@ describe("kolejka na dziś", () => {
             projectName: "Projekt 1",
             priority: "high",
             energy: null,
-            source: { type: "project", projectId: "p1", text: "Plan" },
+            source: { type: "project", projectId: "p1", text: "Plan", occurrence: 0 },
           },
         ],
       },
@@ -455,7 +464,7 @@ describe("kolejka na dziś", () => {
             projectName: "Projekt 2",
             priority: null,
             energy: null,
-            source: { type: "project", projectId: "p2", text: "Raport" },
+            source: { type: "project", projectId: "p2", text: "Raport", occurrence: 0 },
           },
         ],
       },
@@ -465,9 +474,9 @@ describe("kolejka na dziś", () => {
   it("zadania [now::] kilku projektów nie mieszają grup, kilka zadań jednego projektu w jednej grupie", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        { projectId: "p1", projectName: "P1", owner: "personal", text: "A" },
-        { projectId: "p2", projectName: "P2", owner: "personal", text: "B" },
-        { projectId: "p1", projectName: "P1", owner: "personal", text: "C" },
+        { projectId: "p1", projectName: "P1", owner: "personal", text: "A", occurrence: 0 },
+        { projectId: "p2", projectName: "P2", owner: "personal", text: "B", occurrence: 0 },
+        { projectId: "p1", projectName: "P1", owner: "personal", text: "C", occurrence: 0 },
       ],
       warnings: [],
     });
@@ -480,7 +489,16 @@ describe("kolejka na dziś", () => {
 
   it("zadania ogólne bez terminu trafiają na koniec kolejki jako „undated”; ukończone i przyszłe nie", async () => {
     mockListNowTasks.mockReturnValue({
-      tasks: [{ projectId: "p", projectName: "P", owner: "personal", priority: "", text: "Teraz" }],
+      tasks: [
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "",
+          text: "Teraz",
+          occurrence: 0,
+        },
+      ],
       warnings: [],
     });
     mockGetTasks.mockResolvedValue([
@@ -633,7 +651,7 @@ describe("awaria jednego źródła nie wywraca reszty", () => {
     mockReadPinned.mockReturnValue({ ids: ["nexus"] });
     mockGetProject.mockReturnValue(project({ whereIStopped: "x" }));
     mockListNowTasks.mockReturnValue({
-      tasks: [{ projectId: "p1", projectName: "P1", owner: "personal", text: "A" }],
+      tasks: [{ projectId: "p1", projectName: "P1", owner: "personal", text: "A", occurrence: 0 }],
       warnings: [],
     });
     mockGetTasks.mockRejectedValue(new Error("zły tasks.md"));
@@ -932,8 +950,16 @@ describe("energia deep/quick (K2)", () => {
           owner: "personal",
           priority: "high",
           text: "Porty #deep",
+          occurrence: 0,
         },
-        { projectId: "p", projectName: "P", owner: "personal", priority: "high", text: "Bez tagu" },
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "high",
+          text: "Bez tagu",
+          occurrence: 0,
+        },
       ],
       warnings: [],
     });
@@ -1062,6 +1088,7 @@ describe("okna Deep Work (K5)", () => {
           owner: "personal",
           priority: "high",
           text: "Porty #deep",
+          occurrence: 0,
         },
       ],
       warnings: [],
@@ -1076,7 +1103,16 @@ describe("okna Deep Work (K5)", () => {
 describe("kolejność wg najbliższej daty", () => {
   it("dziś, potem zaległe od najświeższego (nie od najstarszego), potem [now::], na końcu bez terminu", async () => {
     mockListNowTasks.mockReturnValue({
-      tasks: [{ projectId: "p", projectName: "P", owner: "personal", priority: "", text: "Teraz" }],
+      tasks: [
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "",
+          text: "Teraz",
+          occurrence: 0,
+        },
+      ],
       warnings: [],
     });
     mockGetTasks.mockResolvedValue([
@@ -1101,7 +1137,14 @@ describe("domykanie zadań z kolejki", () => {
   it("źródło zadania: ogólne ma id, projektowe ma projekt i surowy tekst (z tagiem energii)", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        { projectId: "p", projectName: "P", owner: "personal", priority: "", text: "Porty #deep" },
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "",
+          text: "Porty #deep",
+          occurrence: 0,
+        },
       ],
       warnings: [],
     });
@@ -1116,6 +1159,7 @@ describe("domykanie zadań z kolejki", () => {
       type: "project",
       projectId: "p",
       text: "Porty #deep",
+      occurrence: 0,
     });
   });
 
@@ -1126,17 +1170,22 @@ describe("domykanie zadań z kolejki", () => {
     expect(mockCompleteNowTask).not.toHaveBeenCalled();
   });
 
-  it("zadanie projektu: completeNowTask z projektem i tekstem", async () => {
+  it("zadanie projektu: completeNowTask z projektem, tekstem i numerem wystąpienia", async () => {
     mockCompleteNowTask.mockResolvedValue(undefined);
-    await completeQueueItem({ type: "project", projectId: "p", text: "Porty #deep" });
-    expect(mockCompleteNowTask).toHaveBeenCalledWith("p", "Porty #deep");
+    await completeQueueItem({
+      type: "project",
+      projectId: "p",
+      text: "Porty #deep",
+      occurrence: 2,
+    });
+    expect(mockCompleteNowTask).toHaveBeenCalledWith("p", "Porty #deep", 2);
     expect(mockUpdateTask).not.toHaveBeenCalled();
   });
 
   it("błąd z serwisu przechodzi dalej", async () => {
     mockCompleteNowTask.mockRejectedValue(new NotFoundError("Nie ma projektu"));
     await expect(
-      completeQueueItem({ type: "project", projectId: "x", text: "t" })
+      completeQueueItem({ type: "project", projectId: "x", text: "t", occurrence: 0 })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 });
@@ -1258,19 +1307,26 @@ describe("setQueueItemEnergy (K2b)", () => {
 
   it("zadanie projektu: rewriteNowTask ze starym i nowym tekstem; null zdejmuje znacznik", async () => {
     mockRewriteNowTask.mockResolvedValue(undefined);
+    mockRewriteNowTask.mockResolvedValue(1);
     const quick = await setQueueItemEnergy(
-      { type: "project", projectId: "p", text: "Porty" },
+      { type: "project", projectId: "p", text: "Porty", occurrence: 3 },
       "quick"
     );
-    expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty", "Porty #quick");
-    // zwracane źródło ma nowy tekst: dalsze akcje (np. domknięcie) trafiają w aktualną linię
-    expect(quick).toEqual({ type: "project", projectId: "p", text: "Porty #quick" });
+    expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty", "Porty #quick", 3);
+    // zwracane źródło ma nowy tekst i nowy numer wystąpienia: dalsze akcje trafiają w aktualną linię
+    expect(quick).toEqual({
+      type: "project",
+      projectId: "p",
+      text: "Porty #quick",
+      occurrence: 1,
+    });
+    mockRewriteNowTask.mockResolvedValueOnce(0);
     const none = await setQueueItemEnergy(
-      { type: "project", projectId: "p", text: "Porty #quick" },
+      { type: "project", projectId: "p", text: "Porty #quick", occurrence: 1 },
       null
     );
-    expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty #quick", "Porty");
-    expect(none).toEqual({ type: "project", projectId: "p", text: "Porty" });
+    expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty #quick", "Porty", 1);
+    expect(none).toEqual({ type: "project", projectId: "p", text: "Porty", occurrence: 0 });
   });
 
   it("zdjęcie energii z zadania będącego samym znacznikiem jest odrzucone (puste zadanie)", async () => {
@@ -1279,7 +1335,10 @@ describe("setQueueItemEnergy (K2b)", () => {
       DomainError
     );
     await expect(
-      setQueueItemEnergy({ type: "project", projectId: "p", text: "[energy:: quick]" }, null)
+      setQueueItemEnergy(
+        { type: "project", projectId: "p", text: "[energy:: quick]", occurrence: 0 },
+        null
+      )
     ).rejects.toBeInstanceOf(DomainError);
     expect(mockUpdateTask).not.toHaveBeenCalled();
     expect(mockRewriteNowTask).not.toHaveBeenCalled();
@@ -1287,10 +1346,15 @@ describe("setQueueItemEnergy (K2b)", () => {
 
   it("bez zmiany (ten sam tekst) niczego nie zapisuje", async () => {
     const same = await setQueueItemEnergy(
-      { type: "project", projectId: "p", text: "Porty #deep" },
+      { type: "project", projectId: "p", text: "Porty #deep", occurrence: 0 },
       "deep"
     );
     expect(mockRewriteNowTask).not.toHaveBeenCalled();
-    expect(same).toEqual({ type: "project", projectId: "p", text: "Porty #deep" });
+    expect(same).toEqual({
+      type: "project",
+      projectId: "p",
+      text: "Porty #deep",
+      occurrence: 0,
+    });
   });
 });

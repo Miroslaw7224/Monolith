@@ -31,6 +31,7 @@ export const CompleteQueueItemSchema = looseObject({
   taskId: z.string().trim().min(1).optional(),
   projectId: z.string().trim().min(1).optional(),
   text: z.string().min(1).optional(),
+  occurrence: z.number().int().min(0).optional(),
 }).superRefine((body, ctx) => {
   if (body.type === "task" && !body.taskId) ctx.addIssue("taskId required");
   if (body.type === "project" && (!body.projectId || !body.text)) {
@@ -43,6 +44,7 @@ export const SetQueueEnergySchema = looseObject({
   taskId: z.string().trim().min(1).optional(),
   projectId: z.string().trim().min(1).optional(),
   text: z.string().min(1).optional(),
+  occurrence: z.number().int().min(0).optional(),
   energy: z.enum(["deep", "quick"]).nullable(),
 }).superRefine((body, ctx) => {
   if (body.type === "task" && !body.taskId) ctx.addIssue("taskId required");
@@ -95,7 +97,12 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
         source:
           i.source.type === "task"
             ? { type: "task", taskId: i.source.taskId }
-            : { type: "project", projectId: i.source.projectId, text: i.source.text },
+            : {
+                type: "project",
+                projectId: i.source.projectId,
+                text: i.source.text,
+                occurrence: i.source.occurrence,
+              },
       })),
     })),
     events: c.events.map((e) => ({

@@ -169,7 +169,12 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
           projectName: t.projectName,
           priority: t.priority || null,
           energy: extractEnergy(t.text).energy,
-          source: { type: "project", projectId: t.projectId, text: t.text },
+          source: {
+            type: "project",
+            projectId: t.projectId,
+            text: t.text,
+            occurrence: t.occurrence,
+          },
         },
       });
     }
@@ -529,9 +534,14 @@ export async function setQueueItemEnergy(
   }
   const text = withEnergy(source.text, energy);
   assertNotEmpty(text);
-  if (text !== source.text)
-    await projectsServices.rewriteNowTask(source.projectId, source.text, text);
-  return { type: "project", projectId: source.projectId, text };
+  if (text === source.text) return source;
+  const occurrence = await projectsServices.rewriteNowTask(
+    source.projectId,
+    source.text,
+    text,
+    source.occurrence
+  );
+  return { type: "project", projectId: source.projectId, text, occurrence };
 }
 
 /** Oznacza pozycję kolejki jako zrobioną w jej źródle (zadanie ogólne albo zadanie `[now::]` projektu). */
@@ -540,5 +550,5 @@ export async function completeQueueItem(source: QueueSource): Promise<void> {
     await tasksServices.updateTask(source.taskId, { status: "done" });
     return;
   }
-  await projectsServices.completeNowTask(source.projectId, source.text);
+  await projectsServices.completeNowTask(source.projectId, source.text, source.occurrence);
 }

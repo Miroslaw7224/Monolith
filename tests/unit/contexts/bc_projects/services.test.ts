@@ -547,6 +547,23 @@ describe("listNowTasks", () => {
 
   const board = (now: BoardTask[]): TasksBoard => ({ ...EMPTY_BOARD, now });
 
+  it("occurrence numeruje niezakończone zadania o identycznym tekście w obrębie projektu", () => {
+    mockReadRegistry.mockReturnValue({ entries: [entry({ id: "nexus" })], warnings: [] });
+    mockReadProjectBoard.mockReturnValue(
+      board([
+        { text: "Z", done: false },
+        { text: "Z", done: true },
+        { text: "Y", done: false },
+        { text: "Z", done: false },
+      ])
+    );
+    expect(listNowTasks().tasks.map((t) => [t.text, t.occurrence])).toEqual([
+      ["Z", 0],
+      ["Y", 0],
+      ["Z", 1],
+    ]);
+  });
+
   it("zbiera niezakończone zadania Teraz ze wszystkich projektów razem z nazwą i owner", () => {
     mockReadRegistry.mockReturnValue({
       entries: [
@@ -570,6 +587,7 @@ describe("listNowTasks", () => {
         owner: "personal",
         priority: "medium",
         text: "Plan 2-1",
+        occurrence: 0,
       },
       {
         projectId: "firma",
@@ -577,6 +595,7 @@ describe("listNowTasks", () => {
         owner: "work",
         priority: "medium",
         text: "Raport",
+        occurrence: 0,
       },
     ]);
     expect(warnings).toEqual([]);

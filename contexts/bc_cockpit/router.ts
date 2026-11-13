@@ -74,7 +74,12 @@ export async function completeQueueItem(request: NextRequest): Promise<NextRespo
     await services.completeQueueItem(
       body.type === "task"
         ? { type: "task", taskId: body.taskId as string }
-        : { type: "project", projectId: body.projectId as string, text: body.text as string }
+        : {
+            type: "project",
+            projectId: body.projectId as string,
+            text: body.text as string,
+            occurrence: body.occurrence ?? 0,
+          }
     );
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -91,7 +96,12 @@ export async function setQueueEnergy(request: NextRequest): Promise<NextResponse
     const source = await services.setQueueItemEnergy(
       body.type === "task"
         ? { type: "task", taskId: body.taskId as string }
-        : { type: "project", projectId: body.projectId as string, text: body.text as string },
+        : {
+            type: "project",
+            projectId: body.projectId as string,
+            text: body.text as string,
+            occurrence: body.occurrence ?? 0,
+          },
       body.energy
     );
     return NextResponse.json({ ok: true, source });

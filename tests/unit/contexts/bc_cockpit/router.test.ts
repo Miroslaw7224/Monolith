@@ -180,6 +180,7 @@ describe("POST /api/cockpit/queue/complete", () => {
       type: "project",
       projectId: "p",
       text: "Zrób #deep",
+      occurrence: 0,
     });
   });
 
@@ -216,7 +217,7 @@ describe("POST /api/cockpit/queue/energy", () => {
     expect(mockSetQueueItemEnergy).toHaveBeenCalledWith({ type: "task", taskId: "t1" }, "deep");
     await setQueueEnergy(postE({ type: "project", projectId: "p", text: "Zrób", energy: null }));
     expect(mockSetQueueItemEnergy).toHaveBeenLastCalledWith(
-      { type: "project", projectId: "p", text: "Zrób" },
+      { type: "project", projectId: "p", text: "Zrób", occurrence: 0 },
       null
     );
   });

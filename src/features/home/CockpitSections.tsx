@@ -156,7 +156,7 @@ const ENERGY_FILTERS: { value: EnergyFilter; label: string }[] = [
 const sourceKey = (item: QueueGroupDto["items"][number]) =>
   item.source.type === "task"
     ? `task:${item.source.taskId}`
-    : `project:${item.source.projectId}:${item.source.text}`;
+    : `project:${item.source.projectId}:${item.source.occurrence}:${item.source.text}`;
 
 function QueueGroupCard({
   group,

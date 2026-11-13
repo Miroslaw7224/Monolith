@@ -91,7 +91,12 @@ const FULL: CockpitDto = {
           projectName: "Projekt firmowy",
           priority: "high",
           energy: "deep",
-          source: { type: "project", projectId: "firma", text: "Przejrzeć raport #deep" },
+          source: {
+            type: "project",
+            projectId: "firma",
+            text: "Przejrzeć raport #deep",
+            occurrence: 0,
+          },
         },
       ],
     },
@@ -986,6 +991,7 @@ describe("K1: układ wg makiety", () => {
       type: "project",
       projectId: "firma",
       text: "Przejrzeć raport #deep",
+      occurrence: 0,
     });
   });
 
@@ -1032,6 +1038,7 @@ describe("K1: układ wg makiety", () => {
         type: "project",
         projectId: "firma",
         text: "Przejrzeć raport #deep",
+        occurrence: 0,
         energy: null,
       });
       await waitFor(() => expect(deep).not.toBeDisabled());
@@ -1049,7 +1056,12 @@ describe("K1: układ wg makiety", () => {
               ok: true,
               json: async () => ({
                 ok: true,
-                source: { type: "project", projectId: "firma", text: "Przejrzeć raport #quick" },
+                source: {
+                  type: "project",
+                  projectId: "firma",
+                  text: "Przejrzeć raport #quick",
+                  occurrence: 0,
+                },
               }),
             })
           : base(url, init)
@@ -1069,6 +1081,7 @@ describe("K1: układ wg makiety", () => {
         type: "project",
         projectId: "firma",
         text: "Przejrzeć raport #deep",
+        occurrence: 0,
         energy: "quick",
       });
       await waitFor(() =>
@@ -1083,6 +1096,7 @@ describe("K1: układ wg makiety", () => {
         type: "project",
         projectId: "firma",
         text: "Przejrzeć raport #quick",
+        occurrence: 0,
       });
     });
 
@@ -1143,6 +1157,38 @@ describe("K1: układ wg makiety", () => {
     expect(await screen.findByText(/Nie udało się odświeżyć Kokpitu/)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Kolejka na dziś" })).toBeInTheDocument();
     expect(screen.queryByText(/Nie udało się wczytać Kokpitu/)).not.toBeInTheDocument();
+  });
+
+  test("dwa zadania projektu o identycznym tekście: osobne klucze, domykane osobno (occurrence)", async () => {
+    const twin = (occurrence: number) => ({
+      kind: "now" as const,
+      title: "Powtórka",
+      due: null,
+      projectName: "Projekt firmowy",
+      priority: "high",
+      energy: null,
+      source: { type: "project" as const, projectId: "firma", text: "Powtórka", occurrence },
+    });
+    respond({
+      ...FULL,
+      queue: [
+        { projectId: "firma", name: "Projekt firmowy", owner: "work", items: [twin(0), twin(1)] },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    const boxes = within(queue).getAllByRole("checkbox", { name: "zrobione" });
+    expect(boxes).toHaveLength(2);
+    fireEvent.click(boxes[1]);
+    await waitFor(() => expect(completeCalls()).toHaveLength(1));
+    expect(JSON.parse(completeCalls()[0][1].body)).toEqual({
+      type: "project",
+      projectId: "firma",
+      text: "Powtórka",
+      occurrence: 1,
+    });
+    // w trakcie zapisu zaznaczone jest tylko to zadanie, nie jego bliźniak
+    expect(boxes[0]).not.toBeChecked();
   });
 
   test("klik w tytuł otwiera podgląd; zadanie projektu: Zrobione i „Otwórz w Projektach”", async () => {

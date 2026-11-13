@@ -10,6 +10,7 @@ import {
   type ProjectWithContent,
   type RegistryEntry,
   type TaskOp,
+  type TasksBoard,
   type VersionToken,
 } from "@/contexts/bc_projects/models";
 import {
@@ -153,14 +154,18 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
   const tasks: NowTask[] = [];
   for (const entry of entries) {
     try {
+      const seen = new Map<string, number>();
       for (const task of readProjectBoard(entry).now) {
         if (task.done) continue;
+        const occurrence = seen.get(task.text) ?? 0;
+        seen.set(task.text, occurrence + 1);
         tasks.push({
           projectId: entry.id,
           projectName: entry.name,
           owner: entry.owner,
           priority: entry.priority,
           text: task.text,
+          occurrence,
         });
       }
     } catch (err) {
@@ -171,41 +176,54 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
 }
 
 /**
- * Oznacza zadanie z kolumny „Teraz” jako zrobione, wskazane tekstem (Kokpit nie zna indeksu ani wersji
- * pliku, więc szukamy pierwszego niezakończonego o tym tekście w aktualnym pliku). Brak = ConflictError.
+ * Indeks `occurrence`-tego (od 0) niezakończonego zadania „Teraz” o danym tekście; brak = ConflictError.
+ * Kokpit nie zna indeksu ani wersji pliku, więc wskazuje zadanie tekstem i numerem wśród identycznych.
  */
+function findNowIndex(board: TasksBoard, text: string, occurrence: number): number {
+  let seen = 0;
+  for (let i = 0; i < board.now.length; i++) {
+    const t = board.now[i];
+    if (t.done || t.text !== text) continue;
+    if (seen === occurrence) return i;
+    seen++;
+  }
+  throw new ConflictError("Zadanie zmieniło się w pliku");
+}
+
+/** Oznacza zadanie z kolumny „Teraz” jako zrobione (wskazane tekstem i numerem wystąpienia). */
 export async function completeNowTask(
   projectId: string,
   text: string,
+  occurrence = 0,
   now: Date = new Date()
 ): Promise<void> {
   const entry = findEntry(projectId);
   const board = readProjectBoard(entry);
-  const index = board.now.findIndex((t) => !t.done && t.text === text);
-  if (index === -1) throw new ConflictError("Zadanie zmieniło się w pliku");
+  const index = findNowIndex(board, text, occurrence);
   await applyTaskOp(projectId, { op: "toggle", column: "now", index, text }, board.version, now);
 }
 
 /**
- * Podmienia tekst zadania z kolumny „Teraz” (wskazanego dotychczasowym tekstem, jak w `completeNowTask`);
- * reszta pliku zostaje bajt w bajt. Brak zadania = ConflictError.
+ * Podmienia tekst zadania z kolumny „Teraz” (wskazanego jak w `completeNowTask`); reszta pliku zostaje
+ * bajt w bajt. Zwraca numer wystąpienia nowego tekstu (ile niezakończonych zadań o nim stoi wcześniej).
  */
 export async function rewriteNowTask(
   projectId: string,
   text: string,
   newText: string,
+  occurrence = 0,
   now: Date = new Date()
-): Promise<void> {
+): Promise<number> {
   const entry = findEntry(projectId);
   const board = readProjectBoard(entry);
-  const index = board.now.findIndex((t) => !t.done && t.text === text);
-  if (index === -1) throw new ConflictError("Zadanie zmieniło się w pliku");
+  const index = findNowIndex(board, text, occurrence);
   await applyTaskOp(
     projectId,
     { op: "edit", column: "now", index, text, newText },
     board.version,
     now
   );
+  return board.now.slice(0, index).filter((t) => !t.done && t.text === newText).length;
 }
 
 /**

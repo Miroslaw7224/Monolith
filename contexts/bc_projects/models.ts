@@ -85,6 +85,8 @@ export type NowTask = {
   owner: Owner;
   priority: string;
   text: string;
+  /** Numer wśród niezakończonych zadań o identycznym tekście w tej kolumnie (0 = pierwsze). */
+  occurrence: number;
 };
 
 export type Project = RegistryEntry & ProjectIndex & { freshness: Freshness };

@@ -34,10 +34,10 @@ export type Topic = {
 /** Energia zadania: `deep` (skupienie) albo `quick` (szybkie); `null`, gdy brak znacznika. */
 export type Energy = "deep" | "quick";
 
-/** Skąd pochodzi pozycja kolejki (do domknięcia): zadanie ogólne po id albo zadanie „Teraz” projektu po tekście. */
+/** Skąd pochodzi pozycja kolejki (do domknięcia): zadanie ogólne po id albo zadanie „Teraz” projektu po tekście i numerze wystąpienia (przy identycznych tekstach). */
 export type QueueSource =
   | { type: "task"; taskId: string }
-  | { type: "project"; projectId: string; text: string };
+  | { type: "project"; projectId: string; text: string; occurrence: number };
 
 /** `overdue`: `due` < dziś, `today`: `due` = dziś, `now`: zadanie `[now::]` projektu, `undated`: otwarte zadanie ogólne bez terminu. */
 export type QueueKind = "overdue" | "today" | "now" | "undated";
