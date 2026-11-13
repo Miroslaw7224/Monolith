@@ -277,10 +277,21 @@ describe("bc_projects markdown: setFrontmatterType", () => {
     ).toBe('---\n# komentarz\nname: "A"\ntype: wlasny\ntags: [a, b]\n---\nx');
   });
 
-  it("wcięty klucz type nie jest ruszany; type dopisane na końcu bloku", () => {
-    expect(setFrontmatterType("---\nname: A\n  type: nested\n---\nx", "etat")).toBe(
-      "---\nname: A\n  type: nested\ntype: etat\n---\nx"
+  it("zagnieżdżony klucz type nie jest ruszany; type dopisane na końcu bloku", () => {
+    expect(setFrontmatterType("---\nname: A\nmeta:\n  type: nested\n---\nx", "etat")).toBe(
+      "---\nname: A\nmeta:\n  type: nested\ntype: etat\n---\nx"
     );
+  });
+
+  it("nietypowy frontmatter (type: z wartością w następnej linii): 422 zamiast niepoprawnego YAML", () => {
+    let error: unknown;
+    try {
+      setFrontmatterType("---\nname: A\ntype:\n  etat\n---\nx", "wlasny");
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(DomainError);
+    expect((error as DomainError).statusCode).toBe(422);
   });
 
   it("zamykający --- bez końcowego newline", () => {
@@ -300,5 +311,72 @@ describe("bc_projects markdown: setFrontmatterType", () => {
 
   it("pusty blok frontmattera: DomainError 422", () => {
     expect(() => setFrontmatterType("---\n---\ntekst", "etat")).toThrow(DomainError);
+  });
+});
+
+describe("bc_projects markdown: odporność state.md i devlog.md (review agy)", () => {
+  it("parseState zachowuje wcięcie pierwszej linii notes", () => {
+    const state = parseState("---\nbranch: a\n---\n\n    kod\n    dalej\n", "p/state.md");
+    expect(state.notes).toBe("    kod\n    dalej");
+  });
+
+  it("notes z wcięciem przechodzi round-trip", () => {
+    const s: ProjectState = {
+      branch: "a",
+      env: "",
+      blocker: "",
+      nextStep: "",
+      links: [],
+      milestone: "",
+      notes: "    kod",
+    };
+    expect(parseState(serializeState(s), "x").notes).toBe("    kod");
+  });
+
+  it("wartości, które YAML 1.1 i 1.2 czytają inaczej, przechodzą round-trip", () => {
+    const s: ProjectState = {
+      branch: "0o10",
+      env: "1e3",
+      blocker: "true",
+      nextStep: "null",
+      links: ["https://a.example/#frag"],
+      milestone: ": x # y",
+      milestoneDue: "2026-12-01",
+      updated: "2026-11-13T09:15",
+      notes: "",
+    };
+    expect(parseState(serializeState(s), "x")).toEqual(s);
+  });
+
+  it.each([["- x"], ["#"], ["a: b"], ['"cytat"'], ["yes"], ["~"], ["12"], ["2026-12-01"]])(
+    "wartość %j w polu tekstowym przechodzi round-trip",
+    (value) => {
+      const s: ProjectState = {
+        branch: value,
+        env: value,
+        blocker: value,
+        nextStep: value,
+        links: [],
+        milestone: value,
+        notes: "",
+      };
+      expect(parseState(serializeState(s), "x")).toEqual(s);
+    }
+  );
+
+  it("ręcznie wpisana lista/mapa w polu tekstowym nie daje „[object Object]”", () => {
+    const state = parseState("---\nblocker: [a, b]\nenv: {a: 1}\n---\n", "p/state.md");
+    expect(state.blocker).toBe('["a","b"]');
+    expect(state.env).toBe('{"a":1}');
+  });
+
+  it("prependDevlogEntry: pusty nagłówek „## ” nie jest granicą wpisu (spójnie z parseDevlog)", () => {
+    const base = "# Devlog\n\n## \n\nśmieć\n\n## 2026-11-12 — Stary\n\nS\n";
+    const entry = { date: "2026-11-13", title: "T", why: "W" };
+    const out = prependDevlogEntry(base, entry);
+    expect(out).toBe(
+      "# Devlog\n\n## \n\nśmieć\n\n## 2026-11-13 — T\n\nW\n\n## 2026-11-12 — Stary\n\nS\n"
+    );
+    expect(parseDevlog(out)[0]).toEqual(entry);
   });
 });

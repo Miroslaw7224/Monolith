@@ -10,9 +10,15 @@ import {
   type RegistryEntry,
   type VersionToken,
 } from "@/contexts/bc_projects/models";
-import { NotFoundError } from "@/lib/errors";
+import { DomainError, NotFoundError } from "@/lib/errors";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
-import { readVaultFile, updateVaultFile, writeVaultFile } from "@/lib/nexus/vault-fs";
+import { getVaultRoot } from "@/lib/nexus/vault-path";
+import {
+  readVaultFile,
+  resolveInsideVault,
+  updateVaultFile,
+  writeVaultFile,
+} from "@/lib/nexus/vault-fs";
 import {
   parseBugs,
   parseChecklist,
@@ -173,13 +179,26 @@ export function readDevlog(entry: RegistryEntry): DevlogEntry[] {
   return file === null ? [] : parseDevlog(file.text);
 }
 
+/**
+ * Zapis tylko w `Projects/<id>/` (rejestr jest plikiem edytowalnym ręcznie, więc `folder` nie jest zaufany).
+ * Najpierw strażnik vaulta (`PathOutsideVaultError`, `WorkAreaBlockedError` mają pierwszeństwo).
+ */
+function assertWritable(entry: RegistryEntry, rel: string): void {
+  resolveInsideVault(getVaultRoot(), rel);
+  if (!/^Projects\/[^/]+(\/|$)/.test(entry.folder)) {
+    throw new DomainError(`Zapis tylko w Projects/<id>/ (folder: ${entry.folder})`, 422);
+  }
+}
+
 /** Zapis `state.md` z kontrolą wersji: niezgodność z `expected` daje `ConflictError` (409). */
 export function writeProjectState(
   entry: RegistryEntry,
   state: ProjectState,
   expected: VersionToken | null
 ): VersionToken {
-  return writeVaultFile(projectPath(entry.folder, "state.md"), serializeState(state), { expected });
+  const rel = projectPath(entry.folder, "state.md");
+  assertWritable(entry, rel);
+  return writeVaultFile(rel, serializeState(state), { expected });
 }
 
 /** Dopisuje wpis na górze `devlog.md` (tworzy plik); zmiana lokalna, więc ponawiana po konflikcie. */
@@ -187,14 +206,15 @@ export async function appendDevlogEntry(
   entry: RegistryEntry,
   devlogEntry: { date: string; title: string; why: string }
 ): Promise<void> {
-  await updateVaultFile(projectPath(entry.folder, "devlog.md"), (current) =>
-    prependDevlogEntry(current, devlogEntry)
-  );
+  const rel = projectPath(entry.folder, "devlog.md");
+  assertWritable(entry, rel);
+  await updateVaultFile(rel, (current) => prependDevlogEntry(current, devlogEntry));
 }
 
 /** Zmienia tylko linię `type:` w `index.md`; brak pliku to `NotFoundError`. */
 export async function writeProjectType(entry: RegistryEntry, type: ProjectType): Promise<void> {
   const rel = projectPath(entry.folder, "index.md");
+  assertWritable(entry, rel);
   await updateVaultFile(rel, (current) => {
     if (current === null) throw new NotFoundError(`Brak pliku ${rel}`);
     return setFrontmatterType(current, type);

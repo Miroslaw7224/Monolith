@@ -220,4 +220,28 @@ describe("bc_projects router: zapisy", () => {
     );
     expect(res.status).toBe(422);
   });
+
+  it("POST devlog: nieznany projekt → 404", async () => {
+    mockAddDevlogEntry.mockRejectedValue(new NotFoundError("brak"));
+    const res = await devlogPOST(
+      jsonRequest("POST", "http://localhost/api/projects/a/devlog", { title: "T", why: "" }),
+      A
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("PATCH type: nieznany projekt → 404, konflikt → 409", async () => {
+    mockSetProjectType.mockRejectedValueOnce(new NotFoundError("brak"));
+    const notFound = await detailPATCH(
+      jsonRequest("PATCH", "http://localhost/api/projects/a", { type: "etat" }),
+      A
+    );
+    expect(notFound.status).toBe(404);
+    mockSetProjectType.mockRejectedValueOnce(new ConflictError("zmieniony"));
+    const conflict = await detailPATCH(
+      jsonRequest("PATCH", "http://localhost/api/projects/a", { type: "etat" }),
+      A
+    );
+    expect(conflict.status).toBe(409);
+  });
 });
