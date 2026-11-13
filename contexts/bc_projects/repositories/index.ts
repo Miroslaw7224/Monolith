@@ -10,9 +10,19 @@ import {
   type RegistryEntry,
   type VersionToken,
 } from "@/contexts/bc_projects/models";
+import { NotFoundError } from "@/lib/errors";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
-import { readVaultFile } from "@/lib/nexus/vault-fs";
-import { parseBugs, parseChecklist, parseDevlog, parseSections, parseState } from "./markdown";
+import { readVaultFile, updateVaultFile, writeVaultFile } from "@/lib/nexus/vault-fs";
+import {
+  parseBugs,
+  parseChecklist,
+  parseDevlog,
+  parseSections,
+  parseState,
+  prependDevlogEntry,
+  serializeState,
+  setFrontmatterType,
+} from "./markdown";
 
 const REGISTRY = "Projects/_registry.yaml";
 const MISSING_PROJECTS_LIST = "Projects/_registry.yaml: brak listy 'projects'";
@@ -161,4 +171,32 @@ export function readProjectState(entry: RegistryEntry): {
 export function readDevlog(entry: RegistryEntry): DevlogEntry[] {
   const file = readVaultFile(projectPath(entry.folder, "devlog.md"));
   return file === null ? [] : parseDevlog(file.text);
+}
+
+/** Zapis `state.md` z kontrolą wersji: niezgodność z `expected` daje `ConflictError` (409). */
+export function writeProjectState(
+  entry: RegistryEntry,
+  state: ProjectState,
+  expected: VersionToken | null
+): VersionToken {
+  return writeVaultFile(projectPath(entry.folder, "state.md"), serializeState(state), { expected });
+}
+
+/** Dopisuje wpis na górze `devlog.md` (tworzy plik); zmiana lokalna, więc ponawiana po konflikcie. */
+export async function appendDevlogEntry(
+  entry: RegistryEntry,
+  devlogEntry: { date: string; title: string; why: string }
+): Promise<void> {
+  await updateVaultFile(projectPath(entry.folder, "devlog.md"), (current) =>
+    prependDevlogEntry(current, devlogEntry)
+  );
+}
+
+/** Zmienia tylko linię `type:` w `index.md`; brak pliku to `NotFoundError`. */
+export async function writeProjectType(entry: RegistryEntry, type: ProjectType): Promise<void> {
+  const rel = projectPath(entry.folder, "index.md");
+  await updateVaultFile(rel, (current) => {
+    if (current === null) throw new NotFoundError(`Brak pliku ${rel}`);
+    return setFrontmatterType(current, type);
+  });
 }
