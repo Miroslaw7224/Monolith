@@ -54,4 +54,10 @@ export type BugEntry = {
 };
 
 export type Project = RegistryEntry & ProjectIndex & { freshness: Freshness };
-export type ProjectWithContent = Project & { tasks: ChecklistSection[]; bugs: BugEntry[] };
+export type ProjectWithContent = Project & {
+  tasks: ChecklistSection[];
+  bugs: BugEntry[];
+  state: ProjectState | null;
+  stateVersion: VersionToken | null;
+  devlog: DevlogEntry[];
+};

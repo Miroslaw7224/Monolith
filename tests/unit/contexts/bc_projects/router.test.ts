@@ -33,6 +33,9 @@ const detailProject: ProjectWithContent = {
   ...summaryProject,
   tasks: [],
   bugs: [],
+  state: null,
+  stateVersion: null,
+  devlog: [],
 };
 
 describe("bc_projects router", () => {

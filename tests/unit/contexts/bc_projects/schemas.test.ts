@@ -36,6 +36,9 @@ describe("bc_projects schemas", () => {
       ...base,
       tasks: [{ heading: "Next", items: [{ text: "A", done: false }] }],
       bugs: [{ id: "B-1", title: "x", section: "Aktywne" }],
+      state: null,
+      stateVersion: null,
+      devlog: [],
     };
     const dto = toDetailDto(full);
     expect("folder" in dto).toBe(false);
