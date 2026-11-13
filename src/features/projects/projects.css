@@ -505,3 +505,38 @@
 .prj-devlog-form .prj-alert {
   grid-column: auto;
 }
+
+/* Metryczka: typ projektu i kamień milowy (bez paska postępu) */
+.prj-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+
+.prj-type-select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-1) var(--s-2);
+  font: 600 var(--fs-xs) / 1.2 var(--font-mono);
+}
+
+.prj-type-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.prj-milestone {
+  margin: 0;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--accent-text);
+}
+
+.prj-task-empty {
+  margin: 0;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}

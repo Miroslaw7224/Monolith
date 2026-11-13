@@ -9,8 +9,20 @@ import { useProjects } from "./useProjects";
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
 export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
-  const { status, error, projects, warnings, selectedId, select, detail, detailError } =
-    useProjects(props.apiFetch);
+  const {
+    status,
+    error,
+    projects,
+    warnings,
+    selectedId,
+    select,
+    detail,
+    detailError,
+    saveState,
+    addDevlogEntry,
+    setType,
+    reloadDetail,
+  } = useProjects(props.apiFetch);
 
   if (status === "loading") {
     return (
@@ -55,7 +67,12 @@ export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
               {detailError}
             </p>
           ) : null}
-          {detail ? <ProjectDossier project={detail} /> : null}
+          {detail ? (
+            <ProjectDossier
+              project={detail}
+              actions={{ saveState, addDevlogEntry, setType, reloadDetail }}
+            />
+          ) : null}
         </div>
       </div>
     </div>

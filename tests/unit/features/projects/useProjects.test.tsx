@@ -1,7 +1,11 @@
 import React from "react";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ProjectDetailDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
+import type {
+  ProjectDetailDto,
+  ProjectSummaryDto,
+  StateInputDto,
+} from "@/contexts/bc_projects/schemas";
 import { useProjects } from "@/src/features/projects/useProjects";
 
 afterEach(() => {
@@ -155,5 +159,163 @@ describe("useProjects", () => {
     const { result } = renderHook(() => useProjects(apiFetch));
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe("Failed to fetch");
+  });
+});
+
+describe("useProjects: zapisy", () => {
+  const INPUT: StateInputDto = {
+    branch: "main",
+    env: "",
+    blocker: "",
+    nextStep: "",
+    links: [],
+    milestone: "",
+    milestoneDue: "",
+    version: null,
+  };
+  const JSON_HEADERS = { "content-type": "application/json" };
+
+  function json(body: unknown, status = 200): Response {
+    return new Response(JSON.stringify(body), { status });
+  }
+
+  /** Lista [a(stale)], GET a → `initial`; `onWrite` obsługuje żądania z `options`. */
+  function setup(
+    onWrite: (url: string, options: RequestInit) => Response | Promise<Response>,
+    initial: ProjectDetailDto = detail({ id: "a" }),
+    extra: ProjectSummaryDto[] = []
+  ) {
+    const apiFetch = vi.fn(async (url: string, options?: RequestInit) => {
+      if (options?.method && options.method !== "GET") return onWrite(url, options);
+      if (url === "/api/projects") {
+        return json({
+          projects: [summary({ id: "a", freshness: "stale" }), ...extra],
+          warnings: [],
+        });
+      }
+      if (url === "/api/projects/a") return json(initial);
+      if (url === "/api/projects/b") return json(detail({ id: "b", name: "B" }));
+      return json({}, 404);
+    });
+    const hook = renderHook(() => useProjects(apiFetch));
+    return { apiFetch, ...hook };
+  }
+
+  it("saveState: PUT, detail i świeżość listy z odpowiedzi", async () => {
+    const { apiFetch, result } = setup(() =>
+      json(detail({ id: "a", stateVersion: "5:h", freshness: "fresh" }))
+    );
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.saveState(INPUT);
+    });
+
+    expect(outcome).toEqual({ ok: true });
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a/state", {
+      method: "PUT",
+      headers: JSON_HEADERS,
+      body: JSON.stringify(INPUT),
+    });
+    expect(result.current.detail?.stateVersion).toBe("5:h");
+    expect(result.current.projects[0].freshness).toBe("fresh");
+  });
+
+  it("409: błąd z konfliktem, detail bez zmian", async () => {
+    const { result } = setup(() => json({ error: "Plik zmienił się" }, 409));
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.saveState(INPUT);
+    });
+    expect(outcome).toEqual({ ok: false, error: "Plik zmienił się", conflict: true });
+    expect(result.current.detail?.stateVersion).toBeNull();
+  });
+
+  it("500 bez JSON", async () => {
+    const { result } = setup(() => new Response("oops", { status: 500 }));
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.saveState(INPUT);
+    });
+    expect(outcome).toEqual({ ok: false, error: "HTTP 500", conflict: false });
+  });
+
+  it("wyjątek sieci", async () => {
+    const { result } = setup(() => {
+      throw new Error("Failed to fetch");
+    });
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.saveState(INPUT);
+    });
+    expect(outcome).toEqual({ ok: false, error: "Failed to fetch", conflict: false });
+  });
+
+  it("spóźniona odpowiedź po zmianie projektu nie nadpisuje szczegółów", async () => {
+    let resolveWrite!: (r: Response) => void;
+    const pending = new Promise<Response>((r) => (resolveWrite = r));
+    const { result } = setup(() => pending, detail({ id: "a" }), [summary({ id: "b" })]);
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+
+    let outcome: Promise<unknown> | undefined;
+    act(() => {
+      outcome = result.current.saveState(INPUT);
+    });
+    act(() => {
+      result.current.select("b");
+    });
+    await waitFor(() => expect(result.current.detail?.id).toBe("b"));
+
+    await act(async () => {
+      resolveWrite(json(detail({ id: "a", name: "A po zapisie", stateVersion: "7:x" })));
+      await outcome;
+    });
+    expect(result.current.detail?.id).toBe("b");
+  });
+
+  it("addDevlogEntry: POST /devlog; setType: PATCH z {type}", async () => {
+    const { apiFetch, result } = setup((url) =>
+      json(detail({ id: "a", type: url.endsWith("/devlog") ? undefined : "wlasny" }), 200)
+    );
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+
+    await act(async () => {
+      await result.current.addDevlogEntry({ title: "T", why: "W" });
+    });
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a/devlog", {
+      method: "POST",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ title: "T", why: "W" }),
+    });
+
+    await act(async () => {
+      await result.current.setType("wlasny");
+    });
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a", {
+      method: "PATCH",
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ type: "wlasny" }),
+    });
+    expect(result.current.detail?.type).toBe("wlasny");
+    expect(result.current.projects[0].type).toBe("wlasny");
+  });
+
+  it("reloadDetail: ponowny GET szczegółów", async () => {
+    let calls = 0;
+    const apiFetch = vi.fn(async (url: string) => {
+      if (url === "/api/projects") return json({ projects: [summary({ id: "a" })], warnings: [] });
+      calls += 1;
+      return json(detail({ id: "a", name: `wersja ${calls}` }));
+    });
+    const { result } = renderHook(() => useProjects(apiFetch));
+    await waitFor(() => expect(result.current.detail?.name).toBe("wersja 1"));
+    act(() => {
+      result.current.reloadDetail();
+    });
+    await waitFor(() => expect(result.current.detail?.name).toBe("wersja 2"));
   });
 });

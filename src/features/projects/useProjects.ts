@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import type { ProjectDetailDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type {
+  DevlogInputDto,
+  ProjectDetailDto,
+  ProjectSummaryDto,
+  ProjectType,
+  StateInputDto,
+} from "@/contexts/bc_projects/schemas";
+import type { MutationResult, ProjectActions } from "./mutation";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -22,7 +29,7 @@ export function useProjects(apiFetch: ApiFetch): {
   select: (id: string) => void;
   detail: ProjectDetailDto | null;
   detailError: string | null;
-} {
+} & ProjectActions {
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([]);
@@ -30,10 +37,66 @@ export function useProjects(apiFetch: ApiFetch): {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ProjectDetailDto | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const selectedIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
   const select = useCallback((id: string) => {
     setSelectedId(id);
   }, []);
+
+  const reloadDetail = useCallback(() => {
+    setReloadKey((k) => k + 1);
+  }, []);
+
+  /** Zapis dla wybranego projektu; odpowiedź (pełne szczegóły) zastępuje `detail`, o ile projekt dalej jest wybrany. */
+  const mutate = useCallback(
+    async (method: string, suffix: string, body: unknown): Promise<MutationResult> => {
+      const id = selectedIdRef.current;
+      if (id === null) return { ok: false, error: "Nie wybrano projektu", conflict: false };
+      try {
+        const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}${suffix}`, {
+          method,
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          return { ok: false, error: await readError(res), conflict: res.status === 409 };
+        }
+        const updated = (await res.json()) as ProjectDetailDto;
+        if (selectedIdRef.current === id) setDetail(updated);
+        setProjects((list) =>
+          list.map((p) =>
+            p.id === updated.id
+              ? {
+                  ...p,
+                  freshness: updated.freshness,
+                  ...(updated.type !== undefined ? { type: updated.type } : {}),
+                }
+              : p
+          )
+        );
+        return { ok: true };
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+          conflict: false,
+        };
+      }
+    },
+    [apiFetch]
+  );
+
+  const saveState = useCallback((input: StateInputDto) => mutate("PUT", "/state", input), [mutate]);
+  const addDevlogEntry = useCallback(
+    (input: DevlogInputDto) => mutate("POST", "/devlog", input),
+    [mutate]
+  );
+  const setType = useCallback((type: ProjectType) => mutate("PATCH", "", { type }), [mutate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,7 +162,7 @@ export function useProjects(apiFetch: ApiFetch): {
     return () => {
       cancelled = true;
     };
-  }, [apiFetch, selectedId]);
+  }, [apiFetch, selectedId, reloadKey]);
 
   return {
     status,
@@ -110,5 +173,9 @@ export function useProjects(apiFetch: ApiFetch): {
     select,
     detail,
     detailError,
+    saveState,
+    addDevlogEntry,
+    setType,
+    reloadDetail,
   };
 }
