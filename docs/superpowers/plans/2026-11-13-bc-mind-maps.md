@@ -45,7 +45,7 @@ Przenoszone (`git mv`): `lib/nexus/repos/mindMaps.ts` → `contexts/bc_mind_maps
 
 Usuwane: `services/mindMapService.ts`, `lib/firestore-db.ts`, `types/records.ts`, `types/index.ts`, `tests/integration/services/mindMapService.integration.test.ts`.
 
-Modyfikowane: `app/api/mind-maps/route.ts`, `app/api/mind-maps/[id]/route.ts`, `src/features/mind-maps/mindMapTypes.ts`, `tests/unit/lib/nexus/repos-static.test.ts`, `tests/unit/no-user-id.static.test.ts`; w osobnym commicie `tests/unit/architecture.static.test.ts`.
+Modyfikowane: `app/api/mind-maps/route.ts`, `app/api/mind-maps/[id]/route.ts`, `src/features/mind-maps/mindMapTypes.ts`, `tests/unit/lib/nexus/repos-static.test.ts`, `tests/unit/no-user-id.static.test.ts`, `tests/unit/allow-work.static.test.ts`, `tests/unit/no-firebase-client.static.test.ts`, `vitest.config.ts`; w osobnym commicie `tests/unit/architecture.static.test.ts`.
 
 ---
 
@@ -54,6 +54,7 @@ Modyfikowane: `app/api/mind-maps/route.ts`, `app/api/mind-maps/[id]/route.ts`, `
 - [ ] **Step 1:** `contexts/bc_mind_maps/models.ts`: `MindMapNode` (`id, label, note, collapsed, children: MindMapNode[]`) i `MindMap` (`id, title, rootNode, colWidths: Record<number, number>, createdAt?, updatedAt?`), skopiowane z `types/records.ts` razem z komentarzami.
 - [ ] **Step 2:** `git mv lib/nexus/repos/mindMaps.ts contexts/bc_mind_maps/repositories.ts`. Zmień importy na `import type { MindMap, MindMapNode } from "./models";`, `@/lib/nexus/vault-fs`, `@/lib/nexus/record-helpers`, zostaw `@/lib/errors`. Reszta pliku bez zmian.
 - [ ] **Step 3:** `git mv tests/unit/lib/nexus/repos/mindMaps.test.ts tests/unit/contexts/bc_mind_maps/repositories.test.ts`; zamień importy na `@/contexts/bc_mind_maps/repositories` i `@/contexts/bc_mind_maps/models` (typ `MindMapNode`), a `./helpers` na `../../lib/nexus/repos/helpers` (jak w `tests/unit/contexts/bc_board/repositories.test.ts`). Treść testów bez zmian.
+- [ ] **Step 4:** (po Task 5, bo wcześniej import `@/contexts/...` jest jeszcze bez routera) test uruchamiamy w Task 5 Step 5; tu tylko `ls tests/unit/lib/nexus/repos` (zostaje `helpers.ts`).
 
 ### Task 2: `schemas.ts` (TDD)
 
@@ -96,9 +97,11 @@ export const MIN_COL_W = 80;
 export const MAX_COL_W = 300;
 ```
 
-- [ ] **Step 2:** `git rm services/mindMapService.ts lib/firestore-db.ts types/records.ts types/index.ts tests/integration/services/mindMapService.integration.test.ts`; sprawdź `ls services lib/nexus/repos types` (katalogi puste lub nieistniejące; puste usuń `rmdir`).
+- [ ] **Step 2:** `git rm services/mindMapService.ts lib/firestore-db.ts types/records.ts types/index.ts tests/integration/services/mindMapService.integration.test.ts`; sprawdź `ls services lib/nexus/repos types` (katalogi puste lub nieistniejące; puste usuń `rmdir`); to samo dla `tests/unit/services` i `tests/integration/services`.
 - [ ] **Step 3:** `tests/unit/lib/nexus/repos-static.test.ts`: w `FILE_REPOS` zamień `"lib/nexus/repos/mindMaps.ts"` na `"contexts/bc_mind_maps/repositories.ts"`; w teście importerów `vault-fs` usuń `"lib/nexus/repos/mindMaps.ts"` z oczekiwanej listy (zostają `STORE` i `lib/nexus/markdown-dir.ts`); usuń test „the barrel points every collection at lib/nexus/repos”. Zachowaj resztę.
 - [ ] **Step 4:** `tests/unit/no-user-id.static.test.ts`: `FILES` nie może wskazywać nieistniejącego `lib/firestore-db.ts` (usuń wpis); z `DIRS` usuń `"services"` i `"types"`, jeśli test nie toleruje nieistniejących katalogów (sprawdź `existsSync` w kodzie testu).
+- [ ] **Step 4a:** `tests/unit/allow-work.static.test.ts` (l. 7) i `tests/unit/no-firebase-client.static.test.ts` (l. 7): usuń `"services"` i `"types"` z `DIRS` (ich `walk` nie sprawdza `existsSync`, więc po usunięciu katalogów dałyby ENOENT). Nic poza tym.
+- [ ] **Step 4b:** `vitest.config.ts` (`coverage`, linie 25-37): usuń `"services/**/*.ts"` z `include` i cały blok `thresholds["services/**/*.ts"]` (katalog znika; progi `lib/**` bez zmian).
 - [ ] **Step 5: weryfikacja (cursor, każde osobno):** `npx tsc --noEmit`, `npm run lint`, `npx vitest run`. Oczekiwane: `tsc` i lint zielone; `vitest` zielony poza jednym testem architektury „każdy wyjątek z baseline nadal występuje” (2 klucze `mind-maps`).
 - [ ] **Step 6: commit kodu:** `refactor(bc_mind_maps): migracja map myśli do contexts/bc_mind_maps (PR 9)`; sprawdź `git diff --stat` (brak zmian poza mapą plików) i `git status` (brak śladów po `-u`).
 
