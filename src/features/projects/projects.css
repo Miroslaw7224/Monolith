@@ -447,3 +447,61 @@
   color: var(--text);
   font: 500 var(--fs-xs) / 1.4 var(--font-mono);
 }
+
+/* Devlog — wg .prj-devlog z makiety 04-projekty.html */
+.prj-devlog {
+  list-style: none;
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.prj-devlog__item {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.prj-devlog__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-devlog__date {
+  color: var(--accent-text);
+}
+
+.prj-devlog__title {
+  font: 600 var(--fs-sm) / 1.35 var(--font-display);
+  color: var(--text);
+  margin: 0;
+}
+
+.prj-devlog__why {
+  margin: 2px 0 0;
+  padding-left: var(--s-2);
+  border-left: 2px solid var(--line);
+  font: 400 var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.prj-devlog-form {
+  grid-template-columns: 1fr;
+}
+
+.prj-devlog-form .prj-field--wide,
+.prj-devlog-form .prj-form__actions,
+.prj-devlog-form .prj-alert {
+  grid-column: auto;
+}
