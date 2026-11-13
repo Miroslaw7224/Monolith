@@ -101,9 +101,16 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   **Zgoda użytkownika (2026-11-13):** wolno mi zatwierdzić (`hc keys <terminal> enter` = „Yes, run command”, jednorazowo)
   polecenia wyłącznie do odczytu, które nic nie zmieniają w kodzie ani w vaulcie: `head`, `cat`, `ls`, `grep`, `rg`, `find`
   (bez `-exec`/`-delete`), `git show|diff|log|status`, `wc`, `sed -n`. Nie wybieram opcji „always allow” (2 i 3).
+  **Zgoda użytkownika (2026-11-13):** wolno mi też zatwierdzać (jednorazowo, `hc keys <terminal> enter`) polecenia
+  testów i sprawdzeń, o które sam poprosiłem pomocnika, gdy działają zgodnie z moim poleceniem i nie modyfikują kodu:
+  `npx tsc --noEmit`, `npx vitest run [ścieżki]`, `npm run lint`, `npm run build` (zapisuje tylko `.next/`), a także
+  poprzedzające je `cd` do katalogu Monolith. Przed zatwierdzeniem czytam panel (`hc read <terminal>`) i sprawdzam,
+  że polecenie jest dokładnie tym, o co prosiłem. Nie zatwierdzam wariantów zapisujących: `--fix`, `-u`/`--update`,
+  `--write`, `prettier`, `npm install`/`ci`, `npx` pobierającego pakiety spoza projektu, przekierowań, ani nic poza
+  poleceniem z mojej prośby.
   Wszystko inne (zapis, `rm`/`mv`/`cp`, przekierowania `>`/`>>`, `tee`, `git add|commit|push|checkout|reset`,
-  `npm`/`npx`/`node`/`tsx`, instalacje, sieć, pipe do interpretera) nadal wymaga kliknięcia użytkownika: wtedy
-  nie zatwierdzam, tylko go proszę.
+  `npm`/`npx`/`node`/`tsx` poza wymienionymi wyżej, instalacje, sieć, pipe do interpretera) nadal wymaga kliknięcia
+  użytkownika: wtedy nie zatwierdzam, tylko go proszę.
 
 ### Kiedy delegować
 
