@@ -59,6 +59,15 @@ const TAB_TO_CARD: Record<PlanningTab, CardId> = {
   activity: "kokpit",
 };
 
+export const CARD_SUBTABS: Partial<Record<CardId, readonly PlanningTab[]>> = {
+  plotno: ["board", "mindmaps"],
+  arsenal: ["resources", "tags"],
+};
+
+export function subtabsForCard(id: CardId): readonly PlanningTab[] {
+  return CARD_SUBTABS[id] ?? [];
+}
+
 export function getCard(id: CardId): CardDef {
   const card = CARDS.find((c) => c.id === id);
   if (!card) throw new Error(`Nieznana karta: ${id}`);

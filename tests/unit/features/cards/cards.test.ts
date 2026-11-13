@@ -6,6 +6,8 @@ import {
   cardForView,
   cardFromHash,
   filterCommands,
+  CARD_SUBTABS,
+  subtabsForCard,
 } from "@/src/features/cards/cards";
 
 describe("CARDS", () => {
@@ -90,5 +92,20 @@ describe("filterCommands", () => {
   test("ignoruje wielkość liter i polskie znaki", () => {
     expect(filterCommands(cmds, "PLOTNO").map((c) => c.id)).toEqual(["a"]);
     expect(filterCommands(cmds, "arsenal").map((c) => c.id)).toEqual(["b"]);
+  });
+});
+
+describe("subtabsForCard", () => {
+  test("subtabsForCard('plotno') = ['board','mindmaps'], 'arsenal' = ['resources','tags'], 'kokpit' = []", () => {
+    expect(subtabsForCard("plotno")).toEqual(["board", "mindmaps"]);
+    expect(subtabsForCard("arsenal")).toEqual(["resources", "tags"]);
+    expect(subtabsForCard("kokpit")).toEqual([]);
+  });
+
+  test("CARD_SUBTABS zawiera tylko karty z podwidokami", () => {
+    expect(CARD_SUBTABS).toEqual({
+      plotno: ["board", "mindmaps"],
+      arsenal: ["resources", "tags"],
+    });
   });
 });

@@ -16,6 +16,8 @@ import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
 import { useNotesData, type Note } from "@/src/features/notes/useNotesData";
 import { PlanowanieSidebarContent, type PlanningTab } from "./PlanowanieSidebarContent";
+import { CardSubTabs } from "@/src/features/cards/CardSubTabs";
+import { cardForView, subtabsForCard } from "@/src/features/cards/cards";
 import {
   getActiveSession,
   setActiveSession,
@@ -204,6 +206,22 @@ export default function PlanowanieView({
     />
   );
 
+  const currentCard = cardForView("planowanie", planningTab);
+  const cardSubtabs = subtabsForCard(currentCard);
+  const subtabItems = cardSubtabs.map((tab) => ({
+    id: tab,
+    label:
+      tab === "board"
+        ? ((t.tabBoard as string) ?? "Tablica")
+        : tab === "mindmaps"
+          ? ((t.tabMindMaps as string) ?? "Mapy myśli")
+          : tab === "resources"
+            ? ((t.tabResources as string) ?? "Zasoby")
+            : tab === "tags"
+              ? t.tabTags
+              : tab,
+  }));
+
   return (
     <>
       <AppSidebar isSidebarOpen={isSidebarOpen} lang={lang} setLang={setLang} t={sidebarT}>
@@ -220,6 +238,10 @@ export default function PlanowanieView({
             feedback: t.feedback,
           }}
         />
+
+        {cardSubtabs.length >= 2 && (
+          <CardSubTabs tabs={subtabItems} active={planningTab} onSelect={setPlanningTab} />
+        )}
 
         <div className="flex-1 min-w-0 overflow-hidden flex flex-col min-h-0">
           {activeSession && planningTab !== "calendar" && (
