@@ -72,6 +72,14 @@ export function ProjectSaveState(props: {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
+    const links = draft.links
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "");
+    if (links.some((link) => !isHttpUrl(link))) {
+      setError({ message: "Linki muszą zaczynać się od http:// lub https://", conflict: false });
+      return;
+    }
     setSaving(true);
     setError(null);
     const result = await onSave({
@@ -79,10 +87,7 @@ export function ProjectSaveState(props: {
       env: draft.env,
       blocker: draft.blocker,
       nextStep: draft.nextStep,
-      links: draft.links
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line !== ""),
+      links,
       milestone: draft.milestone,
       milestoneDue: draft.milestoneDue,
       version: project.stateVersion,

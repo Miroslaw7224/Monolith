@@ -185,7 +185,7 @@ export function readDevlog(entry: RegistryEntry): DevlogEntry[] {
  */
 function assertWritable(entry: RegistryEntry, rel: string): void {
   resolveInsideVault(getVaultRoot(), rel);
-  if (!/^Projects\/[^/]+(\/|$)/.test(entry.folder)) {
+  if (!/^Projects\/(?!\.{1,2}(?:\/|$))[^/]+\/?$/.test(entry.folder)) {
     throw new DomainError(`Zapis tylko w Projects/<id>/ (folder: ${entry.folder})`, 422);
   }
 }

@@ -320,6 +320,40 @@ describe("useProjects: zapisy", () => {
     expect(result.current.projects[0].type).toBe("wlasny");
   });
 
+  it("reloadDetail nie czyści detail w trakcie przeładowania (szkice w teczce nie znikają)", async () => {
+    let resolveSecond!: (r: Response) => void;
+    let calls = 0;
+    const apiFetch = vi.fn(async (url: string) => {
+      if (url === "/api/projects") return json({ projects: [summary({ id: "a" })], warnings: [] });
+      calls += 1;
+      if (calls === 1) return json(detail({ id: "a", name: "wersja 1" }));
+      return new Promise<Response>((r) => (resolveSecond = r));
+    });
+    const { result } = renderHook(() => useProjects(apiFetch));
+    await waitFor(() => expect(result.current.detail?.name).toBe("wersja 1"));
+    act(() => {
+      result.current.reloadDetail();
+    });
+    await waitFor(() => expect(calls).toBe(2));
+    expect(result.current.detail?.name).toBe("wersja 1");
+    await act(async () => resolveSecond(json(detail({ id: "a", name: "wersja 2" }))));
+    expect(result.current.detail?.name).toBe("wersja 2");
+  });
+
+  it("select() i zapis w tym samym ticku trafiają do nowo wybranego projektu", async () => {
+    const { apiFetch, result } = setup(
+      (url) => json(detail({ id: url.split("/")[3] })),
+      detail({ id: "a" }),
+      [summary({ id: "b" })]
+    );
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+    await act(async () => {
+      result.current.select("b");
+      await result.current.saveState(INPUT);
+    });
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/b/state", expect.anything());
+  });
+
   it("reloadDetail: ponowny GET szczegółów", async () => {
     let calls = 0;
     const apiFetch = vi.fn(async (url: string) => {

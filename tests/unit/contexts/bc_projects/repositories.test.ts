@@ -364,24 +364,29 @@ describe("bc_projects repositories: zapis tylko w Projects/<id>/", () => {
     notes: "",
   };
 
-  it.each([["Notes/x/"], ["Projects/"], ["Archive/Projects/x/"], ["projects-x/y/"]])(
-    "folder %s: zapis odrzucony (422), nic nie powstaje",
-    async (folder) => {
-      const e = entry({ id: "n", folder });
-      const check = (err: unknown) => {
-        expect(err).toBeInstanceOf(DomainError);
-        expect((err as DomainError).statusCode).toBe(422);
-      };
-      try {
-        writeProjectState(e, STATE, null);
-        expect.unreachable();
-      } catch (err) {
-        check(err);
-      }
-      check(await appendDevlogEntry(e, ENTRY).catch((err: unknown) => err));
-      check(await writeProjectType(e, "etat").catch((err: unknown) => err));
-      expect(vault.read(`${folder}state.md`)).toBeNull();
-      expect(vault.read(`${folder}devlog.md`)).toBeNull();
+  it.each([
+    ["Notes/x/"],
+    ["Projects/"],
+    ["Projects/."],
+    ["Projects/./"],
+    ["Projects/a/b/"],
+    ["Archive/Projects/x/"],
+    ["projects-x/y/"],
+  ])("folder %s: zapis odrzucony (422), nic nie powstaje", async (folder) => {
+    const e = entry({ id: "n", folder });
+    const check = (err: unknown) => {
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).statusCode).toBe(422);
+    };
+    try {
+      writeProjectState(e, STATE, null);
+      expect.unreachable();
+    } catch (err) {
+      check(err);
     }
-  );
+    check(await appendDevlogEntry(e, ENTRY).catch((err: unknown) => err));
+    check(await writeProjectType(e, "etat").catch((err: unknown) => err));
+    expect(vault.read(`${folder}state.md`)).toBeNull();
+    expect(vault.read(`${folder}devlog.md`)).toBeNull();
+  });
 });

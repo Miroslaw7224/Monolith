@@ -125,13 +125,28 @@ describe("ProjectSaveState", () => {
     const onSave = vi.fn(
       async (): Promise<MutationResult> => ({ ok: false, error: "x", conflict: true })
     );
-    const { user, onReload } = renderIt(project({ state: STATE, stateVersion: "5:h" }), onSave);
+    const { user, onReload } = renderIt(
+      project({ state: { ...STATE, links: ["https://a"] }, stateVersion: "5:h" }),
+      onSave
+    );
     await user.click(screen.getByRole("button", { name: "Edytuj" }));
     await user.click(screen.getByRole("button", { name: "Zapisz" }));
     expect(await screen.findByText(/state\.md zmienił się poza aplikacją/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Wczytaj aktualną wersję" }));
     expect(onReload).toHaveBeenCalledTimes(1);
     expect(screen.queryByLabelText("Branch")).toBeNull();
+  });
+
+  it("link bez http(s): czytelny komunikat, bez wywołania onSave", async () => {
+    const { user, onSave } = renderIt(project());
+    await user.click(screen.getByRole("button", { name: "Utwórz Save State" }));
+    await user.type(screen.getByLabelText("Linki (jeden na linię)"), "github.com/x");
+    await user.click(screen.getByRole("button", { name: "Zapisz" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Linki muszą zaczynać się od http:// lub https://"
+    );
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Linki (jeden na linię)")).toHaveValue("github.com/x");
   });
 
   it("Anuluj zamyka formularz bez zapisu", async () => {

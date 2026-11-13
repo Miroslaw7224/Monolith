@@ -69,6 +69,7 @@ export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
           ) : null}
           {detail ? (
             <ProjectDossier
+              key={detail.id}
               project={detail}
               actions={{ saveState, addDevlogEntry, setType, reloadDetail }}
             />

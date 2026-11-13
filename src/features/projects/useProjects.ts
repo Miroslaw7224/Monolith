@@ -44,13 +44,13 @@ export function useProjects(apiFetch: ApiFetch): {
   const [detail, setDetail] = useState<ProjectDetailDto | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  /** Wybrany projekt dla zapisów: aktualizowany synchronicznie (razem ze stanem), nie dopiero w efekcie. */
   const selectedIdRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    selectedIdRef.current = selectedId;
-  }, [selectedId]);
+  /** Projekt, którego szczegóły są teraz w `detail`; przeładowanie tego samego projektu nie czyści `detail`. */
+  const loadedIdRef = useRef<string | null>(null);
 
   const select = useCallback((id: string) => {
+    selectedIdRef.current = id;
     setSelectedId(id);
   }, []);
 
@@ -125,6 +125,7 @@ export function useProjects(apiFetch: ApiFetch): {
         setWarnings(Array.isArray(body.warnings) ? body.warnings : []);
         setStatus("ready");
         setError(null);
+        selectedIdRef.current = list[0]?.id ?? null;
         setSelectedId(list[0]?.id ?? null);
       } catch (err) {
         if (cancelled) return;
@@ -139,12 +140,18 @@ export function useProjects(apiFetch: ApiFetch): {
 
   useEffect(() => {
     if (!selectedId) {
+      loadedIdRef.current = null;
       setDetail(null);
       setDetailError(null);
       return;
     }
     let cancelled = false;
-    setDetail(null);
+    // Zmiana projektu czyści `detail`; ponowne wczytanie tego samego zostawia go do czasu odpowiedzi
+    // (odmontowanie teczki skasowałoby niezapisane szkice formularzy).
+    if (loadedIdRef.current !== selectedId) {
+      loadedIdRef.current = selectedId;
+      setDetail(null);
+    }
     setDetailError(null);
     (async () => {
       try {
