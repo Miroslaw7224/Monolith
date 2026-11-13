@@ -7,14 +7,24 @@ const mockList = vi.hoisted(() => vi.fn());
 const mockAdd = vi.hoisted(() => vi.fn());
 const mockResolve = vi.hoisted(() => vi.fn());
 const mockRemove = vi.hoisted(() => vi.fn());
+const mockCountClosed = vi.hoisted(() => vi.fn());
+const mockClearClosed = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_inbox/services", () => ({
   listItems: mockList,
   addItem: mockAdd,
   resolve: mockResolve,
   remove: mockRemove,
+  countClosed: mockCountClosed,
+  clearClosed: mockClearClosed,
 }));
 
-import { createItem, deleteItem, listInbox, resolveItem } from "@/contexts/bc_inbox/router";
+import {
+  clearClosedItems,
+  createItem,
+  deleteItem,
+  listInbox,
+  resolveItem,
+} from "@/contexts/bc_inbox/router";
 
 const post = (body: unknown) =>
   new NextRequest("http://localhost/api/inbox", {
@@ -27,11 +37,12 @@ const item = { id: "1", text: "a", type: "myśl", at: "2026-11-13T09:00" };
 beforeEach(() => vi.resetAllMocks());
 
 describe("GET /api/inbox", () => {
-  it("200 z listą i licznikiem", async () => {
+  it("200 z listą i licznikami (otwarte, zamknięte)", async () => {
     mockList.mockReturnValue([item]);
+    mockCountClosed.mockReturnValue(4);
     const res = await listInbox();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ items: [item], open: 1 });
+    expect(await res.json()).toEqual({ items: [item], open: 1, closed: 4 });
   });
 
   it("wyjątek to 500", async () => {
@@ -98,5 +109,20 @@ describe("DELETE /api/inbox/[id]", () => {
   it("404 dla nieznanego id", async () => {
     mockRemove.mockRejectedValue(new NotFoundError("Nie ma wpisu"));
     expect((await deleteItem(del(), ctx("x"))).status).toBe(404);
+  });
+});
+
+describe("DELETE /api/inbox (wyczyść zamknięte)", () => {
+  it("200 z liczbą usuniętych", async () => {
+    mockClearClosed.mockResolvedValue(3);
+    const res = await clearClosedItems();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ removed: 3 });
+  });
+
+  it("wyjątek to 500", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockClearClosed.mockRejectedValue(new Error("boom"));
+    expect((await clearClosedItems()).status).toBe(500);
   });
 });

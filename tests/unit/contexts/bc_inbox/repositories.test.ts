@@ -2,7 +2,9 @@
 import { describe, expect, it } from "vitest";
 import {
   appendItem,
+  countClosedItems,
   readOpenItems,
+  removeClosedItems,
   removeItem,
   resolveItem,
 } from "@/contexts/bc_inbox/repositories";
@@ -132,5 +134,32 @@ describe("removeItem", () => {
     vault.write(REL, "- [x] zamknięty [type:: myśl] [at:: t]\n- [ ] A\n");
     expect(await removeItem("nie-ma")).toBe(false);
     expect(vault.read(REL)).toBe("- [x] zamknięty [type:: myśl] [at:: t]\n- [ ] A\n");
+  });
+});
+
+describe("countClosedItems / removeClosedItems", () => {
+  const FILE =
+    "# Inbox\n- [x] Stare [type:: myśl] [at:: t0]\n- [ ] A [type:: myśl] [at:: t1]\n\nakapit\n- [X] Duże X\n- [ ] B [type:: bug] [at:: t2]\n";
+
+  it("liczy zamknięte linie ([x] i [X]); brak pliku to 0", () => {
+    expect(countClosedItems()).toBe(0);
+    vault.write(REL, FILE);
+    expect(countClosedItems()).toBe(2);
+  });
+
+  it("usuwa tylko zamknięte linie i zwraca ich liczbę; reszta pliku bez zmian", async () => {
+    vault.write(REL, FILE);
+    expect(await removeClosedItems()).toBe(2);
+    expect(vault.read(REL)).toBe(
+      "# Inbox\n- [ ] A [type:: myśl] [at:: t1]\n\nakapit\n- [ ] B [type:: bug] [at:: t2]\n"
+    );
+    expect(readOpenItems().map((i) => i.text)).toEqual(["A", "B"]);
+  });
+
+  it("brak zamkniętych albo brak pliku: 0 i plik bez zmian", async () => {
+    expect(await removeClosedItems()).toBe(0);
+    vault.write(REL, "- [ ] A\n");
+    expect(await removeClosedItems()).toBe(0);
+    expect(vault.read(REL)).toBe("- [ ] A\n");
   });
 });

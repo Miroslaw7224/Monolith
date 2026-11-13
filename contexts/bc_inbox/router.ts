@@ -6,7 +6,7 @@ import * as services from "./services";
 
 export async function listInbox(): Promise<NextResponse> {
   try {
-    return NextResponse.json(toInboxDto(services.listItems()));
+    return NextResponse.json(toInboxDto(services.listItems(), services.countClosed()));
   } catch (err) {
     return handleServiceError(err);
   }
@@ -47,6 +47,15 @@ export async function deleteItem(
   try {
     await services.remove(id);
     return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** DELETE /api/inbox: trwale usuwa wszystkie zamknięte wpisy (`[x]`) z pliku inboxu. */
+export async function clearClosedItems(): Promise<NextResponse> {
+  try {
+    return NextResponse.json({ removed: await services.clearClosed() });
   } catch (err) {
     return handleServiceError(err);
   }

@@ -194,6 +194,7 @@ const INBOX = {
     { id: "a-0", text: "Artykuł o vitest", type: "link", at: "2026-11-13T09:10" },
   ],
   open: 2,
+  closed: 3,
 };
 
 const mockApiFetch = vi.fn();
@@ -207,6 +208,9 @@ function respond(cockpit: CockpitDto | "fail") {
     }
     if (url === "/api/inbox" && (init?.method ?? "GET") === "GET") {
       return Promise.resolve({ ok: true, json: async () => INBOX });
+    }
+    if (url === "/api/inbox" && init?.method === "DELETE") {
+      return Promise.resolve({ ok: true, json: async () => ({ removed: 3 }) });
     }
     if (url === "/api/inbox" && init?.method === "POST") {
       return Promise.resolve({ ok: true, status: 201, json: async () => ({}) });
@@ -743,6 +747,54 @@ describe("K1: układ wg makiety", () => {
       await within(panel).findByText(/Zapisano, ale nie udało się odświeżyć listy/)
     ).toBeInTheDocument();
     expect(input).toHaveValue("");
+  });
+
+  describe("panel Inbox: wyczyść zamknięte", () => {
+    const clearCalls = () =>
+      mockApiFetch.mock.calls.filter((c) => c[0] === "/api/inbox" && c[1]?.method === "DELETE");
+
+    test("przycisk z liczbą zamkniętych; potwierdzenie → DELETE /api/inbox i odświeżenie listy", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      fireEvent.click(await within(panel).findByRole("button", { name: "Wyczyść zamknięte (3)" }));
+      expect(clearCalls()).toHaveLength(0);
+      expect(within(panel).getByText(/Usunąć 3 zamknięte wpisy na stałe/)).toBeInTheDocument();
+      const before = mockApiFetch.mock.calls.filter((c) => c[0] === "/api/inbox").length;
+      fireEvent.click(within(panel).getByRole("button", { name: "Usuń zamknięte" }));
+      await waitFor(() => expect(clearCalls()).toHaveLength(1));
+      await waitFor(() =>
+        expect(mockApiFetch.mock.calls.filter((c) => c[0] === "/api/inbox").length).toBeGreaterThan(
+          before
+        )
+      );
+    });
+
+    test("„Anuluj” w potwierdzeniu nic nie kasuje", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      fireEvent.click(await within(panel).findByRole("button", { name: "Wyczyść zamknięte (3)" }));
+      fireEvent.click(within(panel).getByRole("button", { name: "Anuluj" }));
+      expect(clearCalls()).toHaveLength(0);
+      expect(
+        within(panel).getByRole("button", { name: "Wyczyść zamknięte (3)" })
+      ).toBeInTheDocument();
+    });
+
+    test("bez zamkniętych wpisów przycisku nie ma", async () => {
+      respond(FULL);
+      const base = mockApiFetch.getMockImplementation()!;
+      mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+        url === "/api/inbox" && (init?.method ?? "GET") === "GET"
+          ? Promise.resolve({ ok: true, json: async () => ({ ...INBOX, closed: 0 }) })
+          : base(url, init)
+      );
+      render(<HomeView {...defaultProps} />);
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      await within(panel).findByRole("button", { name: "Artykuł o vitest" });
+      expect(within(panel).queryByRole("button", { name: /Wyczyść zamknięte/ })).toBeNull();
+    });
   });
 
   describe("modal wpisu inboxu: kasowanie", () => {

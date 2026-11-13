@@ -6,15 +6,21 @@ const mockRead = vi.hoisted(() => vi.fn());
 const mockAppend = vi.hoisted(() => vi.fn());
 const mockResolve = vi.hoisted(() => vi.fn());
 const mockRemove = vi.hoisted(() => vi.fn());
+const mockCountClosed = vi.hoisted(() => vi.fn());
+const mockRemoveClosed = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_inbox/repositories", () => ({
   readOpenItems: mockRead,
   appendItem: mockAppend,
   resolveItem: mockResolve,
   removeItem: mockRemove,
+  countClosedItems: mockCountClosed,
+  removeClosedItems: mockRemoveClosed,
 }));
 
 import {
   addItem,
+  clearClosed,
+  countClosed,
   countOpen,
   detectType,
   listItems,
@@ -99,5 +105,17 @@ describe("remove", () => {
     await expect(remove("1")).resolves.toBeUndefined();
     expect(mockRemove).toHaveBeenCalledWith("1");
     await expect(remove("x")).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("countClosed / clearClosed", () => {
+  it("countClosed zwraca liczbę zamkniętych z repozytorium", () => {
+    mockCountClosed.mockReturnValue(3);
+    expect(countClosed()).toBe(3);
+  });
+
+  it("clearClosed zwraca liczbę usuniętych", async () => {
+    mockRemoveClosed.mockResolvedValue(2);
+    await expect(clearClosed()).resolves.toBe(2);
   });
 });

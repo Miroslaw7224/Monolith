@@ -5,6 +5,14 @@ import { InboxItemDialog } from "./InboxItemDialog";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
+/** „1 zamknięty wpis”, „3 zamknięte wpisy”, „5 zamkniętych wpisów” (polska odmiana). */
+function closedNoun(n: number): string {
+  if (n === 1) return "zamknięty wpis";
+  const last = n % 10;
+  const teen = n % 100 >= 12 && n % 100 <= 14;
+  return last >= 2 && last <= 4 && !teen ? "zamknięte wpisy" : "zamkniętych wpisów";
+}
+
 /** Szybki zapis do `Inbox/inbox.md` (Alt+I) i lista otwartych wpisów do wieczornej segregacji. */
 export function InboxPanel({
   apiFetch,
@@ -23,6 +31,7 @@ export function InboxPanel({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<InboxItemDto | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (): Promise<boolean> => {
@@ -108,6 +117,44 @@ export function InboxPanel({
         </button>
       </form>
       {error ? <p className="kok-state kok-state--error">{error}</p> : null}
+      {inbox && inbox.closed > 0 ? (
+        <div className="kok-inbox__clear">
+          {confirmClear ? (
+            <>
+              <span>
+                Usunąć {inbox.closed} {closedNoun(inbox.closed)} na stałe?
+              </span>
+              <button
+                type="button"
+                className="kok-btn kok-btn--sm kok-btn--danger"
+                disabled={busy}
+                onClick={() =>
+                  void call("/api/inbox", { method: "DELETE" }).then(() => setConfirmClear(false))
+                }
+              >
+                Usuń zamknięte
+              </button>
+              <button
+                type="button"
+                className="kok-btn kok-btn--sm kok-btn--ghost"
+                disabled={busy}
+                onClick={() => setConfirmClear(false)}
+              >
+                Anuluj
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="kok-btn kok-btn--sm kok-btn--ghost"
+              disabled={busy}
+              onClick={() => setConfirmClear(true)}
+            >
+              Wyczyść zamknięte ({inbox.closed})
+            </button>
+          )}
+        </div>
+      ) : null}
       {inbox && inbox.items.length === 0 ? <p className="kok-empty-msg">Inbox jest pusty</p> : null}
       <ul className="kok-inbox__list">
         {inbox?.items.map((item, i) => (

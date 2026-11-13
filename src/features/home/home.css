@@ -1057,6 +1057,16 @@
   color: var(--accent);
 }
 
+.kok-inbox__clear {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text-muted, var(--text));
+}
+
 .kok-inbox__full {
   margin: 0 0 var(--s-3);
   white-space: pre-wrap;

@@ -12,6 +12,11 @@ function hash(raw: string): string {
   return (h >>> 0).toString(36);
 }
 
+function isClosed(raw: string): boolean {
+  const m = LINE.exec(raw);
+  return m !== null && m[1] !== " ";
+}
+
 type ParsedLine = { index: number; item: InboxItem };
 
 /** Otwarte linie z ich numerem w pliku; id = skrót linii (identyczne linie mają to samo id, więc id nie przesuwa się po zamknięciu sąsiada). */
@@ -82,4 +87,23 @@ export async function removeItem(id: string): Promise<boolean> {
     return lines.join("\n");
   });
   return found;
+}
+
+/** Liczba zamkniętych linii (`[x]`/`[X]`); brak pliku to 0. */
+export function countClosedItems(): number {
+  const file = readVaultFile(FILE);
+  return file ? file.text.split("\n").filter(isClosed).length : 0;
+}
+
+/** Trwale usuwa wszystkie zamknięte linie (reszta pliku bez zmian); zwraca ich liczbę. */
+export async function removeClosedItems(): Promise<number> {
+  let removed = 0;
+  await updateVaultFile(FILE, (current) => {
+    removed = 0;
+    if (current === null) return "";
+    const kept = current.split("\n").filter((raw) => !isClosed(raw));
+    removed = current.split("\n").length - kept.length;
+    return removed === 0 ? current : kept.join("\n");
+  });
+  return removed;
 }

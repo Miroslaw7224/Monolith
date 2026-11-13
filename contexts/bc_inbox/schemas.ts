@@ -8,12 +8,12 @@ export const CreateInboxItemSchema = looseObject({
 });
 
 export type InboxItemDto = InboxItem;
-export type InboxDto = { items: InboxItemDto[]; open: number };
+export type InboxDto = { items: InboxItemDto[]; open: number; closed: number };
 
 export function toInboxItemDto(i: InboxItem): InboxItemDto {
   return { id: i.id, text: i.text, type: i.type, at: i.at };
 }
 
-export function toInboxDto(items: InboxItem[]): InboxDto {
-  return { items: items.map(toInboxItemDto), open: items.length };
+export function toInboxDto(items: InboxItem[], closed: number): InboxDto {
+  return { items: items.map(toInboxItemDto), open: items.length, closed };
 }

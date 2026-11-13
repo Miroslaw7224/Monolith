@@ -47,3 +47,12 @@ export async function resolve(id: string): Promise<void> {
 export async function remove(id: string): Promise<void> {
   if (!(await repositories.removeItem(id))) throw new NotFoundError(`Nie ma otwartego wpisu ${id}`);
 }
+
+export function countClosed(): number {
+  return repositories.countClosedItems();
+}
+
+/** Trwale usuwa wszystkie zamknięte wpisy (`[x]`) z `Inbox/inbox.md`; zwraca ich liczbę. Otwartych nie rusza. */
+export async function clearClosed(): Promise<number> {
+  return repositories.removeClosedItems();
+}
