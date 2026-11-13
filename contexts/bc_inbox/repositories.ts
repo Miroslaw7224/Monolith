@@ -14,22 +14,19 @@ function hash(raw: string): string {
 
 type ParsedLine = { index: number; item: InboxItem };
 
-/** Otwarte linie z ich numerem w pliku; id = skrót + numer powtórzenia tej samej linii. */
+/** Otwarte linie z ich numerem w pliku; id = skrót linii (identyczne linie mają to samo id, więc id nie przesuwa się po zamknięciu sąsiada). */
 function parseOpen(text: string): ParsedLine[] {
-  const seen = new Map<string, number>();
   const out: ParsedLine[] = [];
   text.split("\n").forEach((raw, index) => {
     const m = LINE.exec(raw);
     if (!m || m[1] !== " ") return;
-    const n = seen.get(raw) ?? 0;
-    seen.set(raw, n + 1);
     const f = FIELDS.exec(m[2]);
     const type =
       f && (INBOX_TYPES as readonly string[]).includes(f[2]) ? (f[2] as InboxType) : "myśl";
     out.push({
       index,
       item: {
-        id: `${hash(raw)}-${n}`,
+        id: hash(raw),
         text: (f ? f[1] : m[2]).trim(),
         type,
         at: f && f[3].trim() !== "" ? f[3].trim() : null,
@@ -45,16 +42,17 @@ export function readOpenItems(): InboxItem[] {
   return file ? parseOpen(file.text).map((p) => p.item) : [];
 }
 
-/** Dopisuje linię na końcu pliku; reszty treści nie zmienia. */
-export async function appendItem(item: Omit<InboxItem, "id">): Promise<void> {
+/** Dopisuje linię na końcu pliku; reszty treści nie zmienia. Zwraca wpis z jego id. */
+export async function appendItem(item: Omit<InboxItem, "id">): Promise<InboxItem> {
   const line = `- [ ] ${item.text} [type:: ${item.type}] [at:: ${item.at ?? ""}]`;
   await updateVaultFile(FILE, (current) => {
     const base = current ?? "";
     return `${base === "" || base.endsWith("\n") ? base : `${base}\n`}${line}\n`;
   });
+  return { id: hash(line), ...item };
 }
 
-/** Zmienia `[ ]` na `[x]` w linii o danym id; `false`, gdy nie ma otwartego wpisu o tym id. */
+/** Zmienia `[ ]` na `[x]` w pierwszej otwartej linii o danym id; `false`, gdy nie ma otwartego wpisu o tym id. */
 export async function resolveItem(id: string): Promise<boolean> {
   let found = false;
   await updateVaultFile(FILE, (current) => {

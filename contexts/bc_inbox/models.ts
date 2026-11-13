@@ -3,7 +3,7 @@ export type InboxType = (typeof INBOX_TYPES)[number];
 
 /** Wpis `Inbox/inbox.md`: jedna otwarta linia `- [ ] <tekst> [type:: …] [at:: …]`. */
 export type InboxItem = {
-  /** Skrót linii (+ numer powtórzenia); zmienia się, gdy ktoś edytuje linię ręcznie. */
+  /** Skrót linii; zmienia się, gdy ktoś edytuje linię ręcznie. Identyczne linie mają to samo id. */
   id: string;
   text: string;
   type: InboxType;

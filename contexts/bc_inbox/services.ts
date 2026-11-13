@@ -26,8 +26,7 @@ export async function addItem(input: string, now: Date = new Date()): Promise<In
   if (text === "") throw new DomainError("Wpisz treść wpisu");
   if (text.length > MAX_INBOX_TEXT) throw new DomainError(`Maksymalnie ${MAX_INBOX_TEXT} znaków`);
   const at = stamp(now);
-  await repositories.appendItem({ text, type, at });
-  return { id: "", text, type, at };
+  return repositories.appendItem({ text, type, at });
 }
 
 /** Otwarte wpisy, najnowsze (z końca pliku) pierwsze. */

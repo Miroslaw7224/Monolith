@@ -2,6 +2,11 @@
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/** Dzień lokalny `RRRR-MM-DD`. */
+export function localDay(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 /** Minuty od północy → `HH:mm`. */
 export function hhmm(minutes: number): string {
   return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;

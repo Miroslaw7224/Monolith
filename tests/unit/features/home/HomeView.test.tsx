@@ -1,10 +1,11 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, vi, beforeEach, describe, test, expect } from "vitest";
 import HomeView from "@/src/features/home/HomeView";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
 
 const EMPTY: CockpitDto = {
+  pinnedIds: [],
   date: "2026-11-13",
   topics: [],
   queue: [],
@@ -18,6 +19,7 @@ const EMPTY: CockpitDto = {
 };
 
 const FULL: CockpitDto = {
+  pinnedIds: ["nexus", "firma"],
   date: "2026-11-13",
   topics: [
     {
@@ -327,6 +329,63 @@ test("„Zmień aktywne”: wybór, zapis PUT i odświeżenie Kokpitu", async ()
   await waitFor(() => {
     const cockpitCalls = mockApiFetch.mock.calls.filter(([url]) => url === "/api/cockpit");
     expect(cockpitCalls.length).toBe(2);
+  });
+});
+
+describe("zmiana dnia przy otwartej karcie (H6)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+  const cockpitCalls = () => mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length;
+
+  test("po północy Kokpit odświeża dane (raz na zmianę dnia), a nie zostaje przy wczorajszych", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date", "setInterval", "clearInterval"],
+      now: new Date(2026, 10, 13, 23, 59, 40),
+    });
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    const before = cockpitCalls();
+    await act(async () => {
+      vi.advanceTimersByTime(30_000); // 00:00:10 następnego dnia
+    });
+    await waitFor(() => expect(cockpitCalls()).toBe(before + 1));
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(cockpitCalls()).toBe(before + 1);
+  });
+
+  test("w ciągu tego samego dnia tykanie zegara nie odświeża danych", async () => {
+    vi.useFakeTimers({
+      toFake: ["Date", "setInterval", "clearInterval"],
+      now: new Date(2026, 10, 13, 10, 0, 0),
+    });
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    const before = cockpitCalls();
+    await act(async () => {
+      vi.advanceTimersByTime(5 * 60_000);
+    });
+    expect(cockpitCalls()).toBe(before);
+  });
+});
+
+test("picker: przypięty projekt, który chwilowo nie wczytał się w tematach, nie jest cicho odpinany", async () => {
+  respond({ ...FULL, topics: FULL.topics.slice(0, 1), pinnedIds: ["nexus", "inny", "usuniety"] });
+  render(<HomeView {...defaultProps} />);
+  await screen.findByText("NEXUS");
+  fireEvent.click(screen.getByRole("button", { name: "Zmień aktywne" }));
+  expect(await screen.findByLabelText("Inny")).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
+  await waitFor(() => {
+    const put = mockApiFetch.mock.calls.find(
+      ([url, init]) => url === "/api/cockpit/pinned" && init?.method === "PUT"
+    );
+    // „inny” zostaje; id spoza rejestru („usuniety”) odpada, żeby nie blokować limitu 3
+    expect(JSON.parse(put![1].body)).toEqual({ ids: ["nexus", "inny"] });
   });
 });
 
@@ -656,6 +715,26 @@ describe("K1: układ wg makiety", () => {
         mockApiFetch.mock.calls.some((c) => c[0] === "/api/inbox/a-0" && c[1]?.method === "PATCH")
       ).toBe(true)
     );
+  });
+
+  test("panel Inbox: udany zapis i nieudane odświeżenie listy: komunikat, pole wyczyszczone (wpis zapisany)", async () => {
+    respond(FULL);
+    const base = mockApiFetch.getMockImplementation()!;
+    render(<HomeView {...defaultProps} />);
+    const panel = await screen.findByRole("region", { name: "Inbox" });
+    await within(panel).findByText("Artykuł o vitest");
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/inbox" && (init?.method ?? "GET") === "GET"
+        ? Promise.resolve({ ok: false, status: 500, json: async () => ({}) })
+        : base(url, init)
+    );
+    const input = within(panel).getByLabelText("Szybki zapis");
+    fireEvent.change(input, { target: { value: "nowa myśl" } });
+    fireEvent.click(within(panel).getByRole("button", { name: "Dodaj" }));
+    expect(
+      await within(panel).findByText(/Zapisano, ale nie udało się odświeżyć listy/)
+    ).toBeInTheDocument();
+    expect(input).toHaveValue("");
   });
 
   test("Alt+I (focusInbox): fokus w polu zapisu i potwierdzenie", async () => {

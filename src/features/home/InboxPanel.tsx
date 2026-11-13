@@ -23,14 +23,16 @@ export function InboxPanel({
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (): Promise<boolean> => {
     try {
       const res = await apiFetch("/api/inbox");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as InboxDto;
       if (Array.isArray(data.items)) setInbox(data);
+      return true;
     } catch {
       setError("Nie udało się wczytać inboxu");
+      return false;
     }
   }, [apiFetch]);
 
@@ -53,7 +55,8 @@ export function InboxPanel({
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
-      await load();
+      // zapis się udał; gdy lista się nie odświeży, mówimy to wprost (pole i tak się czyści)
+      if (!(await load())) setError("Zapisano, ale nie udało się odświeżyć listy");
       onChanged();
       return true;
     } catch (err) {
@@ -105,8 +108,8 @@ export function InboxPanel({
       {error ? <p className="kok-state kok-state--error">{error}</p> : null}
       {inbox && inbox.items.length === 0 ? <p className="kok-empty-msg">Inbox jest pusty</p> : null}
       <ul className="kok-inbox__list">
-        {inbox?.items.map((item) => (
-          <li key={item.id} className="kok-inbox__item">
+        {inbox?.items.map((item, i) => (
+          <li key={`${item.id}:${i}`} className="kok-inbox__item">
             <span className="kok-inbox__type">{item.type}</span>
             <span className="kok-inbox__text">{item.text}</span>
             <button

@@ -532,7 +532,7 @@ export function CockpitSections({
             )}
           </section>
 
-          <CommitHistory apiFetch={apiFetch} />
+          <CommitHistory apiFetch={apiFetch} day={data.date} />
         </div>
 
         <section className="kok-focus" aria-label="Aktywne tematy">

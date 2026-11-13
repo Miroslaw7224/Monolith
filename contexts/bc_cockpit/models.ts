@@ -139,6 +139,8 @@ export type Cockpit = {
   /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
   date: string;
   topics: Topic[];
+  /** Przypięte id z `Cockpit/pinned.yaml` (max 3), także projektów, które się nie wczytały jako tematy. */
+  pinnedIds: string[];
   queue: QueueGroup[];
   events: DayEvent[];
   nextMeeting: NextMeeting | null;

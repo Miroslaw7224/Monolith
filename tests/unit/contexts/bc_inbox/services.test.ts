@@ -17,7 +17,7 @@ const NOW = new Date(2026, 10, 13, 21, 5);
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockAppend.mockResolvedValue(undefined);
+  mockAppend.mockImplementation(async (i: object) => ({ id: "h1", ...i }));
 });
 
 describe("detectType", () => {
@@ -44,7 +44,12 @@ describe("addItem", () => {
       type: "bug",
       at: "2026-11-13T21:05",
     });
-    expect(item).toMatchObject({ text: "pusta lista", type: "bug", at: "2026-11-13T21:05" });
+    expect(item).toEqual({
+      id: "h1",
+      text: "pusta lista",
+      type: "bug",
+      at: "2026-11-13T21:05",
+    });
   });
 
   it("zamienia nowe linie na spacje i przycina", async () => {

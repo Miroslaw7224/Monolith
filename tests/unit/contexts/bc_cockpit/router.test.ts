@@ -43,6 +43,7 @@ describe("GET /api/cockpit", () => {
     mockGetCockpit.mockResolvedValue({
       date: "2026-11-13",
       topics: [],
+      pinnedIds: [],
       queue: [],
       events: [],
       nextMeeting: null,
@@ -57,6 +58,7 @@ describe("GET /api/cockpit", () => {
     expect(await res.json()).toEqual({
       date: "2026-11-13",
       topics: [],
+      pinnedIds: [],
       queue: [],
       events: [],
       nextMeeting: null,

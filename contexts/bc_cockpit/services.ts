@@ -79,13 +79,13 @@ function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
   };
 }
 
-function loadTopics(today: Date, warnings: string[]): Topic[] {
+function loadTopics(today: Date, warnings: string[]): { topics: Topic[]; pinnedIds: string[] } {
   let ids: string[];
   try {
     ids = repositories.readPinned().ids;
   } catch (err) {
     warnings.push(`Przypięte projekty: ${reason(err)}`);
-    return [];
+    return { topics: [], pinnedIds: [] };
   }
   if (ids.length > MAX_PINNED) {
     warnings.push(`Przypięto ${ids.length} projekty, pokazuję pierwsze ${MAX_PINNED}`);
@@ -102,7 +102,7 @@ function loadTopics(today: Date, warnings: string[]): Topic[] {
       );
     }
   }
-  return topics;
+  return { topics, pinnedIds: ids.slice(0, MAX_PINNED) };
 }
 
 // ── kolejka na dziś ────────────────────────────────────────────────────────────
@@ -396,7 +396,7 @@ function loadClosing(date: string, warnings: string[]): Cockpit["closing"] {
 export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const date = localDate(today);
   const warnings: string[] = [];
-  const topics = loadTopics(today, warnings);
+  const { topics, pinnedIds } = loadTopics(today, warnings);
   const queue = await loadQueue(date, warnings);
   const events = await loadEvents(date, warnings);
   const todays = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
@@ -407,7 +407,19 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
   const windows = planWindows(events, queue, today.getHours() * 60 + today.getMinutes());
-  return { date, topics, queue, events, nextMeeting, git, inbox, windows, closing, warnings };
+  return {
+    date,
+    topics,
+    pinnedIds,
+    queue,
+    events,
+    nextMeeting,
+    git,
+    inbox,
+    windows,
+    closing,
+    warnings,
+  };
 }
 
 export async function setPinned(ids: string[]): Promise<Pinned> {

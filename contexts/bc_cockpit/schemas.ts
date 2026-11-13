@@ -65,6 +65,7 @@ export type CommitHistoryDto = CommitHistory;
 export function toCockpitDto(c: Cockpit): CockpitDto {
   return {
     date: c.date,
+    pinnedIds: [...c.pinnedIds],
     topics: c.topics.map((t) => ({
       id: t.id,
       name: t.name,

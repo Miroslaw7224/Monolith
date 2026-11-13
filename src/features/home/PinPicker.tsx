@@ -24,9 +24,12 @@ export function PinPicker({
   useEffect(() => {
     apiFetch("/api/projects")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data: { projects?: ProjectOption[] }) =>
-        setProjects(Array.isArray(data.projects) ? data.projects : [])
-      )
+      .then((data: { projects?: ProjectOption[] }) => {
+        const list = Array.isArray(data.projects) ? data.projects : [];
+        setProjects(list);
+        // id spoza rejestru (projekt usunięty) odpada, żeby nie blokował limitu i nie wracał przy zapisie
+        setSelected((prev) => prev.filter((id) => list.some((p) => p.id === id)));
+      })
       .catch(() => setError("Nie udało się wczytać listy projektów"));
   }, [apiFetch]);
 

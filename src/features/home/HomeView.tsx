@@ -1,6 +1,6 @@
 // src/features/home/HomeView.tsx
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./home.css";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
 import { CloseDayDialog } from "./CloseDayDialog";
@@ -11,6 +11,7 @@ import { StatusBar } from "./StatusBar";
 import {
   formatLongDate,
   hhmm,
+  localDay,
   meetingsLabel,
   upcomingWindows,
   weekNumber,
@@ -64,6 +65,15 @@ export default function HomeView({
   useEffect(() => {
     void loadCockpit();
   }, [loadCockpit]);
+
+  // Przejście przez północ przy otwartej karcie: dane Kokpitu są z wczoraj, więc wczytujemy je od nowa.
+  const today = localDay(now);
+  const lastDay = useRef(today);
+  useEffect(() => {
+    if (lastDay.current === today) return;
+    lastDay.current = today;
+    void loadCockpit();
+  }, [today, loadCockpit]);
 
   const meetings = cockpit?.events.filter((e) => e.type === "meeting").length ?? null;
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -153,7 +163,7 @@ export default function HomeView({
         {pickerOpen && (
           <PinPicker
             apiFetch={apiFetch}
-            currentIds={cockpit?.topics.map((topic) => topic.id) ?? []}
+            currentIds={cockpit?.pinnedIds ?? []}
             onCancel={() => setPickerOpen(false)}
             onSaved={() => {
               setPickerOpen(false);

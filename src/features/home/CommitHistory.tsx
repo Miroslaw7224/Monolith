@@ -13,8 +13,11 @@ function parseDay(iso: string): Date {
 /** Słupki commitów z gita dzień po dniu (ostatnie 7 dni). Bez dostępnych repo albo przy błędzie: nic. */
 export function CommitHistory({
   apiFetch,
+  day,
 }: {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
+  /** Dzień danych Kokpitu: gdy się zmieni (północ), historia wczytuje się od nowa. */
+  day: string;
 }) {
   const [history, setHistory] = useState<CommitHistoryDto | null>(null);
 
@@ -31,7 +34,7 @@ export function CommitHistory({
     return () => {
       cancelled = true;
     };
-  }, [apiFetch]);
+  }, [apiFetch, day]);
 
   if (!history || !history.available || history.days.length === 0) return null;
   const max = Math.max(1, ...history.days.flatMap((d) => [d.total, d.prs]));

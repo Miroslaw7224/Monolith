@@ -57,6 +57,7 @@ describe("ClosingInputSchema", () => {
 describe("mapery DTO", () => {
   const model: Cockpit = {
     date: "2026-11-13",
+    pinnedIds: ["nexus"],
     topics: [
       {
         id: "nexus",
@@ -133,6 +134,7 @@ describe("mapery DTO", () => {
       "git",
       "inbox",
       "nextMeeting",
+      "pinnedIds",
       "queue",
       "topics",
       "warnings",

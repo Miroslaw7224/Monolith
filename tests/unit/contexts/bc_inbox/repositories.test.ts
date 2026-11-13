@@ -34,12 +34,18 @@ describe("readOpenItems", () => {
     expect(new Set(items.map((i) => i.id)).size).toBe(3);
   });
 
-  it("identyczne linie dostają różne, stabilne id", () => {
-    vault.write(REL, "- [ ] to samo\n- [ ] to samo\n");
+  it("id jest skrótem linii: stabilne, a identyczne linie mają to samo id (nie przesuwa się po zamknięciu sąsiada)", async () => {
+    vault.write(REL, "- [ ] to samo\n- [ ] to samo\n- [ ] inne\n");
     const a = readOpenItems();
-    const b = readOpenItems();
-    expect(a[0].id).not.toBe(a[1].id);
-    expect(a.map((i) => i.id)).toEqual(b.map((i) => i.id));
+    expect(a.map((i) => i.id)).toEqual(readOpenItems().map((i) => i.id));
+    expect(a[0].id).toBe(a[1].id);
+    expect(a[2].id).not.toBe(a[0].id);
+    const staleId = a[1].id;
+    await resolveItem(a[0].id);
+    // „stare” id drugiego duplikatu nadal działa (nie 404)
+    expect(readOpenItems().map((i) => i.id)).toContain(staleId);
+    expect(await resolveItem(staleId)).toBe(true);
+    expect(readOpenItems().map((i) => i.text)).toEqual(["inne"]);
   });
 
   it("nieznany typ w polu to myśl", () => {
@@ -52,6 +58,13 @@ describe("appendItem", () => {
   it("tworzy plik i dopisuje linię w formacie z polami", async () => {
     await appendItem({ text: "Pierwszy", type: "myśl", at: "2026-11-13T09:10" });
     expect(vault.read(REL)).toBe("- [ ] Pierwszy [type:: myśl] [at:: 2026-11-13T09:10]\n");
+  });
+
+  it("zwraca wpis z id równym id odczytanym z pliku (można go od razu zamknąć)", async () => {
+    const item = await appendItem({ text: "Nowy", type: "bug", at: "2026-11-13T09:10" });
+    expect(item).toEqual({ ...readOpenItems()[0], id: item.id });
+    expect(item.id).not.toBe("");
+    expect(await resolveItem(item.id)).toBe(true);
   });
 
   it("dopisuje na końcu istniejącej treści (także bez końcowego newline), nic nie ruszając", async () => {
@@ -81,10 +94,10 @@ describe("resolveItem", () => {
     expect(vault.read(REL)).toBe("- [ ] A\n");
   });
 
-  it("z dwóch identycznych linii zamyka tę wskazaną id", async () => {
+  it("z dwóch identycznych linii zamyka pierwszą otwartą", async () => {
     vault.write(REL, "- [ ] to samo\n- [ ] to samo\n");
-    const [, second] = readOpenItems();
-    await resolveItem(second.id);
-    expect(vault.read(REL)).toBe("- [ ] to samo\n- [x] to samo\n");
+    const [first] = readOpenItems();
+    await resolveItem(first.id);
+    expect(vault.read(REL)).toBe("- [x] to samo\n- [ ] to samo\n");
   });
 });

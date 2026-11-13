@@ -209,6 +209,24 @@ describe("tematy", () => {
     expect(warnings).toEqual(["Przypięty projekt nexus nie istnieje już w rejestrze"]);
   });
 
+  it("pinnedIds to przypięte id z pliku (max 3), także tych, których projekt się nie wczytał", async () => {
+    mockReadPinned.mockReturnValue({ ids: ["a", "b", "c", "d"] });
+    mockGetProject.mockImplementation((id: string) => {
+      if (id === "b") throw new Error("zły state.md");
+      return project({ id, name: id });
+    });
+    const result = await getCockpit(TODAY);
+    expect(result.topics.map((t) => t.id)).toEqual(["a", "c"]);
+    expect(result.pinnedIds).toEqual(["a", "b", "c"]);
+  });
+
+  it("uszkodzony pinned.yaml: pinnedIds puste", async () => {
+    mockReadPinned.mockImplementation(() => {
+      throw new Error("zły YAML");
+    });
+    expect((await getCockpit(TODAY)).pinnedIds).toEqual([]);
+  });
+
   it("inny błąd odczytu projektu to ostrzeżenie, nie wyjątek", async () => {
     mockGetProject.mockImplementation(() => {
       throw new Error("zły state.md");
