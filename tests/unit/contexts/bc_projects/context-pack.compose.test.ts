@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ProjectWithContent } from "@/contexts/bc_projects/models";
 import {
   composeContextPack,
+  demoteHeadings,
   estimateTokens,
   type ContextPackInput,
 } from "@/contexts/bc_projects/services/context-pack";
@@ -313,5 +314,72 @@ describe("composeContextPack", () => {
       expect(r.approxTokens).toBeLessThanOrEqual(full.approxTokens);
       expect(rulesOf(r.markdown).length).toBeLessThanOrEqual(800);
     });
+  });
+});
+
+describe("demoteHeadings", () => {
+  it("najwyższy nagłówek schodzi do ###, reszta o tyle samo niżej", () => {
+    expect(demoteHeadings("# A\ntekst\n## B\n### C")).toBe("### A\ntekst\n#### B\n##### C");
+  });
+
+  it("dokument zaczynający się od ##", () => {
+    expect(demoteHeadings("## A\n### B")).toBe("### A\n#### B");
+  });
+
+  it("nagłówki od ### wzwyż i tekst bez nagłówków bez zmian", () => {
+    expect(demoteHeadings("### A\n#### B")).toBe("### A\n#### B");
+    expect(demoteHeadings("zwykły tekst\n\ndruga linia")).toBe("zwykły tekst\n\ndruga linia");
+  });
+
+  it("nagłówki w blokach kodu (``` i ~~~) nie są ruszane i nie liczą się do poziomu", () => {
+    expect(demoteHeadings("# A\n```bash\n# komentarz\n```\n## B")).toBe(
+      "### A\n```bash\n# komentarz\n```\n#### B"
+    );
+    expect(demoteHeadings("~~~\n# x\n~~~\n## B")).toBe("~~~\n# x\n~~~\n### B");
+  });
+
+  it("niedomknięty blok kodu: reszta tekstu to kod", () => {
+    expect(demoteHeadings("# A\n```\n# x\n## y")).toBe("### A\n```\n# x\n## y");
+  });
+
+  it("poziom nie przekracza 6", () => {
+    expect(demoteHeadings("# A\n#### B\n###### C")).toBe("### A\n###### B\n###### C");
+  });
+
+  it("to nie nagłówki: #tag bez spacji, 7 krzyżyków, krzyżyk w środku linii", () => {
+    const text = "#tag\n####### siedem\ntekst # nie nagłówek";
+    expect(demoteHeadings(text)).toBe(text);
+  });
+
+  it("zachowuje CRLF", () => {
+    expect(demoteHeadings("# A\r\ntekst\r\n## B")).toBe("### A\r\ntekst\r\n#### B");
+  });
+});
+
+describe("composeContextPack: nagłówki zasad", () => {
+  it("nagłówki zasad schodzą pod sekcję „Zasady”, własne nagłówki paczki bez zmian", () => {
+    const pack = composeContextPack(
+      makeInput({
+        rules: { source: "CLAUDE.md", text: "# CLAUDE.md\n\nTreść\n\n## Struktura kodu\n\nX" },
+      }),
+      BIG
+    );
+    const lines = pack.markdown.split("\n");
+    expect(lines).toContain("### CLAUDE.md");
+    expect(lines).toContain("#### Struktura kodu");
+    expect(lines).not.toContain("# CLAUDE.md");
+    expect(lines).not.toContain("## Struktura kodu");
+    // jedyny nagłówek H1 to tytuł paczki; sekcje paczki nadal na poziomie ##
+    expect(lines.filter((l) => /^# /.test(l))).toEqual(["# Kontekst projektu: Alpha"]);
+    expect(lines).toContain("## Zasady projektu (źródło: CLAUDE.md)");
+    expect(lines).toContain("## Save State");
+    expect(lines).toContain("## Kod (git)");
+  });
+
+  it("budżet liczy zasady po obniżeniu nagłówków (cięcie nadal ≤ limit)", () => {
+    const text = `# T\n\n${"x".repeat(2000)}`;
+    const r = composeContextPack(makeInput({ rules: { source: "CLAUDE.md", text } }), 0);
+    const sec = sectionOf(r.markdown, "## Zasady projektu (źródło: CLAUDE.md)");
+    expect(sec.slice(sec.indexOf("\n\n") + 2).length).toBeLessThanOrEqual(800);
   });
 });
