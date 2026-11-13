@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Plus, Loader2, ChevronDown } from "lucide-react";
-import { CreateResourceBodySchema } from "@/lib/validation/resources";
+import { CreateResourceBodySchema } from "@/contexts/bc_resources/schemas";
 
 export interface ResourceAddFormProps {
   resourceDescriptionPlaceholder: string;

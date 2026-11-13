@@ -3,7 +3,7 @@ import {
   getFaviconUrl,
   parseBlockFormat,
   parseMultipleBlocks,
-} from "../../../../src/components/resources/resourceParsing";
+} from "@/src/features/resources/resourceParsing";
 
 describe("resourceParsing", () => {
   describe("getFaviconUrl", () => {

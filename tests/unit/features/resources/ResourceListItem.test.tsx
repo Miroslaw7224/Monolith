@@ -2,8 +2,8 @@ import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ResourceListItem } from "@/src/components/resources/ResourceListItem";
-import type { NoteResource } from "@/src/components/resources/resourceTypes";
+import { ResourceListItem } from "@/src/features/resources/ResourceListItem";
+import type { NoteResource } from "@/src/features/resources/resourceTypes";
 
 function mockResource(overrides?: Partial<NoteResource>): NoteResource {
   return {

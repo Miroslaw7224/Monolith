@@ -1,6 +1,6 @@
-import type { NoteResourceRecord } from "@/types/records";
-import type { YamlRecord } from "../yaml-lists";
-import { readList } from "../yaml-store";
+import type { YamlRecord } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
+import type { Resource } from "../models";
 import {
   appendRecord,
   generateId,
@@ -10,12 +10,12 @@ import {
   removeRecord,
   sortByCreated,
   str,
-} from "../record-helpers";
+} from "@/lib/nexus/record-helpers";
 
 const FILE = "Resources/resources.yaml";
 const KEY = "resources";
 
-function toResource(record: YamlRecord): NoteResourceRecord {
+function toResource(record: YamlRecord): Resource {
   return {
     id: str(record.id),
     noteId: optStr(record.note_id),
@@ -30,9 +30,9 @@ function toResource(record: YamlRecord): NoteResourceRecord {
   };
 }
 
-export async function addResourceToFirestore(
-  data: Omit<NoteResourceRecord, "id" | "createdAt" | "updatedAt">
-): Promise<NoteResourceRecord> {
+export async function addResource(
+  data: Omit<Resource, "id" | "createdAt" | "updatedAt">
+): Promise<Resource> {
   const record = await appendRecord(FILE, KEY, (taken) => {
     const now = nowIso(); // wewnątrz build: ponowienie po konflikcie dostaje świeży czas
     return {
@@ -51,16 +51,16 @@ export async function addResourceToFirestore(
   return toResource(record);
 }
 
-export async function getResourcesFromFirestore(): Promise<NoteResourceRecord[]> {
+export async function getResources(): Promise<Resource[]> {
   const list = readList(FILE, KEY).map((record) => toResource(record));
   return sortByCreated(list, (r) => r.createdAt, "desc");
 }
 
-export async function deleteResourceFromFirestore(resourceId: string): Promise<void> {
+export async function deleteResource(resourceId: string): Promise<void> {
   await removeRecord(FILE, KEY, resourceId);
 }
 
-export async function updateResourceInFirestore(
+export async function updateResource(
   resourceId: string,
   data: {
     title?: string;

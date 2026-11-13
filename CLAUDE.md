@@ -104,7 +104,8 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   **Zgoda użytkownika (2026-11-13):** wolno mi też zatwierdzać (jednorazowo, `hc keys <terminal> enter`) polecenia
   testów i sprawdzeń, o które sam poprosiłem pomocnika, gdy działają zgodnie z moim poleceniem i nie modyfikują kodu:
   `npx tsc --noEmit`, `npx vitest run [ścieżki]`, `npm run lint`, `npm run build` (zapisuje tylko `.next/`), a także
-  poprzedzające je `cd` do katalogu Monolith. Przed zatwierdzeniem czytam panel (`hc read <terminal>`) i sprawdzam,
+  poprzedzające je `cd` do katalogu Monolith oraz doklejone przez pomocnika `2>&1` (samo łączenie stderr ze stdout,
+  bez zapisu do pliku; inne przekierowania nadal nie). Przed zatwierdzeniem czytam panel (`hc read <terminal>`) i sprawdzam,
   że polecenie jest dokładnie tym, o co prosiłem. Nie zatwierdzam wariantów zapisujących: `--fix`, `-u`/`--update`,
   `--write`, `prettier`, `npm install`/`ci`, `npx` pobierającego pakiety spoza projektu, przekierowań, ani nic poza
   poleceniem z mojej prośby.

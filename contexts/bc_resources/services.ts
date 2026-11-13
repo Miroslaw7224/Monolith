@@ -1,23 +1,16 @@
-import {
-  addResourceToFirestore,
-  getResourcesFromFirestore,
-  deleteResourceFromFirestore,
-  updateResourceInFirestore,
-  type NoteResourceRecord,
-} from "@/lib/firestore-db";
+import * as repositories from "./repositories";
+import type { Resource } from "./models";
 
-// -----------------------------------------------
-// CRUD (zasoby na poziomie użytkownika, niezależne od notatek)
-// -----------------------------------------------
+// ── zasoby ──────────────────────────────────────────────────────────────────────
 
 export async function addResource(data: {
   description: string;
   url: string;
   tags?: string[];
   noteId?: string;
-}): Promise<NoteResourceRecord> {
+}): Promise<Resource> {
   const { title, thumbnailUrl } = await fetchPageMetadata(data.url);
-  const resource = await addResourceToFirestore({
+  return repositories.addResource({
     description: data.description,
     url: data.url,
     title,
@@ -25,15 +18,14 @@ export async function addResource(data: {
     tags: data.tags ?? [],
     ...(data.noteId != null && { noteId: data.noteId }),
   });
-  return resource;
 }
 
-export async function getResources(): Promise<NoteResourceRecord[]> {
-  return getResourcesFromFirestore();
+export async function getResources(): Promise<Resource[]> {
+  return repositories.getResources();
 }
 
 export async function deleteResource(resourceId: string): Promise<void> {
-  return deleteResourceFromFirestore(resourceId);
+  return repositories.deleteResource(resourceId);
 }
 
 export async function updateResource(
@@ -46,12 +38,8 @@ export async function updateResource(
     isFavorite?: boolean;
   }
 ): Promise<void> {
-  return updateResourceInFirestore(resourceId, data);
+  return repositories.updateResource(resourceId, data);
 }
-
-// -----------------------------------------------
-// Pobieranie metadanych strony
-// -----------------------------------------------
 
 async function fetchPageMetadata(url: string): Promise<{ title: string; thumbnailUrl?: string }> {
   try {
@@ -68,12 +56,9 @@ async function fetchPageMetadata(url: string): Promise<{ title: string; thumbnai
   }
 }
 
-// -----------------------------------------------
-// Integracja z RAG (keyword search)
-// -----------------------------------------------
-
-export async function searchResources(keywords: string[]): Promise<NoteResourceRecord[]> {
-  const allResources = await getResourcesFromFirestore();
+/** Wyszukiwanie po słowach kluczowych (opis, tytuł, tagi); puste `keywords` = wszystkie. */
+export async function searchResources(keywords: string[]): Promise<Resource[]> {
+  const allResources = await repositories.getResources();
 
   if (keywords.length === 0) {
     return allResources;
@@ -86,4 +71,19 @@ export async function searchResources(keywords: string[]): Promise<NoteResourceR
     const tagStr = (r.tags ?? []).join(" ").toLowerCase();
     return lowerKeywords.some((k) => desc.includes(k) || title.includes(k) || tagStr.includes(k));
   });
+}
+
+// ── dokumenty ───────────────────────────────────────────────────────────────────
+
+export async function listDocuments() {
+  return repositories.getDocuments();
+}
+
+export async function ingestDocument(data: { name: string; content: string; type: string }) {
+  const { id } = await repositories.createDocument(data);
+  return { id, name: data.name };
+}
+
+export async function deleteDocument(id: string) {
+  return repositories.deleteDocument(id);
 }
