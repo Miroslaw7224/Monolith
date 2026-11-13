@@ -1,4 +1,5 @@
-import type { BoardTask, TaskColumn, TasksBoard } from "@/contexts/bc_projects/models";
+import type { BoardTask, TaskColumn, TaskOp, TasksBoard } from "@/contexts/bc_projects/models";
+import { ConflictError } from "@/lib/errors";
 
 /**
  * Edytor tekstowy `Projects/<id>/tasks.md` dla tablicy zadań (etap 1-3).
@@ -122,4 +123,66 @@ export function readBoardText(text: string | null): Omit<TasksBoard, "version"> 
   const board: Omit<TasksBoard, "version"> = { blockers: [], now: [], next: [], icebox: [] };
   for (const task of scanTasks(text).tasks) board[task.column].push(toBoardTask(task));
   return board;
+}
+
+export type TaskFileContext = {
+  /** Nazwa projektu do nagłówka nowego pliku (`# Tasks — <nazwa>`). */
+  projectName: string;
+  /** Dzień `YYYY-MM-DD` wpisywany przy ukończeniu zadania. */
+  today: string;
+};
+
+/** Kanoniczna pierwsza linia bloku zadania. */
+function formatTaskLine(task: {
+  done: boolean;
+  now: boolean;
+  text: string;
+  doneDate?: string;
+}): string {
+  if (task.done) {
+    return `- [x] ${task.text}${task.doneDate === undefined ? "" : ` — ${task.doneDate}`}`;
+  }
+  return `- [ ] ${task.text}${task.now ? " [now::]" : ""}`;
+}
+
+/** Zadanie wskazane przez kolumnę, indeks w kolumnie i tekst; niezgodność to konflikt (plik się zmienił). */
+function locateTask(scan: Scan, ref: { column: TaskColumn; index: number; text: string }) {
+  const task = scan.tasks.filter((t) => t.column === ref.column)[ref.index];
+  if (task === undefined || task.text !== ref.text) {
+    throw new ConflictError("Zadanie zmieniło się w pliku");
+  }
+  return task;
+}
+
+export function applyTaskOp(text: string | null, op: TaskOp, ctx: TaskFileContext): string {
+  switch (op.op) {
+    case "toggle": {
+      const scan = scanTasks(text);
+      const task = locateTask(scan, op);
+      scan.lines[task.start] = task.done
+        ? formatTaskLine({ done: false, now: false, text: task.text })
+        : formatTaskLine({ done: true, now: false, text: task.text, doneDate: ctx.today });
+      return scan.lines.join("\n");
+    }
+    case "edit": {
+      const scan = scanTasks(text);
+      const task = locateTask(scan, op);
+      scan.lines[task.start] = formatTaskLine({
+        done: task.done,
+        now: task.now,
+        text: op.newText,
+        doneDate: task.doneDate,
+      });
+      return scan.lines.join("\n");
+    }
+    case "remove": {
+      const scan = scanTasks(text);
+      const task = locateTask(scan, op);
+      scan.lines.splice(task.start, task.end - task.start);
+      return scan.lines.join("\n");
+    }
+    case "add":
+    case "move":
+      throw new Error(`Operacja ${op.op} nie jest jeszcze zaimplementowana`);
+  }
 }
