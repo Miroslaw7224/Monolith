@@ -14,6 +14,12 @@
   --line: #373a42;
   --text: #f0f0f2;
   --muted: #a8aab2;
+  /* aliasy starych zmiennych aplikacji, żeby osadzone komponenty miały w karcie ciemne kolory */
+  --bg2: var(--surface);
+  --bg3: var(--surface-2);
+  --border: var(--line);
+  --text2: var(--muted);
+  --text3: var(--muted);
   --accent: #22d3ee;
   --accent-text: #22d3ee;
   --accent-ink: #03202a;

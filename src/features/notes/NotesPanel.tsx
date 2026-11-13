@@ -61,6 +61,9 @@ export function NotesPanel({
     ? `${notesCountLabel} · aktywna: ${activeTitle}`
     : `${notesCountLabel} w bazie`;
 
+  // Nowa (niezapisana) notatka zawsze pokazuje formularz, więc zakładka i chip mają to odzwierciedlać.
+  const editing = noteEditMode || (selectedNote !== null && selectedNote.id === "");
+
   return (
     <div className="not flex-1 min-w-0 flex flex-col overflow-auto" data-card="notatki">
       <header className="view-head not-head">
@@ -173,15 +176,15 @@ export function NotesPanel({
                   <b>{selectedNote.title || "Untitled"}</b>
                 </div>
                 <div className="not-toolbar__tools">
-                  <span className={cn("chip not-chip", noteEditMode ? "chip--warn" : "chip--ok")}>
-                    {noteEditMode ? "edycja" : "zsynchronizowany"}
+                  <span className={cn("chip not-chip", editing ? "chip--warn" : "chip--ok")}>
+                    {editing ? "edycja" : "podgląd"}
                   </span>
                   <div className="tabs not-tabs" role="tablist">
                     <button
                       type="button"
                       className="tabs__btn not-tabs__btn"
                       role="tab"
-                      aria-selected={!noteEditMode}
+                      aria-selected={!editing}
                       onClick={() => setNoteEditMode(false)}
                     >
                       Podgląd
@@ -190,7 +193,7 @@ export function NotesPanel({
                       type="button"
                       className="tabs__btn not-tabs__btn"
                       role="tab"
-                      aria-selected={noteEditMode}
+                      aria-selected={editing}
                       onClick={() => setNoteEditMode(true)}
                     >
                       Edycja
@@ -200,7 +203,7 @@ export function NotesPanel({
               </div>
 
               <article className="not-sheet">
-                {noteEditMode || selectedNote.id === "" ? (
+                {editing ? (
                   <div className="not-editor-form">
                     <input
                       type="text"

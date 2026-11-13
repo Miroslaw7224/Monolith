@@ -14,6 +14,12 @@
   --line: #373a42;
   --text: #f0f0f2;
   --muted: #a8aab2;
+  /* aliasy starych zmiennych aplikacji, żeby osadzone komponenty miały w karcie ciemne kolory */
+  --bg2: var(--surface);
+  --bg3: var(--surface-2);
+  --border: var(--line);
+  --text2: var(--muted);
+  --text3: var(--muted);
   --accent: #b6ff2e;
   --accent-text: #b6ff2e;
   --accent-ink: #0b120d;
@@ -114,7 +120,7 @@
   margin: 0 0 var(--s-2);
 }
 
-.zad-title {
+.zad-heading {
   font: 700 var(--fs-2xl) / 1.1 var(--font-display);
   color: var(--text);
   margin: 0;

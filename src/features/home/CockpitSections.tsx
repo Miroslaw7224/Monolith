@@ -68,7 +68,13 @@ function QueueGroupCard({ group }: { group: QueueGroupDto }) {
       <ul className="kok-list">
         {group.items.map((item, i) => (
           <li key={`${item.kind}-${i}`} className="kok-list__item">
-            <input className="kok-check" type="checkbox" aria-label="zrobione" readOnly />
+            <input
+              className="kok-check"
+              type="checkbox"
+              aria-label="zrobione"
+              checked={false}
+              readOnly
+            />
             <span className="kok-list__title">{item.title}</span>
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>

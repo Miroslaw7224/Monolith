@@ -303,7 +303,7 @@ export function CalendarView({
 
       {modalOpen && (
         <div className="kal-overlay">
-          <div className="kal-modal">
+          <div className="kal-modal" role="dialog" aria-modal="true">
             <h3 className="kal-modal__title">
               {editingEvent
                 ? ((t.calendarEditEntry as string) ?? "Edit entry")
@@ -370,7 +370,7 @@ export function CalendarView({
 
       {startSessionModalOpen && (
         <div className="kal-overlay">
-          <div className="kal-modal">
+          <div className="kal-modal" role="dialog" aria-modal="true">
             <h3 className="kal-modal__title">{(t.sessionModalTitle as string) ?? "Start work"}</h3>
             <StartSessionModal
               existingTags={allTags}

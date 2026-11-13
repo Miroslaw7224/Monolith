@@ -126,7 +126,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
       <header className="zad-head">
         <div>
           <p className="zad-eyebrow">{lang === "pl" ? "Alt+3 · Zadania" : "Alt+3 · Tasks"}</p>
-          <h1 className="zad-title">{lang === "pl" ? "Zadania projektowe" : "Project Tasks"}</h1>
+          <h1 className="zad-heading">{lang === "pl" ? "Zadania projektowe" : "Project Tasks"}</h1>
           <p className="zad-sub">{dateSubtitle}</p>
         </div>
         <div className="zad-head__actions">

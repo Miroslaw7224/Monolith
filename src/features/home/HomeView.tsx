@@ -245,7 +245,12 @@ export default function HomeView({
 
           {sessionModalOpen && (
             <div className="kok-overlay">
-              <div className="kok-modal">
+              <div
+                className="kok-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label={lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
+              >
                 <h3 className="kok-modal__title">
                   {lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
                 </h3>
