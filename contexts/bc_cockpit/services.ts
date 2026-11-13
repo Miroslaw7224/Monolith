@@ -7,6 +7,7 @@ import {
   type Cockpit,
   type Confidence,
   type DayEvent,
+  type GitSummary,
   type NextMeeting,
   type Owner,
   type Pinned,
@@ -215,6 +216,23 @@ export function pickNextMeeting(events: DayEvent[], nowMinutes: number): NextMee
     : null;
 }
 
+// ── git ────────────────────────────────────────────────────────────────────────
+
+function loadGit(today: Date, topics: Topic[], warnings: string[]): GitSummary | null {
+  try {
+    const activity = projectsServices.listGitActivity(today);
+    if (activity.length === 0) return null;
+    return {
+      commitsToday: activity.reduce((sum, a) => sum + a.commitsToday, 0),
+      projectsWithCommits: activity.filter((a) => a.commitsToday > 0).length,
+      branch: activity.find((a) => a.projectId === topics[0]?.id)?.branch ?? null,
+    };
+  } catch (err) {
+    warnings.push(`Git: ${reason(err)}`);
+    return null;
+  }
+}
+
 // ── API serwisu ────────────────────────────────────────────────────────────────
 
 /** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
@@ -225,7 +243,8 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const queue = await loadQueue(date, warnings);
   const events = await loadEvents(date, warnings);
   const nextMeeting = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
-  return { date, topics, queue, events, nextMeeting, warnings };
+  const git = loadGit(today, topics, warnings);
+  return { date, topics, queue, events, nextMeeting, git, warnings };
 }
 
 export async function setPinned(ids: string[]): Promise<Pinned> {

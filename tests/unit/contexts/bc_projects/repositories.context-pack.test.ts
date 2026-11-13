@@ -6,13 +6,20 @@ import { useTempVault } from "../../helpers/tempVault";
 const mockResolve = vi.hoisted(() => vi.fn());
 const mockSnapshot = vi.hoisted(() => vi.fn());
 const mockReadFile = vi.hoisted(() => vi.fn());
+const mockCommitsSince = vi.hoisted(() => vi.fn());
+const mockCurrentBranch = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/git/repo-path", () => ({ resolveRepoPath: mockResolve }));
-vi.mock("@/lib/git/project-git", () => ({ snapshotRepo: mockSnapshot }));
+vi.mock("@/lib/git/project-git", () => ({
+  snapshotRepo: mockSnapshot,
+  commitsSince: mockCommitsSince,
+  currentBranch: mockCurrentBranch,
+}));
 vi.mock("@/lib/git/repo-file", () => ({ readRepoFile: mockReadFile }));
 
 import {
   readAiContext,
+  readGitActivity,
   readGitSnapshot,
   readIndexRules,
   readRepoRules,
@@ -140,5 +147,33 @@ describe("readRepoRules", () => {
     mockResolve.mockReturnValue({ ok: false, reason: "unsupported-path" });
     expect(readRepoRules(entry)).toEqual({ ok: false, reason: "unsupported-path" });
     expect(mockReadFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("readGitActivity", () => {
+  it("odmowa ścieżki: ok:false, git niewołany", () => {
+    mockResolve.mockReturnValue({ ok: false, reason: "missing" });
+    expect(readGitActivity(entry, "2026-11-13")).toEqual({ ok: false });
+    expect(mockCommitsSince).not.toHaveBeenCalled();
+    expect(mockCurrentBranch).not.toHaveBeenCalled();
+  });
+
+  it("ścieżka ok: liczba commitów od dnia i gałąź", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsSince.mockReturnValue({ ok: true, count: 3 });
+    mockCurrentBranch.mockReturnValue("feat/x");
+    expect(readGitActivity(entry, "2026-11-13")).toEqual({
+      ok: true,
+      commits: 3,
+      branch: "feat/x",
+    });
+    expect(mockCommitsSince).toHaveBeenCalledWith("/h/p", "2026-11-13");
+  });
+
+  it("błąd gita: ok:false, gałąź niepytana", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsSince.mockReturnValue({ ok: false });
+    expect(readGitActivity(entry, "2026-11-13")).toEqual({ ok: false });
+    expect(mockCurrentBranch).not.toHaveBeenCalled();
   });
 });

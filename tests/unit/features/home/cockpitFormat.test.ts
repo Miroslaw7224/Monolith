@@ -3,6 +3,7 @@ import {
   formatLongDate,
   hhmm,
   meetingsLabel,
+  projectsLabel,
   minutesUntil,
   relativeDays,
   timelineRange,
@@ -78,5 +79,16 @@ describe("timelineRange", () => {
   it("rozszerza do pełnych godzin wokół wydarzeń", () => {
     expect(timelineRange([{ startMinutes: 7 * 60 + 15, durationMinutes: 30 }]).from).toBe(7);
     expect(timelineRange([{ startMinutes: 17 * 60, durationMinutes: 90 }]).to).toBe(19);
+  });
+});
+
+describe("projectsLabel", () => {
+  it("odmienia liczbę projektów z commitami", () => {
+    expect(projectsLabel(0)).toBe("jeszcze bez commitów");
+    expect(projectsLabel(1)).toBe("1 projekt");
+    expect(projectsLabel(2)).toBe("2 projekty");
+    expect(projectsLabel(5)).toBe("5 projektów");
+    expect(projectsLabel(12)).toBe("12 projektów");
+    expect(projectsLabel(22)).toBe("22 projekty");
   });
 });

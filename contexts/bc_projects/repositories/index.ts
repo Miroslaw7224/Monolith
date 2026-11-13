@@ -17,7 +17,7 @@ import {
   type VersionToken,
 } from "@/contexts/bc_projects/models";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
-import { snapshotRepo } from "@/lib/git/project-git";
+import { commitsSince, currentBranch, snapshotRepo } from "@/lib/git/project-git";
 import { readRepoFile } from "@/lib/git/repo-file";
 import { resolveRepoPath } from "@/lib/git/repo-path";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
@@ -291,6 +291,18 @@ export function readGitSnapshot(entry: RegistryEntry): GitSnapshotResult {
   const repo = resolveRepoPath(entry.localPath);
   if (repo.ok === false) return { ok: false, reason: repo.reason };
   return snapshotRepo(repo.path);
+}
+
+/** Commity od dnia `day` (`RRRR-MM-DD`) i bieżąca gałąź; `ok: false`, gdy repozytorium jest niedostępne. */
+export function readGitActivity(
+  entry: RegistryEntry,
+  day: string
+): { ok: true; commits: number; branch: string | null } | { ok: false } {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false };
+  const commits = commitsSince(repo.path, day);
+  if (commits.ok === false) return { ok: false };
+  return { ok: true, commits: commits.count, branch: currentBranch(repo.path) };
 }
 
 /** `CLAUDE.md` z repozytorium projektu (zwykły plik, do 64 KB). */

@@ -2,6 +2,7 @@ import {
   NOW_LIMIT,
   type ContextPack,
   type Freshness,
+  type GitActivity,
   type NowTask,
   type Project,
   type ProjectType,
@@ -14,6 +15,7 @@ import {
   appendDevlogEntry,
   readAiContext,
   readDevlog,
+  readGitActivity,
   readGitSnapshot,
   readIndexRules,
   readProjectBoard,
@@ -164,6 +166,31 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
     }
   }
   return { tasks, warnings };
+}
+
+/**
+ * Aktywność gita (commity dziś, gałąź) projektów rejestru, których repozytorium jest dostępne.
+ * Niedostępne repo albo błąd jednego projektu go pomijają; błąd rejestru leci wyżej.
+ */
+export function listGitActivity(today: Date = new Date()): GitActivity[] {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const day = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  const result: GitActivity[] = [];
+  for (const entry of readRegistry().entries) {
+    try {
+      const activity = readGitActivity(entry, day);
+      if (activity.ok) {
+        result.push({
+          projectId: entry.id,
+          branch: activity.branch,
+          commitsToday: activity.commits,
+        });
+      }
+    } catch {
+      // jeden zepsuty projekt nie wyłącza pozostałych
+    }
+  }
+  return result;
 }
 
 function findEntry(id: string): RegistryEntry {

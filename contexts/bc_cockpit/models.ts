@@ -62,6 +62,13 @@ export type DayEvent = {
 /** Najbliższe jeszcze nie rozpoczęte wydarzenie typu `meeting` z dzisiejszego dnia. */
 export type NextMeeting = { title: string; startMinutes: number; durationMinutes: number };
 
+/** Git (tylko odczyt): commity dziś ze wszystkich projektów z dostępnym repo i gałąź pierwszego tematu. */
+export type GitSummary = {
+  commitsToday: number;
+  projectsWithCommits: number;
+  branch: string | null;
+};
+
 export type Cockpit = {
   /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
   date: string;
@@ -69,5 +76,7 @@ export type Cockpit = {
   queue: QueueGroup[];
   events: DayEvent[];
   nextMeeting: NextMeeting | null;
+  /** `null`: żadne repozytorium nie jest dostępne (albo git zawiódł, wtedy jest też ostrzeżenie). */
+  git: GitSummary | null;
   warnings: string[];
 };

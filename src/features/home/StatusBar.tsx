@@ -5,11 +5,13 @@ import { hhmm } from "./cockpitFormat";
 export interface StatusBarProps {
   /** Id pierwszego aktywnego tematu; `null` ukrywa pozycję „projekt”. */
   projectId: string | null;
+  /** Bieżąca gałąź repozytorium pierwszego tematu (z gita); `null` ukrywa pozycję „branch”. */
+  branch?: string | null;
   warningsCount: number;
   now: Date;
 }
 
-export function StatusBar({ projectId, warningsCount, now }: StatusBarProps) {
+export function StatusBar({ projectId, branch = null, warningsCount, now }: StatusBarProps) {
   const ok = warningsCount === 0;
   return (
     <footer className="kok-statusbar" aria-label="Pasek statusu">
@@ -17,6 +19,11 @@ export function StatusBar({ projectId, warningsCount, now }: StatusBarProps) {
         {projectId ? (
           <span>
             projekt <b>{projectId}</b>
+          </span>
+        ) : null}
+        {branch ? (
+          <span>
+            branch <b>{branch}</b>
           </span>
         ) : null}
         <span className={`kok-statusbar__vault ${ok ? "is-ok" : "is-warn"}`}>

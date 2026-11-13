@@ -58,6 +58,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       color: e.color,
     })),
     nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
+    git: c.git ? { ...c.git } : null,
     warnings: [...c.warnings],
   };
 }

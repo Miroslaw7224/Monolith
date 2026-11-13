@@ -31,6 +31,7 @@ describe("GET /api/cockpit", () => {
       queue: [],
       events: [],
       nextMeeting: null,
+      git: null,
       warnings: ["x"],
     });
     const res = await getCockpit();
@@ -41,6 +42,7 @@ describe("GET /api/cockpit", () => {
       queue: [],
       events: [],
       nextMeeting: null,
+      git: null,
       warnings: ["x"],
     });
   });

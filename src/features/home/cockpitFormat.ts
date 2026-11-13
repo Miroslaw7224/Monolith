@@ -51,6 +51,16 @@ export function meetingsLabel(count: number): string {
   return `${count} ${few ? "spotkania" : "spotkań"} dziś`;
 }
 
+/** Meta kafla „Commity dziś”: „jeszcze bez commitów” / „1 projekt” / „2 projekty” / „5 projektów”. */
+export function projectsLabel(count: number): string {
+  if (count === 0) return "jeszcze bez commitów";
+  if (count === 1) return "1 projekt";
+  const last = count % 10;
+  const lastTwo = count % 100;
+  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
+  return `${count} ${few ? "projekty" : "projektów"}`;
+}
+
 /** Zakres osi czasu w pełnych godzinach: minimum 08–18, rozszerzany o wydarzenia. */
 export function timelineRange(events: { startMinutes: number; durationMinutes: number }[]): {
   from: number;

@@ -9,6 +9,7 @@ const mockListNowTasks = vi.hoisted(() => vi.fn());
 const mockListProjects = vi.hoisted(() => vi.fn());
 const mockGetTasks = vi.hoisted(() => vi.fn());
 const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
+const mockListGitActivity = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
@@ -18,6 +19,7 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   getProject: mockGetProject,
   listNowTasks: mockListNowTasks,
   listProjects: mockListProjects,
+  listGitActivity: mockListGitActivity,
 }));
 vi.mock("@/contexts/bc_tasks/services", () => ({ getTasks: mockGetTasks }));
 vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
@@ -69,6 +71,7 @@ beforeEach(() => {
   mockListNowTasks.mockReturnValue({ tasks: [], warnings: [] });
   mockGetTasks.mockResolvedValue([]);
   mockGetCalendarEvents.mockResolvedValue([]);
+  mockListGitActivity.mockReturnValue([]);
   mockListProjects.mockReturnValue({
     projects: [{ id: "nexus" }, { id: "monolith" }],
     warnings: [],
@@ -539,5 +542,46 @@ describe("setPinned", () => {
     expect(err).toBeInstanceOf(DomainError);
     expect((err as DomainError).statusCode).toBe(400);
     expect(mockWritePinned).not.toHaveBeenCalled();
+  });
+});
+
+describe("git (K7)", () => {
+  it("brak dostępnych repozytoriów: git === null, bez ostrzeżenia", async () => {
+    const result = await getCockpit(TODAY);
+    expect(result.git).toBeNull();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("sumuje commity, liczy projekty z commitami i bierze gałąź pierwszego tematu", async () => {
+    mockReadPinned.mockReturnValue({ ids: ["nexus", "monolith"] });
+    mockGetProject.mockImplementation((id: string) => project({ id, name: id }));
+    mockListGitActivity.mockReturnValue([
+      { projectId: "monolith", branch: "main", commitsToday: 1 },
+      { projectId: "nexus", branch: "feat/k7", commitsToday: 3 },
+      { projectId: "inny", branch: null, commitsToday: 0 },
+    ]);
+    const result = await getCockpit(TODAY);
+    expect(mockListGitActivity).toHaveBeenCalledWith(TODAY);
+    expect(result.git).toEqual({ commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" });
+  });
+
+  it("pierwszy temat bez repo: gałąź null, liczniki zostają", async () => {
+    mockReadPinned.mockReturnValue({ ids: ["nexus"] });
+    mockGetProject.mockReturnValue(project());
+    mockListGitActivity.mockReturnValue([{ projectId: "inny", branch: "x", commitsToday: 2 }]);
+    expect((await getCockpit(TODAY)).git).toEqual({
+      commitsToday: 2,
+      projectsWithCommits: 1,
+      branch: null,
+    });
+  });
+
+  it("awaria gita: ostrzeżenie i git === null, reszta Kokpitu działa", async () => {
+    mockListGitActivity.mockImplementation(() => {
+      throw new Error("boom");
+    });
+    const result = await getCockpit(TODAY);
+    expect(result.git).toBeNull();
+    expect(result.warnings).toEqual(["Git: boom"]);
   });
 });

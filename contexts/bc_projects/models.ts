@@ -112,6 +112,15 @@ export type GitSnapshotResult =
   | { ok: true; snapshot: GitSnapshot }
   | { ok: false; reason: RepoUnavailableReason };
 
+/** Aktywność gita projektu z dostępnym repozytorium (tylko odczyt). */
+export type GitActivity = {
+  projectId: string;
+  /** Bieżąca gałąź; `null` dla odłączonego HEAD albo repo bez commitów. */
+  branch: string | null;
+  /** Commity (bez merge'y) na lokalnych gałęziach od początku dzisiejszego dnia. */
+  commitsToday: number;
+};
+
 export type RepoRulesResult =
   | { ok: true; text: string }
   | { ok: false; reason: RepoUnavailableReason | "no-file" | "unsafe-file" };

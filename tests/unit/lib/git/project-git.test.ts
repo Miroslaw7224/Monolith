@@ -4,7 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { runGit, snapshotRepo, type GitCommand } from "@/lib/git/project-git";
+import {
+  commitsSince,
+  currentBranch,
+  runGit,
+  snapshotRepo,
+  type GitCommand,
+} from "@/lib/git/project-git";
 import { useTempRepos } from "../../helpers/tempGit";
 
 const repos = useTempRepos();
@@ -92,5 +98,71 @@ describe("konfiguracja obcego repo nie wykonuje kodu", () => {
     snapshotRepo(r.dir);
 
     expect(fs.existsSync(marker)).toBe(false);
+  });
+});
+
+const localDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+describe("commitsSince", () => {
+  it("liczy commity od podanego dnia (dziś: 2, od jutra: 0)", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    r.write("a.txt", "2");
+    r.commit("c2");
+    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 2 });
+    expect(commitsSince(r.dir, "2099-01-01")).toEqual({ ok: true, count: 0 });
+  });
+
+  it("uwzględnia commity z innych lokalnych gałęzi, bez podwójnego liczenia", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    execFileSync("git", ["checkout", "-q", "-b", "feat/x"], { cwd: r.dir });
+    r.write("a.txt", "2");
+    r.commit("c2");
+    execFileSync("git", ["checkout", "-q", "main"], { cwd: r.dir });
+    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 2 });
+  });
+
+  it("repo bez commitów: 0; katalog bez .git: błąd", () => {
+    const r = repos.create();
+    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 0 });
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(commitsSince(plain, "2026-01-01")).toEqual({ ok: false });
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+  });
+
+  it("odrzuca datę o złym formacie (nic nie trafia do gita)", () => {
+    const r = repos.create();
+    expect(() => commitsSince(r.dir, "--all")).toThrow(/data/);
+    expect(() => commitsSince(r.dir, "2026-13-40x")).toThrow(/data/);
+  });
+});
+
+describe("currentBranch", () => {
+  it("zwraca nazwę gałęzi", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    expect(currentBranch(r.dir)).toBe("main");
+  });
+
+  it("odłączony HEAD i brak repo dają null", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    execFileSync("git", ["checkout", "-q", "--detach"], { cwd: r.dir });
+    expect(currentBranch(r.dir)).toBeNull();
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(currentBranch(plain)).toBeNull();
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
   });
 });

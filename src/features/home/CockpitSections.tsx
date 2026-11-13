@@ -6,7 +6,7 @@ import type {
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
-import { hhmm, minutesUntil, relativeDays, timelineRange } from "./cockpitFormat";
+import { hhmm, minutesUntil, projectsLabel, relativeDays, timelineRange } from "./cockpitFormat";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -267,6 +267,13 @@ export function CockpitSections({
                   : "dwa wolne miejsca"}
           </span>
         </div>
+        {data.git ? (
+          <div className="kok-tile tile">
+            <span className="kok-tile__label">Commity dziś</span>
+            <span className="kok-tile__value">{data.git.commitsToday}</span>
+            <span className="kok-tile__meta">{projectsLabel(data.git.projectsWithCommits)}</span>
+          </div>
+        ) : null}
         <div className="kok-tile tile">
           <span className="kok-tile__label">Ostrzeżenia</span>
           <span className="kok-tile__value">{data.warnings.length}</span>

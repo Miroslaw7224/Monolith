@@ -10,6 +10,7 @@ const EMPTY: CockpitDto = {
   queue: [],
   events: [],
   nextMeeting: null,
+  git: null,
   warnings: [],
 };
 
@@ -95,6 +96,7 @@ const FULL: CockpitDto = {
     },
   ],
   nextMeeting: { title: "Spotkanie zespołu", startMinutes: 570, durationMinutes: 30 },
+  git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
   warnings: ['Zadanie "Stare": pominięto błędny termin 0006-08-26'],
 };
 
@@ -337,5 +339,24 @@ describe("K1: układ wg makiety", () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);
     expect(await screen.findByText("1 ostrzeżeń")).toBeInTheDocument();
+  });
+
+  test("kafel „Commity dziś” i gałąź w pasku statusu (K7)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByText("Commity dziś")).toBeInTheDocument();
+    const tile = screen.getByText("Commity dziś").closest(".kok-tile") as HTMLElement;
+    expect(tile).toHaveTextContent("4");
+    expect(tile).toHaveTextContent("2 projekty");
+    const bar = screen.getByLabelText("Pasek statusu");
+    expect(bar).toHaveTextContent("branch feat/k7");
+  });
+
+  test("bez dostępnego gita: brak kafla i brak gałęzi w pasku (nic nie zmyślamy)", async () => {
+    respond(EMPTY);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("zsynchronizowany");
+    expect(screen.queryByText("Commity dziś")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Pasek statusu")).not.toHaveTextContent("branch");
   });
 });

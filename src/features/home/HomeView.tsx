@@ -91,6 +91,7 @@ export default function HomeView({ apiFetch, onOpenProject }: HomeViewProps) {
       </div>
       <StatusBar
         projectId={cockpit?.topics[0]?.id ?? null}
+        branch={cockpit?.git?.branch ?? null}
         warningsCount={cockpit?.warnings.length ?? 0}
         now={now}
       />

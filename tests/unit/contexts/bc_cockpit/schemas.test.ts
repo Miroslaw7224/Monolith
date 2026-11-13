@@ -73,6 +73,7 @@ describe("mapery DTO", () => {
       },
     ],
     nextMeeting: { title: "Spotkanie", startMinutes: 570, durationMinutes: 30 },
+    git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
     warnings: ["uwaga"],
   };
 
@@ -82,6 +83,7 @@ describe("mapery DTO", () => {
     expect(Object.keys(dto).sort()).toEqual([
       "date",
       "events",
+      "git",
       "nextMeeting",
       "queue",
       "topics",
