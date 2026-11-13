@@ -1,10 +1,15 @@
-import type { DocumentRecord } from "@/types/records";
-import { nowIso, optStr, sortByCreated, str } from "../record-helpers";
-import { createEntry, deleteEntry, listEntries, type MarkdownEntry } from "../markdown-dir";
+import { nowIso, optStr, sortByCreated, str } from "@/lib/nexus/record-helpers";
+import {
+  createEntry,
+  deleteEntry,
+  listEntries,
+  type MarkdownEntry,
+} from "@/lib/nexus/markdown-dir";
+import type { UploadedDocument } from "../models";
 
 const DIR = "Documents";
 
-function toDocument(entry: MarkdownEntry): DocumentRecord {
+function toDocument(entry: MarkdownEntry): UploadedDocument {
   return {
     id: entry.id,
     name: str(entry.meta.name),
@@ -14,7 +19,7 @@ function toDocument(entry: MarkdownEntry): DocumentRecord {
   };
 }
 
-export async function getDocuments(): Promise<DocumentRecord[]> {
+export async function getDocuments(): Promise<UploadedDocument[]> {
   return sortByCreated(listEntries(DIR).map(toDocument), (d) => d.created_at, "desc");
 }
 

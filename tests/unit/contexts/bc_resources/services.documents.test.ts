@@ -1,21 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  listDocuments,
-  ingestDocument,
-  deleteDocument,
-} from "../../../services/documentService.js";
+import { listDocuments, ingestDocument, deleteDocument } from "@/contexts/bc_resources/services";
 
 const mockGetDocuments = vi.hoisted(() => vi.fn());
 const mockCreateDocument = vi.hoisted(() => vi.fn());
 const mockDeleteDocument = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../lib/firestore-db.js", () => ({
+vi.mock("@/contexts/bc_resources/repositories", () => ({
   getDocuments: (...args: unknown[]) => mockGetDocuments(...args),
   createDocument: (...args: unknown[]) => mockCreateDocument(...args),
   deleteDocument: (...args: unknown[]) => mockDeleteDocument(...args),
 }));
 
-describe("documentService", () => {
+describe("bc_resources services (documents)", () => {
   beforeEach(() => {
     mockGetDocuments.mockReset();
     mockCreateDocument.mockReset();

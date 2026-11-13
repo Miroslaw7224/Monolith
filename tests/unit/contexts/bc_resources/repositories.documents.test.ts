@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createDocument, deleteDocument, getDocuments } from "@/lib/nexus/repos/documents";
-import { useTempVault } from "./helpers";
+import { createDocument, deleteDocument, getDocuments } from "@/contexts/bc_resources/repositories";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const vault = useTempVault();
 afterEach(() => vi.useRealTimers());

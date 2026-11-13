@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const mockIngestDocument = vi.hoisted(() => vi.fn());
 const mockParseUploadFormFile = vi.hoisted(() => vi.fn());
 
-vi.mock("@/services/documentService", () => ({ ingestDocument: mockIngestDocument }));
+vi.mock("@/contexts/bc_resources/services", () => ({ ingestDocument: mockIngestDocument }));
 vi.mock("@/lib/http/uploadFormFile", () => ({ parseUploadFormFile: mockParseUploadFormFile }));
 
 import { POST } from "@/app/api/upload/route";

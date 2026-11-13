@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export type TranslationDict = Record<string, string | string[]>;
 
-export type { NoteResourceRecord as NoteResource } from "@/types/records";
+export type { ResourceDto as NoteResource } from "@/contexts/bc_resources/schemas";
 
 /** Result of parsing a single block (Opis:/Description: ... URL: ... Tagi:/Tags: ...). */
 export const ParsedResourceBlockSchema = z.object({
@@ -13,7 +13,10 @@ export const ParsedResourceBlockSchema = z.object({
 
 export type ParsedResourceBlock = z.infer<typeof ParsedResourceBlockSchema>;
 
-export { CreateResourceBodySchema, UpdateResourceBodySchema } from "@/lib/validation/resources";
+export {
+  CreateResourceBodySchema,
+  UpdateResourceBodySchema,
+} from "@/contexts/bc_resources/schemas";
 
 export interface ResourceSectionProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;

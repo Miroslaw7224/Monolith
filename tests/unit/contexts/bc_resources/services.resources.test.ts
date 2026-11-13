@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { NoteResourceRecord } from "../../../lib/firestore-db.js";
+import type { Resource } from "@/contexts/bc_resources/models";
 
 const mockAdd = vi.hoisted(() => vi.fn());
 const mockGetAll = vi.hoisted(() => vi.fn());
 const mockDelete = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../lib/firestore-db.js", () => ({
-  addResourceToFirestore: (...a: unknown[]) => mockAdd(...a),
-  getResourcesFromFirestore: (...a: unknown[]) => mockGetAll(...a),
-  deleteResourceFromFirestore: (...a: unknown[]) => mockDelete(...a),
-  updateResourceInFirestore: (...a: unknown[]) => mockUpdate(...a),
+vi.mock("@/contexts/bc_resources/repositories", () => ({
+  addResource: (...a: unknown[]) => mockAdd(...a),
+  getResources: (...a: unknown[]) => mockGetAll(...a),
+  deleteResource: (...a: unknown[]) => mockDelete(...a),
+  updateResource: (...a: unknown[]) => mockUpdate(...a),
 }));
 
 import {
@@ -19,9 +19,9 @@ import {
   deleteResource,
   updateResource,
   searchResources,
-} from "../../../services/resourceService.js";
+} from "@/contexts/bc_resources/services";
 
-describe("resourceService", () => {
+describe("bc_resources services (resources)", () => {
   beforeEach(() => {
     mockAdd.mockReset();
     mockGetAll.mockReset();
@@ -49,7 +49,7 @@ describe("resourceService", () => {
         title: "Page Title",
         thumbnailUrl: "https://x/img.png",
         tags: ["a"],
-      } as NoteResourceRecord;
+      } as Resource;
       mockAdd.mockResolvedValue(saved);
 
       const result = await addResource({
@@ -120,7 +120,7 @@ describe("resourceService", () => {
         title: "Vue guide",
         tags: ["framework"],
       },
-    ] as NoteResourceRecord[];
+    ] as Resource[];
 
     it("returns all when keywords empty", async () => {
       mockGetAll.mockResolvedValue(samples);

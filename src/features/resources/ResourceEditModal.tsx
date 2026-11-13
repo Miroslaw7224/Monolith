@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import { UpdateResourceBodySchema } from "@/lib/validation/resources";
+import { UpdateResourceBodySchema } from "@/contexts/bc_resources/schemas";
 
 export interface ResourceEditModalProps {
   isOpen: boolean;
