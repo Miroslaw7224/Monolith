@@ -19,19 +19,26 @@ export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
         minHeight={120}
         onResizeEnd={(_event, params) => data.onResizeEnd?.(params)}
       />
-      <div className="h-full w-full rounded-xl border border-dashed border-[var(--border)]">
-        <button
-          type="button"
-          className="px-2 py-1 text-xs font-bold"
-          onDoubleClick={() => data.onRename(id)}
-        >
-          {data.frame.title}
-        </button>
-        {selected ? (
-          <button type="button" aria-label="delete-frame" onClick={() => data.onDelete(id)}>
-            ×
+      <div className={`plo-frame ${selected ? "plo-frame--selected" : ""}`}>
+        <div className="plo-frame__head">
+          <button
+            type="button"
+            className="plo-frame__title"
+            onDoubleClick={() => data.onRename(id)}
+          >
+            {data.frame.title}
           </button>
-        ) : null}
+          {selected ? (
+            <button
+              type="button"
+              aria-label="delete-frame"
+              className="plo-node-del"
+              onClick={() => data.onDelete(id)}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
       </div>
     </>
   );

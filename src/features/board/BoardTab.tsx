@@ -6,6 +6,7 @@ import { updateTileText } from "@/src/features/board/boardActions";
 import { BoardCanvas, type BoardCanvasLabels } from "@/src/features/board/BoardCanvas";
 import { BoardList } from "@/src/features/board/BoardList";
 import { TileDialog } from "@/src/features/board/TileDialog";
+import "./board.css";
 
 export interface BoardTabLabels {
   canvas: string;
@@ -73,42 +74,82 @@ export function BoardTab({
 
   if (loadError || !loaded) {
     return (
-      <div className="p-4">
-        {loadError ? <p className="text-sm text-[var(--text)]">{labels.loadFailed}</p> : null}
-        {loadError ? (
-          <button type="button" onClick={() => void load()}>
-            {labels.retry}
-          </button>
-        ) : null}
+      <div className="plo" data-card="plotno">
+        <div className="plo-state-wrap">
+          {loadError ? (
+            <>
+              <p className="plo-state plo-state--error">{labels.loadFailed}</p>
+              <button type="button" className="btn plo-btn" onClick={() => void load()}>
+                {labels.retry}
+              </button>
+            </>
+          ) : (
+            <p className="plo-state">Ładowanie tablicy…</p>
+          )}
+        </div>
       </div>
     );
   }
 
+  const subText = `Format .canvas · ${board.tiles.length} ${
+    board.tiles.length === 1 ? "kafelek" : "kafelków"
+  } · ${board.frames.length} ${board.frames.length === 1 ? "ramka" : "ramek"} · ${
+    board.edges.length
+  } ${board.edges.length === 1 ? "połączenie" : "połączeń"}`;
+
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex gap-2 p-2">
-        <button type="button" onClick={() => setView("canvas")}>
-          {labels.canvas}
-        </button>
-        <button type="button" onClick={() => setView("list")}>
-          {labels.list}
-        </button>
+    <div className="plo" data-card="plotno">
+      <header className="view-head plo-head">
+        <div>
+          <p className="view-head__eyebrow plo-eyebrow">Alt+6 · Płótno</p>
+          <h1 className="view-head__title plo-title">Tablica i mapa myśli</h1>
+          <p className="view-head__sub plo-sub">{subText}</p>
+        </div>
+        <div className="view-head__actions plo-head__actions">
+          <div className="tabs plo-tabs">
+            <button
+              type="button"
+              className={`tabs__btn plo-tab-btn ${view === "canvas" ? "plo-tab-btn--active" : ""}`}
+              aria-pressed={view === "canvas"}
+              onClick={() => setView("canvas")}
+            >
+              {labels.canvas}
+            </button>
+            <button
+              type="button"
+              className={`tabs__btn plo-tab-btn ${view === "list" ? "plo-tab-btn--active" : ""}`}
+              aria-pressed={view === "list"}
+              onClick={() => setView("list")}
+            >
+              {labels.list}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {saveError ? (
+        <div className="plo-alert" role="alert">
+          {labels.saveFailed}
+        </div>
+      ) : null}
+
+      <div className="plo-main">
+        {view === "canvas" ? (
+          <BoardCanvas
+            board={board}
+            lang={lang}
+            labels={canvasLabels}
+            dialogOpen={Boolean(openTile) || canvasDialog}
+            onChange={(next) => void persist(next)}
+            onDialogOpenChange={setCanvasDialog}
+            onTileAdded={setOpenTileId}
+            onOpenTile={setOpenTileId}
+          />
+        ) : (
+          <BoardList board={board} outsideLabel={labels.outside} onOpen={setOpenTileId} />
+        )}
       </div>
-      {saveError ? <p className="px-2 text-sm text-[var(--text)]">{labels.saveFailed}</p> : null}
-      {view === "canvas" ? (
-        <BoardCanvas
-          board={board}
-          lang={lang}
-          labels={canvasLabels}
-          dialogOpen={Boolean(openTile) || canvasDialog}
-          onChange={(next) => void persist(next)}
-          onDialogOpenChange={setCanvasDialog}
-          onTileAdded={setOpenTileId}
-          onOpenTile={setOpenTileId}
-        />
-      ) : (
-        <BoardList board={board} outsideLabel={labels.outside} onOpen={setOpenTileId} />
-      )}
+
       {openTile ? (
         <TileDialog
           tile={openTile}

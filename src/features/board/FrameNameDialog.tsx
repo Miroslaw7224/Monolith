@@ -47,11 +47,11 @@ export function FrameNameDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="plo-dialog-backdrop"
       onKeyDown={keepFocusInDialog}
     >
       <form
-        className="w-full max-w-md rounded-xl bg-[var(--surface)] p-4"
+        className="panel plo-dialog"
         onSubmit={(event) => {
           event.preventDefault();
           const trimmed = value.trim();
@@ -59,21 +59,30 @@ export function FrameNameDialog({
           onSubmit(trimmed);
         }}
       >
-        <h2 id="board-frame-title" className="text-base font-bold text-[var(--text)]">
-          {title}
-        </h2>
-        <input
-          ref={inputRef}
-          aria-labelledby="board-frame-title"
-          className="mt-3 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={onCancel}>
+        <div className="panel__head plo-panel__head">
+          <h2 id="board-frame-title" className="panel__title plo-panel__title">
+            <b>{title}</b>
+          </h2>
+          <span className="chip chip--accent plo-chip">Ramka</span>
+        </div>
+
+        <label className="plo-field">
+          <input
+            ref={inputRef}
+            aria-labelledby="board-frame-title"
+            className="input plo-input"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </label>
+
+        <div className="plo-dialog__actions">
+          <button type="button" className="btn plo-btn" onClick={onCancel}>
             {cancelLabel}
           </button>
-          <button type="submit">{submitLabel}</button>
+          <button type="submit" className="btn btn--primary plo-btn plo-btn--primary">
+            {submitLabel}
+          </button>
         </div>
       </form>
     </div>
