@@ -543,7 +543,7 @@ describe("K1: układ wg makiety", () => {
     expect(
       within(panel).getByText("PR", { selector: ".kok-history__legend-pr" })
     ).toBeInTheDocument();
-    expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=14");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=7");
     const bars = within(panel).getAllByRole("img");
     expect(bars).toHaveLength(3);
     expect(bars[0]).toHaveAccessibleName("11 listopada: brak commitów");
@@ -564,7 +564,7 @@ describe("K1: układ wg makiety", () => {
     );
     const { unmount } = render(<HomeView {...defaultProps} />);
     await screen.findByText("Commity dziś");
-    await waitFor(() => expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=14"));
+    await waitFor(() => expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=7"));
     expect(screen.queryByRole("region", { name: "Historia commitów" })).not.toBeInTheDocument();
     unmount();
 

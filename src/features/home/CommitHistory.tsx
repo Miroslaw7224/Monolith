@@ -3,14 +3,14 @@ import React, { useEffect, useState } from "react";
 import type { CommitHistoryDto } from "@/contexts/bc_cockpit/schemas";
 import { commitsLabel } from "./cockpitFormat";
 
-const DAYS = 14;
+const DAYS = 7;
 
 function parseDay(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
 
-/** Słupki commitów z gita dzień po dniu (ostatnie 14 dni). Bez dostępnych repo albo przy błędzie: nic. */
+/** Słupki commitów z gita dzień po dniu (ostatnie 7 dni). Bez dostępnych repo albo przy błędzie: nic. */
 export function CommitHistory({
   apiFetch,
 }: {

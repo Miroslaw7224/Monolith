@@ -44,7 +44,7 @@ export async function putClosing(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-const DEFAULT_HISTORY_DAYS = 14;
+const DEFAULT_HISTORY_DAYS = 7;
 
 /** Zgodne z `MAX_HISTORY_DAYS` w services (router nie importuje wartości z services; serwis sprawdza je drugi raz). */
 const MAX_HISTORY_DAYS = 90;

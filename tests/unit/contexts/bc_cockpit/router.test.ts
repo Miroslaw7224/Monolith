@@ -127,12 +127,12 @@ describe("GET /api/cockpit/commits", () => {
   const get = (qs = "") => new NextRequest(`http://localhost/api/cockpit/commits${qs}`);
   const history = { from: "a", to: "b", available: true, total: 0, totalPrs: 0, days: [] };
 
-  it("domyślnie 14 dni", async () => {
+  it("domyślnie 7 dni", async () => {
     mockGetCommitHistory.mockResolvedValue(history);
     const res = await getCommits(get());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(history);
-    expect(mockGetCommitHistory).toHaveBeenCalledWith(14);
+    expect(mockGetCommitHistory).toHaveBeenCalledWith(7);
   });
 
   it("przekazuje ?days=30", async () => {
