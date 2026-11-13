@@ -1,15 +1,15 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
-import type { ResourceSectionProps, NoteResource } from "./resources/resourceTypes";
-import { useResources } from "./resources/useResources";
-import { ResourceFilterSidebar } from "./resources/ResourceFilterSidebar";
-import { ResourceAddForm } from "./resources/ResourceAddForm";
-import { ResourceFavoritesBar } from "./resources/ResourceFavoritesBar";
-import { ResourceListItem } from "./resources/ResourceListItem";
-import { ResourceEditModal } from "./resources/ResourceEditModal";
-import { DocumentsPanel } from "./resources/DocumentsPanel";
+import type { ResourceSectionProps, NoteResource } from "./resourceTypes";
+import { useResources } from "./useResources";
+import { ResourceFilterSidebar } from "./ResourceFilterSidebar";
+import { ResourceAddForm } from "./ResourceAddForm";
+import { ResourceFavoritesBar } from "./ResourceFavoritesBar";
+import { ResourceListItem } from "./ResourceListItem";
+import { ResourceEditModal } from "./ResourceEditModal";
+import { DocumentsPanel } from "./DocumentsPanel";
 
-export type { NoteResource } from "./resources/resourceTypes";
+export type { NoteResource } from "./resourceTypes";
 
 export function ResourceSection({ apiFetch, t }: ResourceSectionProps) {
   const {

@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
-import { useResources } from "@/src/components/resources/useResources";
+import { useResources } from "@/src/features/resources/useResources";
 
 const apiFetch = vi.fn();
 

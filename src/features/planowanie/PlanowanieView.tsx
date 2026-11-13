@@ -10,7 +10,7 @@ import { AppHeader } from "@/src/components/layout/AppHeader";
 import { CalendarView } from "@/src/features/calendar/CalendarView";
 import { TasksSection } from "@/src/features/tasks/TasksSection";
 import { TagsSection, type UserTag } from "@/src/features/tags/TagsSection";
-import { ResourceSection } from "@/src/components/ResourceSection";
+import { ResourceSection } from "@/src/features/resources/ResourceSection";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
