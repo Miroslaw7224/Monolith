@@ -10,6 +10,7 @@ const mockGetProject = vi.hoisted(() => vi.fn());
 const mockListNowTasks = vi.hoisted(() => vi.fn());
 const mockListProjects = vi.hoisted(() => vi.fn());
 const mockGetTasks = vi.hoisted(() => vi.fn());
+const mockRewriteNowTask = vi.hoisted(() => vi.fn());
 const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
 const mockListGitActivity = vi.hoisted(() => vi.fn());
 const mockListGitHistory = vi.hoisted(() => vi.fn());
@@ -30,6 +31,7 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listGitActivity: mockListGitActivity,
   listGitHistory: mockListGitHistory,
   completeNowTask: mockCompleteNowTask,
+  rewriteNowTask: mockRewriteNowTask,
 }));
 vi.mock("@/contexts/bc_inbox/services", () => ({ countOpen: mockCountOpen }));
 vi.mock("@/contexts/bc_tasks/services", () => ({
@@ -42,6 +44,8 @@ import {
   closeDay,
   completeQueueItem,
   extractEnergy,
+  setQueueItemEnergy,
+  withEnergy,
   planWindows,
   getCommitHistory,
   getCockpit,
@@ -1156,5 +1160,64 @@ describe("następne spotkanie poza dniem dzisiejszym", () => {
     const res = await getCockpit(TODAY);
     expect(res.nextMeeting).toBeNull();
     expect(res.warnings).toEqual(["Kalendarz: boom"]);
+  });
+});
+
+describe("withEnergy", () => {
+  it.each([
+    ["Porty", "deep", "Porty #deep"],
+    ["Porty #quick", "deep", "Porty #deep"],
+    ["#quick Porty V2", "deep", "Porty V2 #deep"],
+    ["Porty [energy:: deep]", "quick", "Porty #quick"],
+    ["Porty #deep", null, "Porty"],
+    ["Porty", null, "Porty"],
+    ["Porty #deepwork", "quick", "Porty #deepwork #quick"],
+  ] as const)("%s + %s → %s", (raw, energy, expected) => {
+    expect(withEnergy(raw, energy)).toBe(expected);
+  });
+
+  it("zachowuje resztę tekstu bajt w bajt (spacje wewnątrz)", () => {
+    expect(withEnergy("A  b   [due:: 2026-11-20]", "deep")).toBe("A  b   [due:: 2026-11-20] #deep");
+  });
+
+  it("wynik odczytuje extractEnergy", () => {
+    expect(extractEnergy(withEnergy("Zadanie", "quick"))).toEqual({
+      energy: "quick",
+      title: "Zadanie",
+    });
+  });
+});
+
+describe("setQueueItemEnergy (K2b)", () => {
+  beforeEach(() => {
+    mockUpdateTask.mockReset();
+    mockRewriteNowTask.mockReset();
+  });
+
+  it("zadanie ogólne: tytuł z nowym znacznikiem przez serwis zadań", async () => {
+    mockGetTasks.mockResolvedValue([{ id: "t9", title: "Faktura #quick" }]);
+    await setQueueItemEnergy({ type: "task", taskId: "t9" }, "deep");
+    expect(mockUpdateTask).toHaveBeenCalledWith("t9", { title: "Faktura #deep" });
+  });
+
+  it("zadanie ogólne: brak zadania to NotFoundError, bez zapisu", async () => {
+    mockGetTasks.mockResolvedValue([]);
+    await expect(setQueueItemEnergy({ type: "task", taskId: "x" }, "deep")).rejects.toBeInstanceOf(
+      NotFoundError
+    );
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+  });
+
+  it("zadanie projektu: rewriteNowTask ze starym i nowym tekstem; null zdejmuje znacznik", async () => {
+    mockRewriteNowTask.mockResolvedValue(undefined);
+    await setQueueItemEnergy({ type: "project", projectId: "p", text: "Porty" }, "quick");
+    expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty", "Porty #quick");
+    await setQueueItemEnergy({ type: "project", projectId: "p", text: "Porty #quick" }, null);
+    expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty #quick", "Porty");
+  });
+
+  it("bez zmiany (ten sam tekst) niczego nie zapisuje", async () => {
+    await setQueueItemEnergy({ type: "project", projectId: "p", text: "Porty #deep" }, "deep");
+    expect(mockRewriteNowTask).not.toHaveBeenCalled();
   });
 });

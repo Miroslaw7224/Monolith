@@ -38,6 +38,19 @@ export const CompleteQueueItemSchema = looseObject({
   }
 });
 
+export const SetQueueEnergySchema = looseObject({
+  type: z.enum(["task", "project"]),
+  taskId: z.string().trim().min(1).optional(),
+  projectId: z.string().trim().min(1).optional(),
+  text: z.string().min(1).optional(),
+  energy: z.enum(["deep", "quick"]).nullable(),
+}).superRefine((body, ctx) => {
+  if (body.type === "task" && !body.taskId) ctx.addIssue("taskId required");
+  if (body.type === "project" && (!body.projectId || !body.text)) {
+    ctx.addIssue("projectId and text required");
+  }
+});
+
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
 
 export type TopicDto = Topic;

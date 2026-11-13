@@ -485,6 +485,32 @@ export async function getCommitHistory(
   };
 }
 
+/**
+ * Tekst zadania z ustawioną energią: usuwa dotychczasowe znaczniki (`#deep`, `#quick`, `[energy:: …]`),
+ * resztę zostawia bez zmian i dopisuje `#energia` na końcu (`null` = sama reszta).
+ */
+export function withEnergy(raw: string, energy: Energy | null): string {
+  const rest = raw.replace(ENERGY_MARK, "").trim();
+  return energy === null ? rest : `${rest} #${energy}`;
+}
+
+/** Ustawia (albo zdejmuje, `null`) energię zadania w jego źródle, przez znacznik w tekście zadania. */
+export async function setQueueItemEnergy(
+  source: QueueSource,
+  energy: Energy | null
+): Promise<void> {
+  if (source.type === "task") {
+    const task = (await tasksServices.getTasks()).find((t) => t.id === source.taskId);
+    if (!task) throw new NotFoundError("Nie ma takiego zadania");
+    const title = withEnergy(task.title, energy);
+    if (title !== task.title) await tasksServices.updateTask(source.taskId, { title });
+    return;
+  }
+  const text = withEnergy(source.text, energy);
+  if (text !== source.text)
+    await projectsServices.rewriteNowTask(source.projectId, source.text, text);
+}
+
 /** Oznacza pozycję kolejki jako zrobioną w jej źródle (zadanie ogólne albo zadanie `[now::]` projektu). */
 export async function completeQueueItem(source: QueueSource): Promise<void> {
   if (source.type === "task") {

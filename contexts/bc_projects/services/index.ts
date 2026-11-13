@@ -187,6 +187,28 @@ export async function completeNowTask(
 }
 
 /**
+ * Podmienia tekst zadania z kolumny „Teraz” (wskazanego dotychczasowym tekstem, jak w `completeNowTask`);
+ * reszta pliku zostaje bajt w bajt. Brak zadania = ConflictError.
+ */
+export async function rewriteNowTask(
+  projectId: string,
+  text: string,
+  newText: string,
+  now: Date = new Date()
+): Promise<void> {
+  const entry = findEntry(projectId);
+  const board = readProjectBoard(entry);
+  const index = board.now.findIndex((t) => !t.done && t.text === text);
+  if (index === -1) throw new ConflictError("Zadanie zmieniło się w pliku");
+  await applyTaskOp(
+    projectId,
+    { op: "edit", column: "now", index, text, newText },
+    board.version,
+    now
+  );
+}
+
+/**
  * Aktywność gita (commity dziś, gałąź) projektów rejestru, których repozytorium jest dostępne.
  * Niedostępne repo albo błąd jednego projektu go pomijają; błąd rejestru leci wyżej.
  */

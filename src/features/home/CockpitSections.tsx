@@ -161,11 +161,13 @@ function QueueGroupCard({
   group,
   busyKey,
   onComplete,
+  onSetEnergy,
   onPreview,
 }: {
   group: QueueGroupDto;
   busyKey: string | null;
   onComplete: (item: QueueGroupDto["items"][number]) => void;
+  onSetEnergy: (item: QueueGroupDto["items"][number], energy: "deep" | "quick" | null) => void;
   onPreview: (item: QueueGroupDto["items"][number], group: QueueGroupDto) => void;
 }) {
   return (
@@ -201,9 +203,21 @@ function QueueGroupCard({
                 </small>
               ) : null}
             </span>
-            {item.energy ? (
-              <span className={`kok-energy kok-energy--${item.energy}`}>{item.energy}</span>
-            ) : null}
+            <span className="kok-energy-switch" role="group" aria-label={`Energia: ${item.title}`}>
+              {(["deep", "quick"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`kok-energy kok-energy--btn kok-energy--${value}`}
+                  aria-pressed={item.energy === value}
+                  aria-label={`Energia ${value}: ${item.title}`}
+                  disabled={busyKey !== null}
+                  onClick={() => onSetEnergy(item, item.energy === value ? null : value)}
+                >
+                  {value}
+                </button>
+              ))}
+            </span>
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
@@ -396,6 +410,29 @@ export function CockpitSections({
       setBusyKey(null);
     }
   }
+  async function setItemEnergy(
+    item: QueueGroupDto["items"][number],
+    energy: "deep" | "quick" | null
+  ) {
+    setBusyKey(sourceKey(item));
+    setQueueError(null);
+    try {
+      const res = await apiFetch("/api/cockpit/queue/energy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item.source, energy }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      onQueueChanged();
+    } catch (err) {
+      setQueueError(err instanceof Error ? err.message : "Nie udało się zmienić energii");
+    } finally {
+      setBusyKey(null);
+    }
+  }
   // Gdy zadań jest więcej niż QUEUE_LIMIT, widać pierwsze w kolejności kolejki (najbliższe daty).
   const limited = !showAll && visibleCount > QUEUE_LIMIT;
   let budget = limited ? QUEUE_LIMIT : Number.POSITIVE_INFINITY;
@@ -572,6 +609,7 @@ export function CockpitSections({
                     group={group}
                     busyKey={busyKey}
                     onComplete={(item) => void completeItem(item)}
+                    onSetEnergy={(item, energy) => void setItemEnergy(item, energy)}
                     onPreview={(item, g) => {
                       setQueueError(null);
                       setPreview({ item, group: g });

@@ -21,7 +21,7 @@ vi.mock("@/contexts/bc_projects/repositories", () => ({
   writeProjectTasks: mockWriteProjectTasks,
 }));
 
-import { completeNowTask } from "@/contexts/bc_projects/services";
+import { completeNowTask, rewriteNowTask } from "@/contexts/bc_projects/services";
 
 const NOW = new Date(2026, 10, 13, 9, 15);
 const VERSION = { size: 10, hash: "h1" };
@@ -79,5 +79,24 @@ describe("completeNowTask", () => {
 
   it("nieznany projekt: NotFoundError", async () => {
     await expect(completeNowTask("zzz", "X", NOW)).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("rewriteNowTask", () => {
+  it("podmienia tekst zadania z kolumny Teraz (op edit, z aktualną wersją pliku)", async () => {
+    mockReadProjectBoard.mockReturnValue(board([task("X"), task("Y")]));
+    await rewriteNowTask("a", "Y", "Y #deep", NOW);
+    expect(mockWriteProjectTasks).toHaveBeenCalledWith(
+      entry,
+      { op: "edit", column: "now", index: 1, text: "Y", newText: "Y #deep" },
+      VERSION,
+      { today: "2026-11-13" }
+    );
+  });
+
+  it("brak takiego zadania (plik zmienił się): ConflictError, bez zapisu", async () => {
+    mockReadProjectBoard.mockReturnValue(board([task("X", true)]));
+    await expect(rewriteNowTask("a", "X", "X #deep", NOW)).rejects.toBeInstanceOf(ConflictError);
+    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
   });
 });

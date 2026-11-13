@@ -1064,6 +1064,39 @@
   color: var(--accent);
 }
 
+.kok-energy-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+/* przełącznik energii w wierszu kolejki: wybrana świeci, pozostała jest przygaszona do najechania */
+.kok-energy--btn {
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.4;
+}
+
+.kok-energy--btn[aria-pressed="false"] {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.kok-energy--btn[aria-pressed="true"],
+.kok-list__item:hover .kok-energy--btn,
+.kok-energy--btn:focus-visible {
+  opacity: 1;
+}
+
+.kok-energy--btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kok-energy--btn:disabled {
+  cursor: default;
+}
+
 .kok-history__pair {
   flex: 1;
   min-height: 0;

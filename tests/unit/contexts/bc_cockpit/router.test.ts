@@ -7,17 +7,20 @@ const mockGetCockpit = vi.hoisted(() => vi.fn());
 const mockSetPinned = vi.hoisted(() => vi.fn());
 const mockCloseDay = vi.hoisted(() => vi.fn());
 const mockCompleteQueueItem = vi.hoisted(() => vi.fn());
+const mockSetQueueItemEnergy = vi.hoisted(() => vi.fn());
 const mockGetCommitHistory = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCockpit: mockGetCockpit,
   setPinned: mockSetPinned,
   closeDay: mockCloseDay,
   completeQueueItem: mockCompleteQueueItem,
+  setQueueItemEnergy: mockSetQueueItemEnergy,
   getCommitHistory: mockGetCommitHistory,
 }));
 
 import {
   completeQueueItem,
+  setQueueEnergy,
   getCockpit,
   getCommits,
   putClosing,
@@ -192,5 +195,43 @@ describe("POST /api/cockpit/queue/complete", () => {
     expect((await completeQueueItem(postC({ type: "task", taskId: "t" }))).status).toBe(409);
     mockCompleteQueueItem.mockRejectedValueOnce(new NotFoundError("Nie ma"));
     expect((await completeQueueItem(postC({ type: "task", taskId: "t" }))).status).toBe(404);
+  });
+});
+
+describe("POST /api/cockpit/queue/energy", () => {
+  const postE = (body: unknown) =>
+    new NextRequest("http://localhost/api/cockpit/queue/energy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    });
+
+  it("200 i wywołuje serwis ze źródłem i energią (także null)", async () => {
+    mockSetQueueItemEnergy.mockResolvedValue(undefined);
+    const res = await setQueueEnergy(postE({ type: "task", taskId: "t1", energy: "deep" }));
+    expect(res.status).toBe(200);
+    expect(mockSetQueueItemEnergy).toHaveBeenCalledWith({ type: "task", taskId: "t1" }, "deep");
+    await setQueueEnergy(postE({ type: "project", projectId: "p", text: "Zrób", energy: null }));
+    expect(mockSetQueueItemEnergy).toHaveBeenLastCalledWith(
+      { type: "project", projectId: "p", text: "Zrób" },
+      null
+    );
+  });
+
+  it.each([
+    ["brak energii", { type: "task", taskId: "t" }],
+    ["zła energia", { type: "task", taskId: "t", energy: "slow" }],
+    ["projekt bez tekstu", { type: "project", projectId: "p", energy: "deep" }],
+    ["zły JSON", "{x"],
+  ])("400 dla: %s", async (_n, body) => {
+    mockSetQueueItemEnergy.mockClear();
+    expect((await setQueueEnergy(postE(body))).status).toBe(400);
+    expect(mockSetQueueItemEnergy).not.toHaveBeenCalled();
+  });
+
+  it("ConflictError to 409", async () => {
+    mockSetQueueItemEnergy.mockRejectedValueOnce(new ConflictError("Zadanie zmieniło się w pliku"));
+    const res = await setQueueEnergy(postE({ type: "task", taskId: "t", energy: "deep" }));
+    expect(res.status).toBe(409);
   });
 });

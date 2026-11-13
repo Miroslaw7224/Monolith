@@ -5,6 +5,7 @@ import { parseBody } from "@/lib/http/parseBody";
 import {
   ClosingInputSchema,
   CompleteQueueItemSchema,
+  SetQueueEnergySchema,
   PinnedInputSchema,
   toClosingDto,
   toCockpitDto,
@@ -74,6 +75,24 @@ export async function completeQueueItem(request: NextRequest): Promise<NextRespo
       body.type === "task"
         ? { type: "task", taskId: body.taskId as string }
         : { type: "project", projectId: body.projectId as string, text: body.text as string }
+    );
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** POST: ustawia albo zdejmuje energię (deep/quick) pozycji kolejki w jej źródle. */
+export async function setQueueEnergy(request: NextRequest): Promise<NextResponse> {
+  const parsed = await parseBody(request, SetQueueEnergySchema, { details: false });
+  if (parsed.success === false) return parsed.response;
+  const body = parsed.data;
+  try {
+    await services.setQueueItemEnergy(
+      body.type === "task"
+        ? { type: "task", taskId: body.taskId as string }
+        : { type: "project", projectId: body.projectId as string, text: body.text as string },
+      body.energy
     );
     return NextResponse.json({ ok: true });
   } catch (err) {

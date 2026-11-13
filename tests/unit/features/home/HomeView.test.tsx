@@ -210,6 +210,9 @@ function respond(cockpit: CockpitDto | "fail") {
     if (url === "/api/cockpit/queue/complete" && init?.method === "POST") {
       return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
     }
+    if (url === "/api/cockpit/queue/energy" && init?.method === "POST") {
+      return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
+    }
     if (url.startsWith("/api/cockpit/commits")) {
       return Promise.resolve({ ok: true, json: async () => HISTORY });
     }
@@ -904,6 +907,76 @@ describe("K1: układ wg makiety", () => {
       type: "project",
       projectId: "firma",
       text: "Przejrzeć raport #deep",
+    });
+  });
+
+  describe("przełącznik energii w kolejce (K2b)", () => {
+    const energyCalls = () =>
+      mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit/queue/energy");
+    const rowOf = async (title: string) => {
+      const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+      return within(queue).getByText(title).closest("li") as HTMLElement;
+    };
+
+    test("zadanie bez energii: oba przyciski nienaciśnięte, klik ustawia energię i odświeża Kokpit", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const row = await rowOf("Wysłać wniosek");
+      const before = mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length;
+      const deep = within(row).getByRole("button", { name: "Energia deep: Wysłać wniosek" });
+      const quick = within(row).getByRole("button", { name: "Energia quick: Wysłać wniosek" });
+      expect(deep).toHaveAttribute("aria-pressed", "false");
+      expect(quick).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(deep);
+      await waitFor(() => expect(energyCalls()).toHaveLength(1));
+      expect(JSON.parse(energyCalls()[0][1].body)).toEqual({
+        type: "task",
+        taskId: "t-wniosek",
+        energy: "deep",
+      });
+      await waitFor(() =>
+        expect(mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length).toBe(
+          before + 1
+        )
+      );
+    });
+
+    test("aktualna energia jest naciśnięta; klik w nią zdejmuje, klik w drugą zmienia; zadanie projektu wysyła surowy tekst", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const row = await rowOf("Przejrzeć raport");
+      const deep = within(row).getByRole("button", { name: "Energia deep: Przejrzeć raport" });
+      expect(deep).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(deep);
+      await waitFor(() => expect(energyCalls()).toHaveLength(1));
+      expect(JSON.parse(energyCalls()[0][1].body)).toEqual({
+        type: "project",
+        projectId: "firma",
+        text: "Przejrzeć raport #deep",
+        energy: null,
+      });
+      await waitFor(() => expect(deep).not.toBeDisabled());
+      fireEvent.click(within(row).getByRole("button", { name: "Energia quick: Przejrzeć raport" }));
+      await waitFor(() => expect(energyCalls()).toHaveLength(2));
+      expect(JSON.parse(energyCalls()[1][1].body).energy).toBe("quick");
+    });
+
+    test("błąd zapisu (np. plik się zmienił) pokazuje komunikat", async () => {
+      respond(FULL);
+      const base = mockApiFetch.getMockImplementation()!;
+      mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+        url === "/api/cockpit/queue/energy"
+          ? Promise.resolve({
+              ok: false,
+              status: 409,
+              json: async () => ({ error: "Zadanie zmieniło się w pliku" }),
+            })
+          : base(url, init)
+      );
+      render(<HomeView {...defaultProps} />);
+      const row = await rowOf("Wysłać wniosek");
+      fireEvent.click(within(row).getByRole("button", { name: "Energia quick: Wysłać wniosek" }));
+      expect(await screen.findByText("Zadanie zmieniło się w pliku")).toBeInTheDocument();
     });
   });
 
