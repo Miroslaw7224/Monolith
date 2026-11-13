@@ -201,7 +201,7 @@ Stan 0f: wzorzec `/Vault/Work/` (zakotwiczony w korzeniu repo, żeby nie ignorow
 - 2026-11-13: projekt Vercel usunięty, lokalny `.vercel/` usunięty.
 - 2026-11-13: użytkownik zdecydował, że dane spoza zakresu migracji (§1.1) nie są potrzebne; tydzień obserwacji, druga szyfrowana kopia i karencja 30 dni pominięte z jego decyzji. Kopią danych z zakresu 1.1 jest vault w prywatnym repo NEXUS.
 - 2026-11-13: kod, pakiety, skrypty i zmienne Firebase usunięte z repo (testy statyczne `etap-0e-cleanup`, `package-scripts`).
-- Projekt Firebase usuwany ręcznie w konsoli przez użytkownika; Google trzyma zamknięty projekt 30 dni i pozwala go przywrócić.
+- 2026-11-13: projekt Firebase usunięty ręcznie w konsoli przez użytkownika. Google trzyma go 30 dni i w tym oknie pozwala przywrócić (do 2026-12-13); potem usunięcie jest nieodwracalne.
 
 ## 8. Otwarte pytania (do rozstrzygnięcia przed planem)
 
