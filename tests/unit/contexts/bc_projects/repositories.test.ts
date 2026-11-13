@@ -390,3 +390,58 @@ describe("bc_projects repositories: zapis tylko w Projects/<id>/", () => {
     expect(vault.read(`${folder}devlog.md`)).toBeNull();
   });
 });
+
+function registryWithOwner(ownerLine: string | null): string {
+  return [
+    "projects:",
+    "  - id: a",
+    "    folder: Projects/a/",
+    ...(ownerLine === null ? [] : [`    ${ownerLine}`]),
+    "",
+  ].join("\n");
+}
+
+const UNKNOWN_OWNER = (shown: string) =>
+  `Projects/_registry.yaml: pozycja 1: nieznane owner "${shown}", traktuję jako work`;
+
+describe("bc_projects repositories: readRegistry, owner", () => {
+  it.each([
+    ["brak pola", null, "personal", []],
+    ["personal", "owner: personal", "personal", []],
+    ["work", "owner: work", "work", []],
+    ["pusty tekst", 'owner: ""', "personal", []],
+    ["null (puste pole)", "owner:", "personal", []],
+    ["work ze spacjami", 'owner: " work "', "work", []],
+    ["Work (wielka litera)", "owner: Work", "work", [UNKNOWN_OWNER("Work")]],
+    ["firma", "owner: firma", "work", [UNKNOWN_OWNER("firma")]],
+    ["bool", "owner: true", "work", [UNKNOWN_OWNER("true")]],
+    ["liczba", "owner: 1", "work", [UNKNOWN_OWNER("1")]],
+    ["lista", "owner: [work]", "work", [UNKNOWN_OWNER("(nie tekst)")]],
+    ["mapa", "owner: {a: 1}", "work", [UNKNOWN_OWNER("(nie tekst)")]],
+  ] as const)("%s", (_label, line, owner, warnings) => {
+    vault.write(REGISTRY, registryWithOwner(line));
+    const result = readRegistry();
+    expect(result.entries[0].owner).toBe(owner);
+    expect(result.warnings).toEqual(warnings);
+  });
+
+  it("ostrzeżenie dotyczy właściwej pozycji", () => {
+    vault.write(
+      REGISTRY,
+      [
+        "projects:",
+        "  - id: a",
+        "    folder: Projects/a/",
+        "  - id: b",
+        "    folder: Projects/b/",
+        "    owner: Work",
+        "",
+      ].join("\n")
+    );
+    const result = readRegistry();
+    expect(result.entries.map((e) => e.owner)).toEqual(["personal", "work"]);
+    expect(result.warnings).toEqual([
+      'Projects/_registry.yaml: pozycja 2: nieznane owner "Work", traktuję jako work',
+    ]);
+  });
+});
