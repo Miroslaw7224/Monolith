@@ -4,8 +4,10 @@ import type { ProjectState } from "@/contexts/bc_projects/models";
 import {
   parseBugs,
   parseChecklist,
+  parseDevlog,
   parseSections,
   parseState,
+  prependDevlogEntry,
   serializeState,
 } from "@/contexts/bc_projects/repositories/markdown";
 
@@ -182,5 +184,71 @@ describe("bc_projects markdown: state.md", () => {
     expect(out).not.toContain("milestone_due");
     expect(out).not.toContain("updated");
     expect(out).toContain("links: []");
+  });
+});
+
+describe("bc_projects markdown: devlog.md", () => {
+  const ENTRY = { date: "2026-11-13", title: "T", why: "W" };
+
+  it("dwa wpisy w kolejności pliku, wstęp pominięty, separator — i -", () => {
+    const md =
+      "# Devlog\n\nwstęp\n\n## 2026-11-13 — Drugi\n\nPowód 2\n\n## 2026-11-12 - Pierwszy\n\nPowód 1\n";
+    expect(parseDevlog(md)).toEqual([
+      { date: "2026-11-13", title: "Drugi", why: "Powód 2" },
+      { date: "2026-11-12", title: "Pierwszy", why: "Powód 1" },
+    ]);
+  });
+
+  it("nagłówek bez daty", () => {
+    expect(parseDevlog("## Notatka bez daty\n\ntekst")).toEqual([
+      { date: null, title: "Notatka bez daty", why: "tekst" },
+    ]);
+  });
+
+  it("en dash jako separator", () => {
+    const [entry] = parseDevlog("## 2026-11-11 – T\n\nx");
+    expect(entry.date).toBe("2026-11-11");
+    expect(entry.title).toBe("T");
+  });
+
+  it("### nie jest granicą wpisu", () => {
+    const entries = parseDevlog("## 2026-11-11 — T\n\n### pod\n\nb\n\nc");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].why).toBe("### pod\n\nb\n\nc");
+  });
+
+  it("pusty tekst", () => {
+    expect(parseDevlog("")).toEqual([]);
+  });
+
+  it("prepend: brak pliku", () => {
+    expect(prependDevlogEntry(null, ENTRY)).toBe("# Devlog\n\n## 2026-11-13 — T\n\nW\n");
+  });
+
+  it("prepend: wpis przed starymi, reszta bez zmian", () => {
+    expect(prependDevlogEntry("# Devlog\n\n## 2026-11-12 — Stary\n\nS\n", ENTRY)).toBe(
+      "# Devlog\n\n## 2026-11-13 — T\n\nW\n\n## 2026-11-12 — Stary\n\nS\n"
+    );
+  });
+
+  it("prepend: plik bez ## dostaje wpis na końcu", () => {
+    expect(prependDevlogEntry("# Devlog\n\nwstęp\n", ENTRY)).toBe(
+      "# Devlog\n\nwstęp\n\n## 2026-11-13 — T\n\nW\n"
+    );
+  });
+
+  it("prepend: pusty plik jak brak pliku", () => {
+    expect(prependDevlogEntry("", ENTRY)).toBe(prependDevlogEntry(null, ENTRY));
+  });
+
+  it("prepend: puste why", () => {
+    expect(prependDevlogEntry(null, { date: "2026-11-13", title: "T", why: "" })).toBe(
+      "# Devlog\n\n## 2026-11-13 — T\n"
+    );
+  });
+
+  it("round-trip prepend → parse", () => {
+    const base = "# Devlog\n\n## 2026-11-12 — Stary\n\nS\n";
+    expect(parseDevlog(prependDevlogEntry(base, ENTRY))[0]).toEqual(ENTRY);
   });
 });

@@ -1,4 +1,9 @@
-import type { BugEntry, ChecklistItem, ProjectState } from "@/contexts/bc_projects/models";
+import type {
+  BugEntry,
+  ChecklistItem,
+  DevlogEntry,
+  ProjectState,
+} from "@/contexts/bc_projects/models";
 import { formatFrontmatter, parseFrontmatter } from "@/lib/nexus/frontmatter";
 
 const SECTION_RE = /^## (.+?)\s*$/;
@@ -6,6 +11,8 @@ const CHECKBOX_RE = /^\s*[-*] \[( |x|X)\] (.*)$/;
 const BUG_HEADING_RE = /^### (\S+)\s+[—–-]\s+(.+?)\s*$/;
 const PRIORITY_RE = /^\s*- \*\*Priorytet:\*\*\s*(.+?)\s*$/;
 const STATUS_RE = /^\s*- \*\*Status:\*\*\s*(.+?)\s*$/;
+const DEVLOG_HEADING_RE = /^(\d{4}-\d{2}-\d{2})\s+[—–-]\s+(.+)$/;
+const FIRST_SECTION_RE = /^## /m;
 
 export function parseSections(markdown: string): { heading: string; body: string }[] {
   const lines = markdown.split(/\r?\n/);
@@ -154,4 +161,31 @@ export function serializeState(state: ProjectState): string {
     },
     state.notes
   );
+}
+
+/** `devlog.md`: wpis = nagłówek `## YYYY-MM-DD — tytuł` + treść do następnego `## `. */
+export function parseDevlog(text: string): DevlogEntry[] {
+  return parseSections(text).map(({ heading, body }) => {
+    const match = DEVLOG_HEADING_RE.exec(heading);
+    return match
+      ? { date: match[1], title: match[2].trim(), why: body }
+      : { date: null, title: heading, why: body };
+  });
+}
+
+/** Dopisuje wpis na górze (przed pierwszym `## `); reszta pliku bez zmian. */
+export function prependDevlogEntry(
+  text: string | null,
+  entry: { date: string; title: string; why: string }
+): string {
+  const heading = `## ${entry.date} — ${entry.title}`;
+  const block = entry.why === "" ? `${heading}\n` : `${heading}\n\n${entry.why}\n`;
+
+  if (text === null || text.trim() === "") return `# Devlog\n\n${block}`;
+
+  const first = FIRST_SECTION_RE.exec(text);
+  if (first) {
+    return text.slice(0, first.index) + block + "\n" + text.slice(first.index);
+  }
+  return text.replace(/\s+$/, "") + "\n\n" + block;
 }
