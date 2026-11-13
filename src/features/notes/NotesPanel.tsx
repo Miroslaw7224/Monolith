@@ -5,10 +5,11 @@ import { markdownToHtml } from "@/lib/markdown/html-markdown";
 import { cn } from "@/src/lib/cn";
 import type { Note } from "./useNotesData";
 
-const NoteEditor = dynamic<ComponentProps<typeof import("@/src/components/NoteEditor").NoteEditor>>(
-  () => import("@/src/components/NoteEditor").then((mod) => mod.NoteEditor),
-  { loading: () => <div className="min-h-[60vh]" /> }
-);
+const NoteEditor = dynamic<
+  ComponentProps<typeof import("@/src/components/note-editor/NoteEditor").NoteEditor>
+>(() => import("@/src/components/note-editor/NoteEditor").then((mod) => mod.NoteEditor), {
+  loading: () => <div className="min-h-[60vh]" />,
+});
 
 export interface NotesPanelProps {
   notes: Note[];

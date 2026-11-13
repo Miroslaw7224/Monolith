@@ -84,7 +84,7 @@ vi.mock("@tiptap/pm/model", () => ({
   Slice: { maxOpen: (x: unknown) => x },
 }));
 
-import { NoteEditor } from "@/src/components/NoteEditor";
+import { NoteEditor } from "@/src/components/note-editor/NoteEditor";
 
 afterEach(() => cleanup());
 
