@@ -7,7 +7,8 @@ const ROOT = process.cwd();
 const STORE = "lib/nexus/yaml-store.ts";
 const REPOS = [
   "lib/nexus/record-helpers.ts",
-  ...["tags", "taskTemplates", "resources", "notes", "documents"].map(
+  "contexts/bc_tags/repositories.ts",
+  ...["taskTemplates", "resources", "notes", "documents"].map(
     (name) => `lib/nexus/repos/${name}.ts`
   ),
 ];
@@ -85,7 +86,6 @@ describe("0c-2 / 0c-3 static guards", () => {
     const barrel = read("lib/firestore-db.ts");
     expect(barrel).not.toMatch(/lib\/firestore\//);
     for (const name of [
-      "tags",
       "taskTemplates",
       "resources",
       "tasks",

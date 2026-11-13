@@ -2,7 +2,7 @@ import React from "react";
 import { Pencil, Square, Bell, Flag } from "lucide-react";
 import type { CalendarEvent, CalendarEventSegment } from "./calendarUtils";
 import { assignLanes, getOverlapCounts, CALENDAR_MAX_STACK } from "./calendarUtils";
-import { formatDuration } from "../calendarConstants";
+import { formatDuration } from "@/src/lib/calendarConstants";
 import type { ActiveSession } from "@/src/lib/activeSession";
 
 type TranslationDict = Record<string, string | string[]>;

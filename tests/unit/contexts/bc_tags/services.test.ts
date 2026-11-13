@@ -4,21 +4,21 @@ import {
   createUserTag,
   updateUserTag,
   deleteUserTag,
-} from "../../../services/tagService.js";
+} from "@/contexts/bc_tags/services";
 
 const mockGetUserTags = vi.hoisted(() => vi.fn());
 const mockCreateUserTag = vi.hoisted(() => vi.fn());
 const mockUpdateUserTag = vi.hoisted(() => vi.fn());
 const mockDeleteUserTag = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../lib/firestore-db.js", () => ({
+vi.mock("@/contexts/bc_tags/repositories", () => ({
   getUserTags: (...args: unknown[]) => mockGetUserTags(...args),
   createUserTag: (...args: unknown[]) => mockCreateUserTag(...args),
   updateUserTag: (...args: unknown[]) => mockUpdateUserTag(...args),
   deleteUserTag: (...args: unknown[]) => mockDeleteUserTag(...args),
 }));
 
-describe("tagService", () => {
+describe("bc_tags services", () => {
   beforeEach(() => {
     mockGetUserTags.mockReset();
     mockCreateUserTag.mockReset();

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import type { translations } from "@/src/translations";
 import { ActivityLog } from "@/src/components/ActivityLog";
-import type { UserTag } from "@/src/components/TagsSection";
+import type { UserTag } from "@/src/features/tags/TagsSection";
 import { StartSessionModal } from "@/src/components/StartSessionModal";
 import {
   getActiveSession,

@@ -4,7 +4,6 @@ export type {
   NoteResourceRecord,
   CalendarEventRecord,
   TaskRecord,
-  UserTagRecord,
   TaskTemplateRecord,
 } from "@/types/records";
 
@@ -29,7 +28,6 @@ export {
   reorderTasks,
   deleteTask,
 } from "@/lib/nexus/repos/tasks";
-export { getUserTags, createUserTag, updateUserTag, deleteUserTag } from "@/lib/nexus/repos/tags";
 export {
   getTaskTemplates,
   createTaskTemplate,

@@ -1,6 +1,6 @@
-import type { UserTagRecord } from "@/types/records";
-import type { YamlRecord } from "../yaml-lists";
-import { readList } from "../yaml-store";
+import type { UserTag } from "./models";
+import type { YamlRecord } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
 import {
   appendRecord,
   generateId,
@@ -10,7 +10,7 @@ import {
   removeRecord,
   sortByCreated,
   str,
-} from "../record-helpers";
+} from "@/lib/nexus/record-helpers";
 
 const FILE = "Resources/tags.yaml";
 const KEY = "tags";
@@ -19,7 +19,7 @@ const normTag = (value: unknown): string => str(value).trim().replace(/^#/, "");
 const normColor = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value.trim() : undefined;
 
-function toTag(record: YamlRecord): UserTagRecord {
+function toTag(record: YamlRecord): UserTag {
   return {
     id: str(record.id),
     tag: normTag(record.tag),
@@ -29,7 +29,7 @@ function toTag(record: YamlRecord): UserTagRecord {
   };
 }
 
-export async function getUserTags(): Promise<UserTagRecord[]> {
+export async function getUserTags(): Promise<UserTag[]> {
   return sortByCreated(readList(FILE, KEY).map(toTag), (t) => t.created_at, "asc");
 }
 
@@ -37,7 +37,7 @@ export async function createUserTag(data: {
   tag: string;
   title: string;
   color?: string;
-}): Promise<UserTagRecord> {
+}): Promise<UserTag> {
   const color = normColor(data.color);
   const record = await appendRecord(FILE, KEY, (taken) => ({
     id: generateId(taken),

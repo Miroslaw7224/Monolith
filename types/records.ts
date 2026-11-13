@@ -58,14 +58,6 @@ export type TaskRecord = {
   updated_at?: string;
 };
 
-export type UserTagRecord = {
-  id: string;
-  tag: string;
-  title: string;
-  color?: string;
-  created_at?: string;
-};
-
 export type TaskTemplateRecord = {
   id: string;
   label: string;

@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
-import { CALENDAR_COLORS } from "./calendarConstants";
-import type { UserTagRecord } from "@/types/records";
+import type { UserTagDto } from "@/contexts/bc_tags/schemas";
+import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
 
-export type UserTag = Omit<UserTagRecord, "createdAt">;
+export type UserTag = UserTagDto;
 
 type TranslationDict = Record<string, string | string[]>;
 

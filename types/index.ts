@@ -5,7 +5,6 @@ export type {
   CalendarEventRecord,
   CalendarEvent,
   TaskRecord,
-  UserTagRecord,
   TaskTemplateRecord,
   MindMap,
   MindMapNode,

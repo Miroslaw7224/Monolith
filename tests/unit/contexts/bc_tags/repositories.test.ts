@@ -2,8 +2,13 @@
 import { describe, expect, it } from "vitest";
 import { formatYamlList, GENERATED_BY_IMPORT } from "@/lib/nexus/yaml-lists";
 import { readList } from "@/lib/nexus/yaml-store";
-import { createUserTag, deleteUserTag, getUserTags, updateUserTag } from "@/lib/nexus/repos/tags";
-import { useTempVault } from "./helpers";
+import {
+  createUserTag,
+  deleteUserTag,
+  getUserTags,
+  updateUserTag,
+} from "@/contexts/bc_tags/repositories";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const FILE = "Resources/tags.yaml";
 const STORED = [
