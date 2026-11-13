@@ -62,6 +62,48 @@ function cutAtParagraph(text: string, max: number): string {
   return `${(i >= max / 2 ? head.slice(0, i) : head).trimEnd()}\n\n…`;
 }
 
+const ATX_HEADING = /^ {0,3}(#{1,6})(?=\s|$)/;
+const FENCE = /^ {0,3}(```|~~~)/;
+
+/**
+ * Obniża nagłówki ATX tak, by najwyższy z nich był `###` (pod sekcją „Zasady projektu” `##`),
+ * a pozostałe o tyle samo niżej (maks. `######`). Nagłówki w blokach kodu (``` i ~~~) nie są
+ * ruszane; niedomknięty blok kodu trwa do końca tekstu. Tekst bez nagłówków albo z nagłówkami
+ * od `###` wzwyż wraca bez zmian.
+ */
+export function demoteHeadings(text: string): string {
+  const lines = text.split("\n");
+  const heading: (number | null)[] = [];
+  let fence: string | null = null;
+  for (const line of lines) {
+    const f = FENCE.exec(line);
+    if (fence !== null) {
+      if (f && f[1] === fence) fence = null;
+      heading.push(null);
+    } else if (f) {
+      fence = f[1];
+      heading.push(null);
+    } else {
+      const h = ATX_HEADING.exec(line);
+      heading.push(h ? h[1].length : null);
+    }
+  }
+  const levels = heading.filter((l): l is number => l !== null);
+  if (levels.length === 0) return text;
+  const shift = Math.max(0, 3 - Math.min(...levels));
+  if (shift === 0) return text;
+  return lines
+    .map((line, i) => {
+      const level = heading[i];
+      if (level === null) return line;
+      return (
+        "#".repeat(Math.min(6, level + shift)) +
+        line.slice(level + (line.length - line.trimStart().length))
+      );
+    })
+    .join("\n");
+}
+
 const block = (text: string) => `\`\`\`\n${text}\n\`\`\``;
 
 function renderPack(input: ContextPackInput, k: Knobs): string {
@@ -144,9 +186,13 @@ function renderPack(input: ContextPackInput, k: Knobs): string {
  * Zadania i Bugi nigdy nie są skracane.
  */
 export function composeContextPack(
-  input: ContextPackInput,
+  rawInput: ContextPackInput,
   budgetTokens: number = PACK_BUDGET_TOKENS
 ): ContextPack {
+  // Nagłówki zasad schodzą pod sekcję „Zasady” raz, na wejściu: budżet i cięcie liczą się już po tym.
+  const input: ContextPackInput = rawInput.rules
+    ? { ...rawInput, rules: { ...rawInput.rules, text: demoteHeadings(rawInput.rules.text) } }
+    : rawInput;
   const stat = input.git.ok ? lineCount(input.git.snapshot.diffStat) : 0;
   const logLines = input.git.ok ? lineCount(input.git.snapshot.log) : 0;
   const devlogLength = input.project.devlog.length;
