@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { ProjectDetailDto, ProjectType } from "@/contexts/bc_projects/schemas";
 import { isHttpUrl } from "./isHttpUrl";
 import type { ProjectActions } from "./mutation";
+import { ProjectContextPack } from "./ProjectContextPack";
 import { ProjectDevlog } from "./ProjectDevlog";
 import { ProjectSaveState } from "./ProjectSaveState";
 import { ProjectTasksBoard } from "./ProjectTasksBoard";
@@ -42,6 +43,7 @@ export function ProjectDossier(props: {
               {project.status} · {project.priority}
             </p>
           </div>
+          <ProjectContextPack key={project.id} onLoad={actions.loadContextPack} />
         </div>
         <div className="prj-links">
           {project.github ? (

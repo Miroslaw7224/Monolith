@@ -22,6 +22,7 @@ export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
     addDevlogEntry,
     setType,
     tasksOp,
+    loadContextPack,
     reloadDetail,
   } = useProjects(props.apiFetch);
 
@@ -72,7 +73,14 @@ export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
             <ProjectDossier
               key={detail.id}
               project={detail}
-              actions={{ saveState, addDevlogEntry, setType, tasksOp, reloadDetail }}
+              actions={{
+                saveState,
+                addDevlogEntry,
+                setType,
+                tasksOp,
+                loadContextPack,
+                reloadDetail,
+              }}
             />
           ) : null}
         </div>

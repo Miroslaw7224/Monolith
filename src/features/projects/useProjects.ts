@@ -9,7 +9,8 @@ import type {
   StateInputDto,
   TaskOpInputDto,
 } from "@/contexts/bc_projects/schemas";
-import type { MutationResult, ProjectActions } from "./mutation";
+import type { ContextPackDto } from "@/contexts/bc_projects/schemas";
+import type { ContextPackResult, MutationResult, ProjectActions } from "./mutation";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -106,6 +107,19 @@ export function useProjects(apiFetch: ApiFetch): {
   const setType = useCallback((type: ProjectType) => mutate("PATCH", "", { type }), [mutate]);
   const tasksOp = useCallback((input: TaskOpInputDto) => mutate("POST", "/tasks", input), [mutate]);
 
+  /** Odczyt, nie zapis: poza `mutate`, nie zmienia `detail`. */
+  const loadContextPack = useCallback(async (): Promise<ContextPackResult> => {
+    const id = selectedIdRef.current;
+    if (id === null) return { ok: false, error: "Nie wybrano projektu" };
+    try {
+      const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}/context-pack`);
+      if (!res.ok) return { ok: false, error: await readError(res) };
+      return { ok: true, pack: (await res.json()) as ContextPackDto };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }, [apiFetch]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -192,6 +206,7 @@ export function useProjects(apiFetch: ApiFetch): {
     addDevlogEntry,
     setType,
     tasksOp,
+    loadContextPack,
     reloadDetail,
   };
 }
