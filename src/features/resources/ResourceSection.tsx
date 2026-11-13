@@ -7,7 +7,6 @@ import { ResourceAddForm } from "./ResourceAddForm";
 import { ResourceFavoritesBar } from "./ResourceFavoritesBar";
 import { ResourceListItem } from "./ResourceListItem";
 import { ResourceEditModal } from "./ResourceEditModal";
-import { DocumentsPanel } from "./DocumentsPanel";
 
 export type { NoteResource } from "./resourceTypes";
 
@@ -69,11 +68,6 @@ export function ResourceSection({ apiFetch, t }: ResourceSectionProps) {
       </div>
       <div className="flex-1 overflow-auto p-6 flex gap-6 min-h-0">
         <div className="flex-[1_1_0%] min-w-0 space-y-6 overflow-auto pr-2">
-          <DocumentsPanel
-            apiFetch={apiFetch}
-            noDocs={String(t.noDocs ?? "No documents yet")}
-            documentsLabel={String(t.documentsLabel ?? "Documents")}
-          />
           {!loading && resources.length > 0 && (
             <ResourceFilterSidebar
               allTags={allTags}

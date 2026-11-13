@@ -192,19 +192,11 @@ export default function HomeView({
   const sidebarT: AppSidebarTranslations = {
     title: t.title,
     subtitle: t.subtitle,
-    proPlan: t.proPlan,
-    docsLimit: t.docsLimit,
   };
 
   return (
     <>
-      <AppSidebar
-        isSidebarOpen={isSidebarOpen}
-        lang={lang}
-        setLang={setLang}
-        documentsCount={0}
-        t={sidebarT}
-      >
+      <AppSidebar isSidebarOpen={isSidebarOpen} lang={lang} setLang={setLang} t={sidebarT}>
         <PlanowanieSidebarContent
           planningTab={planningTab}
           setPlanningTab={setPlanningTab}
