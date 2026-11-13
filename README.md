@@ -37,11 +37,11 @@ Struktura frontendu (komponenty, hooki, podfoldery `resources/` i `calendar/`) j
 
 > Moduł "Wiedza" (chat RAG na dokumentach użytkownika, opisany dawniej w ADR-018/ADR-011) został usunięty z aplikacji. Notatki, zasoby i mapy myśli funkcjonują dziś jako samodzielne zakładki w module Planowanie.
 
-- **Konteksty domenowe** (`contexts/`): logika biznesowa poza `app/` i `src/` (siatka router / schemas / models / services / repositories). Pierwszy kontekst: `contexts/bc_projects/` (odczyt rejestru projektów z vaulta).
-- **API projektów** (tylko GET): `GET /api/projects` — lista + ostrzeżenia; `GET /api/projects/[id]` — teczka projektu. Trasy w `app/api/projects/**` re-eksportują handlery z kontekstu.
+- **Konteksty domenowe** (`contexts/`): logika biznesowa poza `app/` i `src/` (siatka router / schemas / models / services / repositories). Pierwszy kontekst: `contexts/bc_projects/` (rejestr projektów z vaulta oraz zapis Save State, devlogu i typu projektu; zapis do vaulta wyłącznie w `repositories/`).
+- **API projektów:** `GET /api/projects` — lista + ostrzeżenia; `GET /api/projects/[id]` — teczka projektu (z `type`, `state`, `stateVersion`, `devlog`); `PATCH /api/projects/[id]` — zmiana `type`; `PUT /api/projects/[id]/state` — zapis Save State (`state.md`, z kontrolą wersji, 409 przy konflikcie); `POST /api/projects/[id]/devlog` — dopisanie wpisu do `devlog.md`. Trasy w `app/api/projects/**` re-eksportują handlery z kontekstu.
 - **Home** (`src/features/home/`): pulpit startowy — statystyki dnia (zadania, wydarzenia, notatki, zasoby, mapy myśli), lista zadań na dziś, nadchodzące wydarzenia, szybkie akcje i log aktywności/sesji pracy.
 
-- **Projekty** (`src/features/projects/`): karta Alt+4 — rejestr i teczka (odczyt z vaulta NEXUS); UI zna tylko DTO z `contexts/bc_projects/schemas`.
+- **Projekty** (`src/features/projects/`): karta Alt+4 — rejestr i teczka projektu z vaulta NEXUS, Save State (`state.md`), dziennik decyzji (`devlog.md`, tylko dopisywanie) i typ projektu (zapis do vaulta); UI zna tylko DTO i zod z `contexts/bc_projects/schemas`.
 - **Planowanie** (`src/features/planowanie/`):
   - Kalendarz (`src/components/CalendarView.tsx` + `src/components/calendar/`): zdarzenia przechodzące przez północ są **dzielone na segmenty dni** (`expandEventToSegments` w `calendarUtils.ts`), żeby paski nie wychodziły poza siatkę godzin.
   - Log aktywności, **zadania** (lista + modal szczegółów `TaskDetailModal`: edycja tytułu, statusu, terminu i **notatki** zapisywanej w polu `description`; niebieska kropka na liście, gdy notatka jest wypełniona), tagi.

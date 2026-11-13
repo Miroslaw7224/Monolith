@@ -49,16 +49,23 @@ Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 Etap **1-1 (odczyt)** zrobiony: Alt+4 / `#projekty` otwiera kartę; rejestr z vaulta (`GET /api/projects`),
 teczka (`GET /api/projects/[id]`), freshness/stale (>14 dni), metryczka (linki, `localPath`),
 „Gdzie skończyłem”, zadania z `tasks.md`, bugi z `bugs.md` (aktywne + licznik zamkniętych).
+Etap **1-2 (zapis)** zrobiony: Save State (`state.md`, formularz, kontrola wersji pliku i komunikat o konflikcie 409),
+dziennik decyzji (`devlog.md`, tylko dopisywanie na górze), `type` projektu (zmiana jednej linii w `index.md`),
+`PUT /api/projects/[id]/state`, `POST …/devlog`, `PATCH /api/projects/[id]`; świeżość liczona z nowszej z dat
+`last_worked` i `state.updated`. Bez `state.md` karta pokazuje dotychczasowy akapit „Gdzie skończyłem”.
 
-| Funkcja                                   | Stan | Gdzie / uwagi                                          |
-| ----------------------------------------- | ---- | ------------------------------------------------------ |
-| Rejestr i teczka (odczyt)                 | JEST | ProjectsView, ProjectList, ProjectDossier; bc_projects |
-| Wykrywanie porzuconych (freshness stale)  | JEST | services.ts + odznaka `prj-item--stale`                |
-| Kafle statystyk                           | BRAK | względem makiety `04-projekty.html`                    |
-| Owner                                     | BRAK | względem makiety                                       |
-| Kamień milowy                             | BRAK | względem makiety                                       |
-| Save State, Teraz/Następne/Icebox, devlog | BRAK | późniejsze podetapy                                    |
-| Paczka kontekstu, etykieta „Firma”        | BRAK | późniejsze podetapy                                    |
+| Funkcja                                  | Stan      | Gdzie / uwagi                                                   |
+| ---------------------------------------- | --------- | --------------------------------------------------------------- |
+| Rejestr i teczka (odczyt)                | JEST      | ProjectsView, ProjectList, ProjectDossier; bc_projects          |
+| Wykrywanie porzuconych (freshness stale) | JEST      | services.ts + odznaka `prj-item--stale`                         |
+| Kafle statystyk                          | BRAK      | względem makiety `04-projekty.html`                             |
+| Owner                                    | BRAK      | względem makiety                                                |
+| Kamień milowy                            | CZĘŚCIOWO | nazwa i termin w `state.md`, bez paska procentowego (świadomie) |
+| Save State (odczyt i zapis)              | JEST      | ProjectSaveState; `state.md` przez bc_projects                  |
+| Devlog (dopisywanie)                     | JEST      | ProjectDevlog; `devlog.md`, bez edycji i usuwania               |
+| Typ projektu                             | JEST      | select w metryczce; linia `type:` w `index.md`                  |
+| Teraz/Następne/Icebox (edycja)           | BRAK      | podetap 1-3                                                     |
+| Paczka kontekstu, etykieta „Firma”       | BRAK      | późniejsze podetapy                                             |
 
 ## 5. Notatki (`src/features/notes/`, `src/components/NoteEditor.tsx`)
 
