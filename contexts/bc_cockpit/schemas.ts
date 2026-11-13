@@ -31,12 +31,23 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       nextStep: t.nextStep,
       blocker: t.blocker,
       whereIStopped: t.whereIStopped,
+      branch: t.branch,
+      lastActivity: t.lastActivity,
+      confidence: t.confidence,
+      nowCount: t.nowCount,
+      bugCount: t.bugCount,
     })),
     queue: c.queue.map((g) => ({
       projectId: g.projectId,
       name: g.name,
       owner: g.owner,
-      items: g.items.map((i) => ({ kind: i.kind, title: i.title, due: i.due })),
+      items: g.items.map((i) => ({
+        kind: i.kind,
+        title: i.title,
+        due: i.due,
+        projectName: i.projectName,
+        priority: i.priority,
+      })),
     })),
     events: c.events.map((e) => ({
       id: e.id,
@@ -46,6 +57,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       type: e.type,
       color: e.color,
     })),
+    nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
     warnings: [...c.warnings],
   };
 }

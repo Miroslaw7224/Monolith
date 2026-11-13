@@ -564,8 +564,20 @@ describe("listNowTasks", () => {
     const { tasks, warnings } = listNowTasks();
 
     expect(tasks).toEqual([
-      { projectId: "nexus", projectName: "NEXUS", owner: "personal", text: "Plan 2-1" },
-      { projectId: "firma", projectName: "Firma", owner: "work", text: "Raport" },
+      {
+        projectId: "nexus",
+        projectName: "NEXUS",
+        owner: "personal",
+        priority: "medium",
+        text: "Plan 2-1",
+      },
+      {
+        projectId: "firma",
+        projectName: "Firma",
+        owner: "work",
+        priority: "medium",
+        text: "Raport",
+      },
     ]);
     expect(warnings).toEqual([]);
   });

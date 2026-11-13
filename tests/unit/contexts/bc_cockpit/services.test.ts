@@ -22,7 +22,13 @@ vi.mock("@/contexts/bc_projects/services", () => ({
 vi.mock("@/contexts/bc_tasks/services", () => ({ getTasks: mockGetTasks }));
 vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
 
-import { getCockpit, isPlausibleDate, localDate, setPinned } from "@/contexts/bc_cockpit/services";
+import {
+  getCockpit,
+  isPlausibleDate,
+  localDate,
+  pickNextMeeting,
+  setPinned,
+} from "@/contexts/bc_cockpit/services";
 
 /** 00:30 lokalnie: jedyna data „dziś” ma być 2026-11-13 (UTC byłoby 12-go). */
 const TODAY = new Date(2026, 10, 13, 0, 30);
@@ -45,12 +51,15 @@ const project = (over: Record<string, unknown> = {}) => ({
   freshness: "fresh",
   whereIStopped: null,
   state: null,
+  board: { now: [] },
+  bugs: [],
   ...over,
 });
 
 const state = (over: Record<string, unknown> = {}) => ({
   nextStep: "",
   blocker: "",
+  branch: "",
   ...over,
 });
 
@@ -111,6 +120,11 @@ describe("tematy", () => {
         nextStep: "Zrobić X",
         blocker: null,
         whereIStopped: null,
+        branch: null,
+        lastActivity: null,
+        confidence: "sure",
+        nowCount: 0,
+        bugCount: 0,
       },
     ]);
     expect(mockGetProject).toHaveBeenCalledWith("nexus", TODAY);
@@ -187,7 +201,9 @@ describe("tematy", () => {
       throw new Error("Nie można odczytać pliku Cockpit/pinned.yaml: zły YAML");
     });
     mockListNowTasks.mockReturnValue({
-      tasks: [{ projectId: "p", projectName: "P", owner: "personal", text: "Zadanie" }],
+      tasks: [
+        { projectId: "p", projectName: "P", owner: "personal", priority: "high", text: "Zadanie" },
+      ],
       warnings: [],
     });
     const result = await getCockpit(TODAY);
@@ -199,12 +215,111 @@ describe("tematy", () => {
   });
 });
 
+describe("tematy: dane do karty skupienia", () => {
+  beforeEach(() => {
+    mockReadPinned.mockReturnValue({ ids: ["nexus"] });
+  });
+
+  it("branch jest przycinany, pusty to null", async () => {
+    mockGetProject.mockReturnValue(project({ state: state({ branch: " fix/x " }) }));
+    expect((await getCockpit(TODAY)).topics[0].branch).toBe("fix/x");
+  });
+
+  it("lastActivity: state.updated ma pierwszeństwo przed last_worked", async () => {
+    mockGetProject.mockReturnValue(
+      project({ lastWorked: "2026-11-01", state: state({ updated: "2026-11-12T21:40" }) })
+    );
+    expect((await getCockpit(TODAY)).topics[0].lastActivity).toBe("2026-11-12T21:40");
+    mockGetProject.mockReturnValue(project({ lastWorked: "2026-11-01" }));
+    expect((await getCockpit(TODAY)).topics[0].lastActivity).toBe("2026-11-01");
+  });
+
+  it("confidence: stale lub niezweryfikowany stan to check, reszta sure", async () => {
+    mockGetProject.mockReturnValue(project({ freshness: "stale" }));
+    expect((await getCockpit(TODAY)).topics[0].confidence).toBe("check");
+    mockGetProject.mockReturnValue(project({ stateConfidence: "unknown" }));
+    expect((await getCockpit(TODAY)).topics[0].confidence).toBe("check");
+    mockGetProject.mockReturnValue(project({ stateConfidence: "verified" }));
+    expect((await getCockpit(TODAY)).topics[0].confidence).toBe("sure");
+    mockGetProject.mockReturnValue(project());
+    expect((await getCockpit(TODAY)).topics[0].confidence).toBe("sure");
+  });
+
+  it("nowCount liczy niezakończone, bugCount pomija sekcję Zamknięte", async () => {
+    mockGetProject.mockReturnValue(
+      project({
+        board: { now: [{ done: false }, { done: true }, { done: false }] },
+        bugs: [{ section: "Aktywne" }, { section: "Zamknięte" }, { section: "Aktywne" }],
+      })
+    );
+    const topic = (await getCockpit(TODAY)).topics[0];
+    expect(topic.nowCount).toBe(2);
+    expect(topic.bugCount).toBe(2);
+  });
+});
+
+describe("następne spotkanie", () => {
+  const ev = (type: "work" | "meeting", start: number, dur: number, title = "S") => ({
+    id: title,
+    title,
+    startMinutes: start,
+    durationMinutes: dur,
+    type,
+    color: "#000",
+  });
+  const events = [
+    ev("work", 540, 60, "Praca"),
+    ev("meeting", 630, 30, "A"),
+    ev("meeting", 780, 60, "B"),
+  ];
+
+  it("najbliższe jeszcze nie zakończone spotkanie", () => {
+    expect(pickNextMeeting(events, 588)?.title).toBe("A");
+    expect(pickNextMeeting(events, 640)?.title).toBe("A"); // trwa
+    expect(pickNextMeeting(events, 660)?.title).toBe("B");
+  });
+
+  it("po ostatnim spotkaniu null; wydarzenie work nie jest spotkaniem", () => {
+    expect(pickNextMeeting(events, 840)).toBeNull();
+    expect(pickNextMeeting([ev("work", 600, 30)], 0)).toBeNull();
+  });
+
+  it("getCockpit podaje nextMeeting z godziny „dziś”", async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: "e",
+        date: "2026-11-13",
+        start_minutes: 630,
+        duration_minutes: 30,
+        title: "A",
+        tags: [],
+        color: "#1",
+        type: "meeting",
+      },
+    ]);
+    const result = await getCockpit(new Date(2026, 10, 13, 9, 48));
+    expect(result.nextMeeting).toEqual({ title: "A", startMinutes: 630, durationMinutes: 30 });
+  });
+});
+
 describe("kolejka na dziś", () => {
   it("kolejność: zaległe, dzisiejsze due, potem [now::]; grupy per projekt, ogólne jako „Ogólne”", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        { projectId: "p1", projectName: "Projekt 1", owner: "personal", text: "Plan" },
-        { projectId: "p2", projectName: "Projekt 2", owner: "work", text: "Raport" },
+        {
+          projectId: "p1",
+          projectName: "Projekt 1",
+          owner: "personal",
+          priority: "high",
+          text: "Plan",
+        },
+        {
+          projectId: "p2",
+          projectName: "Projekt 2",
+          owner: "work",
+          priority: "",
+          text: "Raport",
+        },
       ],
       warnings: [],
     });
@@ -224,21 +339,37 @@ describe("kolejka na dziś", () => {
         name: "Ogólne",
         owner: "personal",
         items: [
-          { kind: "overdue", title: "Zaległe", due: "2026-11-10" },
-          { kind: "today", title: "Dziś", due: "2026-11-13" },
+          {
+            kind: "overdue",
+            title: "Zaległe",
+            due: "2026-11-10",
+            projectName: null,
+            priority: null,
+          },
+          {
+            kind: "today",
+            title: "Dziś",
+            due: "2026-11-13",
+            projectName: null,
+            priority: null,
+          },
         ],
       },
       {
         projectId: "p1",
         name: "Projekt 1",
         owner: "personal",
-        items: [{ kind: "now", title: "Plan", due: null }],
+        items: [
+          { kind: "now", title: "Plan", due: null, projectName: "Projekt 1", priority: "high" },
+        ],
       },
       {
         projectId: "p2",
         name: "Projekt 2",
         owner: "work",
-        items: [{ kind: "now", title: "Raport", due: null }],
+        items: [
+          { kind: "now", title: "Raport", due: null, projectName: "Projekt 2", priority: null },
+        ],
       },
     ]);
   });

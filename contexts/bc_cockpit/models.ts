@@ -3,6 +3,8 @@ export const MAX_PINNED = 3;
 
 export type Owner = "personal" | "work";
 export type Freshness = "fresh" | "stale" | "unknown";
+/** `check`: temat zalegający lub z niezweryfikowanym stanem („do sprawdzenia”); `sure`: „pewne”. */
+export type Confidence = "sure" | "check";
 
 export type Pinned = { ids: string[] };
 
@@ -18,11 +20,28 @@ export type Topic = {
   nextStep: string | null;
   blocker: string | null;
   whereIStopped: string | null;
+  /** `state.branch` (przycięty); `null`, gdy pusty lub brak `state.md`. */
+  branch: string | null;
+  /** `state.updated` albo `last_worked`; `null`, gdy brak obu. */
+  lastActivity: string | null;
+  confidence: Confidence;
+  /** Niezakończone zadania kolumny „Teraz” projektu. */
+  nowCount: number;
+  /** Bugi projektu spoza sekcji „Zamknięte”. */
+  bugCount: number;
 };
 
 /** `overdue`: `due` < dziś, `today`: `due` = dziś, `now`: zadanie `[now::]` projektu. */
 export type QueueKind = "overdue" | "today" | "now";
-export type QueueItem = { kind: QueueKind; title: string; due: string | null };
+export type QueueItem = {
+  kind: QueueKind;
+  title: string;
+  due: string | null;
+  /** Nazwa projektu; `null` dla zadań ogólnych. */
+  projectName: string | null;
+  /** Priorytet projektu z rejestru („high”…); `null`, gdy brak. */
+  priority: string | null;
+};
 /** Grupa kolejki: projekt albo „Ogólne” (`projectId: null`). */
 export type QueueGroup = {
   projectId: string | null;
@@ -40,11 +59,15 @@ export type DayEvent = {
   color: string;
 };
 
+/** Najbliższe jeszcze nie rozpoczęte wydarzenie typu `meeting` z dzisiejszego dnia. */
+export type NextMeeting = { title: string; startMinutes: number; durationMinutes: number };
+
 export type Cockpit = {
   /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
   date: string;
   topics: Topic[];
   queue: QueueGroup[];
   events: DayEvent[];
+  nextMeeting: NextMeeting | null;
   warnings: string[];
 };

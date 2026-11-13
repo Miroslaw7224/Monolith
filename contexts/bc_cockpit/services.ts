@@ -5,7 +5,9 @@ import { DomainError, NotFoundError } from "@/lib/errors";
 import {
   MAX_PINNED,
   type Cockpit,
+  type Confidence,
   type DayEvent,
+  type NextMeeting,
   type Owner,
   type Pinned,
   type QueueGroup,
@@ -48,6 +50,10 @@ function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
   // `state.md` bez treści (puste pola) nie przesłania „Gdzie skończyłem” z `index.md`.
   const source: Topic["source"] =
     nextStep || blocker ? "state" : p.whereIStopped ? "index" : "none";
+  const confidence: Confidence =
+    p.freshness === "stale" || p.stateConfidence === "unknown" || p.stateConfidence === "low"
+      ? "check"
+      : "sure";
   return {
     id: p.id,
     name: p.name,
@@ -57,6 +63,11 @@ function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
     nextStep: source === "state" ? nextStep : null,
     blocker: source === "state" ? blocker : null,
     whereIStopped: source === "index" ? p.whereIStopped : null,
+    branch: p.state?.branch.trim() || null,
+    lastActivity: p.state?.updated ?? p.lastWorked ?? null,
+    confidence,
+    nowCount: p.board.now.filter((t) => !t.done).length,
+    bugCount: p.bugs.filter((b) => b.section !== "Zamknięte").length,
   };
 }
 
@@ -123,7 +134,13 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         projectId: t.projectId,
         name: t.projectName,
         owner: t.owner,
-        item: { kind: "now", title: t.text, due: null },
+        item: {
+          kind: "now",
+          title: t.text,
+          due: null,
+          projectName: t.projectName,
+          priority: t.priority || null,
+        },
       });
     }
   } catch (err) {
@@ -143,7 +160,13 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         projectId: null,
         name: GENERAL_NAME,
         owner: "personal",
-        item: { kind: t.due_date < date ? "overdue" : "today", title: t.title, due: t.due_date },
+        item: {
+          kind: t.due_date < date ? "overdue" : "today",
+          title: t.title,
+          due: t.due_date,
+          projectName: null,
+          priority: null,
+        },
       });
     }
   } catch (err) {
@@ -178,6 +201,20 @@ async function loadEvents(date: string, warnings: string[]): Promise<DayEvent[]>
   }
 }
 
+/** Pierwsze dzisiejsze `meeting`, które jeszcze się nie skończyło (trwające liczy się jako następne). */
+export function pickNextMeeting(events: DayEvent[], nowMinutes: number): NextMeeting | null {
+  const upcoming = events
+    .filter((e) => e.type === "meeting" && e.startMinutes + e.durationMinutes > nowMinutes)
+    .sort((a, b) => a.startMinutes - b.startMinutes)[0];
+  return upcoming
+    ? {
+        title: upcoming.title,
+        startMinutes: upcoming.startMinutes,
+        durationMinutes: upcoming.durationMinutes,
+      }
+    : null;
+}
+
 // ── API serwisu ────────────────────────────────────────────────────────────────
 
 /** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
@@ -187,7 +224,8 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const topics = loadTopics(today, warnings);
   const queue = await loadQueue(date, warnings);
   const events = await loadEvents(date, warnings);
-  return { date, topics, queue, events, warnings };
+  const nextMeeting = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
+  return { date, topics, queue, events, nextMeeting, warnings };
 }
 
 export async function setPinned(ids: string[]): Promise<Pinned> {

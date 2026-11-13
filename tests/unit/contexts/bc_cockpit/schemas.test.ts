@@ -39,6 +39,11 @@ describe("mapery DTO", () => {
         nextStep: "Plan",
         blocker: null,
         whereIStopped: null,
+        branch: "main",
+        lastActivity: "2026-11-12T21:40",
+        confidence: "sure",
+        nowCount: 2,
+        bugCount: 1,
       },
     ],
     queue: [
@@ -46,7 +51,15 @@ describe("mapery DTO", () => {
         projectId: null,
         name: "Ogólne",
         owner: "personal",
-        items: [{ kind: "today", title: "Faktura", due: "2026-11-13" }],
+        items: [
+          {
+            kind: "today",
+            title: "Faktura",
+            due: "2026-11-13",
+            projectName: null,
+            priority: null,
+          },
+        ],
       },
     ],
     events: [
@@ -59,13 +72,21 @@ describe("mapery DTO", () => {
         color: "#fff",
       },
     ],
+    nextMeeting: { title: "Spotkanie", startMinutes: 570, durationMinutes: 30 },
     warnings: ["uwaga"],
   };
 
   it("toCockpitDto zachowuje kształt i nie wpuszcza dodatkowych pól", () => {
     const dto = toCockpitDto({ ...model, extra: "x" } as Cockpit);
     expect(dto).toEqual(model);
-    expect(Object.keys(dto).sort()).toEqual(["date", "events", "queue", "topics", "warnings"]);
+    expect(Object.keys(dto).sort()).toEqual([
+      "date",
+      "events",
+      "nextMeeting",
+      "queue",
+      "topics",
+      "warnings",
+    ]);
   });
 
   it("toPinnedDto", () => {

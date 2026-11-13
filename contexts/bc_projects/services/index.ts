@@ -155,6 +155,7 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
           projectId: entry.id,
           projectName: entry.name,
           owner: entry.owner,
+          priority: entry.priority,
           text: task.text,
         });
       }
