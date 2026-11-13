@@ -12,16 +12,20 @@
 #   --fresh               wyczyść rozmowę pomocnika (/clear) przed zadaniem
 #   --keep                nie czyść (dopytanie / kontynuacja poprzedniego zadania)
 #   (domyślnie auto: /clear przy --role review, co CLEAR_EVERY=5 zadań lub gdy kontekst >= CLEAR_PCT=40 %)
+#   --approve-allowed     zatwierdzaj (jednorazowo, klawisz y) dialogi "Run this command?" WYŁĄCZNIE dla poleceń z listy zgód z CLAUDE.md
+#                         (npx tsc --noEmit, npx vitest run [ścieżki], npm run lint, npm run build; opcjonalnie `cd <Monolith> && ` i ` 2>&1`);
+#                         decyzję podejmuje scripts/approve-check.py; wszystko inne kończy się kodem 2. Log: $STATE_DIR/approvals.log
 #   --tier light|deep|none  model pomocnika: light = tani/szybki (agy: Gemini Flash, cursor: Composer),
 #                         deep = mocniejszy (agy: Gemini Argon, cursor: Auto), none = nie zmieniaj.
 #                         Domyślnie auto: review -> deep, advice/task -> light.
 # Kody wyjścia: 0 ok, 1 błąd/nie znaleziono, 2 pomocnik czeka na zgodę (blocked), 3 timeout.
 set -euo pipefail
 
-ROLE=advice; TIMEOUT=300; TARGET=""; MAXLINES=40; CLEAR_MODE=auto; TIER=auto
+ROLE=advice; TIMEOUT=300; TARGET=""; MAXLINES=40; CLEAR_MODE=auto; TIER=auto; APPROVE=0; MAX_APPROVALS="${MAX_APPROVALS:-20}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tier)    TIER="$2"; shift 2 ;;
+    --approve-allowed) APPROVE=1; shift ;;
     --fresh)   CLEAR_MODE=fresh; shift ;;
     --keep)    CLEAR_MODE=keep; shift ;;
     --role)    ROLE="$2"; shift 2 ;;
@@ -39,6 +43,9 @@ case "$ROLE" in review|advice|task) ;; *) echo "Rola musi być: review | advice 
 
 # Gniazda core nie ustawiamy na sztywno: położenie zależy od XDG_RUNTIME_DIR i zmienia się po restarcie core.
 # hc sam znajduje właściwe (HC_TERMINAL_SOCKET w terminalu hc); HC_SOCKET z otoczenia nadal działa jako nadpisanie.
+# dialog polecenia na ekranie (bez pipe'ów: `set -o pipefail` + `grep -q` bywa zwodnicze)
+has_run_dialog() { local tail25; tail25="$(tail -n 25 <<<"$1")"; [[ "$tail25" == *"Run this command?"* ]]; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 command -v hc >/dev/null || { echo "Brak hc w PATH" >&2; exit 1; }
 
 # --- znajdź terminal pomocnika ---
@@ -136,7 +143,7 @@ fi
 # --- zbuduj prompt ---
 NONCE="ref:$(head -c6 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 if [[ "$ROLE" == "task" ]]; then
-  PREFIX="[Rola: pomocnik Claude Code. Wykonaj dokładnie opisane drobne zadanie, nie wychodź poza wskazane pliki, nie rób git commit/push.]"
+  PREFIX="[Rola: pomocnik Claude Code. Wykonaj dokładnie opisane drobne zadanie, nie wychodź poza wskazane pliki, nie rób git commit/push. Katalog roboczy to już Monolith: uruchamiaj polecenia bez prefiksu cd (np. samo npx tsc --noEmit), bo złożone cd … && … wymusza dodatkowe zgody.]"
 else
   PREFIX="[Rola: doradca/weryfikator Claude Code. Tryb tylko do odczytu: czytaj pliki i diffy (cat, grep, ls, git show/diff/log). Nie uruchamiaj kodu ani testów (node, npx, tsx, ts-node, vitest, npm), nie twórz skryptów ani plików tymczasowych, nie modyfikuj żadnych plików. Wnioski wyciągaj z czytania kodu; jeśli czegoś nie da się stwierdzić bez uruchomienia, napisz to w odpowiedzi zamiast uruchamiać. Odpowiadaj zwięźle i konkretnie, wskaż pliki/linie.]"
 fi
@@ -147,9 +154,34 @@ hc send "$TARGET" "$FULL" >/dev/null
 
 # --- czekaj na koniec tury: ekran stabilny przez kilka odczytów ---
 deadline=$(( $(date +%s) + TIMEOUT ))
-prev=""; stable=0; started=$(date +%s); seen_working=""; sleep 3
+prev=""; stable=0; started=$(date +%s); seen_working=""; approvals=0; sleep 3
 while :; do
   cur="$(hc read --lines 500 "$TARGET" 2>/dev/null || true)"
+  # --approve-allowed: dialog polecenia z listy zgód zatwierdzamy klawiszem y, resztę zostawiamy człowiekowi
+  if [[ $APPROVE -eq 1 ]] && has_run_dialog "$cur"; then
+    verdict="$(python3 -I "$SCRIPT_DIR/approve-check.py" "$ROOT" <<<"$(tail -n 25 <<<"$cur")")"
+    if [[ "$verdict" == ALLOW\ * && $approvals -lt $MAX_APPROVALS ]]; then
+      hc keys "$TARGET" y >/dev/null
+      approvals=$((approvals + 1))
+      printf '%s %s\n' "$(date -Is)" "${verdict#ALLOW }" >> "$STATE_DIR/approvals.log"
+      echo "[ask-helper] zatwierdzono ($approvals): ${verdict#ALLOW }" >&2
+      # czekaj, aż dialog zniknie albo zmieni się na inne polecenie
+      for _ in $(seq 1 15); do
+        sleep 1
+        now="$(hc read --lines 500 "$TARGET" 2>/dev/null || true)"
+        has_run_dialog "$now" || break
+        [[ "$(python3 -I "$SCRIPT_DIR/approve-check.py" "$ROOT" <<<"$(tail -n 25 <<<"$now")")" != "$verdict" ]] && break
+      done
+      stable=0; prev=""
+      continue
+    fi
+    if [[ "$verdict" == ALLOW\ * ]]; then
+      echo "[ask-helper] limit $MAX_APPROVALS automatycznych zatwierdzeń; reszta w panelu $WHO ($TARGET)." >&2
+    else
+      echo "[ask-helper] $WHO ($TARGET) czeka na zgodę na polecenie spoza listy: ${verdict#DENY }. Zatwierdź/odrzuć w panelu." >&2
+    fi
+    exit 2
+  fi
   st="$(hc get "$TARGET" | python3 -I -c 'import json,sys; s=json.load(sys.stdin).get("status"); print((s.get("state") if isinstance(s,dict) else s) or "")' 2>/dev/null || true)"
   if [[ "$st" == "blocked" ]]; then
     echo "$WHO ($TARGET) zablokował się na prośbie o zgodę. Zatwierdź w jego panelu." >&2

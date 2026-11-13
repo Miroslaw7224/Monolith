@@ -91,6 +91,11 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 - `--role advice` (domyślnie) i `review`: pomocnik **tylko czyta** i odpowiada. Używaj do weryfikacji i opinii.
 - `--role task`: pomocnik może edytować pliki, wyłącznie przy drobnej, jasno opisanej pracy.
 - Kody wyjścia: 0 ok, 1 nie znaleziono pomocnika, 2 pomocnik czeka na zgodę (`blocked`), 3 timeout.
+- `--approve-allowed` (tylko z `--role task`, do testów/lintu/builda): skrypt sam zatwierdza (`y`, jednorazowo) dialogi
+  „Run this command?” **wyłącznie** dla poleceń z listy zgód poniżej (`npx tsc --noEmit`, `npx vitest run [ścieżki]`,
+  `npm run lint`, `npm run build`, z opcjonalnym `cd <Monolith> && ` i ` 2>&1`). Decyzję podejmuje `scripts/approve-check.py`
+  (testy: `tests/unit/scripts/ask-helper/`); każde zatwierdzenie trafia do `~/.local/state/ask-helper/approvals.log`.
+  Wszystko inne (flagi, pipe, przekierowania, inne komendy, sieć) kończy się kodem 2 i zatwierdza użytkownik.
 - Komenda `/consult <agy|cursor|both> <zadanie>` robi to samo.
 - NIE używaj `agy -p ...` ani `cursor-agent -p ...` przez Basha: to osobne procesy bez kontekstu sesji.
 - Pomocnicy działają w `~/projects/Brain_7224/Monolith`; w prompcie podawaj ścieżki względem tego katalogu,
