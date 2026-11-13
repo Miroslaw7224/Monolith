@@ -7,6 +7,7 @@ import type {
   ProjectSummaryDto,
   ProjectType,
   StateInputDto,
+  TaskOpInputDto,
 } from "@/contexts/bc_projects/schemas";
 import type { MutationResult, ProjectActions } from "./mutation";
 
@@ -103,6 +104,7 @@ export function useProjects(apiFetch: ApiFetch): {
     [mutate]
   );
   const setType = useCallback((type: ProjectType) => mutate("PATCH", "", { type }), [mutate]);
+  const tasksOp = useCallback((input: TaskOpInputDto) => mutate("POST", "/tasks", input), [mutate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,6 +191,7 @@ export function useProjects(apiFetch: ApiFetch): {
     saveState,
     addDevlogEntry,
     setType,
+    tasksOp,
     reloadDetail,
   };
 }

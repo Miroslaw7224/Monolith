@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Project, ProjectState, RegistryEntry } from "@/contexts/bc_projects/models";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import type {
+  BoardTask,
+  Project,
+  ProjectState,
+  RegistryEntry,
+  TasksBoard,
+} from "@/contexts/bc_projects/models";
+import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 
 const mockReadRegistry = vi.hoisted(() => vi.fn());
 const mockReadProjectIndex = vi.hoisted(() => vi.fn());
@@ -11,6 +17,8 @@ const mockReadDevlog = vi.hoisted(() => vi.fn());
 const mockWriteProjectState = vi.hoisted(() => vi.fn());
 const mockAppendDevlogEntry = vi.hoisted(() => vi.fn());
 const mockWriteProjectType = vi.hoisted(() => vi.fn());
+const mockReadProjectBoard = vi.hoisted(() => vi.fn());
+const mockWriteProjectTasks = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_projects/repositories", () => ({
   readRegistry: mockReadRegistry,
@@ -21,10 +29,13 @@ vi.mock("@/contexts/bc_projects/repositories", () => ({
   writeProjectState: mockWriteProjectState,
   appendDevlogEntry: mockAppendDevlogEntry,
   writeProjectType: mockWriteProjectType,
+  readProjectBoard: mockReadProjectBoard,
+  writeProjectTasks: mockWriteProjectTasks,
 }));
 
 import {
   addDevlogEntry,
+  applyTaskOp,
   effectiveLastWorked,
   freshness,
   getProject,
@@ -35,6 +46,7 @@ import {
 } from "@/contexts/bc_projects/services";
 
 const TODAY = new Date(2026, 10, 12);
+const EMPTY_BOARD: TasksBoard = { blockers: [], now: [], next: [], icebox: [], version: null };
 
 function entry(partial: Partial<RegistryEntry> & Pick<RegistryEntry, "id">): RegistryEntry {
   return {
@@ -63,6 +75,7 @@ describe("bc_projects services", () => {
     vi.clearAllMocks();
     mockReadProjectState.mockReturnValue({ state: null, version: null });
     mockReadDevlog.mockReturnValue([]);
+    mockReadProjectBoard.mockReturnValue(EMPTY_BOARD);
   });
 
   it("freshness 14 dni", () => {
@@ -274,6 +287,7 @@ describe("bc_projects services: Save State, devlog, type", () => {
     mockWriteProjectState.mockReturnValue(VERSION);
     mockAppendDevlogEntry.mockResolvedValue(undefined);
     mockWriteProjectType.mockResolvedValue(undefined);
+    mockReadProjectBoard.mockReturnValue(EMPTY_BOARD);
   });
 
   it.each([
@@ -395,5 +409,123 @@ describe("bc_projects services: Save State, devlog, type", () => {
     mockReadRegistry.mockReturnValue({ entries: [], warnings: [] });
     await expect(setProjectType("zzz", "etat")).rejects.toThrow(NotFoundError);
     expect(mockWriteProjectType).not.toHaveBeenCalled();
+  });
+});
+
+describe("bc_projects services: zadania projektu (tablica)", () => {
+  const a = entry({ id: "a", name: "A" });
+  const NOW = new Date(2026, 10, 13, 9, 15);
+  const VERSION = { size: 10, hash: "h1" };
+  const task = (text: string, done = false): BoardTask => ({ text, done });
+  const board = (partial: Partial<TasksBoard>): TasksBoard => ({
+    ...EMPTY_BOARD,
+    version: VERSION,
+    ...partial,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
+    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: null });
+    mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
+    mockReadProjectState.mockReturnValue({ state: null, version: null });
+    mockReadDevlog.mockReturnValue([]);
+    mockReadProjectBoard.mockReturnValue(board({ next: [task("A"), task("B")] }));
+    mockWriteProjectTasks.mockReturnValue(VERSION);
+  });
+
+  it("getProject zwraca board z repozytorium", () => {
+    const b = board({ next: [task("A")] });
+    mockReadProjectBoard.mockReturnValue(b);
+    expect(getProject("a", TODAY).board).toEqual(b);
+  });
+
+  it("toggle: zapis z wersją i datą dnia, wynik z getProject", async () => {
+    const op = { op: "toggle", column: "next", index: 1, text: "B" } as const;
+    const result = await applyTaskOp("a", op, VERSION, NOW);
+    expect(mockWriteProjectTasks).toHaveBeenCalledWith(a, op, VERSION, { today: "2026-11-13" });
+    expect(result.id).toBe("a");
+  });
+
+  it("inna wersja niż w pliku: ConflictError i brak zapisu", async () => {
+    await expect(
+      applyTaskOp(
+        "a",
+        { op: "toggle", column: "next", index: 0, text: "A" },
+        { size: 1, hash: "x" },
+        NOW
+      )
+    ).rejects.toThrow(ConflictError);
+    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+  });
+
+  it("niezgodny tekst lub indeks poza zakresem: ConflictError", async () => {
+    await expect(
+      applyTaskOp("a", { op: "remove", column: "next", index: 0, text: "B" }, VERSION, NOW)
+    ).rejects.toThrow(ConflictError);
+    await expect(
+      applyTaskOp("a", { op: "remove", column: "next", index: 5, text: "A" }, VERSION, NOW)
+    ).rejects.toThrow(ConflictError);
+    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+  });
+
+  it("Teraz pełne: add i move do now to 422, bez zapisu", async () => {
+    mockReadProjectBoard.mockReturnValue(
+      board({ now: [task("1"), task("2"), task("3")], next: [task("A")] })
+    );
+    const add = applyTaskOp("a", { op: "add", column: "now", text: "x" }, VERSION, NOW);
+    await expect(add).rejects.toThrow(DomainError);
+    await expect(add).rejects.toMatchObject({ statusCode: 422 });
+    await expect(
+      applyTaskOp("a", { op: "move", column: "next", index: 0, text: "A", to: "now" }, VERSION, NOW)
+    ).rejects.toMatchObject({ statusCode: 422 });
+    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+  });
+
+  it("Teraz ma 2 zadania: add do now przechodzi", async () => {
+    mockReadProjectBoard.mockReturnValue(board({ now: [task("1"), task("2")] }));
+    await applyTaskOp("a", { op: "add", column: "now", text: "x" }, VERSION, NOW);
+    expect(mockWriteProjectTasks).toHaveBeenCalledTimes(1);
+  });
+
+  it("move ukończonego zadania do now to 422", async () => {
+    mockReadProjectBoard.mockReturnValue(board({ next: [task("A", true)] }));
+    await expect(
+      applyTaskOp("a", { op: "move", column: "next", index: 0, text: "A", to: "now" }, VERSION, NOW)
+    ).rejects.toMatchObject({ statusCode: 422 });
+    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+  });
+
+  it("move do tej samej kolumny to 422", async () => {
+    await expect(
+      applyTaskOp(
+        "a",
+        { op: "move", column: "next", index: 0, text: "A", to: "next" },
+        VERSION,
+        NOW
+      )
+    ).rejects.toMatchObject({ statusCode: 422 });
+  });
+
+  it("add przy braku pliku: version null przechodzi, version niepusta to ConflictError", async () => {
+    mockReadProjectBoard.mockReturnValue(EMPTY_BOARD);
+    await applyTaskOp("a", { op: "add", column: "next", text: "x" }, null, NOW);
+    expect(mockWriteProjectTasks).toHaveBeenCalledTimes(1);
+    await expect(
+      applyTaskOp("a", { op: "add", column: "next", text: "x" }, VERSION, NOW)
+    ).rejects.toThrow(ConflictError);
+  });
+
+  it("toggle zadania z Teraz nie podlega limitowi, gdy Teraz jest pełne", async () => {
+    mockReadProjectBoard.mockReturnValue(board({ now: [task("1"), task("2"), task("3")] }));
+    await applyTaskOp("a", { op: "toggle", column: "now", index: 0, text: "1" }, VERSION, NOW);
+    expect(mockWriteProjectTasks).toHaveBeenCalledTimes(1);
+  });
+
+  it("nieznany projekt: NotFoundError", async () => {
+    mockReadRegistry.mockReturnValue({ entries: [], warnings: [] });
+    await expect(
+      applyTaskOp("zzz", { op: "add", column: "next", text: "x" }, null, NOW)
+    ).rejects.toThrow(NotFoundError);
   });
 });

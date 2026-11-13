@@ -8,9 +8,11 @@ import {
   type ProjectState,
   type ProjectType,
   type RegistryEntry,
+  type TaskOp,
+  type TasksBoard,
   type VersionToken,
 } from "@/contexts/bc_projects/models";
-import { DomainError, NotFoundError } from "@/lib/errors";
+import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
 import { getVaultRoot } from "@/lib/nexus/vault-path";
 import {
@@ -29,6 +31,7 @@ import {
   serializeState,
   setFrontmatterType,
 } from "./markdown";
+import { applyTaskOp, readBoardText } from "./tasks-file";
 
 const REGISTRY = "Projects/_registry.yaml";
 const MISSING_PROJECTS_LIST = "Projects/_registry.yaml: brak listy 'projects'";
@@ -219,4 +222,38 @@ export async function writeProjectType(entry: RegistryEntry, type: ProjectType):
     if (current === null) throw new NotFoundError(`Brak pliku ${rel}`);
     return setFrontmatterType(current, type);
   });
+}
+
+function sameVersion(a: VersionToken | null, b: VersionToken | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.size === b.size && a.hash === b.hash;
+}
+
+/** Tablica zadań z `tasks.md` (brak pliku: puste kolumny i `version: null`). */
+export function readProjectBoard(entry: RegistryEntry): TasksBoard {
+  const file = readVaultFile(projectPath(entry.folder, "tasks.md"));
+  return { ...readBoardText(file?.text ?? null), version: file?.version ?? null };
+}
+
+/**
+ * Zapis operacji na zadaniu do `tasks.md` z kontrolą wersji (`expected`; `null` = plik ma nie istnieć).
+ * Bez ponawiania: operacje po indeksie nie są lokalne, więc zmiana zewnętrzna to `ConflictError` (409).
+ */
+export function writeProjectTasks(
+  entry: RegistryEntry,
+  op: TaskOp,
+  expected: VersionToken | null,
+  ctx: { today: string }
+): VersionToken {
+  const rel = projectPath(entry.folder, "tasks.md");
+  assertWritable(entry, rel);
+  const file = readVaultFile(rel);
+  if (!sameVersion(file?.version ?? null, expected)) {
+    throw new ConflictError(`Plik zmienił się w międzyczasie: ${rel}`);
+  }
+  const next = applyTaskOp(file?.text ?? null, op, {
+    projectName: entry.name,
+    today: ctx.today,
+  });
+  return writeVaultFile(rel, next, { expected });
 }

@@ -1,22 +1,26 @@
-import type {
-  Freshness,
-  Project,
-  ProjectType,
-  ProjectWithContent,
-  RegistryEntry,
-  VersionToken,
+import {
+  NOW_LIMIT,
+  type Freshness,
+  type Project,
+  type ProjectType,
+  type ProjectWithContent,
+  type RegistryEntry,
+  type TaskOp,
+  type VersionToken,
 } from "@/contexts/bc_projects/models";
 import {
   appendDevlogEntry,
   readDevlog,
+  readProjectBoard,
   readProjectContent,
   readProjectIndex,
   readProjectState,
   readRegistry,
   writeProjectState,
+  writeProjectTasks,
   writeProjectType,
 } from "@/contexts/bc_projects/repositories";
-import { NotFoundError } from "@/lib/errors";
+import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 
 export const STALE_AFTER_DAYS = 14;
 
@@ -137,10 +141,12 @@ export function getProject(id: string, today: Date = new Date()): ProjectWithCon
   const content = readProjectContent(entry);
   const { state, version } = readProjectState(entry);
   const devlog = readDevlog(entry);
+  const board = readProjectBoard(entry);
   return {
     ...entry,
     ...index,
     ...content,
+    board,
     state,
     stateVersion: version,
     devlog,
@@ -217,4 +223,50 @@ export async function setProjectType(
   const entry = findEntry(id);
   await writeProjectType(entry, type);
   return getProject(id, today);
+}
+
+function sameVersion(a: VersionToken | null, b: VersionToken | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.size === b.size && a.hash === b.hash;
+}
+
+/**
+ * Operacja na zadaniu z tablicy `tasks.md`. Reguły: wersja pliku i zgodność `text` pod indeksem (409),
+ * limit zadań w „Teraz”, ukończone zadanie nie trafia do „Teraz”, ruch do tej samej kolumny (422).
+ * Błędy wykrywamy przed zapisem. Data ukończenia to dzień z `now` (ustawia serwer).
+ */
+export async function applyTaskOp(
+  id: string,
+  op: TaskOp,
+  version: VersionToken | null,
+  now: Date = new Date()
+): Promise<ProjectWithContent> {
+  const entry = findEntry(id);
+  const board = readProjectBoard(entry);
+  if (!sameVersion(board.version, version)) {
+    throw new ConflictError("Plik zadań zmienił się w międzyczasie");
+  }
+
+  if (op.op === "add") {
+    if (op.column === "now" && board.now.length >= NOW_LIMIT) {
+      throw new DomainError(`Limit ${NOW_LIMIT} zadań w kolumnie Teraz`, 422);
+    }
+  } else {
+    const task = board[op.column][op.index];
+    if (task === undefined || task.text !== op.text) {
+      throw new ConflictError("Zadanie zmieniło się w pliku");
+    }
+    if (op.op === "move") {
+      if (op.to === op.column) throw new DomainError("Zadanie jest już w tej kolumnie", 422);
+      if (op.to === "now") {
+        if (task.done) throw new DomainError("Ukończone zadanie nie może trafić do Teraz", 422);
+        if (board.now.length >= NOW_LIMIT) {
+          throw new DomainError(`Limit ${NOW_LIMIT} zadań w kolumnie Teraz`, 422);
+        }
+      }
+    }
+  }
+
+  writeProjectTasks(entry, op, version, { today: localDate(now) });
+  return getProject(id, now);
 }

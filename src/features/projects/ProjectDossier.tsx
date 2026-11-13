@@ -4,6 +4,7 @@ import { isHttpUrl } from "./isHttpUrl";
 import type { ProjectActions } from "./mutation";
 import { ProjectDevlog } from "./ProjectDevlog";
 import { ProjectSaveState } from "./ProjectSaveState";
+import { ProjectTasksBoard } from "./ProjectTasksBoard";
 
 const TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
   { value: "etat", label: "Etat" },
@@ -103,24 +104,12 @@ export function ProjectDossier(props: {
 
       <article className="prj-card">
         <h3 className="prj-section-title">Zadania</h3>
-        <div className="prj-tasks">
-          {project.tasks.map((section) => (
-            <div key={section.heading} className="prj-task-section">
-              <h4 className="prj-task-section__title">{section.heading}</h4>
-              {section.items.length === 0 ? <p className="prj-task-empty">Brak</p> : null}
-              <ul className="prj-task-list">
-                {section.items.map((item, index) => (
-                  <li key={`${section.heading}-${index}`}>
-                    <label className="prj-task-item">
-                      <input type="checkbox" checked={item.done} disabled />
-                      <span>{item.text}</span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        <ProjectTasksBoard
+          key={project.id}
+          board={project.board}
+          onOp={actions.tasksOp}
+          onReload={actions.reloadDetail}
+        />
       </article>
 
       <article className="prj-card">

@@ -33,6 +33,7 @@ function detail(
   return {
     ...summary(partial),
     tasks: [],
+    board: { blockers: [], now: [], next: [], icebox: [], version: null },
     bugs: [],
     whereIStopped: null,
     state: null,

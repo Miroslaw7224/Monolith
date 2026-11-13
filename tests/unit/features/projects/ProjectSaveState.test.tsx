@@ -18,6 +18,7 @@ function project(partial: Partial<ProjectDetailDto> = {}): ProjectDetailDto {
     owner: "personal",
     freshness: "fresh",
     tasks: [],
+    board: { blockers: [], now: [], next: [], icebox: [], version: null },
     bugs: [],
     whereIStopped: null,
     state: null,

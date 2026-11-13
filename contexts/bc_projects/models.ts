@@ -53,9 +53,33 @@ export type BugEntry = {
   status?: string;
 };
 
+export type TaskColumn = "blockers" | "now" | "next" | "icebox";
+export const TASK_COLUMNS: readonly TaskColumn[] = ["blockers", "now", "next", "icebox"];
+export const NOW_LIMIT = 3;
+
+/** `text` jest kanoniczny: bez końcowego ` [now::]` i bez końcowego ` — YYYY-MM-DD` ukończonego zadania. */
+export type BoardTask = { text: string; done: boolean; doneDate?: string };
+export type TasksBoard = {
+  blockers: BoardTask[];
+  now: BoardTask[];
+  next: BoardTask[];
+  icebox: BoardTask[];
+  /** Wersja `tasks.md`; `null`, gdy pliku nie ma. */
+  version: VersionToken | null;
+};
+
+export type TaskRef = { column: TaskColumn; index: number; text: string };
+export type TaskOp =
+  | { op: "add"; column: TaskColumn; text: string }
+  | ({ op: "toggle" } & TaskRef)
+  | ({ op: "edit"; newText: string } & TaskRef)
+  | ({ op: "remove" } & TaskRef)
+  | ({ op: "move"; to: TaskColumn } & TaskRef);
+
 export type Project = RegistryEntry & ProjectIndex & { freshness: Freshness };
 export type ProjectWithContent = Project & {
   tasks: ChecklistSection[];
+  board: TasksBoard;
   bugs: BugEntry[];
   state: ProjectState | null;
   stateVersion: VersionToken | null;
