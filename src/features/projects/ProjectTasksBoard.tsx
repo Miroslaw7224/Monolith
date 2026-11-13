@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { GripVertical } from "lucide-react";
 import {
   NOW_LIMIT,
   type BoardTaskDto,
@@ -36,6 +37,9 @@ export function ProjectTasksBoard(props: {
   const [editing, setEditing] = useState<TaskPos | null>(null);
   const [editText, setEditText] = useState("");
   const [confirming, setConfirming] = useState<TaskPos | null>(null);
+  /** Przeciągane zadanie (po pozycji) i kolumna, nad którą jest kursor. */
+  const [drag, setDrag] = useState<TaskPos | null>(null);
+  const [overColumn, setOverColumn] = useState<ColumnKey | null>(null);
   const [drafts, setDrafts] = useState<Record<ColumnKey, string>>({
     blockers: "",
     now: "",
@@ -105,6 +109,34 @@ export function ProjectTasksBoard(props: {
     setConfirming(null);
   };
 
+  const endDrag = () => {
+    setDrag(null);
+    setOverColumn(null);
+  };
+
+  /** Te same reguły co na serwerze (422), sprawdzane wcześniej, żeby nie wysyłać skazanego żądania. */
+  const moveBlockReason = (task: BoardTaskDto, to: ColumnKey): string | null => {
+    if (to !== "now") return null;
+    if (task.done) return "Ukończone zadanie nie może trafić do Teraz";
+    if (nowFull) return `Limit ${NOW_LIMIT} zadań w kolumnie Teraz`;
+    return null;
+  };
+
+  /** Upuszczenie przeciąganego zadania na kolumnę: przeniesienie (ta sama kolumna = brak zmiany). */
+  const dropOn = async (to: ColumnKey) => {
+    const from = drag;
+    endDrag();
+    if (from === null || busy || from.column === to) return;
+    const task = board[from.column][from.index];
+    if (task === undefined) return;
+    const reason = moveBlockReason(task, to);
+    if (reason !== null) {
+      setError(reason);
+      return;
+    }
+    await run({ op: "move", ...ref(from.column, from.index, task), to });
+  };
+
   const renderTask = (column: ColumnKey, task: BoardTaskDto, index: number) => {
     const key = `${column}-${index}-${task.text}`;
     if (samePos(editing, column, index)) {
@@ -137,21 +169,41 @@ export function ProjectTasksBoard(props: {
         </li>
       );
     }
-    const targets = COLUMNS.filter((c) => c.key !== column);
+    const itemClass = [
+      "prj-board__item",
+      task.done ? "prj-board__item--done" : "",
+      samePos(drag, column, index) ? "prj-board__item--dragging" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     return (
-      <li
-        key={key}
-        className={task.done ? "prj-board__item prj-board__item--done" : "prj-board__item"}
-      >
-        <label className="prj-task-item">
-          <input
-            type="checkbox"
-            checked={task.done}
-            disabled={busy}
-            onChange={() => run({ op: "toggle", ...ref(column, index, task) })}
-          />
-          <span className="prj-board__text">{task.text}</span>
-        </label>
+      <li key={key} className={itemClass}>
+        <div className="prj-board__row">
+          <span
+            className="prj-board__grip"
+            draggable={!busy}
+            aria-label={`Przeciągnij: ${task.text}`}
+            title="Przeciągnij na inną kolumnę"
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", task.text);
+              setError(null);
+              setDrag({ column, index });
+            }}
+            onDragEnd={endDrag}
+          >
+            <GripVertical className="prj-board__grip-icon" aria-hidden />
+          </span>
+          <label className="prj-task-item">
+            <input
+              type="checkbox"
+              checked={task.done}
+              disabled={busy}
+              onChange={() => run({ op: "toggle", ...ref(column, index, task) })}
+            />
+            <span className="prj-board__text">{task.text}</span>
+          </label>
+        </div>
         {task.doneDate ? <span className="prj-board__date">{task.doneDate}</span> : null}
         <div className="prj-board__actions">
           <button
@@ -191,28 +243,6 @@ export function ProjectTasksBoard(props: {
               Usuń
             </button>
           )}
-          <select
-            className="prj-board__move"
-            aria-label={`Przenieś: ${task.text}`}
-            value=""
-            disabled={busy}
-            onChange={(e) =>
-              run({ op: "move", ...ref(column, index, task), to: e.target.value as ColumnKey })
-            }
-          >
-            <option value="" disabled>
-              Przenieś do…
-            </option>
-            {targets.map((t) => (
-              <option
-                key={t.key}
-                value={t.key}
-                disabled={t.key === "now" && (task.done || nowFull)}
-              >
-                {t.label}
-              </option>
-            ))}
-          </select>
         </div>
       </li>
     );
@@ -229,7 +259,31 @@ export function ProjectTasksBoard(props: {
         const tasks = board[key];
         const addDisabled = busy || (key === "now" && nowFull);
         return (
-          <section key={key} className="prj-board__col" aria-label={`Kolumna ${label}`}>
+          <section
+            key={key}
+            className={
+              drag !== null && overColumn === key
+                ? "prj-board__col prj-board__col--over"
+                : "prj-board__col"
+            }
+            aria-label={`Kolumna ${label}`}
+            onDragOver={(e) => {
+              if (drag === null || busy) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setOverColumn(key);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                setOverColumn((c) => (c === key ? null : c));
+              }
+            }}
+            onDrop={(e) => {
+              if (drag === null) return;
+              e.preventDefault();
+              void dropOn(key);
+            }}
+          >
             <h4 className="prj-task-section__title">
               {label}
               {key === "now" ? (

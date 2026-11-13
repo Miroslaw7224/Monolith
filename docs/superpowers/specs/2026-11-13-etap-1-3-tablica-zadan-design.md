@@ -15,7 +15,7 @@ Podetap 1-3 zamienia sekcję zadań w teczce projektu (dziś tylko odczyt) w **t
 - Limit 3 zadań w „Teraz”.
 - Odczyt: `GET /api/projects/[id]` zwraca także `board`.
 
-**Poza zakresem:** pole ticketu/ID (`owner: work`, 1-5), energia Deep/Quick, drag-and-drop i sortowanie (etap 2), procent kamienia liczony z zadań, migracja globalnego `Tasks/tasks.md` (PR 4, `bc_tasks`), paczka kontekstu (1-4), edycja nagłówków i sekcji spoza trzech znanych.
+**Poza zakresem:** pole ticketu/ID (`owner: work`, 1-5), energia Deep/Quick, sortowanie w obrębie kolumny (etap 2; przeciąganie zmienia tylko kolumnę), procent kamienia liczony z zadań, migracja globalnego `Tasks/tasks.md` (PR 4, `bc_tasks`), paczka kontekstu (1-4), edycja nagłówków i sekcji spoza trzech znanych.
 
 **Warunek wstępny:** 1-2 zmergowane (PR #24).
 
@@ -59,7 +59,7 @@ Błędy: zła wersja lub niezgodny `text`/`index` → 409; czwarte „Teraz”, 
 | `schemas.ts`                   | `taskOpSchema` (discriminated union), `BoardTaskDto`, `TasksBoardDto`; `ProjectDetailDto` dostaje `board`; stare `tasks: ChecklistSectionDto[]` zostaje.                                            |
 | `router.ts`, `app/api/…/tasks` | `postTasks`; `route.ts` tylko re-eksport.                                                                                                                                                           |
 
-UI (`src/features/projects/`): `ProjectTasksBoard.tsx` zastępuje listę sekcji w `ProjectDossier.tsx`: cztery kolumny, odhaczanie, edycja inline, usuwanie, pole „Dodaj”, menu „Przenieś do…”. Importuje z kontekstu tylko `schemas`; mutacje przez `mutation.ts` (jedna naraz, po 409 odświeżenie). Test architektury (`tests/unit/architecture.static.test.ts`) nie wymaga zmian.
+UI (`src/features/projects/`): `ProjectTasksBoard.tsx` zastępuje listę sekcji w `ProjectDossier.tsx`: cztery kolumny, odhaczanie, edycja inline, usuwanie, pole „Dodaj”, przenoszenie między kolumnami przeciąganiem uchwytu zadania na kolumnę (natywny HTML5 DnD jak w zakładce Zadania, na życzenie użytkownika 2026-11-13; bez menu „Przenieś do…”), z lokalną kontrolą reguł limitu i ukończonych (ten sam komunikat co 422). Importuje z kontekstu tylko `schemas`; mutacje przez `mutation.ts` (jedna naraz, po 409 odświeżenie). Test architektury (`tests/unit/architecture.static.test.ts`) nie wymaga zmian.
 
 ## 5. Testy (TDD)
 

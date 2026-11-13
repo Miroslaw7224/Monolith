@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectDetailDto, TasksBoardDto } from "@/contexts/bc_projects/schemas";
@@ -71,6 +71,18 @@ const posts = (api: ReturnType<typeof makeApi>) =>
 
 const column = (name: string) => screen.getByRole("region", { name: `Kolumna ${name}` });
 
+const dataTransfer = () => ({ setData: vi.fn(), effectAllowed: "", dropEffect: "" });
+const handle = (taskText: string) => screen.getByLabelText(`Przeciągnij: ${taskText}`);
+
+/** Pełne przeciągnięcie uchwytu zadania na kolumnę (dragStart → dragOver → drop → dragEnd). */
+function dragTo(taskText: string, columnName: string) {
+  const dt = dataTransfer();
+  fireEvent.dragStart(handle(taskText), { dataTransfer: dt });
+  fireEvent.dragOver(column(columnName), { dataTransfer: dt });
+  fireEvent.drop(column(columnName), { dataTransfer: dt });
+  fireEvent.dragEnd(handle(taskText), { dataTransfer: dt });
+}
+
 describe("ProjectTasksBoard (przez ProjectsView)", () => {
   it("renderuje cztery kolumny z zadaniami i licznik Teraz", async () => {
     render(<ProjectsView apiFetch={makeApi(detail(board()))} />);
@@ -133,25 +145,33 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     expect(posts(api)).toEqual([]);
   });
 
-  it("Teraz pełne: dodawanie i opcja „Teraz” w przenoszeniu wyłączone", async () => {
-    const full = board({
-      now: [
-        { text: "1", done: false },
-        { text: "2", done: false },
-        { text: "3", done: false },
-      ],
-    });
-    render(<ProjectsView apiFetch={makeApi(detail(full))} />);
+  it("Teraz pełne: dodawanie wyłączone, a upuszczenie zadania w Teraz pokazuje błąd bez żądania", async () => {
+    const api = makeApi(
+      detail(
+        board({
+          now: [
+            { text: "1", done: false },
+            { text: "2", done: false },
+            { text: "3", done: false },
+          ],
+        })
+      )
+    );
+    render(<ProjectsView apiFetch={api} />);
     expect(await screen.findByLabelText("Dodaj zadanie: Teraz")).toBeDisabled();
     expect(within(column("Teraz")).getByRole("button", { name: "Dodaj" })).toBeDisabled();
-    const select = screen.getByLabelText("Przenieś: Trzecie");
-    expect(within(select).getByRole("option", { name: "Teraz" })).toBeDisabled();
+    dragTo("Trzecie", "Teraz");
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Limit 3/);
+    expect(posts(api)).toEqual([]);
   });
 
-  it("ukończone zadanie nie ma aktywnej opcji „Teraz”", async () => {
-    render(<ProjectsView apiFetch={makeApi(detail(board()))} />);
-    const select = await screen.findByLabelText("Przenieś: Zrobione");
-    expect(within(select).getByRole("option", { name: "Teraz" })).toBeDisabled();
+  it("ukończone zadanie upuszczone w Teraz: błąd i brak żądania", async () => {
+    const api = makeApi(detail(board()));
+    render(<ProjectsView apiFetch={api} />);
+    await screen.findByLabelText("Przeciągnij: Zrobione");
+    dragTo("Zrobione", "Teraz");
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Ukończone zadanie/);
+    expect(posts(api)).toEqual([]);
   });
 
   it("edycja inline: POST edit z newText", async () => {
@@ -201,14 +221,41 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     ]);
   });
 
-  it("przenoszenie: POST move z kolumną docelową", async () => {
-    const user = userEvent.setup();
+  it("przeciągnięcie na kolumnę: POST move z kolumną docelową", async () => {
     const api = makeApi(detail(board()));
     render(<ProjectsView apiFetch={api} />);
-    await user.selectOptions(await screen.findByLabelText("Przenieś: Trzecie"), "icebox");
+    await screen.findByLabelText("Przeciągnij: Trzecie");
+    dragTo("Trzecie", "Icebox");
+    await waitFor(() => expect(posts(api)).toHaveLength(1));
     expect(posts(api)).toEqual([
       { op: "move", column: "next", index: 1, text: "Trzecie", to: "icebox", version: V },
     ]);
+  });
+
+  it("upuszczenie w tej samej kolumnie nie wysyła żądania", async () => {
+    const api = makeApi(detail(board()));
+    render(<ProjectsView apiFetch={api} />);
+    await screen.findByLabelText("Przeciągnij: Trzecie");
+    dragTo("Trzecie", "Następne");
+    expect(posts(api)).toEqual([]);
+  });
+
+  it("kolumna docelowa jest podświetlona w trakcie przeciągania i po zakończeniu wraca", async () => {
+    render(<ProjectsView apiFetch={makeApi(detail(board()))} />);
+    await screen.findByLabelText("Przeciągnij: Trzecie");
+    const dt = dataTransfer();
+    fireEvent.dragStart(handle("Trzecie"), { dataTransfer: dt });
+    fireEvent.dragOver(column("Icebox"), { dataTransfer: dt });
+    expect(column("Icebox")).toHaveClass("prj-board__col--over");
+    fireEvent.dragEnd(handle("Trzecie"), { dataTransfer: dt });
+    expect(column("Icebox")).not.toHaveClass("prj-board__col--over");
+  });
+
+  it("zamiast menu „Przenieś do…” zadanie ma uchwyt do przeciągania", async () => {
+    render(<ProjectsView apiFetch={makeApi(detail(board()))} />);
+    const grip = await screen.findByLabelText("Przeciągnij: Trzecie");
+    expect(grip).toHaveAttribute("draggable", "true");
+    expect(screen.queryByLabelText("Przenieś: Trzecie")).not.toBeInTheDocument();
   });
 
   it("konflikt 409: komunikat i ponowne pobranie szczegółów", async () => {
@@ -239,6 +286,7 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     await waitFor(() => expect(checkbox).toBeDisabled());
     expect(screen.getByLabelText("Dodaj zadanie: Następne")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edytuj: Pierwsze" })).toBeDisabled();
+    expect(handle("Pierwsze")).toHaveAttribute("draggable", "false");
   });
 });
 
