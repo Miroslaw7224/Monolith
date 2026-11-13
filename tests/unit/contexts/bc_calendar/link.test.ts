@@ -43,6 +43,22 @@ describe("link wydarzenia (repozytorium)", () => {
   });
 });
 
+describe("link wydarzenia (odczyt z pliku)", () => {
+  it.each(["javascript:alert(1)", "data:text/html,x", "ftp://x.pl/a", "meet.google.com/abc"])(
+    "link %s wpisany ręcznie w YAML jest ignorowany",
+    async (bad) => {
+      const e = await createInRepo({ ...BASE, link: LINK });
+      vault.write("Calendar/2026-11.yaml", vault.read("Calendar/2026-11.yaml")!.replace(LINK, bad));
+      expect((await getFromRepo()).find((x) => x.id === e.id)?.link).toBeUndefined();
+    }
+  );
+
+  it("poprawny link http(s) z pliku zostaje", async () => {
+    const e = await createInRepo({ ...BASE, link: LINK });
+    expect((await getFromRepo()).find((x) => x.id === e.id)?.link).toBe(LINK);
+  });
+});
+
 describe("link wydarzenia (DTO)", () => {
   it("DTO przenosi link", () => {
     expect(toCalendarEventDto({ id: "1", ...BASE, link: LINK }).link).toBe(LINK);

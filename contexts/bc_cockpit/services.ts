@@ -213,8 +213,9 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
 async function loadEvents(date: string, warnings: string[]): Promise<DayEvent[]> {
   try {
     const entries = await calendarServices.getCalendarEvents({ startDate: date, endDate: date });
+    // wydarzenia z poprzednich dni, które sięgają po północy, nie należą do osi dzisiejszego dnia
     return entries.flatMap((e) =>
-      e.type === "task_deadline"
+      e.type === "task_deadline" || e.date !== date
         ? []
         : [
             {
@@ -491,7 +492,11 @@ export async function getCommitHistory(
  */
 export function withEnergy(raw: string, energy: Energy | null): string {
   const rest = raw.replace(ENERGY_MARK, "").trim();
-  return energy === null ? rest : `${rest} #${energy}`;
+  return energy === null ? rest : [rest, `#${energy}`].filter((part) => part !== "").join(" ");
+}
+
+function assertNotEmpty(text: string): void {
+  if (text === "") throw new DomainError("Zadanie nie może składać się tylko ze znacznika energii");
 }
 
 /**
@@ -506,10 +511,12 @@ export async function setQueueItemEnergy(
     const task = (await tasksServices.getTasks()).find((t) => t.id === source.taskId);
     if (!task) throw new NotFoundError("Nie ma takiego zadania");
     const title = withEnergy(task.title, energy);
+    assertNotEmpty(title);
     if (title !== task.title) await tasksServices.updateTask(source.taskId, { title });
     return source;
   }
   const text = withEnergy(source.text, energy);
+  assertNotEmpty(text);
   if (text !== source.text)
     await projectsServices.rewriteNowTask(source.projectId, source.text, text);
   return { type: "project", projectId: source.projectId, text };

@@ -34,6 +34,11 @@ function monthFiles(): string[] {
     .map((name) => `${DIR}/${name}`);
 }
 
+/** Link z pliku (mógł być edytowany ręcznie): zostaje tylko adres http(s); inne schematy (np. `javascript:`) odpadają. */
+function safeLink(value: string | undefined): string | undefined {
+  return value !== undefined && /^https?:\/\/\S+$/i.test(value.trim()) ? value.trim() : undefined;
+}
+
 function toEvent(r: YamlRecord): CalendarEvent {
   return {
     id: str(r.id),
@@ -44,7 +49,7 @@ function toEvent(r: YamlRecord): CalendarEvent {
     tags: Array.isArray(r.tags) ? r.tags.map(String) : r.tags ? [String(r.tags)] : [],
     color: optStr(r.color) ?? "#3B82F6",
     type: r.type === "meeting" ? "meeting" : "work",
-    link: optStr(r.link),
+    link: safeLink(optStr(r.link)),
     brief: optStr(r.brief),
     created_at: optStr(r.created),
   };

@@ -563,6 +563,34 @@ describe("oś dnia", () => {
     ]);
   });
 
+  it("wydarzenie z wczoraj, które przechodzi przez północ, nie trafia na dzisiejszą oś ani do nextMeeting", async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: "late",
+        date: "2026-11-12",
+        start_minutes: 1380,
+        duration_minutes: 120,
+        title: "Wczorajsze late",
+        tags: [],
+        color: "#111",
+        type: "meeting",
+      },
+      {
+        id: "today",
+        date: "2026-11-13",
+        start_minutes: 780,
+        duration_minutes: 60,
+        title: "Dzisiejsze",
+        tags: [],
+        color: "#222",
+        type: "meeting",
+      },
+    ]);
+    const result = await getCockpit(new Date(2026, 10, 13, 9, 0));
+    expect(result.events.map((e) => e.id)).toEqual(["today"]);
+    expect(result.nextMeeting?.title).toBe("Dzisiejsze");
+  });
+
   it("przenosi brief wydarzenia (K4)", async () => {
     mockGetCalendarEvents.mockResolvedValue([
       {
@@ -1172,6 +1200,7 @@ describe("withEnergy", () => {
     ["Porty #deep", null, "Porty"],
     ["Porty", null, "Porty"],
     ["Porty #deepwork", "quick", "Porty #deepwork #quick"],
+    ["#quick", "deep", "#deep"],
   ] as const)("%s + %s → %s", (raw, energy, expected) => {
     expect(withEnergy(raw, energy)).toBe(expected);
   });
@@ -1224,6 +1253,18 @@ describe("setQueueItemEnergy (K2b)", () => {
     );
     expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty #quick", "Porty");
     expect(none).toEqual({ type: "project", projectId: "p", text: "Porty" });
+  });
+
+  it("zdjęcie energii z zadania będącego samym znacznikiem jest odrzucone (puste zadanie)", async () => {
+    mockGetTasks.mockResolvedValue([{ id: "t1", title: "#deep" }]);
+    await expect(setQueueItemEnergy({ type: "task", taskId: "t1" }, null)).rejects.toBeInstanceOf(
+      DomainError
+    );
+    await expect(
+      setQueueItemEnergy({ type: "project", projectId: "p", text: "[energy:: quick]" }, null)
+    ).rejects.toBeInstanceOf(DomainError);
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+    expect(mockRewriteNowTask).not.toHaveBeenCalled();
   });
 
   it("bez zmiany (ten sam tekst) niczego nie zapisuje", async () => {

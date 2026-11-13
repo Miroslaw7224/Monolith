@@ -1049,6 +1049,23 @@ describe("K1: układ wg makiety", () => {
     });
   });
 
+  test("błąd odświeżenia po akcji nie niszczy widoku: dane zostają, pojawia się komunikat", async () => {
+    respond(FULL);
+    const base = mockApiFetch.getMockImplementation()!;
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/cockpit"
+        ? Promise.resolve({ ok: false, status: 500, json: async () => ({ error: "boom" }) })
+        : base(url, init)
+    );
+    const row = within(queue).getByText("Wysłać wniosek").closest("li") as HTMLElement;
+    fireEvent.click(within(row).getByRole("checkbox", { name: "zrobione" }));
+    expect(await screen.findByText(/Nie udało się odświeżyć Kokpitu/)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Kolejka na dziś" })).toBeInTheDocument();
+    expect(screen.queryByText(/Nie udało się wczytać Kokpitu/)).not.toBeInTheDocument();
+  });
+
   test("klik w tytuł otwiera podgląd; zadanie projektu: Zrobione i „Otwórz w Projektach”", async () => {
     respond(FULL);
     const onOpenProject = vi.fn();

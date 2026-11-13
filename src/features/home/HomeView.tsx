@@ -110,24 +110,31 @@ export default function HomeView({
 
         {loading && cockpit === null ? (
           <p className="kok-state">…</p>
-        ) : cockpitError !== null ? (
+        ) : cockpit === null ? (
           <p className="kok-state kok-state--error">
-            Nie udało się wczytać Kokpitu ({cockpitError})
+            Nie udało się wczytać Kokpitu ({cockpitError ?? "brak danych"})
           </p>
-        ) : cockpit !== null ? (
-          <CockpitSections
-            data={cockpit}
-            now={now}
-            apiFetch={apiFetch}
-            onChangeActive={() => setPickerOpen(true)}
-            onOpenProject={(id) => onOpenProject?.(id)}
-            onInboxChanged={() => void loadCockpit()}
-            onQueueChanged={() => void loadCockpit()}
-            onOpenTasks={() => onOpenTasks?.()}
-            focusInbox={focusInbox}
-            onInboxFocused={onInboxFocused}
-          />
-        ) : null}
+        ) : (
+          <>
+            {cockpitError !== null ? (
+              <p className="kok-state kok-state--error" role="alert">
+                Nie udało się odświeżyć Kokpitu ({cockpitError}); widać ostatnie wczytane dane
+              </p>
+            ) : null}
+            <CockpitSections
+              data={cockpit}
+              now={now}
+              apiFetch={apiFetch}
+              onChangeActive={() => setPickerOpen(true)}
+              onOpenProject={(id) => onOpenProject?.(id)}
+              onInboxChanged={() => void loadCockpit()}
+              onQueueChanged={() => void loadCockpit()}
+              onOpenTasks={() => onOpenTasks?.()}
+              focusInbox={focusInbox}
+              onInboxFocused={onInboxFocused}
+            />
+          </>
+        )}
 
         {closeOpen && cockpit ? (
           <CloseDayDialog
