@@ -106,22 +106,20 @@ export function CalendarEventForm({
     .slice(0, 10);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">Title</label>
+    <form onSubmit={handleSubmit} className="kal-form">
+      <div className="kal-form-group">
+        <label className="kal-label">Title</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. QA testing, Learning"
-          className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
+          className="kal-input"
           required
         />
       </div>
-      <div>
-        <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">
-          Event type
-        </label>
+      <div className="kal-form-group">
+        <label className="kal-label">Event type</label>
         <select
           value={eventType}
           onChange={(e) => {
@@ -129,30 +127,28 @@ export function CalendarEventForm({
             setEventType(next);
             setDurationMinutes(EVENT_TYPE_DEFAULT_DURATION[next]);
           }}
-          className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
+          className="kal-select"
         >
           <option value="work">Work session</option>
           <option value="meeting">Meeting</option>
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">Date</label>
+      <div className="kal-form-row">
+        <div className="kal-form-group">
+          <label className="kal-label">Date</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
+            className="kal-input"
           />
         </div>
-        <div>
-          <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">
-            Start time
-          </label>
+        <div className="kal-form-group">
+          <label className="kal-label">Start time</label>
           <select
             value={startMinutes}
             onChange={(e) => setStartMinutes(Number(e.target.value))}
-            className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
+            className="kal-select"
           >
             {hourOptions.map((m) => (
               <option key={m} value={m}>
@@ -162,14 +158,12 @@ export function CalendarEventForm({
           </select>
         </div>
       </div>
-      <div>
-        <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">
-          Duration (15 min steps)
-        </label>
+      <div className="kal-form-group">
+        <label className="kal-label">Duration (15 min steps)</label>
         <select
           value={durationMinutes}
           onChange={(e) => setDurationMinutes(Number(e.target.value))}
-          className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
+          className="kal-select"
         >
           {DURATION_OPTIONS.map((m) => (
             <option key={m} value={m}>
@@ -179,13 +173,13 @@ export function CalendarEventForm({
         </select>
       </div>
       {crossesDayBoundary && date && (
-        <p className="text-xs text-[var(--text3)] leading-relaxed">
+        <p className="kal-sub" style={{ fontSize: "var(--fs-xs)", margin: 0 }}>
           {(() => {
             const extraDays = Math.floor(spanEndTotal / MINS_PER_DAY);
             const endMinOfDay = spanEndTotal % MINS_PER_DAY;
             const endH = Math.floor(endMinOfDay / 60);
             const endM = endMinOfDay % 60;
-            const endStr = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+            const endStr = `${String(endH).padStart(2, "0")}:{String(endM).padStart(2, "0")}`;
             const endDateStr = addCalendarDays(date, extraDays);
             return extraDays === 1
               ? `Ends the next calendar day (${endDateStr}) at ${endStr}.`
@@ -193,23 +187,21 @@ export function CalendarEventForm({
           })()}
         </p>
       )}
-      <div>
-        <label className="block text-xs font-bold text-[var(--text2)] uppercase mb-1">
-          Tags (#testy, #nauka…)
-        </label>
-        <div className="flex gap-2 flex-wrap">
+      <div className="kal-form-group">
+        <label className="kal-label">Tags (#testy, #nauka…)</label>
+        <div className="kal-tag-container">
           {tags.map((t) => (
-            <span
-              key={t}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--border)] rounded-md text-xs font-medium"
-            >
+            <span key={t} className="kal-tag-chip">
               #{t}
-              <button type="button" onClick={() => removeTag(t)} className="hover:text-red-500">
+              <button type="button" onClick={() => removeTag(t)} className="kal-tag-chip__remove">
                 ×
               </button>
             </span>
           ))}
-          <div ref={tagContainerRef} className="relative flex gap-1 flex-1 min-w-[120px]">
+          <div
+            ref={tagContainerRef}
+            style={{ position: "relative", display: "flex", gap: "var(--s-1)", flex: "1 1 120px" }}
+          >
             <input
               type="text"
               value={tagInput}
@@ -227,20 +219,15 @@ export function CalendarEventForm({
               }}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
               placeholder="#tag lub wybierz poniżej"
-              className="flex-1 px-2 py-1 bg-[var(--bg3)] border-none rounded text-sm"
+              className="kal-input"
+              style={{ flex: 1 }}
             />
-            <button
-              type="button"
-              onClick={addTag}
-              className="px-2 py-1 bg-[var(--accent)] text-white rounded text-sm"
-            >
+            <button type="button" onClick={addTag} className="kal-btn kal-btn--primary kal-btn--sm">
               +
             </button>
             {(tagInputFocused || tagInput) && filteredExistingTags.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-20 mt-1 py-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                <p className="px-2 py-0.5 text-[10px] font-bold text-[var(--text3)] uppercase">
-                  Propozycje
-                </p>
+              <div className="kal-autocomplete">
+                <p className="kal-autocomplete__header">Propozycje</p>
                 {filteredExistingTags.map((t) => (
                   <button
                     key={t}
@@ -253,9 +240,9 @@ export function CalendarEventForm({
                       const assignedTitle = tagTitles[t];
                       if (assignedTitle) setTitle(assignedTitle);
                     }}
-                    className="w-full text-left text-sm px-3 py-1.5 hover:bg-[var(--bg3)] flex items-center gap-1"
+                    className="kal-autocomplete__item"
                   >
-                    <span className="text-[var(--text2)]">#</span>
+                    <span style={{ color: "var(--accent-text)" }}>#</span>
                     {t}
                   </button>
                 ))}
@@ -264,18 +251,11 @@ export function CalendarEventForm({
           </div>
         </div>
       </div>
-      <div className="flex gap-2 justify-end pt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 bg-[var(--bg3)] rounded-xl text-sm font-semibold"
-        >
+      <div className="kal-form-actions">
+        <button type="button" onClick={onCancel} className="kal-btn kal-btn--ghost">
           Cancel
         </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold"
-        >
+        <button type="submit" className="kal-btn kal-btn--primary">
           {submitLabel}
         </button>
       </div>

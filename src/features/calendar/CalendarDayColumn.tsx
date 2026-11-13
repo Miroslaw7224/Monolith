@@ -50,26 +50,32 @@ export function CalendarDayColumn({
   const lanes = assignLanes(laneItems);
   const overlapCounts = getOverlapCounts(laneItems);
   const HOURS = 24;
+  const isWeekend = day.dayOfWeek === 0 || day.dayOfWeek === 6;
 
   return (
     <div
-      className={`flex border-b border-[var(--border)] relative ${isToday ? "bg-[var(--accent-bg)] ring-1 ring-inset ring-[var(--accent)]" : "bg-[var(--surface)]"}`}
-      style={{ height: 44 }}
+      className={`kal-day-row ${isToday ? "kal-day-row--today" : ""} ${isWeekend ? "kal-day-row--weekend" : ""}`}
+      style={{ height: 48 }}
     >
-      <div
-        className={`flex-shrink-0 border-r border-[var(--border)] flex items-center px-2 text-sm font-medium sticky left-0 z-10 ${isToday ? "bg-[var(--accent-bg)] font-semibold text-[var(--accent)]" : "bg-[var(--bg2)]"}`}
-        style={{ width: 80 }}
-      >
-        {day.day} {dayNames[day.dayOfWeek]}
+      <div className="kal-day-cell" style={{ width: 80 }}>
+        <b>{day.day}</b>
+        <span>{dayNames[day.dayOfWeek]}</span>
       </div>
       <div
-        className="flex-1 relative"
+        className="kal-day-track"
         style={{ width: HOURS * cellWidth }}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest("[data-event]")) return;
           onAddClick(day.date);
         }}
       >
+        {isToday && (
+          <div
+            className="kal-now-line"
+            style={{ left: (nowMinutes / 60) * cellWidth }}
+            aria-label="Teraz"
+          />
+        )}
         {daySegments.map((seg) => {
           const lane = lanes.get(seg.segmentKey) ?? 0;
           const stackSize = Math.max(
@@ -78,13 +84,20 @@ export function CalendarDayColumn({
           );
           const leftPx = (seg.start_minutes / 60) * cellWidth;
           const widthPx = (seg.duration_minutes / 60) * cellWidth;
-          const heightPct = 100 / stackSize - 2;
-          const topPct = lane * (100 / stackSize);
+          const heightPct = 100 / stackSize - 4;
+          const topPct = lane * (100 / stackSize) + 2;
           const ev = seg.source;
           const isMeeting = ev.type === "meeting";
           const isDeadline = ev.type === "task_deadline";
+          const isEtat = ev.tags?.some((tag) => tag.toLowerCase() === "etat") ?? false;
           const typeSuffix = isDeadline ? " · Task deadline" : isMeeting ? " · Meeting" : "";
           const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}${typeSuffix}`;
+
+          let evMod = "";
+          if (isDeadline) evMod = "kal-ev--deadline";
+          else if (isMeeting) evMod = "kal-ev--meeting";
+          else if (isEtat) evMod = "kal-ev--etat";
+
           return (
             <div
               key={seg.segmentKey}
@@ -93,33 +106,24 @@ export function CalendarDayColumn({
                 e.stopPropagation();
                 onEventClick(ev);
               }}
-              className={`absolute rounded overflow-hidden cursor-pointer shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80 ${
-                isDeadline ? "border-2 border-dashed border-white/80" : "border border-white/50"
-              }`}
+              className={`kal-ev ${evMod}`}
               style={{
                 left: leftPx,
                 width: Math.max(24, widthPx),
                 top: `${topPct}%`,
                 height: `${heightPct}%`,
-                backgroundColor: ev.color,
+                borderLeftColor: ev.color || undefined,
               }}
               title={titleTip}
             >
               {isMeeting && (
-                <Bell className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />
+                <Bell className="kal-ev__icon w-3 h-3 text-[var(--accent-text)]" aria-hidden />
               )}
               {isDeadline && (
-                <Flag className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />
+                <Flag className="kal-ev__icon w-3 h-3 text-[var(--warn)]" aria-hidden />
               )}
-              <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
-                {ev.title}
-              </span>
-              {!isDeadline && (
-                <Pencil
-                  className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
-                  aria-hidden
-                />
-              )}
+              <b className="kal-ev__title">{ev.title}</b>
+              {!isDeadline && <Pencil className="kal-ev__action-icon w-3 h-3" aria-hidden />}
             </div>
           );
         })}
@@ -155,24 +159,18 @@ export function CalendarDayColumn({
                   e.stopPropagation();
                   onEndSession?.();
                 }}
-                className="absolute rounded overflow-hidden cursor-pointer border-2 border-dashed border-white/80 shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80 z-10"
+                className="kal-ev kal-ev--active-session"
                 style={{
                   left: leftPx,
                   width: widthPx,
                   top: "2%",
                   height: "96%",
-                  backgroundColor: activeSession.color,
-                  opacity: 0.85,
+                  borderColor: activeSession.color || undefined,
                 }}
                 title={`${activeSession.title} · ${sessionInProgressSince} – ${sessionEndButton}`}
               >
-                <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
-                  {activeSession.title}
-                </span>
-                <Square
-                  className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
-                  aria-hidden
-                />
+                <b className="kal-ev__title">{activeSession.title}</b>
+                <Square className="kal-ev__action-icon w-3 h-3" aria-hidden />
               </div>
             );
           })()}
