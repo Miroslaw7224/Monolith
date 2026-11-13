@@ -28,6 +28,9 @@ function detail(
     tasks: [],
     bugs: [],
     whereIStopped: null,
+    state: null,
+    stateVersion: null,
+    devlog: [],
     ...partial,
   };
 }
