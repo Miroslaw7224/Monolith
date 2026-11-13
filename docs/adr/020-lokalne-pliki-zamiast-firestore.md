@@ -19,7 +19,7 @@ Monolith (dawniej Second Brain) jest używany przez jedną osobę i staje się l
 ## Konsekwencje
 
 - Brak wielu użytkowników i brak dostępu zdalnego. Ochrona portu opiera się na strażniku lokalnym, a nie na tożsamości.
-- `firebase-admin`, `lib/firebase-admin.ts`, skrypty eksportu i migracji oraz emulator Firestore zostają do etapu 0e wyłącznie na potrzeby weryfikacji zrzutu danych; potem są usuwane razem z projektem Vercel i Firebase.
+- Etap 0e zakończony (2026-11-13): `firebase-admin`, skrypty eksportu i migracji, emulator i testy integracyjne usunięte; projekt Vercel usunięty, projekt Firebase wygaszany ręcznie w konsoli. Dane spoza zakresu migracji (kalendarz, mapy myśli, historia agenta) nie były przenoszone, co jest świadomą decyzją użytkownika. Surowy zrzut leży lokalnie poza repo; `scripts/import-to-vault.ts` odtwarza z niego vault.
 - Klucze `localStorage` (aktywna sesja pracy, widok tablicy) nie zależą już od identyfikatora użytkownika; po zmianie jednorazowo przepadają stare wartości.
 
 ## Powiązane dokumenty

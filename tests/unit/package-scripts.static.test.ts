@@ -20,18 +20,34 @@ describe("package.json scripts bind to loopback only", () => {
   });
 });
 
-describe("0d-2: pakiety i skrypty po odpięciu Firebase i Vercela", () => {
-  it("nie ma klienckiego pakietu firebase ani vercel", () => {
-    const all = { ...pkg.dependencies, ...pkg.devDependencies };
-    expect(all).not.toHaveProperty("firebase");
-    expect(all).not.toHaveProperty("vercel");
+describe("0e: pakiety i skrypty po usunięciu Firebase, Firestore i emulatora", () => {
+  const all = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  it.each([
+    "firebase",
+    "firebase-admin",
+    "vercel",
+    "better-sqlite3",
+    "dotenv",
+    "wait-on",
+    "cross-env",
+  ])("nie ma pakietu %s", (name) => {
+    expect(all).not.toHaveProperty(name);
   });
 
-  it.each(["vercel", "vercel:prod"])("nie ma skryptu %s", (name) => {
+  it("zostaje tsx (uruchamia scripts/import-to-vault.ts)", () => {
+    expect(all).toHaveProperty("tsx");
+  });
+
+  it.each([
+    "vercel",
+    "vercel:prod",
+    "migrate:sqlite-to-firestore",
+    "emulator:docker",
+    "test:integration",
+    "test:integration:local",
+    "test:integration:docker",
+  ])("nie ma skryptu %s", (name) => {
     expect(pkg.scripts).not.toHaveProperty(name);
-  });
-
-  it("firebase-admin zostaje do etapu 0e (eksport i weryfikacja zrzutu)", () => {
-    expect({ ...pkg.dependencies, ...pkg.devDependencies }).toHaveProperty("firebase-admin");
   });
 });

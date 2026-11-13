@@ -9,7 +9,6 @@ Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, not
 1. Zainstaluj zależności: `npm install --legacy-peer-deps`
 2. Skopiuj [.env.example](.env.example) do `.env` i uzupełnij:
    - `NEXUS_VAULT_PATH` — bezwzględna ścieżka do katalogu `Vault` (wymagane)
-   - `FIREBASE_*` — tylko do skryptów eksportu danych z Firestore, do etapu 0e; aplikacja ich nie używa
 3. Uruchom: `npm run dev` — aplikacja pod adresem http://127.0.0.1:3100 (otwiera się od razu na `/dashboard`, bez logowania)
 4. Build: `npm run build`; produkcja: `npm start`
 
@@ -21,11 +20,10 @@ Aplikacja do planowania i organizacji pracy freelancera (zadania, kalendarz, not
 - `npm run lint` — lint (Next.js)
 - `npm run test` — testy jednostkowe (Vitest)
 - `npm run test:e2e` — testy E2E (Playwright) na własnym serwerze (port 3199) i tymczasowym vaulcie, bez dotykania prawdziwych danych
-- `npm run migrate:sqlite-to-firestore` — migracja SQLite → Firestore (skrypt)
 
 ## Bezpieczeństwo lokalne
 
-Serwer wiąże się tylko z `127.0.0.1`, a `middleware.ts` odrzuca obce nagłówki `Host` i obce żądania zmieniające stan. Narzędzia spoza przeglądarki (curl, skrypty) muszą wysyłać nagłówek `X-Nexus-Client: 1`. Aplikacja nie jest wdrażana (usunięcie z Vercela: etap 0e).
+Serwer wiąże się tylko z `127.0.0.1`, a `middleware.ts` odrzuca obce nagłówki `Host` i obce żądania zmieniające stan. Narzędzia spoza przeglądarki (curl, skrypty) muszą wysyłać nagłówek `X-Nexus-Client: 1`. Aplikacja nie jest nigdzie wdrażana.
 
 ## Dane etatu (`Vault/Work/`)
 

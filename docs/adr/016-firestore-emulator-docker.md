@@ -2,7 +2,7 @@
 
 ## Status
 
-Zastąpiony przez [ADR-020](020-lokalne-pliki-zamiast-firestore.md) w etapie 0e; do tego czasu emulator służy wyłącznie testom integracyjnym eksportu
+Zastąpiony przez [ADR-020](020-lokalne-pliki-zamiast-firestore.md). Emulator i testy integracyjne usunięte w etapie 0e (2026-11-13).
 
 ## Kontekst
 
