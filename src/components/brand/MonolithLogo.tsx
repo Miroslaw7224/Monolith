@@ -69,7 +69,12 @@ export function MonolithLogo({ size = 48, className }: MonolithLogoProps) {
       <circle cx="194" cy="36" r="36" fill={`url(#${star})`} />
       <circle cx="194" cy="36" r="11" fill="#FFFFFF" />
       <path d="M236 72l26 15v236l-26 13z" fill="#222640" />
-      <path d="M152 72h84v264h-84z" fill={`url(#${face})`} stroke={`url(#${line})`} strokeWidth="7" />
+      <path
+        d="M152 72h84v264h-84z"
+        fill={`url(#${face})`}
+        stroke={`url(#${line})`}
+        strokeWidth="7"
+      />
       <path d="M152 72v264" stroke={`url(#${line})`} strokeWidth="16" strokeLinecap="round" />
       <path
         d="M70 262A130 34 0 0 0 330 262"

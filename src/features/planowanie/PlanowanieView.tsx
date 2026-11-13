@@ -176,15 +176,19 @@ export default function PlanowanieView({
   const subtabItems = cardSubtabs.map((tab) => ({
     id: tab,
     label:
-      tab === "board"
-        ? ((t.tabBoard as string) ?? "Tablica")
-        : tab === "mindmaps"
-          ? ((t.tabMindMaps as string) ?? "Mapy myśli")
-          : tab === "resources"
-            ? ((t.tabResources as string) ?? "Zasoby")
-            : tab === "tags"
-              ? t.tabTags
-              : tab,
+      tab === "calendar"
+        ? ((t.tabCalendar as string) ?? "Kalendarz")
+        : tab === "activity"
+          ? ((t.activityTitle as string) ?? "Moja praca")
+          : tab === "board"
+            ? ((t.tabBoard as string) ?? "Tablica")
+            : tab === "mindmaps"
+              ? ((t.tabMindMaps as string) ?? "Mapy myśli")
+              : tab === "resources"
+                ? ((t.tabResources as string) ?? "Zasoby")
+                : tab === "tags"
+                  ? t.tabTags
+                  : tab,
   }));
 
   return (

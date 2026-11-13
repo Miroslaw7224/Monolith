@@ -7,7 +7,8 @@
 
 .kok[data-card="kokpit"],
 [data-card="kokpit"] .kok,
-.kok {
+.kok,
+.kok-statusbar {
   --bg: #16171a;
   --surface: #1f2125;
   --surface-2: #2a2d32;
@@ -55,7 +56,6 @@
   color-scheme: dark;
   color: var(--text);
   background: var(--pattern), var(--bg);
-  min-height: 100%;
   padding: var(--s-5) var(--s-6) var(--s-6);
   font-family: var(--font-body);
   box-sizing: border-box;
@@ -749,10 +749,133 @@
   gap: var(--s-2);
 }
 
-.kok-activity-slot {
-  margin-top: var(--s-5);
-  width: min(100%, 520px);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  overflow: hidden;
+/* ---------- K1: zegar, oś czasu, karta tematu, pasek statusu ---------- */
+.kok-clock {
+  font: 600 var(--fs-3xl) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+  color: var(--accent-text);
+  text-shadow: 0 0 24px var(--glow);
+}
+
+.kok-clock small {
+  font-size: var(--fs-md);
+  letter-spacing: 0;
+  color: var(--muted);
+  text-shadow: none;
+  margin-left: var(--s-2);
+}
+
+.kok-tl__now {
+  display: grid;
+  grid-template-columns: 44px 16px 1fr;
+  gap: 0 var(--s-2);
+  align-items: center;
+  margin: 2px 0;
+  list-style: none;
+}
+
+.kok-tl__now span {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--accent-text);
+  text-align: right;
+}
+
+.kok-tl__now i {
+  height: 2px;
+  grid-column: 2 / 4;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  box-shadow: 0 0 8px var(--glow);
+}
+
+.kok-tl__item--current .kok-tl__node {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.kok-tl__item--current .kok-tl__time {
+  color: var(--accent-text);
+}
+
+.kok-focus__limit {
+  margin-left: auto;
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-topic--lead {
+  border-color: var(--accent);
+  box-shadow: 0 0 26px -10px var(--glow);
+}
+
+.kok-topic__next {
+  font: 500 var(--fs-lg) / 1.4 var(--font-body);
+  color: var(--text);
+}
+
+.kok-topic__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin-top: var(--s-2);
+}
+
+.kok-topic__chips,
+.kok-topic__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.kok-list__sub {
+  display: block;
+  margin-top: 2px;
+  font: 400 var(--fs-xs) / 1.2 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-statusbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-5);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-statusbar b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.kok-statusbar__left,
+.kok-statusbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.kok-statusbar__vault i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.kok-statusbar__vault.is-ok i {
+  background: var(--ok, #3fb950);
+}
+
+.kok-statusbar__vault.is-warn i {
+  background: var(--warn, #d29922);
 }

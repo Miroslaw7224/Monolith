@@ -1,20 +1,24 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, vi, beforeEach, test, expect } from "vitest";
+import { afterEach, vi, beforeEach, describe, test, expect } from "vitest";
 import HomeView from "@/src/features/home/HomeView";
 import { translations } from "@/src/translations";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
 
-vi.mock("@/src/components/sessions/ActivityLog", () => ({
-  ActivityLog: () => <div data-testid="activity-log" />,
-}));
 vi.mock("@/src/components/layout/AppHeader", () => ({
   AppHeader: () => <div data-testid="header" />,
 }));
 
 const t = translations["pl"];
 
-const EMPTY: CockpitDto = { date: "2026-11-13", topics: [], queue: [], events: [], warnings: [] };
+const EMPTY: CockpitDto = {
+  date: "2026-11-13",
+  topics: [],
+  queue: [],
+  events: [],
+  nextMeeting: null,
+  warnings: [],
+};
 
 const FULL: CockpitDto = {
   date: "2026-11-13",
@@ -28,6 +32,11 @@ const FULL: CockpitDto = {
       nextStep: "Napisać plan 2-1",
       blocker: "Brak decyzji o energii",
       whereIStopped: null,
+      branch: "main",
+      lastActivity: "2026-11-12T21:40",
+      confidence: "sure",
+      nowCount: 2,
+      bugCount: 1,
     },
     {
       id: "firma",
@@ -38,6 +47,11 @@ const FULL: CockpitDto = {
       nextStep: null,
       blocker: null,
       whereIStopped: "Skończyłem na raporcie",
+      branch: null,
+      lastActivity: "2026-10-01",
+      confidence: "check",
+      nowCount: 0,
+      bugCount: 0,
     },
   ],
   queue: [
@@ -46,15 +60,35 @@ const FULL: CockpitDto = {
       name: "Ogólne",
       owner: "personal",
       items: [
-        { kind: "overdue", title: "Zaległa faktura", due: "2026-11-10" },
-        { kind: "today", title: "Wysłać wniosek", due: "2026-11-13" },
+        {
+          kind: "overdue",
+          title: "Zaległa faktura",
+          due: "2026-11-10",
+          projectName: null,
+          priority: null,
+        },
+        {
+          kind: "today",
+          title: "Wysłać wniosek",
+          due: "2026-11-13",
+          projectName: null,
+          priority: null,
+        },
       ],
     },
     {
       projectId: "firma",
       name: "Projekt firmowy",
       owner: "work",
-      items: [{ kind: "now", title: "Przejrzeć raport", due: null }],
+      items: [
+        {
+          kind: "now",
+          title: "Przejrzeć raport",
+          due: null,
+          projectName: "Projekt firmowy",
+          priority: "high",
+        },
+      ],
     },
   ],
   events: [
@@ -67,6 +101,7 @@ const FULL: CockpitDto = {
       color: "#111",
     },
   ],
+  nextMeeting: { title: "Spotkanie zespołu", startMinutes: 570, durationMinutes: 30 },
   warnings: ['Zadanie "Stare": pominięto błędny termin 0006-08-26'],
 };
 
@@ -154,7 +189,7 @@ test("oś dnia: godzina i tytuł; pusty stan", async () => {
   respond(FULL);
   const { unmount } = render(<HomeView {...defaultProps} />);
   expect(await screen.findByText("Spotkanie zespołu")).toBeInTheDocument();
-  expect(screen.getByText("09:30")).toBeInTheDocument();
+  expect(screen.getAllByText("09:30")).toHaveLength(2); // oś czasu + kafel
   unmount();
 
   respond(EMPTY);
@@ -170,18 +205,10 @@ test("pokazuje ostrzeżenia z serwera", async () => {
   ).toBeInTheDocument();
 });
 
-test("błąd GET /api/cockpit: komunikat, a ActivityLog nadal jest", async () => {
+test("błąd GET /api/cockpit: komunikat zamiast sekcji", async () => {
   respond("fail");
   render(<HomeView {...defaultProps} />);
   expect(await screen.findByText(/Nie udało się wczytać Kokpitu/)).toBeInTheDocument();
-  expect(screen.getByTestId("activity-log")).toBeInTheDocument();
-});
-
-test("ActivityLog jest renderowany pod sekcjami", async () => {
-  respond(FULL);
-  render(<HomeView {...defaultProps} />);
-  await screen.findByText("NEXUS");
-  expect(screen.getByTestId("activity-log")).toBeInTheDocument();
 });
 
 test("„Zmień aktywne”: wybór, zapis PUT i odświeżenie Kokpitu", async () => {
@@ -236,4 +263,95 @@ test("picker: błąd PUT (np. 409) pokazuje komunikat serwera i nie zamyka okna"
   fireEvent.click(screen.getByRole("button", { name: "Zapisz" }));
   expect(await screen.findByText("Plik zmienił się w międzyczasie")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Zapisz" })).toBeInTheDocument();
+});
+
+describe("K1: układ wg makiety", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 10, 13, 9, 48) });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test("nagłówek: data po polsku, zegar i numer tygodnia, bez „Dzień dobry”", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByText("Piątek, 13 listopada")).toBeInTheDocument();
+    expect(screen.queryByText(/Dzień dobry/)).toBeNull();
+    expect(screen.getByLabelText("Aktualna godzina")).toHaveTextContent("09:48");
+    expect(screen.getByLabelText("Aktualna godzina")).toHaveTextContent("tydz. 46");
+    expect(screen.getByText("1 spotkanie dziś")).toBeInTheDocument();
+  });
+
+  test("kafel następnego spotkania: godzina i „za N min”", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("Następne spotkanie");
+    expect(screen.getAllByText("09:30")).toHaveLength(2);
+    expect(screen.getByText(/trwa · Spotkanie zespołu/)).toBeInTheDocument();
+  });
+
+  test("karta tematu: branch, bloker, ostatnio z pewnością i chipy liczników", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    expect(screen.getByText("main")).toBeInTheDocument();
+    expect(screen.getByText("bloker")).toBeInTheDocument();
+    expect(screen.getByText("Teraz: 2")).toBeInTheDocument();
+    expect(screen.getByText("bugi: 1")).toBeInTheDocument();
+    expect(screen.getByText("pewne")).toBeInTheDocument();
+    expect(screen.getByText("wczoraj", { exact: false })).toBeInTheDocument();
+  });
+
+  test("„Kopiuj kontekst” pobiera paczkę i kopiuje Markdown do schowka", async () => {
+    respond(FULL);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const base = mockApiFetch.getMockImplementation()!;
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/projects/nexus/context-pack"
+        ? Promise.resolve({ ok: true, json: async () => ({ markdown: "# paczka" }) })
+        : base(url, init)
+    );
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    fireEvent.click(screen.getAllByRole("button", { name: "Kopiuj kontekst" })[0]);
+    expect(await screen.findByRole("button", { name: "Skopiowano" })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith("# paczka");
+  });
+
+  test("„Wejdź” woła onOpenProject z id projektu", async () => {
+    respond(FULL);
+    const onOpenProject = vi.fn();
+    render(<HomeView {...defaultProps} onOpenProject={onOpenProject} />);
+    await screen.findByText("NEXUS");
+    fireEvent.click(screen.getAllByRole("button", { name: "Wejdź" })[0]);
+    expect(onOpenProject).toHaveBeenCalledWith("nexus");
+  });
+
+  test("dwa tematy: slot „Wolne miejsce na trzeci temat” otwiera wybór", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    fireEvent.click(screen.getByText("Wolne miejsce na trzeci temat"));
+    expect(await screen.findByRole("button", { name: "Zapisz" })).toBeInTheDocument();
+  });
+
+  test("oś dnia: znacznik „teraz” i zakres godzin", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("Spotkanie zespołu");
+    expect(screen.getByLabelText("Teraz 09:48")).toBeInTheDocument();
+    expect(screen.getByText("08–18")).toBeInTheDocument();
+  });
+
+  test("pasek statusu: vault zsynchronizowany albo liczba ostrzeżeń", async () => {
+    respond(EMPTY);
+    const { unmount } = render(<HomeView {...defaultProps} />);
+    expect(await screen.findByText("zsynchronizowany")).toBeInTheDocument();
+    unmount();
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByText("1 ostrzeżeń")).toBeInTheDocument();
+  });
 });

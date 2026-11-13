@@ -62,7 +62,7 @@ describe("cardForView", () => {
     expect(cardForView("planowanie", "mindmaps")).toBe("plotno");
     expect(cardForView("planowanie", "resources")).toBe("arsenal");
     expect(cardForView("planowanie", "tags")).toBe("arsenal");
-    expect(cardForView("planowanie", "activity")).toBe("kokpit");
+    expect(cardForView("planowanie", "activity")).toBe("kalendarz");
   });
 });
 
@@ -104,6 +104,7 @@ describe("subtabsForCard", () => {
 
   test("CARD_SUBTABS zawiera tylko karty z podwidokami", () => {
     expect(CARD_SUBTABS).toEqual({
+      kalendarz: ["calendar", "activity"],
       plotno: ["board", "mindmaps"],
       arsenal: ["resources", "tags"],
     });

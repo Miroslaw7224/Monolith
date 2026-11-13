@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { translations } from "@/src/translations";
 import { apiFetch } from "@/src/lib/apiFetch";
 import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
@@ -41,6 +41,17 @@ export default function App() {
     disabled: paletteOpen,
   });
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
+  const [projectToOpen, setProjectToOpen] = useState<string | null>(null);
+  const openProject = useCallback(
+    (id: string) => {
+      setProjectToOpen(id);
+      selectCard("projekty");
+    },
+    [selectCard]
+  );
+  useEffect(() => {
+    if (activeCard !== "projekty") setProjectToOpen(null);
+  }, [activeCard]);
 
   return (
     <div
@@ -49,7 +60,7 @@ export default function App() {
     >
       <CardRail activeCard={activeCard} onSelect={selectCard} onOpenPalette={openPalette} />
       {projectsOpen ? (
-        <ProjectsView apiFetch={apiFetch} />
+        <ProjectsView apiFetch={apiFetch} initialProjectId={projectToOpen} />
       ) : placeholder ? (
         <CardPlaceholder cardId={placeholder} />
       ) : appMode === "home" ? (
@@ -62,6 +73,7 @@ export default function App() {
           planningTab={planningTab}
           setPlanningTab={setPlanningTab}
           setLang={setLang}
+          onOpenProject={openProject}
         />
       ) : (
         <PlanowanieView

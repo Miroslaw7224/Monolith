@@ -4,19 +4,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import "./home.css";
 import type { translations } from "@/src/translations";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
-import { ActivityLog } from "@/src/components/sessions/ActivityLog";
-import type { UserTag } from "@/src/features/tags/TagsSection";
-import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
-import {
-  getActiveSession,
-  setActiveSession,
-  clearActiveSession,
-  type ActiveSession,
-} from "@/src/components/sessions/activeSession";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 import { CockpitSections } from "./CockpitSections";
 import { PinPicker } from "./PinPicker";
+import { StatusBar } from "./StatusBar";
+import { formatLongDate, hhmm, meetingsLabel, weekNumber } from "./cockpitFormat";
 
 type T = (typeof translations)["en"];
 
@@ -29,26 +22,29 @@ interface HomeViewProps {
   planningTab: PlanningTab;
   setPlanningTab: (tab: PlanningTab) => void;
   setLang: (lang: "en" | "pl") => void;
+  /** „Wejdź” na karcie tematu: otwiera kartę Projekty z wybranym projektem. */
+  onOpenProject?: (id: string) => void;
 }
 
 export default function HomeView({
   apiFetch,
   lang,
   t,
-  appMode,
   setAppMode,
-  planningTab,
   setPlanningTab,
   setLang,
+  onOpenProject,
 }: HomeViewProps) {
   const [cockpit, setCockpit] = useState<CockpitDto | null>(null);
   const [cockpitError, setCockpitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [userTags, setUserTags] = useState<UserTag[]>([]);
-  const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
-  const [sessionModalOpen, setSessionModalOpen] = useState(false);
-  const [sessionEndError, setSessionEndError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadCockpit = useCallback(async () => {
     setLoading(true);
@@ -68,74 +64,12 @@ export default function HomeView({
     void loadCockpit();
   }, [loadCockpit]);
 
-  useEffect(() => {
-    apiFetch("/api/tags")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setUserTags(Array.isArray(data) ? data : []))
-      .catch(() => setUserTags([]));
-  }, [apiFetch]);
-
-  useEffect(() => {
-    setActiveSessionState(getActiveSession());
-  }, []);
-
-  const handleStartSession = useCallback(
-    (payload: { title: string; tags: string[]; color: string }) => {
-      const session: ActiveSession = {
-        title: payload.title,
-        startedAt: new Date().toISOString(),
-        tags: payload.tags,
-        color: payload.color,
-      };
-      setActiveSessionState(session);
-      setActiveSession(session);
-    },
-    []
-  );
-
-  const handleEndSession = useCallback(async () => {
-    if (!activeSession) return;
-    setSessionEndError(null);
-    const started = new Date(activeSession.startedAt);
-    const now = Date.now();
-    const dateStr = `${started.getFullYear()}-${String(started.getMonth() + 1).padStart(2, "0")}-${String(started.getDate()).padStart(2, "0")}`;
-    const startMinutes = Math.floor((started.getHours() * 60 + started.getMinutes()) / 15) * 15;
-    const durationMinutes = Math.ceil((now - started.getTime()) / (15 * 60 * 1000)) * 15;
-    try {
-      const res = await apiFetch("/api/calendar/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: dateStr,
-          start_minutes: startMinutes,
-          duration_minutes: Math.max(15, durationMinutes),
-          title: activeSession.title,
-          tags: activeSession.tags,
-          color: activeSession.color,
-        }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error((errBody as { error?: string }).error ?? `HTTP ${res.status}`);
-      }
-      setActiveSessionState(null);
-      clearActiveSession();
-    } catch (err) {
-      setSessionEndError(err instanceof Error ? err.message : "Failed to save");
-    }
-  }, [activeSession, apiFetch]);
-
   const goToTab = (tab: PlanningTab) => {
     setPlanningTab(tab);
     setAppMode("planowanie");
   };
 
-  const greeting = t.homeGreeting;
-  const dateStr = new Date().toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const meetings = cockpit?.events.filter((e) => e.type === "meeting").length ?? null;
 
   return (
     <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
@@ -148,12 +82,16 @@ export default function HomeView({
           feedback: t.feedback,
         }}
       />
-      <div className="kok flex-1 overflow-y-auto" data-card="kokpit">
+      <div className="kok flex-1 min-h-0 overflow-y-auto" data-card="kokpit">
         <header className="kok-head">
           <div>
             <p className="kok-eyebrow">Alt+1 · Kokpit</p>
-            <h1 className="kok-title">{greeting} 👋</h1>
-            <p className="kok-sub">{dateStr}</p>
+            <h1 className="kok-title">{formatLongDate(now)}</h1>
+            {meetings !== null ? <p className="kok-sub">{meetingsLabel(meetings)}</p> : null}
+          </div>
+          <div className="kok-clock" aria-label="Aktualna godzina">
+            {hhmm(now.getHours() * 60 + now.getMinutes())}
+            <small>tydz. {weekNumber(now)}</small>
           </div>
         </header>
 
@@ -164,7 +102,13 @@ export default function HomeView({
             Nie udało się wczytać Kokpitu ({cockpitError})
           </p>
         ) : cockpit !== null ? (
-          <CockpitSections data={cockpit} onChangeActive={() => setPickerOpen(true)} />
+          <CockpitSections
+            data={cockpit}
+            now={now}
+            apiFetch={apiFetch}
+            onChangeActive={() => setPickerOpen(true)}
+            onOpenProject={(id) => onOpenProject?.(id)}
+          />
         ) : null}
 
         {pickerOpen && (
@@ -194,53 +138,12 @@ export default function HomeView({
             ))}
           </div>
         </div>
-
-        <div className="kok-activity-slot">
-          <ActivityLog
-            apiFetch={apiFetch}
-            lang={lang}
-            t={t as Record<string, string | string[]>}
-            userTags={userTags}
-            activeSession={activeSession}
-            onStartSession={() => setSessionModalOpen(true)}
-            onEndSession={handleEndSession}
-            compact
-          />
-        </div>
-
-        {sessionEndError && <p className="kok-state kok-state--error">{sessionEndError}</p>}
-
-        {sessionModalOpen && (
-          <div className="kok-overlay">
-            <div
-              className="kok-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-label={lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
-            >
-              <h3 className="kok-modal__title">
-                {lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
-              </h3>
-              <StartSessionModal
-                existingTags={userTags.map((u) => u.tag)}
-                tagTitles={Object.fromEntries(userTags.map((u) => [u.tag, u.title ?? u.tag]))}
-                tagColors={Object.fromEntries(userTags.map((u) => [u.tag, u.color]))}
-                onSubmit={(payload) => {
-                  handleStartSession(payload);
-                  setSessionModalOpen(false);
-                }}
-                onCancel={() => setSessionModalOpen(false)}
-                submitLabel={lang === "pl" ? "Rozpocznij" : "Start"}
-                cancelLabel={lang === "pl" ? "Anuluj" : "Cancel"}
-                titleLabel={lang === "pl" ? "Tytuł" : "Title"}
-                tagsLabel={lang === "pl" ? "Tagi" : "Tags"}
-                tagPlaceholder={lang === "pl" ? "Dodaj tag..." : "Add tag..."}
-                suggestionsLabel={lang === "pl" ? "Ostatnie tagi" : "Recent tags"}
-              />
-            </div>
-          </div>
-        )}
       </div>
+      <StatusBar
+        projectId={cockpit?.topics[0]?.id ?? null}
+        warningsCount={cockpit?.warnings.length ?? 0}
+        now={now}
+      />
     </main>
   );
 }

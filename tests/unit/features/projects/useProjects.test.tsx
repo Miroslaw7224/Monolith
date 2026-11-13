@@ -93,6 +93,25 @@ describe("useProjects", () => {
     await waitFor(() => expect(result.current.detail?.id).toBe("b"));
   });
 
+  it("initialProjectId: wybiera wskazany projekt; nieznany id wraca do pierwszego", async () => {
+    const list = [summary({ id: "a" }), summary({ id: "b" })];
+    const apiFetch = vi.fn(async (url: string) => {
+      if (url === "/api/projects") {
+        return new Response(JSON.stringify({ projects: list, warnings: [] }), { status: 200 });
+      }
+      const id = url.split("/").pop() ?? "";
+      return new Response(JSON.stringify(detail({ id })), { status: 200 });
+    });
+
+    const picked = renderHook(() => useProjects(apiFetch, "b"));
+    await waitFor(() => expect(picked.result.current.status).toBe("ready"));
+    expect(picked.result.current.selectedId).toBe("b");
+
+    const unknown = renderHook(() => useProjects(apiFetch, "nie-ma"));
+    await waitFor(() => expect(unknown.result.current.status).toBe("ready"));
+    expect(unknown.result.current.selectedId).toBe("a");
+  });
+
   it("błąd szczegółów", async () => {
     const a = summary({ id: "a" });
     const apiFetch = vi.fn(async (url: string) => {
