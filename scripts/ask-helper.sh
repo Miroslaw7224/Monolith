@@ -201,9 +201,21 @@ while :; do
       [[ $stable -ge 2 ]] && break
     fi
   else
-    # agent bez raportów (np. cursor): koniec, gdy ekran stabilny przez kilka odczytów
-    if [[ "$cur" == "$prev" ]]; then stable=$((stable+1)); else stable=0; fi
-    [[ $stable -ge 3 ]] && break
+    # agent bez raportów (np. cursor; `hc wait` też nie ma tu sygnału i wisi): koniec oceniamy po ekranie.
+    # 1) wskaźnik pracy w stopce ("Running", "ctrl+c to stop") = tura trwa, nawet gdy ekran stoi (np. długi build);
+    # 2) po wskaźniku: linia "=== WYNIK ===" PO nonce (w echu promptu też jest to hasło, stąd "po nonce") + 2 równe odczyty;
+    # 3) bez linii wyniku (pomocnik zignorował format): 5 równych odczytów (~10 s) bez wskaźnika pracy.
+    if tail -n 12 <<<"$cur" | grep -qE "Running|ctrl\+c to stop"; then
+      stable=0
+    else
+      if [[ "$cur" == "$prev" ]]; then stable=$((stable+1)); else stable=0; fi
+      if awk -v n="$NONCE" 'f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} END {exit !ok}' <<<"$cur"; then
+        need=2
+      else
+        need=5
+      fi
+      [[ $stable -ge $need ]] && break
+    fi
   fi
   prev="$cur"
   if [[ $(date +%s) -ge $deadline ]]; then echo "Timeout (${TIMEOUT}s) czekając na $WHO." >&2; exit 3; fi
@@ -228,7 +240,7 @@ def footer(l):
     s = l.strip()
     return (not s or set(s) <= set("─▄▀> →-") or "for shortcuts" in s
             or "Add a follow-up" in s or "esc to cancel" in s
-            or s.startswith("Auto") or s.startswith("~/")
+            or s.startswith("Auto") or s.startswith("~/") or s.startswith("[hc]")
             or re.search(r"·\s*[\d.]+%(\s*·.*)?$", s) is not None
             or re.search(r"·\s*(low|medium|high)\s*$", s) is not None)
 while lines and footer(lines[-1]): lines.pop()
