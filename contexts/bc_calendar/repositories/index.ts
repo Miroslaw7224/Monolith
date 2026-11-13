@@ -1,9 +1,8 @@
 import { DomainError } from "@/lib/errors";
-import { eventOverlapsInclusiveRange } from "@/lib/calendarRange";
-import type { CalendarEventRecord } from "@/types/records";
-import { listVaultFiles } from "../vault-fs";
-import type { YamlRecord } from "../yaml-lists";
-import { readList } from "../yaml-store";
+import type { CalendarEvent } from "../models";
+import { listVaultFiles } from "@/lib/nexus/vault-fs";
+import type { YamlRecord } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
 import {
   appendRecord,
   generateId,
@@ -12,7 +11,8 @@ import {
   patchRecord,
   removeRecord,
   str,
-} from "../record-helpers";
+} from "@/lib/nexus/record-helpers";
+import { eventOverlapsInclusiveRange } from "./range";
 
 const KEY = "events";
 const DIR = "Calendar";
@@ -34,7 +34,7 @@ function monthFiles(): string[] {
     .map((name) => `${DIR}/${name}`);
 }
 
-function toEvent(r: YamlRecord): CalendarEventRecord {
+function toEvent(r: YamlRecord): CalendarEvent {
   return {
     id: str(r.id),
     date: str(r.date),
@@ -69,7 +69,7 @@ function readAll(): Entry[] {
 export async function getCalendarEvents(options?: {
   startDate?: string;
   endDate?: string;
-}): Promise<CalendarEventRecord[]> {
+}): Promise<CalendarEvent[]> {
   let list = readAll().map((entry) => toEvent(entry.record));
   const { startDate, endDate } = options ?? {};
   if (startDate && endDate) {
@@ -93,7 +93,7 @@ export async function createCalendarEvent(data: {
   tags: string[];
   color: string;
   type?: "work" | "meeting";
-}): Promise<CalendarEventRecord> {
+}): Promise<CalendarEvent> {
   const file = monthFile(data.date);
   const record = await appendRecord(file, KEY, (taken) => ({
     id: generateId(taken),

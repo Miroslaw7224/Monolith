@@ -1,4 +1,4 @@
-/** Local-calendar helpers for calendar events (no UTC date shift for YYYY-MM-DD). */
+/** Pomocniki zakresu dat dla zdarzeń kalendarza (data lokalna, bez przesunięcia UTC dla YYYY-MM-DD). */
 
 const MS_PER_MIN = 60_000;
 const MINS_PER_DAY = 24 * 60;

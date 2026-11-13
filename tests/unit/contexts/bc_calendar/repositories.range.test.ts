@@ -1,12 +1,13 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import {
   parseLocalMidnight,
   eventStartMs,
   eventEndMs,
   eventOverlapsInclusiveRange,
-} from "../../../lib/calendarRange.js";
+} from "@/contexts/bc_calendar/repositories/range";
 
-describe("lib/calendarRange", () => {
+describe("bc_calendar/repositories/range", () => {
   describe("parseLocalMidnight", () => {
     it("parses YYYY-MM-DD to local midnight ms", () => {
       const ms = parseLocalMidnight("2025-06-15");

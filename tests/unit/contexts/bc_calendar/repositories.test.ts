@@ -6,10 +6,10 @@ import {
   deleteCalendarEvent,
   getCalendarEvents,
   updateCalendarEvent,
-} from "@/lib/nexus/repos/calendarEvents";
+} from "@/contexts/bc_calendar/repositories";
 import { formatYamlList } from "@/lib/nexus/yaml-lists";
 import { readList } from "@/lib/nexus/yaml-store";
-import { useTempVault } from "./helpers";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const NOV = "Calendar/2026-11.yaml";
 const DEC = "Calendar/2026-12.yaml";

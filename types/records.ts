@@ -27,24 +27,6 @@ export interface NoteResourceRecord {
   updatedAt?: string; // ISO 8601
 }
 
-/** Stored events are work | meeting; createCalendarEvent does not persist task_deadline. */
-export type CalendarEventRecord = {
-  id: string;
-  date: string; // YYYY-MM-DD (date-only, user's day)
-  start_minutes: number;
-  duration_minutes: number;
-  title: string;
-  tags: string[];
-  color: string;
-  type: "work" | "meeting";
-  created_at?: string;
-};
-
-/** API and UI calendar event; task_deadline is synthesized by calendarService and is never stored. */
-export type CalendarEvent = Omit<CalendarEventRecord, "type"> & {
-  type: "work" | "meeting" | "task_deadline";
-};
-
 export interface MindMap {
   id: string;
   title: string;
