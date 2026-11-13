@@ -5,12 +5,14 @@ import { ConflictError } from "@/lib/errors";
 
 const mockGetCockpit = vi.hoisted(() => vi.fn());
 const mockSetPinned = vi.hoisted(() => vi.fn());
+const mockCloseDay = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCockpit: mockGetCockpit,
   setPinned: mockSetPinned,
+  closeDay: mockCloseDay,
 }));
 
-import { getCockpit, putPinned } from "@/contexts/bc_cockpit/router";
+import { getCockpit, putClosing, putPinned } from "@/contexts/bc_cockpit/router";
 
 const put = (body: unknown) =>
   new NextRequest("http://localhost/api/cockpit/pinned", {
@@ -32,6 +34,7 @@ describe("GET /api/cockpit", () => {
       events: [],
       nextMeeting: null,
       git: null,
+      closing: { anchor: null, today: null },
       warnings: ["x"],
     });
     const res = await getCockpit();
@@ -43,6 +46,7 @@ describe("GET /api/cockpit", () => {
       events: [],
       nextMeeting: null,
       git: null,
+      closing: { anchor: null, today: null },
       warnings: ["x"],
     });
   });
@@ -79,5 +83,38 @@ describe("PUT /api/cockpit/pinned", () => {
     const res = await putPinned(put({ ids: ["nexus"] }));
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ error: "Plik zmienił się w międzyczasie" });
+  });
+});
+
+describe("PUT /api/cockpit/closing", () => {
+  const putC = (body: unknown) =>
+    new NextRequest("http://localhost/api/cockpit/closing", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    });
+
+  it("200 i zwraca zapisany wpis", async () => {
+    const saved = { date: "2026-11-13", text: "Jutro K6", projectId: "nexus", commits: 3 };
+    mockCloseDay.mockResolvedValue(saved);
+    const res = await putClosing(putC({ text: " Jutro K6 ", projectId: "nexus" }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(saved);
+    expect(mockCloseDay).toHaveBeenCalledWith({ text: "Jutro K6", projectId: "nexus" });
+  });
+
+  it("brak projectId trafia do serwisu jako null", async () => {
+    mockCloseDay.mockResolvedValue({ date: "d", text: "t", projectId: null, commits: null });
+    await putClosing(putC({ text: "t" }));
+    expect(mockCloseDay).toHaveBeenCalledWith({ text: "t", projectId: null });
+  });
+
+  it.each([
+    ["pusty tekst", { text: " " }],
+    ["brak tekstu", {}],
+    ["zły JSON", "{nie json"],
+  ])("400 dla: %s, serwis nie jest wołany", async (_n, body) => {
+    expect((await putClosing(putC(body))).status).toBe(400);
+    expect(mockCloseDay).not.toHaveBeenCalled();
   });
 });

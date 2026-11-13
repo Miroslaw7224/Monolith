@@ -3,6 +3,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import "./home.css";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
+import { CloseDayDialog } from "./CloseDayDialog";
+import { ClosingAnchor } from "./ClosingAnchor";
 import { CockpitSections } from "./CockpitSections";
 import { PinPicker } from "./PinPicker";
 import { StatusBar } from "./StatusBar";
@@ -19,6 +21,7 @@ export default function HomeView({ apiFetch, onOpenProject }: HomeViewProps) {
   const [cockpitError, setCockpitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [closeOpen, setCloseOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -49,15 +52,33 @@ export default function HomeView({ apiFetch, onOpenProject }: HomeViewProps) {
   return (
     <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
       <div className="kok flex-1 min-h-0 overflow-y-auto" data-card="kokpit">
+        {cockpit?.closing.anchor ? (
+          <ClosingAnchor
+            anchor={cockpit.closing.anchor}
+            today={now}
+            onOpenProject={(id) => onOpenProject?.(id)}
+          />
+        ) : null}
         <header className="kok-head">
           <div>
             <p className="kok-eyebrow">Alt+1 · Kokpit</p>
             <h1 className="kok-title">{formatLongDate(now)}</h1>
             {meetings !== null ? <p className="kok-sub">{meetingsLabel(meetings)}</p> : null}
           </div>
-          <div className="kok-clock" aria-label="Aktualna godzina">
-            {hhmm(now.getHours() * 60 + now.getMinutes())}
-            <small>tydz. {weekNumber(now)}</small>
+          <div className="kok-head__right">
+            <div className="kok-clock" aria-label="Aktualna godzina">
+              {hhmm(now.getHours() * 60 + now.getMinutes())}
+              <small>tydz. {weekNumber(now)}</small>
+            </div>
+            {cockpit ? (
+              <button
+                type="button"
+                className="kok-btn kok-btn--primary"
+                onClick={() => setCloseOpen(true)}
+              >
+                {cockpit.closing.today ? "Dzień zamknięty · zmień" : "Zamknij dzień"}
+              </button>
+            ) : null}
           </div>
         </header>
 
@@ -74,6 +95,20 @@ export default function HomeView({ apiFetch, onOpenProject }: HomeViewProps) {
             apiFetch={apiFetch}
             onChangeActive={() => setPickerOpen(true)}
             onOpenProject={(id) => onOpenProject?.(id)}
+          />
+        ) : null}
+
+        {closeOpen && cockpit ? (
+          <CloseDayDialog
+            apiFetch={apiFetch}
+            initialText={cockpit.closing.today?.text ?? ""}
+            initialProjectId={cockpit.closing.today?.projectId ?? null}
+            commitsToday={cockpit.git?.commitsToday ?? null}
+            onCancel={() => setCloseOpen(false)}
+            onSaved={() => {
+              setCloseOpen(false);
+              void loadCockpit();
+            }}
           />
         ) : null}
 

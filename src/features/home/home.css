@@ -861,3 +861,60 @@
 .kok-statusbar__vault.is-warn i {
   background: var(--warn, #d29922);
 }
+
+/* ---------- K6: zaczep z wczoraj, przycisk „Zamknij dzień”, pola dialogu ---------- */
+.kok-anchor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.kok-anchor__label {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.kok-anchor__text {
+  flex: 1;
+  min-width: 200px;
+  font: 500 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text);
+}
+
+.kok-head__right {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-5);
+}
+
+.kok-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-input {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  resize: vertical;
+}
+
+.kok-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}

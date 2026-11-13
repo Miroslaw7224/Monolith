@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, vi, beforeEach, describe, test, expect } from "vitest";
 import HomeView from "@/src/features/home/HomeView";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
@@ -11,6 +11,7 @@ const EMPTY: CockpitDto = {
   events: [],
   nextMeeting: null,
   git: null,
+  closing: { anchor: null, today: null },
   warnings: [],
 };
 
@@ -97,6 +98,10 @@ const FULL: CockpitDto = {
   ],
   nextMeeting: { title: "Spotkanie zespołu", startMinutes: 570, durationMinutes: 30 },
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
+  closing: {
+    anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
+    today: null,
+  },
   warnings: ['Zadanie "Stare": pominięto błędny termin 0006-08-26'],
 };
 
@@ -122,6 +127,9 @@ function respond(cockpit: CockpitDto | "fail") {
           warnings: [],
         }),
       });
+    }
+    if (url === "/api/cockpit/closing" && init?.method === "PUT") {
+      return Promise.resolve({ ok: true, json: async () => ({}) });
     }
     if (url === "/api/cockpit/pinned" && init?.method === "PUT") {
       return Promise.resolve({ ok: true, json: async () => ({ ids: [] }) });
@@ -286,7 +294,7 @@ describe("K1: układ wg makiety", () => {
     expect(screen.getByText("Teraz: 2")).toBeInTheDocument();
     expect(screen.getByText("bugi: 1")).toBeInTheDocument();
     expect(screen.getByText("pewne")).toBeInTheDocument();
-    expect(screen.getByText("wczoraj", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("wczoraj", { exact: false, selector: "dd" })).toBeInTheDocument();
   });
 
   test("„Kopiuj kontekst” pobiera paczkę i kopiuje Markdown do schowka", async () => {
@@ -358,5 +366,95 @@ describe("K1: układ wg makiety", () => {
     await screen.findByText("zsynchronizowany");
     expect(screen.queryByText("Commity dziś")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Pasek statusu")).not.toHaveTextContent("branch");
+  });
+
+  test("zaczep z wczoraj: etykieta, tekst i „Wejdź w temat” (K6)", async () => {
+    respond(FULL);
+    const onOpenProject = vi.fn();
+    render(<HomeView {...defaultProps} onOpenProject={onOpenProject} />);
+    const bar = await screen.findByLabelText("Zaczep z wczoraj");
+    expect(bar).toHaveTextContent("Zacząć od K6");
+    fireEvent.click(screen.getByRole("button", { name: "Wejdź w temat" }));
+    expect(onOpenProject).toHaveBeenCalledWith("nexus");
+  });
+
+  test("zaczep sprzed kilku dni ma etykietę z liczbą dni; bez projektu nie ma „Wejdź w temat”", async () => {
+    respond({
+      ...FULL,
+      closing: {
+        anchor: { date: "2026-11-10", text: "Dokończyć fakturę", projectId: null, commits: null },
+        today: null,
+      },
+    });
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByLabelText("Zaczep sprzed 3 dni")).toHaveTextContent(
+      "Dokończyć fakturę"
+    );
+    expect(screen.queryByRole("button", { name: "Wejdź w temat" })).not.toBeInTheDocument();
+  });
+
+  test("bez zamknięcia sprzed dziś nie ma paska zaczepu", async () => {
+    respond(EMPTY);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("zsynchronizowany");
+    expect(screen.queryByLabelText(/^Zaczep/)).not.toBeInTheDocument();
+  });
+
+  test("„Zamknij dzień”: zapis zdania wysyła PUT i odświeża Kokpit", async () => {
+    respond(EMPTY);
+    render(<HomeView {...defaultProps} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Zamknij dzień" }));
+    const dialog = await screen.findByRole("dialog", { name: "Zamknij dzień" });
+    const save = within(dialog).getByRole("button", { name: "Zapisz" });
+    expect(save).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText("Od czego zacząć jutro?"), {
+      target: { value: "  Zacząć od K6 " },
+    });
+    fireEvent.change(await within(dialog).findByLabelText("Temat (opcjonalnie)"), {
+      target: { value: "nexus" },
+    });
+    const callsBefore = mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length;
+    fireEvent.click(save);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    const put = mockApiFetch.mock.calls.find((c) => c[0] === "/api/cockpit/closing");
+    expect(put?.[1]).toMatchObject({ method: "PUT" });
+    expect(JSON.parse(put?.[1].body)).toEqual({ text: "Zacząć od K6", projectId: "nexus" });
+    await waitFor(() =>
+      expect(mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length).toBe(
+        callsBefore + 1
+      )
+    );
+  });
+
+  test("po zamknięciu dnia przycisk pokazuje „Dzień zamknięty · zmień”, a dialog ma zapisany tekst", async () => {
+    respond({
+      ...EMPTY,
+      closing: {
+        anchor: null,
+        today: { date: "2026-11-13", text: "Jutro K3", projectId: null, commits: 2 },
+      },
+    });
+    render(<HomeView {...defaultProps} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Dzień zamknięty · zmień" }));
+    const dialog = await screen.findByRole("dialog", { name: "Zamknij dzień" });
+    expect(within(dialog).getByLabelText("Od czego zacząć jutro?")).toHaveValue("Jutro K3");
+  });
+
+  test("błąd zapisu zostawia dialog otwarty z komunikatem", async () => {
+    respond(EMPTY);
+    const base = mockApiFetch.getMockImplementation()!;
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/cockpit/closing"
+        ? Promise.resolve({ ok: false, status: 400, json: async () => ({ error: "Zły temat" }) })
+        : base(url, init)
+    );
+    render(<HomeView {...defaultProps} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Zamknij dzień" }));
+    const dialog = await screen.findByRole("dialog", { name: "Zamknij dzień" });
+    fireEvent.change(within(dialog).getByLabelText("Od czego zacząć jutro?"), {
+      target: { value: "x" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
+    expect(await within(dialog).findByText("Zły temat")).toBeInTheDocument();
   });
 });

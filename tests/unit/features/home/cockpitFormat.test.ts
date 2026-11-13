@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  anchorLabel,
   formatLongDate,
   hhmm,
   meetingsLabel,
@@ -90,5 +91,15 @@ describe("projectsLabel", () => {
     expect(projectsLabel(5)).toBe("5 projektów");
     expect(projectsLabel(12)).toBe("12 projektów");
     expect(projectsLabel(22)).toBe("22 projekty");
+  });
+});
+
+describe("anchorLabel", () => {
+  const today = new Date(2026, 10, 13);
+  it("wczoraj, sprzed N dni, dziś i błędna data", () => {
+    expect(anchorLabel("2026-11-12", today)).toBe("Zaczep z wczoraj");
+    expect(anchorLabel("2026-11-10", today)).toBe("Zaczep sprzed 3 dni");
+    expect(anchorLabel("2026-11-13", today)).toBe("Zaczep");
+    expect(anchorLabel("jutro", today)).toBe("Zaczep");
   });
 });

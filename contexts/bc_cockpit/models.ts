@@ -69,6 +69,16 @@ export type GitSummary = {
   branch: string | null;
 };
 
+/** Rytuał zamknięcia dnia: jedno zdanie „od czego zacząć jutro” (+ opcjonalny projekt i commity dnia). */
+export type Closing = {
+  /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
+  date: string;
+  text: string;
+  projectId: string | null;
+  /** Suma commitów dnia z gita w chwili zamknięcia; `null`, gdy git niedostępny. */
+  commits: number | null;
+};
+
 export type Cockpit = {
   /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
   date: string;
@@ -78,5 +88,7 @@ export type Cockpit = {
   nextMeeting: NextMeeting | null;
   /** `null`: żadne repozytorium nie jest dostępne (albo git zawiódł, wtedy jest też ostrzeżenie). */
   git: GitSummary | null;
+  /** `anchor`: najnowsze zamknięcie sprzed dziś („Zaczep z wczoraj”); `today`: dzisiejsze, jeśli jest. */
+  closing: { anchor: Closing | null; today: Closing | null };
   warnings: string[];
 };

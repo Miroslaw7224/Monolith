@@ -4,6 +4,7 @@ import * as tasksServices from "@/contexts/bc_tasks/services";
 import { DomainError, NotFoundError } from "@/lib/errors";
 import {
   MAX_PINNED,
+  type Closing,
   type Cockpit,
   type Confidence,
   type DayEvent,
@@ -233,6 +234,24 @@ function loadGit(today: Date, topics: Topic[], warnings: string[]): GitSummary |
   }
 }
 
+// ── zamknięcie dnia ────────────────────────────────────────────────────────────
+
+export const MAX_CLOSING_TEXT = 300;
+
+function loadClosing(date: string, warnings: string[]): Cockpit["closing"] {
+  try {
+    const all = repositories.readClosings();
+    const before = all.filter((c) => c.date < date);
+    return {
+      anchor: before[before.length - 1] ?? null,
+      today: all.find((c) => c.date === date) ?? null,
+    };
+  } catch (err) {
+    warnings.push(`Zamknięcie dnia: ${reason(err)}`);
+    return { anchor: null, today: null };
+  }
+}
+
 // ── API serwisu ────────────────────────────────────────────────────────────────
 
 /** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
@@ -244,7 +263,8 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const events = await loadEvents(date, warnings);
   const nextMeeting = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
   const git = loadGit(today, topics, warnings);
-  return { date, topics, queue, events, nextMeeting, git, warnings };
+  const closing = loadClosing(date, warnings);
+  return { date, topics, queue, events, nextMeeting, git, closing, warnings };
 }
 
 export async function setPinned(ids: string[]): Promise<Pinned> {
@@ -257,4 +277,30 @@ export async function setPinned(ids: string[]): Promise<Pinned> {
   if (unknown.length > 0) throw new DomainError(`Nieznany projekt: ${unknown.join(", ")}`);
   await repositories.writePinned(ids);
   return { ids };
+}
+
+/** Zapisuje zamknięcie dzisiejszego dnia (nadpisuje wcześniejsze z tego samego dnia); dołącza commity dnia z gita. */
+export async function closeDay(
+  input: { text: string; projectId: string | null },
+  today: Date = new Date()
+): Promise<Closing> {
+  const text = input.text.replace(/\s+/g, " ").trim();
+  if (text === "") throw new DomainError("Wpisz jedno zdanie");
+  if (text.length > MAX_CLOSING_TEXT) {
+    throw new DomainError(`Maksymalnie ${MAX_CLOSING_TEXT} znaków`);
+  }
+  if (input.projectId !== null) {
+    const known = projectsServices.listProjects().projects.some((p) => p.id === input.projectId);
+    if (!known) throw new DomainError(`Nieznany projekt: ${input.projectId}`);
+  }
+  let commits: number | null = null;
+  try {
+    const activity = projectsServices.listGitActivity(today);
+    if (activity.length > 0) commits = activity.reduce((sum, a) => sum + a.commitsToday, 0);
+  } catch {
+    // brak gita nie blokuje zapisu zdania
+  }
+  const closing: Closing = { date: localDate(today), text, projectId: input.projectId, commits };
+  await repositories.upsertClosing(closing);
+  return closing;
 }

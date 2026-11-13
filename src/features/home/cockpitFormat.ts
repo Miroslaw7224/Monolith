@@ -35,6 +35,14 @@ export function relativeDays(fromIso: string | null, today: Date): string | null
   return `${days} dni temu`;
 }
 
+/** Etykieta zaczepu: „Zaczep z wczoraj” / „Zaczep sprzed 3 dni”; dla dziś i błędnej daty: „Zaczep”. */
+export function anchorLabel(dateIso: string, today: Date): string {
+  const rel = relativeDays(dateIso, today);
+  if (rel === "wczoraj") return "Zaczep z wczoraj";
+  const m = /^(\d+) dni temu$/.exec(rel ?? "");
+  return m ? `Zaczep sprzed ${m[1]} dni` : "Zaczep";
+}
+
 /** „Środa, 11 listopada”. */
 export function formatLongDate(date: Date): string {
   const text = date.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });

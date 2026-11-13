@@ -20,7 +20,7 @@ poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu
 | Punkty skupienia z Save State   | JEST          | CockpitSections.tsx (K1, 2026-11-13): następny krok, branch, bloker, ostatnio + pewność, Kopiuj kontekst, Wejdź                 |
 | Brief i action items            | BRAK          |                                                                                                                                 |
 | Szybki inbox                    | BRAK          |                                                                                                                                 |
-| Rytuał zamknięcia dnia / zaczep | BRAK          |                                                                                                                                 |
+| Rytuał zamknięcia dnia / zaczep | JEST          | ClosingAnchor.tsx, CloseDayDialog.tsx, Cockpit/closing.yaml (K6, 2026-11-13)                                                    |
 | Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                                          |
 | Ctrl+K i Alt+1…9                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka)                          |
 

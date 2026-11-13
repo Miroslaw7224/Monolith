@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { looseObject } from "@/lib/schema/looseObject";
-import type { Cockpit, DayEvent, Pinned, QueueGroup, Topic } from "./models";
+import type { Closing, Cockpit, DayEvent, Pinned, QueueGroup, Topic } from "./models";
 
 // ── wejście ────────────────────────────────────────────────────────────────────
 
@@ -11,6 +11,12 @@ export const PinnedInputSchema = looseObject({
   if (new Set(body.ids).size !== body.ids.length) ctx.addIssue("Powtórzone id projektu");
 });
 
+/** Limit 300 znaków = `MAX_CLOSING_TEXT` z services (zgodność pilnuje test). */
+export const ClosingInputSchema = looseObject({
+  text: z.string().trim().min(1, "text required").max(300, "Maksymalnie 300 znaków"),
+  projectId: z.string().trim().min(1).nullish(),
+});
+
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
 
 export type TopicDto = Topic;
@@ -18,6 +24,7 @@ export type QueueGroupDto = QueueGroup;
 export type DayEventDto = DayEvent;
 export type CockpitDto = Cockpit;
 export type PinnedDto = Pinned;
+export type ClosingDto = Closing;
 
 export function toCockpitDto(c: Cockpit): CockpitDto {
   return {
@@ -59,8 +66,16 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
     })),
     nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
     git: c.git ? { ...c.git } : null,
+    closing: {
+      anchor: c.closing.anchor ? toClosingDto(c.closing.anchor) : null,
+      today: c.closing.today ? toClosingDto(c.closing.today) : null,
+    },
     warnings: [...c.warnings],
   };
+}
+
+export function toClosingDto(c: Closing): ClosingDto {
+  return { date: c.date, text: c.text, projectId: c.projectId, commits: c.commits };
 }
 
 export function toPinnedDto(p: Pinned): PinnedDto {

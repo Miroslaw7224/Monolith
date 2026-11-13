@@ -4,6 +4,8 @@ import { DomainError, NotFoundError } from "@/lib/errors";
 
 const mockReadPinned = vi.hoisted(() => vi.fn());
 const mockWritePinned = vi.hoisted(() => vi.fn());
+const mockReadClosings = vi.hoisted(() => vi.fn());
+const mockUpsertClosing = vi.hoisted(() => vi.fn());
 const mockGetProject = vi.hoisted(() => vi.fn());
 const mockListNowTasks = vi.hoisted(() => vi.fn());
 const mockListProjects = vi.hoisted(() => vi.fn());
@@ -14,6 +16,8 @@ const mockListGitActivity = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
   writePinned: mockWritePinned,
+  readClosings: mockReadClosings,
+  upsertClosing: mockUpsertClosing,
 }));
 vi.mock("@/contexts/bc_projects/services", () => ({
   getProject: mockGetProject,
@@ -25,6 +29,7 @@ vi.mock("@/contexts/bc_tasks/services", () => ({ getTasks: mockGetTasks }));
 vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
 
 import {
+  closeDay,
   getCockpit,
   isPlausibleDate,
   localDate,
@@ -72,6 +77,8 @@ beforeEach(() => {
   mockGetTasks.mockResolvedValue([]);
   mockGetCalendarEvents.mockResolvedValue([]);
   mockListGitActivity.mockReturnValue([]);
+  mockReadClosings.mockReturnValue([]);
+  mockUpsertClosing.mockResolvedValue(undefined);
   mockListProjects.mockReturnValue({
     projects: [{ id: "nexus" }, { id: "monolith" }],
     warnings: [],
@@ -583,5 +590,85 @@ describe("git (K7)", () => {
     const result = await getCockpit(TODAY);
     expect(result.git).toBeNull();
     expect(result.warnings).toEqual(["Git: boom"]);
+  });
+});
+
+const closing = (date: string, text = "t", over: Record<string, unknown> = {}) => ({
+  date,
+  text,
+  projectId: null,
+  commits: null,
+  ...over,
+});
+
+describe("zamknięcie dnia (K6)", () => {
+  it("getCockpit: zaczep = najnowszy wpis sprzed dziś, today = wpis z dziś", async () => {
+    mockReadClosings.mockReturnValue([
+      closing("2026-11-09", "stary"),
+      closing("2026-11-12", "wczoraj"),
+      closing("2026-11-13", "dziś"),
+      closing("2026-11-14", "z przyszłości"),
+    ]);
+    const { closing: c } = await getCockpit(TODAY);
+    expect(c.anchor?.text).toBe("wczoraj");
+    expect(c.today?.text).toBe("dziś");
+  });
+
+  it("getCockpit: brak wpisów to puste zaczep i today", async () => {
+    expect((await getCockpit(TODAY)).closing).toEqual({ anchor: null, today: null });
+  });
+
+  it("getCockpit: uszkodzony plik to ostrzeżenie, reszta działa", async () => {
+    mockReadClosings.mockImplementation(() => {
+      throw new Error("Nie można odczytać pliku Cockpit/closing.yaml: x");
+    });
+    const res = await getCockpit(TODAY);
+    expect(res.closing).toEqual({ anchor: null, today: null });
+    expect(res.warnings).toEqual([
+      "Zamknięcie dnia: Nie można odczytać pliku Cockpit/closing.yaml: x",
+    ]);
+  });
+
+  it("closeDay zapisuje dzisiejszą datę, przycięty tekst bez nowych linii i sumę commitów", async () => {
+    mockListGitActivity.mockReturnValue([
+      { projectId: "a", branch: null, commitsToday: 3 },
+      { projectId: "b", branch: null, commitsToday: 2 },
+    ]);
+    const saved = await closeDay({ text: "  Zacząć\nod K6  ", projectId: null }, TODAY);
+    expect(saved).toEqual({
+      date: "2026-11-13",
+      text: "Zacząć od K6",
+      projectId: null,
+      commits: 5,
+    });
+    expect(mockUpsertClosing).toHaveBeenCalledWith(saved);
+  });
+
+  it("closeDay: brak dostępnych repo to commits null, awaria gita nie blokuje zapisu", async () => {
+    expect((await closeDay({ text: "x", projectId: null }, TODAY)).commits).toBeNull();
+    mockListGitActivity.mockImplementation(() => {
+      throw new Error("boom");
+    });
+    expect((await closeDay({ text: "x", projectId: null }, TODAY)).commits).toBeNull();
+    expect(mockUpsertClosing).toHaveBeenCalledTimes(2);
+  });
+
+  it("closeDay: znany projekt przechodzi, nieznany to DomainError bez zapisu", async () => {
+    const ok = await closeDay({ text: "x", projectId: "nexus" }, TODAY);
+    expect(ok.projectId).toBe("nexus");
+    mockUpsertClosing.mockClear();
+    await expect(closeDay({ text: "x", projectId: "nie-ma" }, TODAY)).rejects.toBeInstanceOf(
+      DomainError
+    );
+    expect(mockUpsertClosing).not.toHaveBeenCalled();
+  });
+
+  it("closeDay: pusty tekst i tekst > 300 znaków to DomainError", async () => {
+    await expect(closeDay({ text: " \n ", projectId: null }, TODAY)).rejects.toBeInstanceOf(
+      DomainError
+    );
+    await expect(
+      closeDay({ text: "a".repeat(301), projectId: null }, TODAY)
+    ).rejects.toBeInstanceOf(DomainError);
   });
 });

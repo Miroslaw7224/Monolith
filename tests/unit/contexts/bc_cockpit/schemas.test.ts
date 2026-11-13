@@ -1,7 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { MAX_PINNED, type Cockpit } from "@/contexts/bc_cockpit/models";
-import { PinnedInputSchema, toCockpitDto, toPinnedDto } from "@/contexts/bc_cockpit/schemas";
+import {
+  ClosingInputSchema,
+  PinnedInputSchema,
+  toCockpitDto,
+  toPinnedDto,
+} from "@/contexts/bc_cockpit/schemas";
 
 describe("PinnedInputSchema", () => {
   it("przyjmuje 0..3 różnych niepustych id i przycina spacje", () => {
@@ -23,6 +28,27 @@ describe("PinnedInputSchema", () => {
     expect(PinnedInputSchema.safeParse({}).success).toBe(false);
     expect(PinnedInputSchema.safeParse({ ids: "nexus" }).success).toBe(false);
     expect(PinnedInputSchema.safeParse({ ids: [1] }).success).toBe(false);
+  });
+});
+
+describe("ClosingInputSchema", () => {
+  it("przycina tekst, projectId opcjonalne", () => {
+    expect(ClosingInputSchema.parse({ text: "  Zacząć od K6 " })).toEqual({ text: "Zacząć od K6" });
+    expect(ClosingInputSchema.parse({ text: "x", projectId: " nexus " })).toEqual({
+      text: "x",
+      projectId: "nexus",
+    });
+    expect(ClosingInputSchema.parse({ text: "x", projectId: null })).toEqual({
+      text: "x",
+      projectId: null,
+    });
+  });
+
+  it("odrzuca pusty tekst, tekst > 300 znaków i brak pola", () => {
+    expect(ClosingInputSchema.safeParse({ text: "  " }).success).toBe(false);
+    expect(ClosingInputSchema.safeParse({ text: "a".repeat(301) }).success).toBe(false);
+    expect(ClosingInputSchema.safeParse({ text: "a".repeat(300) }).success).toBe(true);
+    expect(ClosingInputSchema.safeParse({}).success).toBe(false);
   });
 });
 
@@ -74,6 +100,10 @@ describe("mapery DTO", () => {
     ],
     nextMeeting: { title: "Spotkanie", startMinutes: 570, durationMinutes: 30 },
     git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
+    closing: {
+      anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
+      today: null,
+    },
     warnings: ["uwaga"],
   };
 
@@ -81,6 +111,7 @@ describe("mapery DTO", () => {
     const dto = toCockpitDto({ ...model, extra: "x" } as Cockpit);
     expect(dto).toEqual(model);
     expect(Object.keys(dto).sort()).toEqual([
+      "closing",
       "date",
       "events",
       "git",
