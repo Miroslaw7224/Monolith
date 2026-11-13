@@ -88,6 +88,14 @@ describe("PUT /api/board", () => {
     expect(mockSaveBoard).not.toHaveBeenCalled();
   });
 
+  it("maps a service failure to 500", async () => {
+    mockSaveBoard.mockRejectedValue(new Error("boom"));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = await PUT(makeRequest("PUT", { tiles: [tile], frames: [], edges: [] }));
+    expect(res.status).toBe(500);
+    spy.mockRestore();
+  });
+
   it("saves the normalized board and returns it", async () => {
     const res = await PUT(
       makeRequest("PUT", { tiles: [{ ...tile, title: "  A  " }], frames: [], edges: [] })
