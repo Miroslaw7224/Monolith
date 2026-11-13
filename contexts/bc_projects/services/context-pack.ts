@@ -50,12 +50,16 @@ function limitLines(text: string, n: number): string {
   return [...lines.slice(0, n), `… i ${lines.length - n} więcej linii`].join("\n");
 }
 
-/** Cięcie do `max` znaków po granicy akapitu (`\n\n`), z `…` na końcu. */
+/**
+ * Cięcie do `max` znaków (łącznie z sufiksem `\n\n…`) po granicy akapitu `\n\n`, o ile akapit
+ * kończy się w drugiej połowie limitu; inaczej twarde cięcie. Wynik nigdy nie jest dłuższy niż `max`,
+ * więc krok redukcji nie może powiększyć paczki.
+ */
 function cutAtParagraph(text: string, max: number): string {
   if (text.length <= max) return text;
-  const head = text.slice(0, max);
+  const head = text.slice(0, max - 3);
   const i = head.lastIndexOf("\n\n");
-  return `${(i > 0 ? head.slice(0, i) : head).trimEnd()}\n\n…`;
+  return `${(i >= max / 2 ? head.slice(0, i) : head).trimEnd()}\n\n…`;
 }
 
 const block = (text: string) => `\`\`\`\n${text}\n\`\`\``;
@@ -64,9 +68,11 @@ function renderPack(input: ContextPackInput, k: Knobs): string {
   const { project, git, rules, lastWorked } = input;
   const sections: string[] = [];
 
-  const worked = lastWorked
-    ? `${lastWorked} (${FRESHNESS_LABEL[project.freshness]})`
-    : FRESHNESS_LABEL.unknown;
+  // Niepoprawna data (świeżość `unknown`) nie jest wypisywana.
+  const worked =
+    lastWorked && project.freshness !== "unknown"
+      ? `${lastWorked} (${FRESHNESS_LABEL[project.freshness]})`
+      : FRESHNESS_LABEL.unknown;
   sections.push(
     `# Kontekst projektu: ${project.name}\n\nStatus: ${project.status} · priorytet: ${project.priority} · ostatnia praca: ${worked}`
   );

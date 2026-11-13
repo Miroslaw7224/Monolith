@@ -281,7 +281,8 @@ export function readRepoRules(entry: RegistryEntry): RepoRulesResult {
   if (file.ok === false) {
     return { ok: false, reason: file.reason === "missing" ? "no-file" : "unsafe-file" };
   }
-  return { ok: true, text: file.text };
+  const text = file.text.trim();
+  return text === "" ? { ok: false, reason: "no-file" } : { ok: true, text };
 }
 
 /** `Projects/<id>/ai-context.md` z vaulta; brak pliku albo pusta treść = `null`. */

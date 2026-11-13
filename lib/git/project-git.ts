@@ -42,7 +42,8 @@ export function runGit(repoDir: string, command: GitCommand): { status: number; 
     return { status: 0, stdout };
   } catch (err) {
     const status = (err as { status?: number | null }).status;
-    return { status: typeof status === "number" ? status : -1, stdout: "" };
+    // status 0 w `catch` (np. przekroczony maxBuffer) też jest błędem
+    return { status: typeof status === "number" && status !== 0 ? status : -1, stdout: "" };
   }
 }
 

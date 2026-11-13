@@ -129,6 +129,13 @@ describe("readRepoRules", () => {
     expect(mockReadFile).toHaveBeenCalledWith("/h/p", "CLAUDE.md");
   });
 
+  it("pusty lub biały CLAUDE.md to brak pliku; treść jest przycięta", () => {
+    mockReadFile.mockReturnValue({ ok: true, text: " \n\t\n" });
+    expect(readRepoRules(entry)).toEqual({ ok: false, reason: "no-file" });
+    mockReadFile.mockReturnValue({ ok: true, text: "\n  T  \n" });
+    expect(readRepoRules(entry)).toEqual({ ok: true, text: "T" });
+  });
+
   it("odmowa ścieżki: powód przekazany, plik nieczytany", () => {
     mockResolve.mockReturnValue({ ok: false, reason: "unsupported-path" });
     expect(readRepoRules(entry)).toEqual({ ok: false, reason: "unsupported-path" });

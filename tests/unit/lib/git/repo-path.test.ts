@@ -72,4 +72,12 @@ describe("resolveRepoPath", () => {
     fs.mkdirSync(path.join(home, "sub"));
     expect(resolveRepoPath("~/sub", { home })).toEqual({ ok: false, reason: "not-a-repo" });
   });
+  it(".git jako symlink nie wystarcza", () => {
+    const p = path.join(home, "p");
+    fs.mkdirSync(p);
+    const elsewhere = path.join(base, "elsewhere-git");
+    fs.mkdirSync(elsewhere);
+    fs.symlinkSync(elsewhere, path.join(p, ".git"));
+    expect(resolveRepoPath("~/p", { home })).toEqual({ ok: false, reason: "not-a-repo" });
+  });
 });

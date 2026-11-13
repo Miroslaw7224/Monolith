@@ -47,8 +47,10 @@ export function resolveRepoPath(localPath: string, opts: { home?: string } = {})
 
   // `.git` musi leżeć bezpośrednio w katalogu projektu (katalog albo plik worktree):
   // git nie może „znaleźć” repozytorium w katalogu nadrzędnym.
+  // Symlink `.git` nie wystarcza (mógłby wskazywać repozytorium poza domem).
   try {
-    fs.lstatSync(path.join(real, ".git"));
+    const dotGit = fs.lstatSync(path.join(real, ".git"));
+    if (!dotGit.isDirectory() && !dotGit.isFile()) return { ok: false, reason: "not-a-repo" };
   } catch {
     return { ok: false, reason: "not-a-repo" };
   }

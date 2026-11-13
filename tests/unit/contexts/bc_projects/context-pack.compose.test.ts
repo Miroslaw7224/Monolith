@@ -236,4 +236,82 @@ describe("composeContextPack", () => {
     const small = composeContextPack(makeInput());
     expect(small.approxTokens).toBeLessThanOrEqual(4000);
   });
+  it("niepoprawna data pracy przy świeżości unknown: samo „brak danych”", () => {
+    const pack = composeContextPack(
+      makeInput({ lastWorked: "nie-data", project: { ...project, freshness: "unknown" } }),
+      BIG
+    );
+    expect(pack.markdown).toContain("ostatnia praca: brak danych\n");
+    expect(pack.markdown).not.toContain("nie-data");
+  });
+
+  describe("kroki redukcji z osobna", () => {
+    const gitWith = (log: string, stat: string) => ({
+      ok: true as const,
+      snapshot: { status: "## main", log, diffStat: stat },
+    });
+    const LOG5 = ["aaaaaaa c5", "bbbbbbb c4", "ccccccc c3", "ddddddd c2", "eeeeeee c1"].join("\n");
+
+    it("krok 2: log z 5 do 3 commitów (diff --stat pusty)", () => {
+      const input = makeInput({ git: gitWith(LOG5, ""), rules: null });
+      const full = composeContextPack(input, BIG);
+      const r = composeContextPack(input, full.approxTokens - 1);
+      expect(r.truncated).toBe(true);
+      expect(r.markdown).toContain("ccccccc c3");
+      expect(r.markdown).not.toContain("ddddddd c2");
+      expect(r.markdown).toContain("## Devlog (ostatnie 3)");
+    });
+
+    it("krok 3: usunięcie diff --stat (8 linii, log 3 commity)", () => {
+      const log3 = LOG5.split("\n").slice(0, 3).join("\n");
+      const input = makeInput({ git: gitWith(log3, diffStat(8)), rules: null });
+      const full = composeContextPack(input, BIG);
+      const r = composeContextPack(input, full.approxTokens - 1);
+      expect(r.truncated).toBe(true);
+      expect(r.markdown).not.toContain("Zmiany (diff --stat)");
+      expect(r.markdown).toContain("ccccccc c3");
+      expect(r.markdown).toContain("## Devlog (ostatnie 3)");
+    });
+
+    it("kroki 4 i 5: devlog z 3 do 2, potem do 1 wpisu", () => {
+      const input = makeInput({ git: { ok: false, reason: "missing" }, rules: null });
+      const full = composeContextPack(input, BIG);
+      const two = composeContextPack(input, full.approxTokens - 1);
+      expect(two.markdown).toContain("## Devlog (ostatnie 2)");
+      expect(two.markdown).not.toContain("- —: Pierwszy");
+      const one = composeContextPack(input, two.approxTokens - 1);
+      expect(one.markdown).toContain("## Devlog (ostatnie 1)");
+      expect(one.markdown).toContain("- 2026-11-13: Trzeci");
+      expect(one.markdown).not.toContain("- 2026-11-12: Drugi");
+    });
+  });
+
+  describe("cięcie zasad (krok 6)", () => {
+    const rulesOf = (md: string) => {
+      const sec = sectionOf(md, "## Zasady projektu (źródło: CLAUDE.md)");
+      return sec.slice(sec.indexOf("\n\n") + 2);
+    };
+
+    it("wczesny akapit nie obcina zasad poniżej połowy limitu", () => {
+      const text = `${"a".repeat(20)}\n\n${"b".repeat(2980)}`;
+      const r = composeContextPack(makeInput({ rules: { source: "CLAUDE.md", text } }), 0);
+      const body = rulesOf(r.markdown);
+      expect(body.length).toBeGreaterThan(400);
+      expect(body.length).toBeLessThanOrEqual(800);
+      expect(body.endsWith("…")).toBe(true);
+    });
+
+    it("tekst 801 znaków bez akapitów: cięcie nie powiększa paczki", () => {
+      const input = makeInput({
+        git: { ok: false, reason: "missing" },
+        project: { ...project, devlog: [] },
+        rules: { source: "CLAUDE.md", text: "z".repeat(801) },
+      });
+      const full = composeContextPack(input, BIG);
+      const r = composeContextPack(input, full.approxTokens - 1);
+      expect(r.truncated).toBe(true);
+      expect(r.approxTokens).toBeLessThanOrEqual(full.approxTokens);
+      expect(rulesOf(r.markdown).length).toBeLessThanOrEqual(800);
+    });
+  });
 });
