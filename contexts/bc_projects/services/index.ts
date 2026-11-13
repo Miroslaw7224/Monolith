@@ -171,6 +171,22 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
 }
 
 /**
+ * Oznacza zadanie z kolumny „Teraz” jako zrobione, wskazane tekstem (Kokpit nie zna indeksu ani wersji
+ * pliku, więc szukamy pierwszego niezakończonego o tym tekście w aktualnym pliku). Brak = ConflictError.
+ */
+export async function completeNowTask(
+  projectId: string,
+  text: string,
+  now: Date = new Date()
+): Promise<void> {
+  const entry = findEntry(projectId);
+  const board = readProjectBoard(entry);
+  const index = board.now.findIndex((t) => !t.done && t.text === text);
+  if (index === -1) throw new ConflictError("Zadanie zmieniło się w pliku");
+  await applyTaskOp(projectId, { op: "toggle", column: "now", index, text }, board.version, now);
+}
+
+/**
  * Aktywność gita (commity dziś, gałąź) projektów rejestru, których repozytorium jest dostępne.
  * Niedostępne repo albo błąd jednego projektu go pomijają; błąd rejestru leci wyżej.
  */

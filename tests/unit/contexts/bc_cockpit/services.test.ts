@@ -14,6 +14,8 @@ const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
 const mockListGitActivity = vi.hoisted(() => vi.fn());
 const mockListGitHistory = vi.hoisted(() => vi.fn());
 const mockCountOpen = vi.hoisted(() => vi.fn());
+const mockCompleteNowTask = vi.hoisted(() => vi.fn());
+const mockUpdateTask = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
@@ -27,13 +29,18 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listProjects: mockListProjects,
   listGitActivity: mockListGitActivity,
   listGitHistory: mockListGitHistory,
+  completeNowTask: mockCompleteNowTask,
 }));
 vi.mock("@/contexts/bc_inbox/services", () => ({ countOpen: mockCountOpen }));
-vi.mock("@/contexts/bc_tasks/services", () => ({ getTasks: mockGetTasks }));
+vi.mock("@/contexts/bc_tasks/services", () => ({
+  getTasks: mockGetTasks,
+  updateTask: mockUpdateTask,
+}));
 vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
 
 import {
   closeDay,
+  completeQueueItem,
   extractEnergy,
   planWindows,
   getCommitHistory,
@@ -329,7 +336,7 @@ describe("następne spotkanie", () => {
 });
 
 describe("kolejka na dziś", () => {
-  it("kolejność: zaległe, dzisiejsze due, potem [now::]; grupy per projekt, ogólne jako „Ogólne”", async () => {
+  it("kolejność: dzisiejsze due, zaległe (najświeższe pierwsze), potem [now::], na końcu bez terminu; grupy per projekt, ogólne jako „Ogólne”", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
         {
@@ -366,20 +373,31 @@ describe("kolejka na dziś", () => {
         owner: "personal",
         items: [
           {
-            kind: "overdue",
-            title: "Zaległe",
-            due: "2026-11-10",
-            projectName: null,
-            priority: null,
-            energy: null,
-          },
-          {
             kind: "today",
             title: "Dziś",
             due: "2026-11-13",
             projectName: null,
             priority: null,
             energy: null,
+            source: { type: "task", taskId: "b" },
+          },
+          {
+            kind: "overdue",
+            title: "Zaległe",
+            due: "2026-11-10",
+            projectName: null,
+            priority: null,
+            energy: null,
+            source: { type: "task", taskId: "a" },
+          },
+          {
+            kind: "undated",
+            title: "Bez terminu",
+            due: null,
+            projectName: null,
+            priority: null,
+            energy: null,
+            source: { type: "task", taskId: "e" },
           },
         ],
       },
@@ -395,6 +413,7 @@ describe("kolejka na dziś", () => {
             projectName: "Projekt 1",
             priority: "high",
             energy: null,
+            source: { type: "project", projectId: "p1", text: "Plan" },
           },
         ],
       },
@@ -410,6 +429,7 @@ describe("kolejka na dziś", () => {
             projectName: "Projekt 2",
             priority: null,
             energy: null,
+            source: { type: "project", projectId: "p2", text: "Raport" },
           },
         ],
       },
@@ -430,6 +450,27 @@ describe("kolejka na dziś", () => {
       ["p1", ["A", "C"]],
       ["p2", ["B"]],
     ]);
+  });
+
+  it("zadania ogólne bez terminu trafiają na koniec kolejki jako „undated”; ukończone i przyszłe nie", async () => {
+    mockListNowTasks.mockReturnValue({
+      tasks: [{ projectId: "p", projectName: "P", owner: "personal", priority: "", text: "Teraz" }],
+      warnings: [],
+    });
+    mockGetTasks.mockResolvedValue([
+      task({ id: "1", title: "Bez daty", due_date: null }),
+      task({ id: "2", title: "W toku bez daty", due_date: null, status: "in_progress" }),
+      task({ id: "3", title: "Zrobione bez daty", due_date: null, status: "done" }),
+      task({ id: "4", title: "Za tydzień", due_date: "2026-11-20" }),
+      task({ id: "5", title: "Dziś #deep", due_date: "2026-11-13" }),
+    ]);
+    const { queue, warnings } = await getCockpit(TODAY);
+    expect(warnings).toEqual([]);
+    expect(queue.map((g) => [g.name, g.items.map((i) => `${i.kind}:${i.title}`)])).toEqual([
+      ["Ogólne", ["today:Dziś", "undated:Bez daty", "undated:W toku bez daty"]],
+      ["P", ["now:Teraz"]],
+    ]);
+    expect(queue[0].items[1].due).toBeNull();
   });
 
   it("złe daty due (0006-08-26 i inne) są pomijane z ostrzeżeniem, poprawne zostają", async () => {
@@ -860,6 +901,7 @@ describe("okna Deep Work (K5)", () => {
         projectName,
         priority: null,
         energy,
+        source: { type: "task" as const, taskId: title },
       })),
     },
   ];
@@ -943,5 +985,73 @@ describe("okna Deep Work (K5)", () => {
     expect(result.windows).toEqual([
       { startMinutes: 480, endMinutes: 630, energy: "deep", title: "Porty", projectName: "P" },
     ]);
+  });
+});
+
+describe("kolejność wg najbliższej daty", () => {
+  it("dziś, potem zaległe od najświeższego (nie od najstarszego), potem [now::], na końcu bez terminu", async () => {
+    mockListNowTasks.mockReturnValue({
+      tasks: [{ projectId: "p", projectName: "P", owner: "personal", priority: "", text: "Teraz" }],
+      warnings: [],
+    });
+    mockGetTasks.mockResolvedValue([
+      task({ id: "1", title: "Bez daty" }),
+      task({ id: "2", title: "Sierpień", due_date: "2026-08-06" }),
+      task({ id: "3", title: "Wczoraj", due_date: "2026-11-12" }),
+      task({ id: "4", title: "Dziś", due_date: "2026-11-13" }),
+      task({ id: "5", title: "Tydzień temu", due_date: "2026-11-06" }),
+    ]);
+    const { queue } = await getCockpit(TODAY);
+    expect(queue[0].items.map((i) => i.title)).toEqual([
+      "Dziś",
+      "Wczoraj",
+      "Tydzień temu",
+      "Sierpień",
+      "Bez daty",
+    ]);
+  });
+});
+
+describe("domykanie zadań z kolejki", () => {
+  it("źródło zadania: ogólne ma id, projektowe ma projekt i surowy tekst (z tagiem energii)", async () => {
+    mockListNowTasks.mockReturnValue({
+      tasks: [
+        { projectId: "p", projectName: "P", owner: "personal", priority: "", text: "Porty #deep" },
+      ],
+      warnings: [],
+    });
+    mockGetTasks.mockResolvedValue([task({ id: "t9", title: "Faktura", due_date: "2026-11-13" })]);
+    const { queue } = await getCockpit(TODAY);
+    const items = queue.flatMap((g) => g.items);
+    expect(items.find((i) => i.title === "Faktura")?.source).toEqual({
+      type: "task",
+      taskId: "t9",
+    });
+    expect(items.find((i) => i.title === "Porty")?.source).toEqual({
+      type: "project",
+      projectId: "p",
+      text: "Porty #deep",
+    });
+  });
+
+  it("zadanie ogólne: status done przez serwis zadań", async () => {
+    mockUpdateTask.mockResolvedValue(undefined);
+    await completeQueueItem({ type: "task", taskId: "t9" });
+    expect(mockUpdateTask).toHaveBeenCalledWith("t9", { status: "done" });
+    expect(mockCompleteNowTask).not.toHaveBeenCalled();
+  });
+
+  it("zadanie projektu: completeNowTask z projektem i tekstem", async () => {
+    mockCompleteNowTask.mockResolvedValue(undefined);
+    await completeQueueItem({ type: "project", projectId: "p", text: "Porty #deep" });
+    expect(mockCompleteNowTask).toHaveBeenCalledWith("p", "Porty #deep");
+    expect(mockUpdateTask).not.toHaveBeenCalled();
+  });
+
+  it("błąd z serwisu przechodzi dalej", async () => {
+    mockCompleteNowTask.mockRejectedValue(new NotFoundError("Nie ma projektu"));
+    await expect(
+      completeQueueItem({ type: "project", projectId: "x", text: "t" })
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

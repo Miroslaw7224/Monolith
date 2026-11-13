@@ -8,6 +8,7 @@ import type {
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
 import { InboxPanel } from "./InboxPanel";
+import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
 import {
   hhmm,
@@ -141,6 +142,8 @@ function TopicCard({
   );
 }
 
+const QUEUE_LIMIT = 8;
+
 type EnergyFilter = "all" | "deep" | "quick";
 const ENERGY_FILTERS: { value: EnergyFilter; label: string }[] = [
   { value: "all", label: "wszystko" },
@@ -148,7 +151,22 @@ const ENERGY_FILTERS: { value: EnergyFilter; label: string }[] = [
   { value: "quick", label: "quick" },
 ];
 
-function QueueGroupCard({ group }: { group: QueueGroupDto }) {
+const sourceKey = (item: QueueGroupDto["items"][number]) =>
+  item.source.type === "task"
+    ? `task:${item.source.taskId}`
+    : `project:${item.source.projectId}:${item.source.text}`;
+
+function QueueGroupCard({
+  group,
+  busyKey,
+  onComplete,
+  onPreview,
+}: {
+  group: QueueGroupDto;
+  busyKey: string | null;
+  onComplete: (item: QueueGroupDto["items"][number]) => void;
+  onPreview: (item: QueueGroupDto["items"][number], group: QueueGroupDto) => void;
+}) {
   return (
     <section className="kok-group" aria-label={`Kolejka: ${group.name}`}>
       <div className="kok-group__head">
@@ -164,11 +182,18 @@ function QueueGroupCard({ group }: { group: QueueGroupDto }) {
               className="kok-check"
               type="checkbox"
               aria-label="zrobione"
-              checked={false}
-              readOnly
+              checked={busyKey === sourceKey(item)}
+              disabled={busyKey !== null}
+              onChange={() => onComplete(item)}
             />
             <span className="kok-list__title">
-              {item.title}
+              <button
+                type="button"
+                className="kok-list__open"
+                onClick={() => onPreview(item, group)}
+              >
+                {item.title}
+              </button>
               {item.projectName && item.priority ? (
                 <small className="kok-list__sub">
                   {item.projectName} · {item.priority}
@@ -181,6 +206,7 @@ function QueueGroupCard({ group }: { group: QueueGroupDto }) {
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
+            {item.kind === "undated" ? <span className="kok-badge">bez terminu</span> : null}
             {item.kind === "today" ? (
               <span className="kok-badge kok-badge--accent">dziś</span>
             ) : null}
@@ -290,6 +316,8 @@ export function CockpitSections({
   onChangeActive,
   onOpenProject,
   onInboxChanged,
+  onQueueChanged,
+  onOpenTasks,
   focusInbox,
   onInboxFocused,
 }: {
@@ -299,6 +327,8 @@ export function CockpitSections({
   onChangeActive: () => void;
   onOpenProject: (id: string) => void;
   onInboxChanged: () => void;
+  onQueueChanged: () => void;
+  onOpenTasks: () => void;
   focusInbox?: boolean;
   onInboxFocused?: () => void;
 }) {
@@ -315,6 +345,45 @@ export function CockpitSections({
     }))
     .filter((g) => g.items.length > 0);
   const visibleCount = visibleQueue.reduce((acc, g) => acc + g.items.length, 0);
+  const [showAll, setShowAll] = useState(false);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [queueError, setQueueError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    item: QueueGroupDto["items"][number];
+    group: QueueGroupDto;
+  } | null>(null);
+
+  async function completeItem(item: QueueGroupDto["items"][number]) {
+    setBusyKey(sourceKey(item));
+    setQueueError(null);
+    try {
+      const res = await apiFetch("/api/cockpit/queue/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item.source),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `HTTP ${res.status}`);
+      }
+      setPreview(null);
+      onQueueChanged();
+    } catch (err) {
+      setQueueError(err instanceof Error ? err.message : "Nie udało się domknąć zadania");
+    } finally {
+      setBusyKey(null);
+    }
+  }
+  // Gdy zadań jest więcej niż QUEUE_LIMIT, widać pierwsze w kolejności kolejki (najbliższe daty).
+  const limited = !showAll && visibleCount > QUEUE_LIMIT;
+  let budget = limited ? QUEUE_LIMIT : Number.POSITIVE_INFINITY;
+  const shownQueue = visibleQueue
+    .map((g) => {
+      const items = g.items.slice(0, Math.max(0, budget));
+      budget -= items.length;
+      return { ...g, items };
+    })
+    .filter((g) => g.items.length > 0);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const range = timelineRange(data.events);
   const next = data.nextMeeting;
@@ -476,11 +545,34 @@ export function CockpitSections({
               <p className="kok-empty-msg">Brak zadań z tą energią</p>
             ) : (
               <div className="kok-queue">
-                {visibleQueue.map((group) => (
-                  <QueueGroupCard key={group.projectId ?? "general"} group={group} />
+                {shownQueue.map((group) => (
+                  <QueueGroupCard
+                    key={group.projectId ?? "general"}
+                    group={group}
+                    busyKey={busyKey}
+                    onComplete={(item) => void completeItem(item)}
+                    onPreview={(item, g) => {
+                      setQueueError(null);
+                      setPreview({ item, group: g });
+                    }}
+                  />
                 ))}
               </div>
             )}
+            {queueError && !preview ? (
+              <p className="kok-state kok-state--error" role="alert">
+                {queueError}
+              </p>
+            ) : null}
+            {visibleCount > QUEUE_LIMIT ? (
+              <button
+                type="button"
+                className="kok-btn kok-btn--sm kok-btn--ghost"
+                onClick={() => setShowAll((v) => !v)}
+              >
+                {showAll ? "Pokaż mniej" : `Pokaż wszystkie (${visibleCount})`}
+              </button>
+            ) : null}
           </section>
 
           {data.inbox ? (
@@ -493,6 +585,29 @@ export function CockpitSections({
           ) : null}
         </div>
       </div>
+
+      {preview ? (
+        <QueueItemDialog
+          item={preview.item}
+          groupName={preview.group.name}
+          projectId={preview.group.projectId}
+          busy={busyKey !== null}
+          error={queueError}
+          onComplete={() => void completeItem(preview.item)}
+          onOpenProject={(id) => {
+            setPreview(null);
+            onOpenProject(id);
+          }}
+          onOpenTasks={() => {
+            setPreview(null);
+            onOpenTasks();
+          }}
+          onClose={() => {
+            setPreview(null);
+            setQueueError(null);
+          }}
+        />
+      ) : null}
 
       {data.warnings.length > 0 ? (
         <ul className="kok-warnings" aria-label="Ostrzeżenia">

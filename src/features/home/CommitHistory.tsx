@@ -68,7 +68,7 @@ export function CommitHistory({
           return (
             <div key={d.date} className="kok-history__col">
               <span className="kok-history__value">
-                {d.total || ""}
+                <b className="kok-history__commit-value">{d.total || ""}</b>
                 {d.prs > 0 ? <b className="kok-history__pr-value"> · {d.prs}</b> : null}
               </span>
               <div className="kok-history__pair">

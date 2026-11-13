@@ -21,6 +21,8 @@ interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   /** „Wejdź” na karcie tematu: otwiera kartę Projekty z wybranym projektem. */
   onOpenProject?: (id: string) => void;
+  /** „Otwórz w Zadaniach” z podglądu zadania ogólnego. */
+  onOpenTasks?: () => void;
   /** Alt+I: ustaw fokus w polu szybkiego zapisu inboxu; `onInboxFocused` kasuje żądanie. */
   focusInbox?: boolean;
   onInboxFocused?: () => void;
@@ -29,6 +31,7 @@ interface HomeViewProps {
 export default function HomeView({
   apiFetch,
   onOpenProject,
+  onOpenTasks,
   focusInbox,
   onInboxFocused,
 }: HomeViewProps) {
@@ -119,6 +122,8 @@ export default function HomeView({
             onChangeActive={() => setPickerOpen(true)}
             onOpenProject={(id) => onOpenProject?.(id)}
             onInboxChanged={() => void loadCockpit()}
+            onQueueChanged={() => void loadCockpit()}
+            onOpenTasks={() => onOpenTasks?.()}
             focusInbox={focusInbox}
             onInboxFocused={onInboxFocused}
           />

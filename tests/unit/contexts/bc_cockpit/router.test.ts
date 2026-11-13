@@ -1,20 +1,28 @@
 // @vitest-environment node
 import { NextRequest } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ConflictError } from "@/lib/errors";
+import { ConflictError, NotFoundError } from "@/lib/errors";
 
 const mockGetCockpit = vi.hoisted(() => vi.fn());
 const mockSetPinned = vi.hoisted(() => vi.fn());
 const mockCloseDay = vi.hoisted(() => vi.fn());
+const mockCompleteQueueItem = vi.hoisted(() => vi.fn());
 const mockGetCommitHistory = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCockpit: mockGetCockpit,
   setPinned: mockSetPinned,
   closeDay: mockCloseDay,
+  completeQueueItem: mockCompleteQueueItem,
   getCommitHistory: mockGetCommitHistory,
 }));
 
-import { getCockpit, getCommits, putClosing, putPinned } from "@/contexts/bc_cockpit/router";
+import {
+  completeQueueItem,
+  getCockpit,
+  getCommits,
+  putClosing,
+  putPinned,
+} from "@/contexts/bc_cockpit/router";
 
 const put = (body: unknown) =>
   new NextRequest("http://localhost/api/cockpit/pinned", {
@@ -146,5 +154,43 @@ describe("GET /api/cockpit/commits", () => {
   it.each(["?days=0", "?days=abc", "?days=91", "?days=2.5"])("400 dla %s", async (qs) => {
     expect((await getCommits(get(qs))).status).toBe(400);
     expect(mockGetCommitHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/cockpit/queue/complete", () => {
+  const postC = (body: unknown) =>
+    new NextRequest("http://localhost/api/cockpit/queue/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: typeof body === "string" ? body : JSON.stringify(body),
+    });
+
+  it("200 i wywołuje serwis ze źródłem zadania", async () => {
+    mockCompleteQueueItem.mockResolvedValue(undefined);
+    const res = await completeQueueItem(postC({ type: "task", taskId: "t1" }));
+    expect(res.status).toBe(200);
+    expect(mockCompleteQueueItem).toHaveBeenCalledWith({ type: "task", taskId: "t1" });
+    await completeQueueItem(postC({ type: "project", projectId: "p", text: "Zrób #deep" }));
+    expect(mockCompleteQueueItem).toHaveBeenLastCalledWith({
+      type: "project",
+      projectId: "p",
+      text: "Zrób #deep",
+    });
+  });
+
+  it.each([
+    ["brak pól", {}],
+    ["projekt bez tekstu", { type: "project", projectId: "p" }],
+    ["zły JSON", "{x"],
+  ])("400 dla: %s", async (_n, body) => {
+    expect((await completeQueueItem(postC(body))).status).toBe(400);
+    expect(mockCompleteQueueItem).not.toHaveBeenCalled();
+  });
+
+  it("ConflictError to 409, NotFoundError to 404", async () => {
+    mockCompleteQueueItem.mockRejectedValueOnce(new ConflictError("Zadanie zmieniło się w pliku"));
+    expect((await completeQueueItem(postC({ type: "task", taskId: "t" }))).status).toBe(409);
+    mockCompleteQueueItem.mockRejectedValueOnce(new NotFoundError("Nie ma"));
+    expect((await completeQueueItem(postC({ type: "task", taskId: "t" }))).status).toBe(404);
   });
 });

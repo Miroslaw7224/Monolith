@@ -1054,12 +1054,22 @@
 }
 
 .kok-history__bar--pr {
-  background: color-mix(in srgb, var(--accent) 38%, var(--surface));
+  background: var(--kok-pr, color-mix(in srgb, var(--accent) 55%, var(--surface)));
+}
+
+/* liczby nad słupkami mają kolor swojego słupka: commity = akcent, PR = jaśniejszy odcień */
+.kok-history {
+  --kok-pr: color-mix(in srgb, var(--accent) 55%, var(--surface));
+}
+
+.kok-history__commit-value {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .kok-history__pr-value {
-  color: color-mix(in srgb, var(--accent) 60%, var(--muted));
-  font-weight: 500;
+  color: var(--kok-pr);
+  font-weight: 600;
 }
 
 .kok-history__legend {
@@ -1079,7 +1089,7 @@
 }
 
 .kok-history__swatch--pr {
-  background: color-mix(in srgb, var(--accent) 38%, var(--surface));
+  background: var(--kok-pr, color-mix(in srgb, var(--accent) 55%, var(--surface)));
 }
 
 /* kolumny siatki: panele jednej kolumny jeden pod drugim */
@@ -1108,4 +1118,43 @@
 .kok-tl__slot b {
   color: var(--text);
   font-weight: 500;
+}
+
+/* ---------- Podgląd zadania z kolejki ---------- */
+.kok-list__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kok-list__open:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.kok-preview {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+}
+
+.kok-preview > div {
+  display: flex;
+  gap: var(--s-3);
+}
+
+.kok-preview dt {
+  min-width: 130px;
+  color: var(--muted);
+  font: 400 var(--fs-xs) / 1.6 var(--font-mono);
+}
+
+.kok-preview dd {
+  margin: 0;
 }

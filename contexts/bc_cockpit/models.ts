@@ -34,8 +34,13 @@ export type Topic = {
 /** Energia zadania: `deep` (skupienie) albo `quick` (szybkie); `null`, gdy brak znacznika. */
 export type Energy = "deep" | "quick";
 
-/** `overdue`: `due` < dziś, `today`: `due` = dziś, `now`: zadanie `[now::]` projektu. */
-export type QueueKind = "overdue" | "today" | "now";
+/** Skąd pochodzi pozycja kolejki (do domknięcia): zadanie ogólne po id albo zadanie „Teraz” projektu po tekście. */
+export type QueueSource =
+  | { type: "task"; taskId: string }
+  | { type: "project"; projectId: string; text: string };
+
+/** `overdue`: `due` < dziś, `today`: `due` = dziś, `now`: zadanie `[now::]` projektu, `undated`: otwarte zadanie ogólne bez terminu. */
+export type QueueKind = "overdue" | "today" | "now" | "undated";
 export type QueueItem = {
   kind: QueueKind;
   title: string;
@@ -46,6 +51,7 @@ export type QueueItem = {
   priority: string | null;
   /** Z tagu `#deep` / `#quick` albo `[energy:: …]` w tekście zadania. */
   energy: Energy | null;
+  source: QueueSource;
 };
 /** Grupa kolejki: projekt albo „Ogólne” (`projectId: null`). */
 export type QueueGroup = {

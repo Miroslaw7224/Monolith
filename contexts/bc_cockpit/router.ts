@@ -4,6 +4,7 @@ import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
   ClosingInputSchema,
+  CompleteQueueItemSchema,
   PinnedInputSchema,
   toClosingDto,
   toCockpitDto,
@@ -58,6 +59,23 @@ export async function getCommits(request: NextRequest): Promise<NextResponse> {
       throw new DomainError(`days musi być liczbą całkowitą 1–${MAX_HISTORY_DAYS}`);
     }
     return NextResponse.json(toCommitHistoryDto(await services.getCommitHistory(days)));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** POST: domyka pozycję kolejki w jej źródle (zadanie ogólne albo `[now::]` projektu). */
+export async function completeQueueItem(request: NextRequest): Promise<NextResponse> {
+  const parsed = await parseBody(request, CompleteQueueItemSchema, { details: false });
+  if (parsed.success === false) return parsed.response;
+  const body = parsed.data;
+  try {
+    await services.completeQueueItem(
+      body.type === "task"
+        ? { type: "task", taskId: body.taskId as string }
+        : { type: "project", projectId: body.projectId as string, text: body.text as string }
+    );
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return handleServiceError(err);
   }

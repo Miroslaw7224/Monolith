@@ -64,6 +64,7 @@ const FULL: CockpitDto = {
           projectName: null,
           priority: null,
           energy: "quick",
+          source: { type: "task", taskId: "t-old" },
         },
         {
           kind: "today",
@@ -72,6 +73,7 @@ const FULL: CockpitDto = {
           projectName: null,
           priority: null,
           energy: null,
+          source: { type: "task", taskId: "t-wniosek" },
         },
       ],
     },
@@ -87,6 +89,7 @@ const FULL: CockpitDto = {
           projectName: "Projekt firmowy",
           priority: "high",
           energy: "deep",
+          source: { type: "project", projectId: "firma", text: "Przejrzeć raport #deep" },
         },
       ],
     },
@@ -199,6 +202,9 @@ function respond(cockpit: CockpitDto | "fail") {
       return Promise.resolve({ ok: true, status: 201, json: async () => ({}) });
     }
     if (url.startsWith("/api/inbox/") && init?.method === "PATCH") {
+      return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
+    }
+    if (url === "/api/cockpit/queue/complete" && init?.method === "POST") {
       return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
     }
     if (url.startsWith("/api/cockpit/commits")) {
@@ -765,5 +771,166 @@ describe("K1: układ wg makiety", () => {
     await screen.findByText("zsynchronizowany");
     expect(screen.queryByTestId("window-slot")).not.toBeInTheDocument();
     expect(screen.queryByText(/Deep Work/)).not.toBeInTheDocument();
+  });
+
+  test("zadanie ogólne bez terminu ma odznakę „bez terminu” (K2/kolejka)", async () => {
+    respond({
+      ...FULL,
+      queue: [
+        {
+          projectId: null,
+          name: "Ogólne",
+          owner: "personal",
+          items: [
+            {
+              kind: "undated",
+              title: "Lista zasad",
+              due: null,
+              projectName: null,
+              priority: null,
+              energy: null,
+              source: { type: "task", taskId: "t-zasady" },
+            },
+          ],
+        },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    expect(within(queue).getByText("Lista zasad")).toBeInTheDocument();
+    expect(within(queue).getByText("bez terminu")).toBeInTheDocument();
+  });
+
+  test("kolejka: gdy zadań jest więcej niż 8, widać pierwsze 8 (najbliższe daty), reszta pod przyciskiem", async () => {
+    const items = Array.from({ length: 11 }, (_, i) => ({
+      kind: "overdue" as const,
+      title: `Zadanie ${i + 1}`,
+      due: `2026-11-${String(12 - i).padStart(2, "0")}`,
+      projectName: null,
+      priority: null,
+      energy: null,
+      source: { type: "task" as const, taskId: `t${i}` },
+    }));
+    respond({
+      ...FULL,
+      queue: [{ projectId: null, name: "Ogólne", owner: "personal", items }],
+    });
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    expect(within(queue).getByText("Zadanie 8")).toBeInTheDocument();
+    expect(within(queue).queryByText("Zadanie 9")).not.toBeInTheDocument();
+    expect(queue).toHaveTextContent("11 zadań");
+    fireEvent.click(within(queue).getByRole("button", { name: "Pokaż wszystkie (11)" }));
+    expect(within(queue).getByText("Zadanie 11")).toBeInTheDocument();
+    fireEvent.click(within(queue).getByRole("button", { name: "Pokaż mniej" }));
+    expect(within(queue).queryByText("Zadanie 9")).not.toBeInTheDocument();
+  });
+
+  test("kolejka do 8 zadań: bez przycisku „Pokaż wszystkie”", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    expect(
+      within(queue).queryByRole("button", { name: /Pokaż wszystkie/ })
+    ).not.toBeInTheDocument();
+  });
+
+  test("historia: liczba commitów i liczba PR mają osobne znaczniki kolorów", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const panel = await screen.findByRole("region", { name: "Historia commitów" });
+    expect(panel.querySelectorAll(".kok-history__commit-value")).toHaveLength(3);
+    expect(panel.querySelectorAll(".kok-history__pr-value")).toHaveLength(1);
+    expect(panel.querySelector(".kok-history__pr-value")).toHaveTextContent("1");
+  });
+
+  const completeCalls = () =>
+    mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit/queue/complete");
+
+  test("checkbox w kolejce domyka zadanie ogólne i odświeża Kokpit", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    const before = mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length;
+    const row = within(queue).getByText("Wysłać wniosek").closest("li") as HTMLElement;
+    fireEvent.click(within(row).getByRole("checkbox", { name: "zrobione" }));
+    await waitFor(() => expect(completeCalls()).toHaveLength(1));
+    expect(JSON.parse(completeCalls()[0][1].body)).toEqual({ type: "task", taskId: "t-wniosek" });
+    await waitFor(() =>
+      expect(mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length).toBe(before + 1)
+    );
+  });
+
+  test("checkbox zadania projektu wysyła projekt i surowy tekst", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    const row = within(queue).getByText("Przejrzeć raport").closest("li") as HTMLElement;
+    fireEvent.click(within(row).getByRole("checkbox", { name: "zrobione" }));
+    await waitFor(() => expect(completeCalls()).toHaveLength(1));
+    expect(JSON.parse(completeCalls()[0][1].body)).toEqual({
+      type: "project",
+      projectId: "firma",
+      text: "Przejrzeć raport #deep",
+    });
+  });
+
+  test("klik w tytuł otwiera podgląd; zadanie projektu: Zrobione i „Otwórz w Projektach”", async () => {
+    respond(FULL);
+    const onOpenProject = vi.fn();
+    render(<HomeView {...defaultProps} onOpenProject={onOpenProject} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    fireEvent.click(within(queue).getByRole("button", { name: "Przejrzeć raport" }));
+    const dialog = await screen.findByRole("dialog", { name: "Podgląd zadania" });
+    expect(dialog).toHaveTextContent("Przejrzeć raport");
+    expect(dialog).toHaveTextContent("Projekt firmowy");
+    expect(dialog).toHaveTextContent("deep");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Otwórz w Projektach" }));
+    expect(onOpenProject).toHaveBeenCalledWith("firma");
+    expect(screen.queryByRole("dialog", { name: "Podgląd zadania" })).not.toBeInTheDocument();
+  });
+
+  test("podgląd zadania ogólnego: „Otwórz w Zadaniach” i „Oznacz jako zrobione”", async () => {
+    respond(FULL);
+    const onOpenTasks = vi.fn();
+    render(<HomeView {...defaultProps} onOpenTasks={onOpenTasks} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    fireEvent.click(within(queue).getByRole("button", { name: "Zaległa faktura" }));
+    let dialog = await screen.findByRole("dialog", { name: "Podgląd zadania" });
+    expect(dialog).toHaveTextContent("zaległe");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Otwórz w Zadaniach" }));
+    expect(onOpenTasks).toHaveBeenCalled();
+
+    fireEvent.click(within(queue).getByRole("button", { name: "Zaległa faktura" }));
+    dialog = await screen.findByRole("dialog", { name: "Podgląd zadania" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Oznacz jako zrobione" }));
+    await waitFor(() => expect(completeCalls()).toHaveLength(1));
+    expect(JSON.parse(completeCalls()[0][1].body)).toEqual({ type: "task", taskId: "t-old" });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Podgląd zadania" })).not.toBeInTheDocument()
+    );
+  });
+
+  test("podgląd zamyka Anuluj; błąd domknięcia pokazuje komunikat i zostawia zadanie", async () => {
+    respond(FULL);
+    const base = mockApiFetch.getMockImplementation()!;
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url === "/api/cockpit/queue/complete"
+        ? Promise.resolve({
+            ok: false,
+            status: 409,
+            json: async () => ({ error: "Zadanie zmieniło się w pliku" }),
+          })
+        : base(url, init)
+    );
+    render(<HomeView {...defaultProps} />);
+    const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+    fireEvent.click(within(queue).getByRole("button", { name: "Wysłać wniosek" }));
+    const dialog = await screen.findByRole("dialog", { name: "Podgląd zadania" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Oznacz jako zrobione" }));
+    expect(await within(dialog).findByText("Zadanie zmieniło się w pliku")).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Zamknij" }));
+    expect(screen.queryByRole("dialog", { name: "Podgląd zadania" })).not.toBeInTheDocument();
+    expect(within(queue).getByText("Wysłać wniosek")).toBeInTheDocument();
   });
 });

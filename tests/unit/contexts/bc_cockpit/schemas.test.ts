@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MAX_PINNED, type Cockpit } from "@/contexts/bc_cockpit/models";
 import {
   ClosingInputSchema,
+  CompleteQueueItemSchema,
   PinnedInputSchema,
   toCockpitDto,
   toCommitHistoryDto,
@@ -86,6 +87,7 @@ describe("mapery DTO", () => {
             projectName: null,
             priority: null,
             energy: "quick",
+            source: { type: "task", taskId: "t1" },
           },
         ],
       },
@@ -169,5 +171,28 @@ describe("toCommitHistoryDto", () => {
       "total",
       "totalPrs",
     ]);
+  });
+});
+
+describe("CompleteQueueItemSchema", () => {
+  it("przyjmuje zadanie ogólne i zadanie projektu", () => {
+    expect(CompleteQueueItemSchema.parse({ type: "task", taskId: " t1 " })).toMatchObject({
+      type: "task",
+      taskId: "t1",
+    });
+    expect(
+      CompleteQueueItemSchema.parse({ type: "project", projectId: "nexus", text: "Porty #deep" })
+    ).toMatchObject({ type: "project", projectId: "nexus", text: "Porty #deep" });
+  });
+
+  it.each([
+    [{}],
+    [{ type: "task" }],
+    [{ type: "task", taskId: " " }],
+    [{ type: "project", projectId: "a" }],
+    [{ type: "project", text: "t" }],
+    [{ type: "inne", taskId: "x" }],
+  ])("odrzuca %j", (body) => {
+    expect(CompleteQueueItemSchema.safeParse(body).success).toBe(false);
   });
 });

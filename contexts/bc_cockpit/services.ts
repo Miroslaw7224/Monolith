@@ -18,6 +18,7 @@ import {
   type Owner,
   type Pinned,
   type QueueGroup,
+  type QueueSource,
   type QueueItem,
   type Topic,
 } from "./models";
@@ -124,15 +125,19 @@ export function extractEnergy(raw: string): { energy: Energy | null; title: stri
 
 type QueueEntry = { projectId: string | null; name: string; owner: Owner; item: QueueItem };
 
-const KIND_RANK: Record<QueueItem["kind"], number> = { overdue: 0, today: 1, now: 2 };
+const KIND_RANK: Record<QueueItem["kind"], number> = { today: 0, overdue: 1, now: 2, undated: 3 };
 
-/** Sortuje (zaległe → dziś → now; w obrębie rodzaju po `due`), potem grupuje wg kolejności pierwszego wystąpienia. */
+/**
+ * Sortuje wg najbliższej daty: dziś → zaległe (od najświeższego, bo najstarsze zaległości zasłaniałyby
+ * bieżące) → `[now::]` → bez terminu; potem grupuje wg kolejności pierwszego wystąpienia.
+ */
 function groupQueue(entries: QueueEntry[]): QueueGroup[] {
-  const sorted = [...entries].sort(
-    (a, b) =>
-      KIND_RANK[a.item.kind] - KIND_RANK[b.item.kind] ||
-      (a.item.due ?? "").localeCompare(b.item.due ?? "")
-  );
+  const sorted = [...entries].sort((a, b) => {
+    const byKind = KIND_RANK[a.item.kind] - KIND_RANK[b.item.kind];
+    if (byKind !== 0) return byKind;
+    const [da, db] = [a.item.due ?? "", b.item.due ?? ""];
+    return a.item.kind === "overdue" ? db.localeCompare(da) : da.localeCompare(db);
+  });
   const groups = new Map<string, QueueGroup>();
   for (const entry of sorted) {
     const key = entry.projectId === null ? "general:" : `project:${entry.projectId}`;
@@ -164,6 +169,7 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
           projectName: t.projectName,
           priority: t.priority || null,
           energy: extractEnergy(t.text).energy,
+          source: { type: "project", projectId: t.projectId, text: t.text },
         },
       });
     }
@@ -173,24 +179,25 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
 
   try {
     for (const t of await tasksServices.getTasks()) {
-      if (t.status === "done" || !t.due_date) continue;
-      if (!isPlausibleDate(t.due_date)) {
+      if (t.status === "done") continue;
+      if (t.due_date && !isPlausibleDate(t.due_date)) {
         warnings.push(`Zadanie "${t.title}": pominięto błędny termin ${t.due_date}`);
         continue;
       }
-      if (t.due_date > date) continue;
+      if (t.due_date && t.due_date > date) continue;
       // Zadania ogólne nie mają pola `owner`: w 2-1 traktowane jako prywatne (spec D7).
       entries.push({
         projectId: null,
         name: GENERAL_NAME,
         owner: "personal",
         item: {
-          kind: t.due_date < date ? "overdue" : "today",
+          kind: !t.due_date ? "undated" : t.due_date < date ? "overdue" : "today",
           title: extractEnergy(t.title).title,
-          due: t.due_date,
+          due: t.due_date || null,
           projectName: null,
           priority: null,
           energy: extractEnergy(t.title).energy,
+          source: { type: "task", taskId: t.id },
         },
       });
     }
@@ -435,4 +442,13 @@ export async function getCommitHistory(
     totalPrs: result.reduce((sum, d) => sum + d.prs, 0),
     days: result,
   };
+}
+
+/** Oznacza pozycję kolejki jako zrobioną w jej źródle (zadanie ogólne albo zadanie `[now::]` projektu). */
+export async function completeQueueItem(source: QueueSource): Promise<void> {
+  if (source.type === "task") {
+    await tasksServices.updateTask(source.taskId, { status: "done" });
+    return;
+  }
+  await projectsServices.completeNowTask(source.projectId, source.text);
 }

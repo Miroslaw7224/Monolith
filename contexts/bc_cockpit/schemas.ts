@@ -26,6 +26,18 @@ export const ClosingInputSchema = looseObject({
   projectId: z.string().trim().min(1).nullish(),
 });
 
+export const CompleteQueueItemSchema = looseObject({
+  type: z.enum(["task", "project"]),
+  taskId: z.string().trim().min(1).optional(),
+  projectId: z.string().trim().min(1).optional(),
+  text: z.string().min(1).optional(),
+}).superRefine((body, ctx) => {
+  if (body.type === "task" && !body.taskId) ctx.addIssue("taskId required");
+  if (body.type === "project" && (!body.projectId || !body.text)) {
+    ctx.addIssue("projectId and text required");
+  }
+});
+
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
 
 export type TopicDto = Topic;
@@ -66,6 +78,10 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
         projectName: i.projectName,
         priority: i.priority,
         energy: i.energy,
+        source:
+          i.source.type === "task"
+            ? { type: "task", taskId: i.source.taskId }
+            : { type: "project", projectId: i.source.projectId, text: i.source.text },
       })),
     })),
     events: c.events.map((e) => ({

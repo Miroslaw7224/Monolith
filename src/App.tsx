@@ -87,6 +87,7 @@ export default function App() {
         <HomeView
           apiFetch={apiFetch}
           onOpenProject={openProject}
+          onOpenTasks={() => selectCard("zadania")}
           focusInbox={inboxFocus}
           onInboxFocused={clearInboxFocus}
         />
