@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
-import { TasksSection } from "@/src/components/TasksSection";
+import { TasksSection } from "@/src/features/tasks/TasksSection";
 import { translations } from "@/src/translations";
 
 const apiFetch = vi.fn();

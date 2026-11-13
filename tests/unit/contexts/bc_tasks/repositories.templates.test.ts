@@ -7,8 +7,8 @@ import {
   deleteTaskTemplate,
   getTaskTemplates,
   updateTaskTemplate,
-} from "@/lib/nexus/repos/taskTemplates";
-import { useTempVault } from "./helpers";
+} from "@/contexts/bc_tasks/repositories";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const FILE = "Tasks/templates.yaml";
 const STORED = [

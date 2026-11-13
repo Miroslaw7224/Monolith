@@ -5,7 +5,7 @@ import {
   normalizeTaskFields,
   normalizeUrl,
   parseTaskInput,
-} from "@/src/components/tasks/taskInputUtils";
+} from "@/src/features/tasks/taskInputUtils";
 
 describe("parseTaskInput", () => {
   it("uses first line as title, second as link, rest as note", () => {

@@ -3,8 +3,6 @@ export type {
   NoteRecord,
   NoteResourceRecord,
   CalendarEventRecord,
-  TaskRecord,
-  TaskTemplateRecord,
 } from "@/types/records";
 
 export { getDocuments, createDocument, deleteDocument } from "@/lib/nexus/repos/documents";
@@ -21,19 +19,6 @@ export {
   updateCalendarEvent,
   deleteCalendarEvent,
 } from "@/lib/nexus/repos/calendarEvents";
-export {
-  getTasks,
-  createTask,
-  updateTask,
-  reorderTasks,
-  deleteTask,
-} from "@/lib/nexus/repos/tasks";
-export {
-  getTaskTemplates,
-  createTaskTemplate,
-  updateTaskTemplate,
-  deleteTaskTemplate,
-} from "@/lib/nexus/repos/taskTemplates";
 export {
   getMindMaps,
   getMindMap,

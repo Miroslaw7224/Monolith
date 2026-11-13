@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Task } from "@/src/components/TasksSection";
+import type { Task } from "@/src/features/tasks/TasksSection";
 import {
   computeTaskOrderAfterDrop,
   getVisibleColumnTasks,
   sortTasksByNewest,
   TASK_COLUMN_VISIBLE_LIMIT,
   tasksByStatus,
-} from "@/src/components/tasks/taskOrderUtils";
+} from "@/src/features/tasks/taskOrderUtils";
 
 const makeTask = (id: string, status: Task["status"], title = id): Task => ({
   id,

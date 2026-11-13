@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { Task } from "../TasksSection";
-import type { TaskTemplate } from "../TaskTemplatesModal";
+import type { Task } from "./TasksSection";
+import type { TaskTemplate } from "./TaskTemplatesModal";
 import { matchTaskSearch, normalizeTaskFields } from "./taskInputUtils";
 import { computeTaskOrderAfterDrop, type TaskStatus } from "./taskOrderUtils";
 
-export function useTasksBoard(
-  apiFetch: (url: string, options?: RequestInit) => Promise<Response>
-) {
+export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => Promise<Response>) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");

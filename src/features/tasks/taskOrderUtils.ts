@@ -1,4 +1,4 @@
-import type { Task } from "../TasksSection";
+import type { Task } from "./TasksSection";
 
 export type TaskStatus = Task["status"];
 

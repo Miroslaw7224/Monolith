@@ -7,9 +7,9 @@ import {
   getTasks,
   reorderTasks,
   updateTask,
-} from "@/lib/nexus/repos/tasks";
+} from "@/contexts/bc_tasks/repositories";
 import { VaultConfigError } from "@/lib/nexus/vault-path";
-import { useTempVault } from "./helpers";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const FILE = "Tasks/tasks.md";
 

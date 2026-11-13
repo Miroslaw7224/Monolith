@@ -1,6 +1,6 @@
-import type { TaskTemplateRecord } from "@/types/records";
-import type { YamlRecord } from "../yaml-lists";
-import { readList } from "../yaml-store";
+import type { TaskTemplate } from "../models";
+import type { YamlRecord } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
 import {
   appendRecord,
   generateId,
@@ -10,14 +10,14 @@ import {
   removeRecord,
   sortByCreated,
   str,
-} from "../record-helpers";
+} from "@/lib/nexus/record-helpers";
 
 const FILE = "Tasks/templates.yaml";
 const KEY = "templates";
 
 const link = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
 
-function toTemplate(record: YamlRecord): TaskTemplateRecord {
+function toTemplate(record: YamlRecord): TaskTemplate {
   return {
     id: str(record.id),
     label: str(record.label).trim(),
@@ -27,7 +27,7 @@ function toTemplate(record: YamlRecord): TaskTemplateRecord {
   };
 }
 
-export async function getTaskTemplates(): Promise<TaskTemplateRecord[]> {
+export async function getTaskTemplates(): Promise<TaskTemplate[]> {
   return sortByCreated(readList(FILE, KEY).map(toTemplate), (t) => t.created_at, "asc");
 }
 
@@ -35,7 +35,7 @@ export async function createTaskTemplate(data: {
   label: string;
   title: string;
   link?: string;
-}): Promise<TaskTemplateRecord> {
+}): Promise<TaskTemplate> {
   const record = await appendRecord(FILE, KEY, (taken) => ({
     id: generateId(taken),
     label: str(data.label).trim(),

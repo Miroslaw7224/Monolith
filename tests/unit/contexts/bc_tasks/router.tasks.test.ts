@@ -1,10 +1,11 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const mockGetTasks = vi.hoisted(() => vi.fn());
 const mockCreateTask = vi.hoisted(() => vi.fn());
 
-vi.mock("@/services/taskService", () => ({
+vi.mock("@/contexts/bc_tasks/services", () => ({
   getTasks: mockGetTasks,
   createTask: mockCreateTask,
 }));
@@ -41,7 +42,7 @@ describe("GET /api/tasks", () => {
 
   it("returns tasks array for authenticated user", async () => {
     mockGetTasks.mockResolvedValue([fakeTask]);
-    const res = await GET(makeRequest());
+    const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(Array.isArray(body)).toBe(true);

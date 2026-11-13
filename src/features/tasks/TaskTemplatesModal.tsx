@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import type { TaskTemplateDto } from "@/contexts/bc_tasks/schemas";
 
-export interface TaskTemplate {
-  id: string;
-  label: string;
-  title: string;
-  link: string;
-  created_at?: string;
-}
+export type TaskTemplate = TaskTemplateDto;
 
 type TranslationDict = Record<string, string | string[]>;
 
@@ -171,10 +166,7 @@ export function TaskTemplatesModal({
       >
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
           <div>
-            <h3
-              id="task-templates-modal-title"
-              className="text-lg font-bold text-[var(--text)]"
-            >
+            <h3 id="task-templates-modal-title" className="text-lg font-bold text-[var(--text)]">
               {labels.modalTitle}
             </h3>
             <p className="text-sm text-[var(--text2)] mt-0.5">{labels.subtitle}</p>

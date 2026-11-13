@@ -1,4 +1,5 @@
 import { DomainError } from "@/lib/errors";
+import * as taskService from "@/contexts/bc_tasks/services";
 import * as firestoreDb from "@/lib/firestore-db";
 import type { CalendarEvent } from "@/types/records";
 
@@ -33,7 +34,7 @@ export async function getCalendarEvents(options?: {
   endDate?: string;
 }): Promise<CalendarEventWithType[]> {
   const events = await firestoreDb.getCalendarEvents(options);
-  const tasks = await firestoreDb.getTasks();
+  const tasks = await taskService.getTasks();
   const deadlineEvents: CalendarEventWithType[] = tasks
     .filter((task) => task.due_date && task.status !== "done")
     .filter((task) => taskDueDateInRange(task.due_date!, options))

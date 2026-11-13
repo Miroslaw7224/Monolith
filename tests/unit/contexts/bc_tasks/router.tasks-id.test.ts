@@ -1,10 +1,11 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const mockUpdateTask = vi.hoisted(() => vi.fn());
 const mockDeleteTask = vi.hoisted(() => vi.fn());
 
-vi.mock("@/services/taskService", () => ({
+vi.mock("@/contexts/bc_tasks/services", () => ({
   updateTask: mockUpdateTask,
   deleteTask: mockDeleteTask,
 }));
