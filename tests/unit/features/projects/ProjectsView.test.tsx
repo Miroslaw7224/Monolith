@@ -27,6 +27,7 @@ function detail(
   return {
     ...summary(partial),
     tasks: [],
+    board: { blockers: [], now: [], next: [], icebox: [], version: null },
     bugs: [],
     whereIStopped: null,
     state: null,
@@ -309,12 +310,10 @@ describe("ProjectsView: Save State, devlog, typ", () => {
     expect(screen.getByLabelText("Tytuł")).toHaveValue("");
   });
 
-  it("zadania: sekcja Blokery bez pozycji pokazuje „Brak”", async () => {
-    const apiFetch = makeRwApiFetch(
-      detail({ id: "a", tasks: [{ heading: "Blokery", items: [] }] })
-    );
+  it("zadania: kolumna Blokery bez pozycji pokazuje „Brak”", async () => {
+    const apiFetch = makeRwApiFetch(detail({ id: "a" }));
     render(<ProjectsView apiFetch={apiFetch} />);
-    const heading = await screen.findByText("Blokery");
-    expect(within(heading.parentElement as HTMLElement).getByText("Brak")).toBeInTheDocument();
+    const column = await screen.findByRole("region", { name: "Kolumna Blokery" });
+    expect(within(column).getByText("Brak")).toBeInTheDocument();
   });
 });

@@ -14,6 +14,7 @@ import type {
 } from "./models";
 
 export type { ProjectType };
+export { NOW_LIMIT } from "./models";
 
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
 
