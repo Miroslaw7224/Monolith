@@ -1,8 +1,6 @@
 import React from "react";
 import type { ProjectDetailDto } from "@/contexts/bc_projects/schemas";
-
-/** Linkujemy tylko http(s); inny protokół z rejestru (np. `javascript:`) wyświetlamy jako zwykły tekst. */
-const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+import { isHttpUrl } from "./isHttpUrl";
 
 export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.Element {
   const { project } = props;
