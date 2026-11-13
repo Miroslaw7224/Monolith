@@ -7,6 +7,7 @@ import type {
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
+import { EnergySwitch } from "./EnergySwitch";
 import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
@@ -203,21 +204,12 @@ function QueueGroupCard({
                 </small>
               ) : null}
             </span>
-            <span className="kok-energy-switch" role="group" aria-label={`Energia: ${item.title}`}>
-              {(["deep", "quick"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`kok-energy kok-energy--btn kok-energy--${value}`}
-                  aria-pressed={item.energy === value}
-                  aria-label={`Energia ${value}: ${item.title}`}
-                  disabled={busyKey !== null}
-                  onClick={() => onSetEnergy(item, item.energy === value ? null : value)}
-                >
-                  {value}
-                </button>
-              ))}
-            </span>
+            <EnergySwitch
+              title={item.title}
+              energy={item.energy}
+              disabled={busyKey !== null}
+              onChange={(energy) => onSetEnergy(item, energy)}
+            />
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
@@ -426,6 +418,13 @@ export function CockpitSections({
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
+      const result = (await res.json().catch(() => ({}))) as { source?: typeof item.source };
+      // podgląd zostaje otwarty i pokazuje nowy stan; źródło mogło dostać nowy tekst (zadanie projektu)
+      setPreview((p) =>
+        p && sourceKey(p.item) === sourceKey(item)
+          ? { ...p, item: { ...p.item, energy, source: result.source ?? p.item.source } }
+          : p
+      );
       onQueueChanged();
     } catch (err) {
       setQueueError(err instanceof Error ? err.message : "Nie udało się zmienić energii");
@@ -653,6 +652,7 @@ export function CockpitSections({
           busy={busyKey !== null}
           error={queueError}
           onComplete={() => void completeItem(preview.item)}
+          onSetEnergy={(energy) => void setItemEnergy(preview.item, energy)}
           onOpenProject={(id) => {
             setPreview(null);
             onOpenProject(id);

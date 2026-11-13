@@ -1196,8 +1196,9 @@ describe("setQueueItemEnergy (K2b)", () => {
 
   it("zadanie ogólne: tytuł z nowym znacznikiem przez serwis zadań", async () => {
     mockGetTasks.mockResolvedValue([{ id: "t9", title: "Faktura #quick" }]);
-    await setQueueItemEnergy({ type: "task", taskId: "t9" }, "deep");
+    const next = await setQueueItemEnergy({ type: "task", taskId: "t9" }, "deep");
     expect(mockUpdateTask).toHaveBeenCalledWith("t9", { title: "Faktura #deep" });
+    expect(next).toEqual({ type: "task", taskId: "t9" });
   });
 
   it("zadanie ogólne: brak zadania to NotFoundError, bez zapisu", async () => {
@@ -1210,14 +1211,27 @@ describe("setQueueItemEnergy (K2b)", () => {
 
   it("zadanie projektu: rewriteNowTask ze starym i nowym tekstem; null zdejmuje znacznik", async () => {
     mockRewriteNowTask.mockResolvedValue(undefined);
-    await setQueueItemEnergy({ type: "project", projectId: "p", text: "Porty" }, "quick");
+    const quick = await setQueueItemEnergy(
+      { type: "project", projectId: "p", text: "Porty" },
+      "quick"
+    );
     expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty", "Porty #quick");
-    await setQueueItemEnergy({ type: "project", projectId: "p", text: "Porty #quick" }, null);
+    // zwracane źródło ma nowy tekst: dalsze akcje (np. domknięcie) trafiają w aktualną linię
+    expect(quick).toEqual({ type: "project", projectId: "p", text: "Porty #quick" });
+    const none = await setQueueItemEnergy(
+      { type: "project", projectId: "p", text: "Porty #quick" },
+      null
+    );
     expect(mockRewriteNowTask).toHaveBeenLastCalledWith("p", "Porty #quick", "Porty");
+    expect(none).toEqual({ type: "project", projectId: "p", text: "Porty" });
   });
 
   it("bez zmiany (ten sam tekst) niczego nie zapisuje", async () => {
-    await setQueueItemEnergy({ type: "project", projectId: "p", text: "Porty #deep" }, "deep");
+    const same = await setQueueItemEnergy(
+      { type: "project", projectId: "p", text: "Porty #deep" },
+      "deep"
+    );
     expect(mockRewriteNowTask).not.toHaveBeenCalled();
+    expect(same).toEqual({ type: "project", projectId: "p", text: "Porty #deep" });
   });
 });

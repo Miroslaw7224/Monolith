@@ -494,21 +494,25 @@ export function withEnergy(raw: string, energy: Energy | null): string {
   return energy === null ? rest : `${rest} #${energy}`;
 }
 
-/** Ustawia (albo zdejmuje, `null`) energię zadania w jego źródle, przez znacznik w tekście zadania. */
+/**
+ * Ustawia (albo zdejmuje, `null`) energię zadania w jego źródle, przez znacznik w tekście zadania.
+ * Zwraca źródło po zmianie: dla zadania projektu ma nowy tekst, którym wskazuje się je dalej.
+ */
 export async function setQueueItemEnergy(
   source: QueueSource,
   energy: Energy | null
-): Promise<void> {
+): Promise<QueueSource> {
   if (source.type === "task") {
     const task = (await tasksServices.getTasks()).find((t) => t.id === source.taskId);
     if (!task) throw new NotFoundError("Nie ma takiego zadania");
     const title = withEnergy(task.title, energy);
     if (title !== task.title) await tasksServices.updateTask(source.taskId, { title });
-    return;
+    return source;
   }
   const text = withEnergy(source.text, energy);
   if (text !== source.text)
     await projectsServices.rewriteNowTask(source.projectId, source.text, text);
+  return { type: "project", projectId: source.projectId, text };
 }
 
 /** Oznacza pozycję kolejki jako zrobioną w jej źródle (zadanie ogólne albo zadanie `[now::]` projektu). */

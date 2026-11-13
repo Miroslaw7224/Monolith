@@ -1,6 +1,7 @@
 // src/features/home/QueueItemDialog.tsx
 import React from "react";
 import type { QueueGroupDto } from "@/contexts/bc_cockpit/schemas";
+import { EnergySwitch, type EnergyValue } from "./EnergySwitch";
 
 export type QueueItemView = QueueGroupDto["items"][number];
 
@@ -19,6 +20,7 @@ export function QueueItemDialog({
   busy,
   error,
   onComplete,
+  onSetEnergy,
   onOpenProject,
   onOpenTasks,
   onClose,
@@ -30,6 +32,7 @@ export function QueueItemDialog({
   busy: boolean;
   error: string | null;
   onComplete: () => void;
+  onSetEnergy: (energy: EnergyValue | null) => void;
   onOpenProject: (id: string) => void;
   onOpenTasks: () => void;
   onClose: () => void;
@@ -55,14 +58,17 @@ export function QueueItemDialog({
               <dd>{item.priority}</dd>
             </div>
           ) : null}
-          {item.energy ? (
-            <div>
-              <dt>Energia</dt>
-              <dd>
-                <span className={`kok-energy kok-energy--${item.energy}`}>{item.energy}</span>
-              </dd>
-            </div>
-          ) : null}
+          <div>
+            <dt>Energia</dt>
+            <dd>
+              <EnergySwitch
+                title={item.title}
+                energy={item.energy}
+                disabled={busy}
+                onChange={onSetEnergy}
+              />
+            </dd>
+          </div>
         </dl>
         {error ? (
           <p className="kok-state kok-state--error" role="alert">

@@ -961,6 +961,75 @@ describe("K1: układ wg makiety", () => {
       expect(JSON.parse(energyCalls()[1][1].body).energy).toBe("quick");
     });
 
+    test("podgląd zadania: przełącznik energii; po zmianie podgląd zostaje, a domknięcie używa nowego źródła", async () => {
+      respond(FULL);
+      const base = mockApiFetch.getMockImplementation()!;
+      mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+        url === "/api/cockpit/queue/energy"
+          ? Promise.resolve({
+              ok: true,
+              json: async () => ({
+                ok: true,
+                source: { type: "project", projectId: "firma", text: "Przejrzeć raport #quick" },
+              }),
+            })
+          : base(url, init)
+      );
+      render(<HomeView {...defaultProps} />);
+      const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+      fireEvent.click(within(queue).getByRole("button", { name: "Przejrzeć raport" }));
+      const dialog = await screen.findByRole("dialog", { name: "Podgląd zadania" });
+      expect(
+        within(dialog).getByRole("button", { name: "Energia deep: Przejrzeć raport" })
+      ).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Energia quick: Przejrzeć raport" })
+      );
+      await waitFor(() => expect(energyCalls()).toHaveLength(1));
+      expect(JSON.parse(energyCalls()[0][1].body)).toEqual({
+        type: "project",
+        projectId: "firma",
+        text: "Przejrzeć raport #deep",
+        energy: "quick",
+      });
+      await waitFor(() =>
+        expect(
+          within(dialog).getByRole("button", { name: "Energia quick: Przejrzeć raport" })
+        ).toHaveAttribute("aria-pressed", "true")
+      );
+      expect(screen.getByRole("dialog", { name: "Podgląd zadania" })).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole("button", { name: "Oznacz jako zrobione" }));
+      await waitFor(() => expect(completeCalls()).toHaveLength(1));
+      expect(JSON.parse(completeCalls()[0][1].body)).toEqual({
+        type: "project",
+        projectId: "firma",
+        text: "Przejrzeć raport #quick",
+      });
+    });
+
+    test("podgląd zadania bez energii: oba przyciski dostępne", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const queue = await screen.findByRole("region", { name: "Kolejka na dziś" });
+      fireEvent.click(within(queue).getByRole("button", { name: "Wysłać wniosek" }));
+      const dialog = await screen.findByRole("dialog", { name: "Podgląd zadania" });
+      expect(
+        within(dialog).getByRole("button", { name: "Energia deep: Wysłać wniosek" })
+      ).toHaveAttribute("aria-pressed", "false");
+      fireEvent.click(within(dialog).getByRole("button", { name: "Energia deep: Wysłać wniosek" }));
+      await waitFor(() => expect(energyCalls()).toHaveLength(1));
+      expect(JSON.parse(energyCalls()[0][1].body)).toMatchObject({
+        taskId: "t-wniosek",
+        energy: "deep",
+      });
+      // odpowiedź bez `source` (zadanie ogólne): źródło zostaje, energia w podglądzie się zmienia
+      await waitFor(() =>
+        expect(
+          within(dialog).getByRole("button", { name: "Energia deep: Wysłać wniosek" })
+        ).toHaveAttribute("aria-pressed", "true")
+      );
+    });
+
     test("błąd zapisu (np. plik się zmienił) pokazuje komunikat", async () => {
       respond(FULL);
       const base = mockApiFetch.getMockImplementation()!;

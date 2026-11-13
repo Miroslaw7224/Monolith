@@ -207,9 +207,10 @@ describe("POST /api/cockpit/queue/energy", () => {
     });
 
   it("200 i wywołuje serwis ze źródłem i energią (także null)", async () => {
-    mockSetQueueItemEnergy.mockResolvedValue(undefined);
+    mockSetQueueItemEnergy.mockResolvedValue({ type: "task", taskId: "t1" });
     const res = await setQueueEnergy(postE({ type: "task", taskId: "t1", energy: "deep" }));
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, source: { type: "task", taskId: "t1" } });
     expect(mockSetQueueItemEnergy).toHaveBeenCalledWith({ type: "task", taskId: "t1" }, "deep");
     await setQueueEnergy(postE({ type: "project", projectId: "p", text: "Zrób", energy: null }));
     expect(mockSetQueueItemEnergy).toHaveBeenLastCalledWith(
