@@ -7,41 +7,50 @@ import type {
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
 
-const CARD = "bg-[var(--surface)] border border-[var(--border)] rounded-xl";
-const SECTION_TITLE = "text-xs font-bold uppercase tracking-widest text-[var(--text2)]";
-const BADGE =
-  "ml-2 px-2 py-px text-[11px] font-normal rounded border border-[var(--danger,#ff7272)] text-[var(--text)]";
-
 const pad = (n: number) => String(n).padStart(2, "0");
 const hhmm = (minutes: number) => `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 
 function Line({ label, value }: { label: string; value: string | null }) {
   if (!value) return null;
   return (
-    <p className="text-sm text-[var(--text2)] mt-1">
-      <span className="text-[var(--text3)]">{label}: </span>
-      {value}
-    </p>
+    <>
+      <dt>{label}</dt>
+      <dd title={value}>{value}</dd>
+    </>
   );
 }
 
 function TopicCard({ topic }: { topic: TopicDto }) {
   return (
-    <article className={`${CARD} p-4`} aria-label={`Temat ${topic.name}`}>
-      <h4 className="text-sm font-bold text-[var(--text)]">
-        {topic.name}
-        {topic.owner === "work" ? <span className={BADGE}>Dane z firmy</span> : null}
-        {topic.freshness === "stale" ? <span className={BADGE}>do sprawdzenia</span> : null}
-      </h4>
+    <article className="kok-topic kok-panel" aria-label={`Temat ${topic.name}`}>
+      <div className="kok-topic__head">
+        <h4 className="kok-topic__name">{topic.name}</h4>
+        <div className="kok-topic__badges">
+          {topic.owner === "work" ? (
+            <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+          ) : null}
+          {topic.freshness === "stale" ? (
+            <span className="kok-badge kok-badge--danger">do sprawdzenia</span>
+          ) : null}
+        </div>
+      </div>
       {topic.source === "state" ? (
         <>
-          <Line label="Następny krok" value={topic.nextStep} />
-          <Line label="Blokada" value={topic.blocker} />
+          {topic.nextStep ? (
+            <p className="kok-topic__next">
+              <span>{topic.nextStep}</span>
+            </p>
+          ) : null}
+          <dl className="kok-kv">
+            <Line label="Blokada" value={topic.blocker} />
+          </dl>
         </>
       ) : topic.source === "index" ? (
-        <Line label="Gdzie skończyłem" value={topic.whereIStopped} />
+        <dl className="kok-kv">
+          <Line label="Gdzie skończyłem" value={topic.whereIStopped} />
+        </dl>
       ) : (
-        <p className="text-sm text-[var(--text3)] mt-1">Brak zapisanego stanu</p>
+        <p className="kok-topic__empty">Brak zapisanego stanu</p>
       )}
     </article>
   );
@@ -49,21 +58,23 @@ function TopicCard({ topic }: { topic: TopicDto }) {
 
 function QueueGroupCard({ group }: { group: QueueGroupDto }) {
   return (
-    <section className={`${CARD} p-3`} aria-label={`Kolejka: ${group.name}`}>
-      <h4 className="text-sm font-bold text-[var(--text)] mb-2">
-        {group.name}
-        {group.owner === "work" ? <span className={BADGE}>Dane z firmy</span> : null}
-      </h4>
-      <ul className="space-y-1">
+    <section className="kok-group" aria-label={`Kolejka: ${group.name}`}>
+      <div className="kok-group__head">
+        <h4 className="kok-group__title">{group.name}</h4>
+        {group.owner === "work" ? (
+          <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+        ) : null}
+      </div>
+      <ul className="kok-list">
         {group.items.map((item, i) => (
-          <li key={`${item.kind}-${i}`} className="flex items-center gap-3 text-sm">
-            <div className="w-3 h-3 rounded border-2 border-[var(--accent)] flex-shrink-0" />
-            <span className="text-[var(--text)] flex-1">{item.title}</span>
+          <li key={`${item.kind}-${i}`} className="kok-list__item">
+            <input className="kok-check" type="checkbox" aria-label="zrobione" readOnly />
+            <span className="kok-list__title">{item.title}</span>
             {item.kind === "overdue" && item.due ? (
-              <span className="text-xs text-[var(--danger,#ff7272)]">{item.due}</span>
+              <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
             {item.kind === "today" ? (
-              <span className="text-xs text-[var(--accent)]">dziś</span>
+              <span className="kok-badge kok-badge--accent">dziś</span>
             ) : null}
           </li>
         ))}
@@ -74,9 +85,16 @@ function QueueGroupCard({ group }: { group: QueueGroupDto }) {
 
 function EventRow({ event }: { event: DayEventDto }) {
   return (
-    <li className={`${CARD} flex items-center gap-3 p-3`}>
-      <span className="text-xs text-[var(--text2)] tabular-nums">{hhmm(event.startMinutes)}</span>
-      <span className="text-sm text-[var(--text)] flex-1">{event.title}</span>
+    <li className="kok-tl__item">
+      <span className="kok-tl__time">{hhmm(event.startMinutes)}</span>
+      <span className="kok-tl__node" />
+      <div className="kok-tl__body">
+        <div className="kok-tl__title">{event.title}</div>
+        <div className="kok-tl__meta">
+          <span className="kok-chip">{event.durationMinutes} min</span>
+          {event.type ? <span className="kok-chip">{event.type}</span> : null}
+        </div>
+      </div>
     </li>
   );
 }
@@ -88,58 +106,110 @@ export function CockpitSections({
   data: CockpitDto;
   onChangeActive: () => void;
 }) {
+  const totalQueueTasks = data.queue.reduce((acc, g) => acc + g.items.length, 0);
+
   return (
     <>
-      <section aria-label="Aktywne tematy">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className={SECTION_TITLE}>Aktywne tematy</h3>
-          <button
-            type="button"
-            onClick={onChangeActive}
-            className="text-xs text-[var(--accent)] hover:underline"
-          >
-            Zmień aktywne
-          </button>
+      <section className="kok-tiles tiles" aria-label="Liczby dnia">
+        <div className="kok-tile kok-tile--accent tile tile--accent">
+          <span className="kok-tile__label">Aktywne tematy</span>
+          <span className="kok-tile__value">
+            {data.topics.length}
+            <span className="kok-tile__sub"> / 3</span>
+          </span>
+          <span className="kok-tile__meta">limit 3 tematy</span>
         </div>
-        {data.topics.length === 0 ? (
-          <p className="text-sm text-[var(--text3)]">Przypnij projekty</p>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-3">
-            {data.topics.map((topic) => (
-              <TopicCard key={topic.id} topic={topic} />
-            ))}
-          </div>
-        )}
+        <div className="kok-tile tile">
+          <span className="kok-tile__label">Kolejka zadań</span>
+          <span className="kok-tile__value">{totalQueueTasks}</span>
+          <span className="kok-tile__meta">{data.queue.length} grup projektowych</span>
+        </div>
+        <div className="kok-tile tile">
+          <span className="kok-tile__label">Wydarzenia dnia</span>
+          <span className="kok-tile__value">{data.events.length}</span>
+          <span className="kok-tile__meta">
+            {data.events.length === 0 ? "wolny kalendarz" : "zaplanowane w kalendarzu"}
+          </span>
+        </div>
+        <div className="kok-tile tile">
+          <span className="kok-tile__label">Ostrzeżenia</span>
+          <span className="kok-tile__value">{data.warnings.length}</span>
+          <span className="kok-tile__meta">
+            {data.warnings.length === 0 ? "stan spójny" : "wpisy wymagające uwagi"}
+          </span>
+        </div>
       </section>
 
-      <section aria-label="Kolejka na dziś">
-        <h3 className={`${SECTION_TITLE} mb-3`}>Kolejka na dziś</h3>
-        {data.queue.length === 0 ? (
-          <p className="text-sm text-[var(--text3)]">Nic w kolejce</p>
-        ) : (
-          <div className="space-y-3">
-            {data.queue.map((group) => (
-              <QueueGroupCard key={group.projectId ?? "general"} group={group} />
-            ))}
+      <div className="kok-grid">
+        <section className="kok-panel" aria-label="Oś dnia">
+          <div className="kok-panel__head">
+            <h3 className="kok-panel__title">
+              <b>Oś dnia</b> · kalendarz
+            </h3>
+            <span className="kok-chip">{data.events.length} dziś</span>
           </div>
-        )}
-      </section>
+          {data.events.length === 0 ? (
+            <p className="kok-empty-msg">Brak wydarzeń na dziś</p>
+          ) : (
+            <ol className="kok-tl">
+              {data.events.map((event) => (
+                <EventRow key={event.id} event={event} />
+              ))}
+            </ol>
+          )}
+        </section>
 
-      <section aria-label="Oś dnia">
-        <h3 className={`${SECTION_TITLE} mb-3`}>Oś dnia</h3>
-        {data.events.length === 0 ? (
-          <p className="text-sm text-[var(--text3)]">Brak wydarzeń na dziś</p>
-        ) : (
-          <ul className="space-y-2">
-            {data.events.map((event) => (
-              <EventRow key={event.id} event={event} />
-            ))}
-          </ul>
-        )}
-      </section>
+        <section className="kok-focus" aria-label="Aktywne tematy">
+          <div className="kok-panel__head">
+            <h3 className="kok-panel__title">
+              <b>Punkty skupienia</b> · Save State
+            </h3>
+            <button
+              type="button"
+              onClick={onChangeActive}
+              className="kok-btn kok-btn--sm kok-btn--ghost"
+            >
+              Zmień aktywne
+            </button>
+          </div>
+          {data.topics.length === 0 ? (
+            <p className="kok-empty-msg">Przypnij projekty</p>
+          ) : (
+            <>
+              {data.topics.map((topic) => (
+                <TopicCard key={topic.id} topic={topic} />
+              ))}
+              {data.topics.length < 3 ? (
+                <button className="kok-empty" type="button" onClick={onChangeActive}>
+                  <span>Wolne miejsce na kolejny temat</span>
+                  <span className="kok-kbd">+</span>
+                </button>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        <section className="kok-panel kok-queue" aria-label="Kolejka na dziś">
+          <div className="kok-panel__head">
+            <h3 className="kok-panel__title">
+              <b>Kolejka</b> · dziś
+            </h3>
+            <span className="kok-chip">{totalQueueTasks} zadań</span>
+          </div>
+          {data.queue.length === 0 ? (
+            <p className="kok-empty-msg">Nic w kolejce</p>
+          ) : (
+            <div className="kok-queue">
+              {data.queue.map((group) => (
+                <QueueGroupCard key={group.projectId ?? "general"} group={group} />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       {data.warnings.length > 0 ? (
-        <ul className="text-xs text-[var(--text3)] space-y-1" aria-label="Ostrzeżenia">
+        <ul className="kok-warnings" aria-label="Ostrzeżenia">
           {data.warnings.map((w, i) => (
             <li key={i}>{w}</li>
           ))}

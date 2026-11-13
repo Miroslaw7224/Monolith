@@ -1,6 +1,7 @@
 // src/features/home/HomeView.tsx
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
+import "./home.css";
 import type { translations } from "@/src/translations";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
 import { ActivityLog } from "@/src/components/sessions/ActivityLog";
@@ -181,16 +182,21 @@ export default function HomeView({
             feedback: t.feedback,
           }}
         />
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[var(--bg)]">
-          <div>
-            <h2 className="text-xl font-bold text-[var(--text)]">{greeting} 👋</h2>
-            <p className="text-sm text-[var(--text2)] mt-1">{dateStr}</p>
-          </div>
+        <div className="kok flex-1 overflow-y-auto" data-card="kokpit">
+          <header className="kok-head">
+            <div>
+              <p className="kok-eyebrow">Alt+1 · Kokpit</p>
+              <h1 className="kok-title">{greeting} 👋</h1>
+              <p className="kok-sub">{dateStr}</p>
+            </div>
+          </header>
 
           {loading && cockpit === null ? (
-            <p className="text-sm text-[var(--text3)]">…</p>
+            <p className="kok-state">…</p>
           ) : cockpitError !== null ? (
-            <p className="text-sm text-red-500">Nie udało się wczytać Kokpitu ({cockpitError})</p>
+            <p className="kok-state kok-state--error">
+              Nie udało się wczytać Kokpitu ({cockpitError})
+            </p>
           ) : cockpit !== null ? (
             <CockpitSections data={cockpit} onChangeActive={() => setPickerOpen(true)} />
           ) : null}
@@ -207,29 +213,23 @@ export default function HomeView({
             />
           )}
 
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)] mb-3">
-              {t.homeQuickActions}
-            </h3>
-            <div className="flex flex-wrap gap-2">
+          <div className="kok-quick-actions">
+            <h3 className="kok-section-title">{t.homeQuickActions}</h3>
+            <div className="kok-actions">
               {[
                 { label: t.homeAddNote, action: () => goToTab("notes") },
                 { label: t.homeAddTask, action: () => goToTab("tasks") },
                 { label: t.tabMindMaps, action: () => goToTab("mindmaps") },
                 { label: t.tabResources, action: () => goToTab("resources") },
               ].map(({ label, action }) => (
-                <button
-                  key={label}
-                  onClick={action}
-                  className="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text2)] hover:bg-[var(--bg2)] transition-colors"
-                >
+                <button key={label} onClick={action} className="kok-btn kok-btn--sm">
                   {label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
+          <div className="kok-activity-slot">
             <ActivityLog
               apiFetch={apiFetch}
               lang={lang}
@@ -241,12 +241,12 @@ export default function HomeView({
             />
           </div>
 
-          {sessionEndError && <p className="text-sm text-red-500">{sessionEndError}</p>}
+          {sessionEndError && <p className="kok-state kok-state--error">{sessionEndError}</p>}
 
           {sessionModalOpen && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-[var(--bg2)] rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                <h3 className="text-base font-bold text-[var(--text)] mb-4">
+            <div className="kok-overlay">
+              <div className="kok-modal">
+                <h3 className="kok-modal__title">
                   {lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
                 </h3>
                 <StartSessionModal
