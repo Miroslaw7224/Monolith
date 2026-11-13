@@ -14,7 +14,6 @@ import type {
 } from "./models";
 
 export type { ProjectType };
-export { NOW_LIMIT } from "./models";
 
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
 
@@ -97,6 +96,9 @@ export const DevlogInputSchema = z.object({
     .transform((v) => v.replace(/\r\n/g, "\n").trim())
     .refine((v) => !/^#{1,2}\s/m.test(v), "Linia nie może zaczynać się od # lub ##"),
 });
+
+/** Limit zadań w kolumnie „Teraz” dla UI; wartość zgodna z `NOW_LIMIT` w `models` (pilnuje test). */
+export const NOW_LIMIT = 3;
 
 /** Kolumny tablicy zadań; lista zgodna z `TASK_COLUMNS` w `models` (pilnuje test). */
 export const TaskColumnSchema = z.enum(["blockers", "now", "next", "icebox"]);

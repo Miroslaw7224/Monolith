@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  NOW_LIMIT as MODEL_NOW_LIMIT,
   PROJECT_TYPES,
   TASK_COLUMNS,
   type Project,
@@ -8,6 +9,7 @@ import {
 } from "@/contexts/bc_projects/models";
 import {
   DevlogInputSchema,
+  NOW_LIMIT,
   ProjectTypeInputSchema,
   ProjectTypeSchema,
   StateInputSchema,
@@ -295,6 +297,10 @@ describe("bc_projects schemas: TaskOpInputSchema", () => {
 
   it("lista kolumn zgodna z TASK_COLUMNS w models", () => {
     expect([...TaskColumnSchema.options]).toEqual([...TASK_COLUMNS]);
+  });
+
+  it("limit Teraz zgodny z NOW_LIMIT w models", () => {
+    expect(NOW_LIMIT).toBe(MODEL_NOW_LIMIT);
   });
 });
 
