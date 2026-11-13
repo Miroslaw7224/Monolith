@@ -85,21 +85,20 @@ export function ResourceAddForm({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 space-y-0">
+    <div className="ars-add-forms">
+      <div className="ars-panel">
         <button
           type="button"
           onClick={() => setFormExpanded((e) => !e)}
-          className="w-full flex items-center justify-between gap-2 py-2 text-left text-base font-semibold text-[var(--text)] hover:text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1"
+          className="ars-panel__header"
+          aria-expanded={formExpanded}
         >
-          <span>{resourceDescriptionPlaceholder}</span>
-          <ChevronDown
-            className={`w-4 h-4 flex-shrink-0 transition-transform ${formExpanded ? "rotate-180" : ""}`}
-          />
+          <span className="ars-panel__title">{resourceDescriptionPlaceholder}</span>
+          <ChevronDown className={`ars-chevron ${formExpanded ? "ars-chevron--open" : ""}`} />
         </button>
         {formExpanded && (
-          <div className="space-y-3 pt-1">
-            <div>
+          <div className="ars-panel__body">
+            <div className="ars-form-field">
               <input
                 type="text"
                 value={addDescription}
@@ -108,14 +107,12 @@ export function ResourceAddForm({
                   setFieldErrors((prev) => ({ ...prev, description: undefined }));
                 }}
                 placeholder={resourceDescriptionPlaceholder}
-                className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)]"
+                className="input ars-input"
                 aria-invalid={!!fieldErrors.description}
               />
-              {fieldErrors.description && (
-                <p className="text-sm text-red-600 mt-1">{fieldErrors.description}</p>
-              )}
+              {fieldErrors.description && <p className="ars-error">{fieldErrors.description}</p>}
             </div>
-            <div>
+            <div className="ars-form-field">
               <input
                 type="url"
                 value={addUrl}
@@ -124,12 +121,12 @@ export function ResourceAddForm({
                   setFieldErrors((prev) => ({ ...prev, url: undefined }));
                 }}
                 placeholder={resourceUrlPlaceholder}
-                className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)]"
+                className="input ars-input"
                 aria-invalid={!!fieldErrors.url}
               />
-              {fieldErrors.url && <p className="text-sm text-red-600 mt-1">{fieldErrors.url}</p>}
+              {fieldErrors.url && <p className="ars-error">{fieldErrors.url}</p>}
             </div>
-            <div>
+            <div className="ars-form-field">
               <input
                 type="text"
                 value={addTags}
@@ -138,15 +135,15 @@ export function ResourceAddForm({
                   setFieldErrors((prev) => ({ ...prev, tags: undefined }));
                 }}
                 placeholder={resourceTagsPlaceholder}
-                className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)]"
+                className="input ars-input"
               />
-              {fieldErrors.tags && <p className="text-sm text-red-600 mt-1">{fieldErrors.tags}</p>}
+              {fieldErrors.tags && <p className="ars-error">{fieldErrors.tags}</p>}
             </div>
             <button
               type="button"
               onClick={handleSubmit}
               disabled={adding || !addDescription.trim() || !addUrl.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
+              className="btn btn--primary ars-btn--submit"
             >
               {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               {addResourceLabel}
@@ -155,19 +152,20 @@ export function ResourceAddForm({
         )}
       </div>
 
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+      <div className="ars-panel">
         <button
           type="button"
           onClick={() => setBlockFormatExpanded((e) => !e)}
-          className="w-full flex items-center justify-between gap-2 py-2 text-left text-base font-semibold text-[var(--text)] hover:text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-1"
+          className="ars-panel__header"
+          aria-expanded={blockFormatExpanded}
         >
-          <span>{blockFormatLabel}</span>
+          <span className="ars-panel__title">{blockFormatLabel}</span>
           <ChevronDown
-            className={`w-4 h-4 flex-shrink-0 transition-transform ${blockFormatExpanded ? "rotate-180" : ""}`}
+            className={`ars-chevron ${blockFormatExpanded ? "ars-chevron--open" : ""}`}
           />
         </button>
         {blockFormatExpanded && (
-          <div className="pt-2 space-y-2">
+          <div className="ars-panel__body">
             <textarea
               value={blockFormatText}
               onChange={(e) => {
@@ -176,26 +174,24 @@ export function ResourceAddForm({
               }}
               placeholder={blockFormatPlaceholder}
               rows={4}
-              className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] resize-y font-mono text-sm"
+              className="input ars-input ars-textarea"
             />
-            <p className="text-xs text-[#6B7280]">{blockFormatHint}</p>
+            <p className="ars-hint">{blockFormatHint}</p>
             <button
               type="button"
               onClick={handleAddFromBlock}
               disabled={adding || !blockFormatText.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--text2)] text-white rounded-xl text-sm font-semibold hover:bg-[var(--text)] transition-all disabled:opacity-50 disabled:hover:bg-[var(--text2)]"
+              className="btn ars-btn--block"
             >
               {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               {addFromBlockLabel}
             </button>
-            {blockFormatError && (
-              <p className="text-sm text-red-600 font-medium">{blockFormatError}</p>
-            )}
+            {blockFormatError && <p className="ars-error">{blockFormatError}</p>}
           </div>
         )}
       </div>
 
-      {copyMessage && <p className="text-sm text-green-600 font-medium">{copyMessage}</p>}
+      {copyMessage && <p className="ars-success">{copyMessage}</p>}
     </div>
   );
 }

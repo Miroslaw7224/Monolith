@@ -79,115 +79,123 @@ export function ResourceEditModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="ars-modal-overlay"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-resource-title"
     >
       <div
-        className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="ars-modal"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            onClose();
+          }
+        }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h3 id="edit-resource-title" className="text-lg font-bold text-[var(--text)]">
+        <div className="ars-modal__head">
+          <h3 id="edit-resource-title" className="ars-modal__title">
             {titleLabel}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text2)]"
+            className="btn btn--sm btn--icon btn--ghost"
             aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">Title</label>
+        <div className="ars-modal__body">
+          <div className="ars-field">
+            <label htmlFor="edit-res-title" className="ars-label">
+              Title
+            </label>
             <input
+              id="edit-res-title"
               type="text"
               value={editForm.title}
               onChange={(e) => {
                 setEditForm((f) => ({ ...f, title: e.target.value }));
                 setFieldErrors((prev) => ({ ...prev, title: undefined }));
               }}
-              className="w-full px-4 py-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:ring-2 focus:ring-[var(--accent)]"
+              className="input ars-input"
               placeholder={resourceDescriptionPlaceholder}
               aria-invalid={!!fieldErrors.title}
             />
-            {fieldErrors.title && <p className="text-sm text-red-600 mt-1">{fieldErrors.title}</p>}
+            {fieldErrors.title && <p className="ars-error">{fieldErrors.title}</p>}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">Description</label>
+          <div className="ars-field">
+            <label htmlFor="edit-res-desc" className="ars-label">
+              Description
+            </label>
             <input
+              id="edit-res-desc"
               type="text"
               value={editForm.description}
               onChange={(e) => {
                 setEditForm((f) => ({ ...f, description: e.target.value }));
                 setFieldErrors((prev) => ({ ...prev, description: undefined }));
               }}
-              className="w-full px-4 py-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:ring-2 focus:ring-[var(--accent)]"
+              className="input ars-input"
               placeholder={resourceDescriptionPlaceholder}
               aria-invalid={!!fieldErrors.description}
             />
-            {fieldErrors.description && (
-              <p className="text-sm text-red-600 mt-1">{fieldErrors.description}</p>
-            )}
+            {fieldErrors.description && <p className="ars-error">{fieldErrors.description}</p>}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">URL</label>
+          <div className="ars-field">
+            <label htmlFor="edit-res-url" className="ars-label">
+              URL
+            </label>
             <input
+              id="edit-res-url"
               type="url"
               value={editForm.url}
               onChange={(e) => {
                 setEditForm((f) => ({ ...f, url: e.target.value }));
                 setFieldErrors((prev) => ({ ...prev, url: undefined }));
               }}
-              className="w-full px-4 py-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:ring-2 focus:ring-[var(--accent)]"
+              className="input ars-input"
               placeholder={resourceUrlPlaceholder}
               aria-invalid={!!fieldErrors.url}
             />
-            {fieldErrors.url && <p className="text-sm text-red-600 mt-1">{fieldErrors.url}</p>}
+            {fieldErrors.url && <p className="ars-error">{fieldErrors.url}</p>}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--text)] mb-1">Tags</label>
+          <div className="ars-field">
+            <label htmlFor="edit-res-tags" className="ars-label">
+              Tags
+            </label>
             <input
+              id="edit-res-tags"
               type="text"
               value={editForm.tags}
               onChange={(e) => {
                 setEditForm((f) => ({ ...f, tags: e.target.value }));
                 setFieldErrors((prev) => ({ ...prev, tags: undefined }));
               }}
-              className="w-full px-4 py-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-[var(--text)] focus:ring-2 focus:ring-[var(--accent)]"
+              className="input ars-input"
               placeholder={resourceTagsPlaceholder}
               aria-invalid={!!fieldErrors.tags}
             />
-            {fieldErrors.tags && <p className="text-sm text-red-600 mt-1">{fieldErrors.tags}</p>}
+            {fieldErrors.tags && <p className="ars-error">{fieldErrors.tags}</p>}
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="ars-checkbox-label">
             <input
               type="checkbox"
               checked={editForm.isFavorite}
               onChange={(e) => setEditForm((f) => ({ ...f, isFavorite: e.target.checked }))}
-              className="w-4 h-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
+              className="check ars-check"
             />
-            <span className="text-sm font-medium text-[var(--text)]">{resourceFavoriteLabel}</span>
+            <span>{resourceFavoriteLabel}</span>
           </label>
         </div>
-        <div className="flex justify-end gap-2 p-4 border-t border-[var(--border)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-[var(--border)] text-[var(--text)] hover:bg-[var(--bg2)] font-medium"
-          >
+        <div className="ars-modal__foot">
+          <button type="button" onClick={onClose} className="btn btn--ghost">
             {cancelLabel}
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-semibold hover:opacity-90"
-          >
+          <button type="button" onClick={handleSave} className="btn btn--primary">
             {saveLabel}
           </button>
         </div>

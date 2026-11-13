@@ -29,21 +29,21 @@ export function ResourceListItem({
   const [showFavicon, setShowFavicon] = React.useState(true);
 
   return (
-    <li className="flex items-center justify-between gap-3 py-3 px-4 bg-[var(--surface)] border border-[var(--border)] rounded-xl">
+    <li className="ars-res-item">
       <div
-        className="min-w-0 flex-1 flex items-stretch gap-3 cursor-pointer"
+        className="ars-res-main"
         onClick={() => onOpenEdit(r)}
         onKeyDown={(e) => e.key === "Enter" && onOpenEdit(r)}
         role="button"
         tabIndex={0}
       >
         {favicon && showFavicon && (
-          <div className="flex items-center flex-shrink-0 self-stretch min-h-[2rem]">
+          <div className="ars-res-favicon">
             <Image
               src={favicon}
               width={28}
               height={28}
-              className="object-contain"
+              className="ars-res-favicon__img"
               style={{ borderRadius: "4px", width: 28, height: 28 }}
               alt=""
               unoptimized
@@ -51,45 +51,43 @@ export function ResourceListItem({
             />
           </div>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="text-base font-semibold text-[var(--text)] truncate">
+        <div className="ars-res-content">
+          <div className="ars-res-title">
             {r.title === r.url ? (
-              <span>
-                {r.url}
-                <span className="text-[var(--text3)] ml-1 font-normal text-sm">
-                  {titleUnavailableLabel}
-                </span>
+              <span className="ars-res-title-raw">
+                <span>{r.url}</span>
+                <span className="ars-res-unavailable ml-1">{titleUnavailableLabel}</span>
               </span>
             ) : (
-              r.title
+              <span className="ars-res-title-text">{r.title}</span>
             )}
-          </p>
-          <p className="text-sm text-[#6B7280] truncate mt-0.5">{r.description}</p>
-          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          </div>
+          <p className="ars-res-desc">{r.description}</p>
+          <div className="ars-res-meta">
             {(r.tags || []).map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-[var(--border)] text-[var(--text)]"
-              >
+              <span key={tag} className="chip ars-res-tag">
+                <span className="ars-hash" aria-hidden="true">
+                  #
+                </span>
                 {tag}
               </span>
             ))}
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="ars-res-actions">
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onToggleFavorite(r);
           }}
-          className={`p-2 rounded-lg transition-colors ${
-            r.isFavorite
-              ? "text-amber-500 hover:bg-amber-50"
-              : "text-[var(--text2)] hover:bg-[var(--bg3)] hover:text-[var(--text)]"
+          className={`btn btn--sm btn--icon ars-action-btn ${
+            r.isFavorite ? "ars-btn--fav-active" : "btn--ghost"
           }`}
           title={resourceFavoriteLabel}
+          aria-label={resourceFavoriteLabel}
+          aria-pressed={r.isFavorite}
         >
           <Star className={`w-4 h-4 ${r.isFavorite ? "fill-current" : ""}`} />
         </button>
@@ -99,8 +97,9 @@ export function ResourceListItem({
             e.stopPropagation();
             onOpenEdit(r);
           }}
-          className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text2)] hover:text-[var(--text)]"
+          className="btn btn--sm btn--icon btn--ghost ars-action-btn"
           title={resourceEditLabel}
+          aria-label={resourceEditLabel}
         >
           <Pencil className="w-4 h-4" />
         </button>
@@ -110,8 +109,9 @@ export function ResourceListItem({
             e.stopPropagation();
             onCopy(r.url);
           }}
-          className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text2)] hover:text-[var(--text)]"
+          className="btn btn--sm btn--icon btn--ghost ars-action-btn"
           title="Copy URL"
+          aria-label="Copy URL"
         >
           <Copy className="w-4 h-4" />
         </button>
@@ -121,8 +121,9 @@ export function ResourceListItem({
             e.stopPropagation();
             onDelete(r.id);
           }}
-          className="p-2 hover:bg-red-50 rounded-lg transition-colors text-[#6B7280] hover:text-red-500"
+          className="btn btn--sm btn--icon btn--ghost ars-action-btn ars-btn--danger"
           title="Delete"
+          aria-label="Delete"
         >
           <Trash2 className="w-4 h-4" />
         </button>

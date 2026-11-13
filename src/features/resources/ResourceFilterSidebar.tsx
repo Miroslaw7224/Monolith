@@ -24,33 +24,34 @@ export function ResourceFilterSidebar({
   if (loading || resourcesLength === 0) return null;
 
   return (
-    <div className="space-y-3">
-      <p className="text-sm font-medium text-[var(--text)]">{filterByTagsLabel}</p>
-      <div className="flex flex-wrap gap-1.5">
-        {allTags.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => toggleTag(tag)}
-            className={`px-2.5 py-1 rounded-lg text-sm font-medium transition-colors ${
-              selectedTags.includes(tag)
-                ? "bg-[var(--accent)] text-white"
-                : "bg-[var(--bg3)] text-[var(--text)] hover:bg-[var(--border)]"
-            }`}
-          >
-            {tag}
+    <div className="ars-filter-box">
+      <div className="ars-filter-box__head">
+        <span className="ars-filter-box__label">{filterByTagsLabel}</span>
+        {selectedTags.length > 0 && (
+          <button type="button" onClick={clearTagFilter} className="ars-filter-box__clear">
+            {clearFiltersLabel}
           </button>
-        ))}
+        )}
       </div>
-      {selectedTags.length > 0 && (
-        <button
-          type="button"
-          onClick={clearTagFilter}
-          className="text-sm text-[var(--text2)] hover:text-[var(--text)] font-medium"
-        >
-          {clearFiltersLabel}
-        </button>
-      )}
+      <div className="ars-filter-chips">
+        {allTags.map((tag) => {
+          const isSelected = selectedTags.includes(tag);
+          return (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => toggleTag(tag)}
+              className={`chip ${isSelected ? "chip--accent" : ""}`}
+              aria-pressed={isSelected}
+            >
+              <span className="ars-hash" aria-hidden="true">
+                #
+              </span>
+              {tag}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
