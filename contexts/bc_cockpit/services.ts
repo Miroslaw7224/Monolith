@@ -290,14 +290,14 @@ export function pickNextMeeting(
 // ── okna Deep Work ─────────────────────────────────────────────────────────────
 
 const DAY_START = 8 * 60;
-const DAY_END = 18 * 60;
+const DAY_END = 23 * 60;
 const MIN_WINDOW = 45;
 const DEEP_MIN_WINDOW = 60;
 const MAX_WINDOW = 150;
 const MAX_WINDOWS = 3;
 
 /**
- * Do 3 proponowanych okien w wolnych godzinach 08–18 (od „teraz”, zaokrąglonego w górę do 15 min):
+ * Do 3 proponowanych okien w wolnych godzinach 08–23 (od „teraz”, zaokrąglonego w górę do 15 min):
  * wolny odcinek ≥ 45 min, okno do 150 min. Zadania z kolejki (kolejność jak w kolejce) wybierane
  * wg energii: okno ≥ 60 min dostaje najpierw deep, potem quick; krótsze tylko quick. Czysta funkcja.
  */

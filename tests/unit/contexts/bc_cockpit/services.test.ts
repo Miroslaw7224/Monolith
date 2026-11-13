@@ -932,7 +932,7 @@ describe("okna Deep Work (K5)", () => {
   ];
 
   it("wolne okna między wydarzeniami dostają zadania: najpierw deep do okien ≥ 60 min, potem quick", () => {
-    // zajęte 08:30–09:00 i 10:30–11:00; wolne 09:00–10:30 (90) i 11:00–18:00 (przycięte do 150)
+    // zajęte 08:30–09:00 i 10:30–11:00; wolne 09:00–10:30 (90) i 11:00–23:00 (przycięte do 150)
     const out = planWindows(
       [ev(510, 30), ev(630, 30)],
       group(["Porty", "deep"], ["Linki", "quick"]),
@@ -952,16 +952,26 @@ describe("okna Deep Work (K5)", () => {
   });
 
   it("odcinki krótsze niż 45 min są pomijane; okno 45–59 min dostaje tylko quick", () => {
-    expect(planWindows([ev(480, 30), ev(540, 540)], group(["A", "quick"]), 0)).toEqual([]);
-    const only = planWindows([ev(480, 15), ev(540, 540)], group(["Deep", "deep"]), 0);
+    expect(planWindows([ev(480, 30), ev(540, 840)], group(["A", "quick"]), 0)).toEqual([]);
+    const only = planWindows([ev(480, 15), ev(540, 840)], group(["Deep", "deep"]), 0);
     expect(only).toEqual([]);
     const quick = planWindows(
-      [ev(480, 15), ev(540, 540)],
+      [ev(480, 15), ev(540, 840)],
       group(["Deep", "deep"], ["Szybkie", "quick"]),
       0
     );
     expect(quick).toEqual([
       { startMinutes: 495, endMinutes: 540, energy: "quick", title: "Szybkie", projectName: "P" },
+    ]);
+  });
+
+  it("okna sięgają do 23:00 i nie wychodzą poza nią", () => {
+    // wolne 18:00–23:00 (300 min, przycięte do 150), po 23:00 nic
+    expect(planWindows([ev(480, 600)], group(["Wieczór", "deep"]), 0)).toEqual([
+      { startMinutes: 1080, endMinutes: 1230, energy: "deep", title: "Wieczór", projectName: "P" },
+    ]);
+    expect(planWindows([], group(["A", "quick"]), 22 * 60 + 5)).toEqual([
+      { startMinutes: 1335, endMinutes: 1380, energy: "quick", title: "A", projectName: "P" },
     ]);
   });
 
@@ -975,9 +985,9 @@ describe("okna Deep Work (K5)", () => {
     );
   });
 
-  it("zachodzące na siebie wydarzenia są łączone; wydarzenia poza 08–18 nie zawężają dnia", () => {
+  it("zachodzące na siebie wydarzenia są łączone; wydarzenia poza 08–23 nie zawężają dnia", () => {
     const out = planWindows(
-      [ev(480, 120), ev(540, 120), ev(1200, 60), ev(300, 60)],
+      [ev(480, 120), ev(540, 120), ev(1380, 60), ev(300, 60)],
       group(["A", "deep"]),
       0
     );
