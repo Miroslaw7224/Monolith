@@ -181,8 +181,88 @@ export function applyTaskOp(text: string | null, op: TaskOp, ctx: TaskFileContex
       scan.lines.splice(task.start, task.end - task.start);
       return scan.lines.join("\n");
     }
-    case "add":
-    case "move":
-      throw new Error(`Operacja ${op.op} nie jest jeszcze zaimplementowana`);
+    case "add": {
+      const line = formatTaskLine({ done: false, now: op.column === "now", text: op.text });
+      const kind = sectionKindOf(op.column);
+      if (text === null) return newFileWith(ctx.projectName, kind, [line]);
+      return insertBlock(text, kind, [line]);
+    }
+    case "move": {
+      if (op.to === op.column) throw new Error("Zadanie jest już w tej kolumnie");
+      const scan = scanTasks(text);
+      const task = locateTask(scan, op);
+      const movedLine = formatTaskLine({
+        done: task.done,
+        now: op.to === "now",
+        text: task.text,
+        doneDate: task.doneDate,
+      });
+      const kind = sectionKindOf(op.to);
+      if (kind === sectionKindOf(task.column)) {
+        // next ↔ now: zmienia się tylko znacznik, linia zostaje na miejscu.
+        scan.lines[task.start] = movedLine;
+        return scan.lines.join("\n");
+      }
+      const block = [movedLine, ...scan.lines.slice(task.start + 1, task.end)];
+      scan.lines.splice(task.start, task.end - task.start);
+      return insertBlock(scan.lines.join("\n"), kind, block);
+    }
   }
+}
+
+const SECTION_HEADING: Record<SectionKind, string> = {
+  blockers: "Blokery",
+  next: "Next",
+  icebox: "Backlog",
+};
+const SECTION_ORDER: readonly SectionKind[] = ["blockers", "next", "icebox"];
+const PLACEHOLDER_RE = /^_?Brak\b/;
+
+/** Sekcja pliku, w której leży kolumna (`now` i `next` dzielą `## Next`). */
+function sectionKindOf(column: TaskColumn): SectionKind {
+  return column === "now" ? "next" : column;
+}
+
+/** Nowy plik (brak `tasks.md`): nagłówek, trzy sekcje, zadanie w sekcji docelowej. */
+function newFileWith(projectName: string, target: SectionKind, block: string[]): string {
+  let out = `# Tasks — ${projectName}\n`;
+  for (const kind of SECTION_ORDER) {
+    out += `\n## ${SECTION_HEADING[kind]}\n`;
+    if (kind === target) out += `\n${block.join("\n")}\n`;
+  }
+  return out;
+}
+
+/**
+ * Wstawia blok linii do sekcji: po ostatnim zadaniu; w sekcji bez zadań usuwa placeholdery `Brak…`
+ * i wstawia pod nagłówkiem (albo po ostatniej niepustej linii prozy); brak sekcji dopisuje na końcu pliku.
+ */
+function insertBlock(text: string, kind: SectionKind, block: string[]): string {
+  const scan = scanTasks(text);
+  const section = scan.sections[kind];
+  if (section === undefined) {
+    const head = text.replace(/\n+$/, "");
+    const heading = `## ${SECTION_HEADING[kind]}`;
+    return `${head === "" ? "" : `${head}\n\n`}${heading}\n\n${block.join("\n")}\n`;
+  }
+
+  const inSection = scan.tasks.filter((t) => t.start > section.heading && t.start < section.end);
+  if (inSection.length > 0) {
+    scan.lines.splice(inSection[inSection.length - 1].end, 0, ...block);
+    return scan.lines.join("\n");
+  }
+
+  const body = scan.lines
+    .slice(section.heading + 1, section.end)
+    .filter((line) => !PLACEHOLDER_RE.test(line.trim()));
+  let lastNonBlank = -1;
+  body.forEach((line, i) => {
+    if (line.trim() !== "") lastNonBlank = i;
+  });
+  const newBody =
+    lastNonBlank === -1
+      ? ["", ...block, ""]
+      : [...body.slice(0, lastNonBlank + 1), "", ...block, ...body.slice(lastNonBlank + 1)];
+  scan.lines.splice(section.heading + 1, section.end - section.heading - 1, ...newBody);
+  return scan.lines.join("\n");
 }

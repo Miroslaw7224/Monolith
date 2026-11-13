@@ -190,3 +190,138 @@ describe("tasks-file: toggle, edit, remove", () => {
     ).toThrow(ConflictError);
   });
 });
+
+const PIERWSZE_BLOCK = `- [ ] ${PIERWSZE}\n  - [ ] podpunkt A\n  - notatka B\n`;
+
+describe("tasks-file: add", () => {
+  it("next: zaraz po ostatnim zadaniu sekcji, przed prozą", () => {
+    const out = applyTaskOp(SAMPLE, { op: "add", column: "next", text: "Czwarte" }, CTX);
+    expect(out).toBe(SAMPLE.replace("- [ ] Trzecie\n", "- [ ] Trzecie\n- [ ] Czwarte\n"));
+  });
+
+  it("now: do sekcji Next ze znacznikiem", () => {
+    const out = applyTaskOp(SAMPLE, { op: "add", column: "now", text: "Piąte" }, CTX);
+    expect(out).toBe(SAMPLE.replace("- [ ] Trzecie\n", "- [ ] Trzecie\n- [ ] Piąte [now::]\n"));
+  });
+
+  it("blockers: zastępuje placeholder", () => {
+    const out = applyTaskOp(SAMPLE, { op: "add", column: "blockers", text: "X" }, CTX);
+    expect(out).toBe(
+      SAMPLE.replace(
+        "## Blokery\n\n_Brak aktywnych blokerów_\n\n## Next",
+        "## Blokery\n\n- [ ] X\n\n## Next"
+      )
+    );
+  });
+
+  it("icebox: po ostatniej linii Backlog", () => {
+    const out = applyTaskOp(SAMPLE, { op: "add", column: "icebox", text: "Z" }, CTX);
+    expect(out).toBe(`${SAMPLE}- [ ] Z\n`);
+  });
+
+  it("brakująca sekcja jest dopisywana na końcu pliku", () => {
+    const out = applyTaskOp(
+      "# Tasks — Demo\n\n## Next\n\n- [ ] a\n",
+      { op: "add", column: "icebox", text: "b" },
+      CTX
+    );
+    expect(out).toBe("# Tasks — Demo\n\n## Next\n\n- [ ] a\n\n## Backlog\n\n- [ ] b\n");
+  });
+
+  it("brak pliku tworzy nagłówek i trzy sekcje", () => {
+    const out = applyTaskOp(null, { op: "add", column: "next", text: "x" }, CTX);
+    expect(out).toBe("# Tasks — Demo\n\n## Blokery\n\n## Next\n\n- [ ] x\n\n## Backlog\n");
+  });
+
+  it("pusta sekcja (przed kolejnym nagłówkiem i na końcu pliku)", () => {
+    expect(
+      applyTaskOp("## Blokery\n\n## Next\n", { op: "add", column: "blockers", text: "x" }, CTX)
+    ).toBe("## Blokery\n\n- [ ] x\n\n## Next\n");
+    expect(applyTaskOp("## Backlog\n", { op: "add", column: "icebox", text: "x" }, CTX)).toBe(
+      "## Backlog\n\n- [ ] x\n"
+    );
+  });
+
+  it("sekcja z prozą bez zadań: po ostatniej niepustej linii", () => {
+    const out = applyTaskOp(
+      "## Next\n\nNotatka.\n\n## Backlog\n",
+      { op: "add", column: "next", text: "a" },
+      CTX
+    );
+    expect(out).toBe("## Next\n\nNotatka.\n\n- [ ] a\n\n## Backlog\n");
+  });
+});
+
+describe("tasks-file: move", () => {
+  it("next → now: znacznik w miejscu", () => {
+    const out = applyTaskOp(
+      SAMPLE,
+      { op: "move", column: "next", index: 1, text: "Trzecie", to: "now" },
+      CTX
+    );
+    expect(out).toBe(SAMPLE.replace("- [ ] Trzecie", "- [ ] Trzecie [now::]"));
+  });
+
+  it("now → next: zdjęcie znacznika w miejscu", () => {
+    const out = applyTaskOp(
+      SAMPLE,
+      { op: "move", column: "now", index: 0, text: "Drugie", to: "next" },
+      CTX
+    );
+    expect(out).toBe(SAMPLE.replace("- [ ] Drugie [now::]", "- [ ] Drugie"));
+  });
+
+  it("next → icebox: cały blok z podpunktami na koniec Backlog", () => {
+    const out = applyTaskOp(
+      SAMPLE,
+      { op: "move", column: "next", index: 0, text: PIERWSZE, to: "icebox" },
+      CTX
+    );
+    expect(out).toBe(`${SAMPLE.replace(PIERWSZE_BLOCK, "")}${PIERWSZE_BLOCK}`);
+  });
+
+  it("icebox → blockers: zastępuje placeholder, jedna Powtórka zostaje", () => {
+    const out = applyTaskOp(
+      SAMPLE,
+      { op: "move", column: "icebox", index: 1, text: "Powtórka", to: "blockers" },
+      CTX
+    );
+    expect(out).toBe(
+      SAMPLE.replace("- [ ] Powtórka\n", "").replace("_Brak aktywnych blokerów_", "- [ ] Powtórka")
+    );
+    expect(readBoardText(out).icebox).toHaveLength(2);
+  });
+
+  it("now → icebox: znacznik zdjęty", () => {
+    const out = applyTaskOp(
+      SAMPLE,
+      { op: "move", column: "now", index: 0, text: "Drugie", to: "icebox" },
+      CTX
+    );
+    expect(out).toBe(`${SAMPLE.replace("- [ ] Drugie [now::]\n", "")}- [ ] Drugie\n`);
+  });
+
+  it("icebox → now: na koniec Next ze znacznikiem", () => {
+    const out = applyTaskOp(
+      SAMPLE,
+      { op: "move", column: "icebox", index: 1, text: "Powtórka", to: "now" },
+      CTX
+    );
+    expect(out).toBe(
+      SAMPLE.replace("- [ ] Powtórka\n", "").replace(
+        "- [ ] Trzecie\n",
+        "- [ ] Trzecie\n- [ ] Powtórka [now::]\n"
+      )
+    );
+  });
+
+  it("ruch do tej samej kolumny jest błędem", () => {
+    expect(() =>
+      applyTaskOp(
+        SAMPLE,
+        { op: "move", column: "next", index: 1, text: "Trzecie", to: "next" },
+        CTX
+      )
+    ).toThrow(/już w tej kolumnie/);
+  });
+});
