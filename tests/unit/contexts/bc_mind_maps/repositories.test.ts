@@ -11,7 +11,7 @@ import {
   saveMindMap,
 } from "@/contexts/bc_mind_maps/repositories";
 import type { MindMapNode } from "@/contexts/bc_mind_maps/models";
-import { useTempVault } from "../../lib/nexus/repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const T1 = "2026-11-12T10:00:00.000Z";
 const T2 = "2026-11-12T11:00:00.000Z";

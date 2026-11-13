@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { getBoard, saveBoard } from "@/contexts/bc_board/repositories";
-import { useTempVault } from "../../lib/nexus/repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const vault = useTempVault();
 const BOARD = { tiles: [{ id: "t1" }], frames: [], edges: [] };
