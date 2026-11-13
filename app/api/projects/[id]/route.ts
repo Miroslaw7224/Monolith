@@ -1,1 +1,1 @@
-export { getProject as GET } from "@/contexts/bc_projects/router";
+export { getProject as GET, patchProject as PATCH } from "@/contexts/bc_projects/router";
