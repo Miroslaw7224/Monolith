@@ -33,23 +33,24 @@ Folder `Work/` w vaulcie jest przeznaczony na dane etatu i nie może trafić do 
 
 ## Moduły i kluczowe funkcje
 
-Struktura frontendu (komponenty, hooki, podfoldery `resources/` i `calendar/`) jest opisana w **ADR-019** (refaktoryzacja dużych plików). Wspólna utilita klas CSS: `src/lib/cn.ts`.
+Struktura repo i reguły importów: [ADR-021](docs/adr/021-struktura-kontekstow-wg-vaulta-nexus.md) (logika domen w `contexts/bc_*/`, trasy `app/api/**/route.ts` tylko re-eksportują handlery, UI w `src/features/<moduł>/`, wspólne komponenty w `src/components/`). Podział dużych plików frontendu: ADR-019. Wspólna utilita klas CSS: `src/lib/cn.ts`.
 
 > Moduł "Wiedza" (chat RAG na dokumentach użytkownika, opisany dawniej w ADR-018/ADR-011) został usunięty z aplikacji. Notatki, zasoby i mapy myśli funkcjonują dziś jako samodzielne zakładki w module Planowanie.
 
-- **Konteksty domenowe** (`contexts/`): logika biznesowa poza `app/` i `src/` (siatka router / schemas / models / services / repositories). Pierwszy kontekst: `contexts/bc_projects/` (rejestr projektów z vaulta oraz zapis Save State, devlogu i typu projektu; zapis do vaulta wyłącznie w `repositories/`).
+- **Konteksty domenowe** (`contexts/`): `bc_projects`, `bc_tags`, `bc_tasks`, `bc_calendar`, `bc_notes`, `bc_resources`, `bc_board`, `bc_mind_maps`. Każdy ma siatkę `router` / `schemas` / `models` / `services` / `repositories`; zapis do vaulta wyłącznie w `repositories`, UI importuje z kontekstu tylko `schemas`. Test `tests/unit/architecture.static.test.ts` pilnuje kierunku zależności.
 - **API projektów:** `GET /api/projects` — lista + ostrzeżenia; `GET /api/projects/[id]` — teczka projektu (z `type`, `state`, `stateVersion`, `devlog`); `PATCH /api/projects/[id]` — zmiana `type`; `PUT /api/projects/[id]/state` — zapis Save State (`state.md`, z kontrolą wersji, 409 przy konflikcie); `POST /api/projects/[id]/devlog` — dopisanie wpisu do `devlog.md`. Trasy w `app/api/projects/**` re-eksportują handlery z kontekstu.
 - **Home** (`src/features/home/`): pulpit startowy — statystyki dnia (zadania, wydarzenia, notatki, zasoby, mapy myśli), lista zadań na dziś, nadchodzące wydarzenia, szybkie akcje i log aktywności/sesji pracy.
 
 - **Projekty** (`src/features/projects/`): karta Alt+4 — rejestr i teczka projektu z vaulta NEXUS, Save State (`state.md`), dziennik decyzji (`devlog.md`, tylko dopisywanie) i typ projektu (zapis do vaulta); UI zna tylko DTO i zod z `contexts/bc_projects/schemas`.
 - **Planowanie** (`src/features/planowanie/`):
-  - Kalendarz (`src/components/CalendarView.tsx` + `src/components/calendar/`): zdarzenia przechodzące przez północ są **dzielone na segmenty dni** (`expandEventToSegments` w `calendarUtils.ts`), żeby paski nie wychodziły poza siatkę godzin.
-  - Log aktywności, **zadania** (lista + modal szczegółów `TaskDetailModal`: edycja tytułu, statusu, terminu i **notatki** zapisywanej w polu `description`; niebieska kropka na liście, gdy notatka jest wypełniona), tagi.
+  - Kalendarz (`src/features/calendar/CalendarView.tsx`): zdarzenia przechodzące przez północ są **dzielone na segmenty dni** (`expandEventToSegments` w `calendarUtils.ts`), żeby paski nie wychodziły poza siatkę godzin.
+  - Log aktywności (`src/components/sessions/`), **zadania** (`src/features/tasks/`; lista + modal szczegółów `TaskDetailModal`: edycja tytułu, statusu, terminu i **notatki** zapisywanej w polu `description`; niebieska kropka na liście, gdy notatka jest wypełniona), tagi (`src/features/tags/`).
   - Notatki z edytorem TipTap — `src/features/notes/NotesPanel.tsx`.
   - **Mapy myśli** (`src/features/mind-maps/`): drzewo poziome, notatki per węzeł (TipTap), eksport do samodzielnego HTML, przeciąganie węzła na inny węzeł w celu **zagnieżdżenia** pod rodzicem.
-  - **Zasoby** (`src/components/ResourceSection.tsx` + `src/components/resources/`):
-    - Lista linków w Firestore (`users/{userId}/resources`), filtr po tagach + wyszukiwarka (tytuł, opis, URL).
-    - Pasek **Ulubionych stron** (kafelki z faviconami), akcje: **Ulubione | Open link | Copy URL | Delete**, modal edycji. Ulubione (`isFavorite`) zapisywane w Firestore, sortowane na górę.
+  - **Tablica** (`src/features/board/`): płótno z kafelkami, ramkami i strzałkami; zapis w vaulcie (`Board/board.json`, `contexts/bc_board`).
+  - **Zasoby** (`src/features/resources/`):
+    - Lista linków w vaulcie (`Resources/resources.yaml`), filtr po tagach + wyszukiwarka (tytuł, opis, URL).
+    - Pasek **Ulubionych stron** (kafelki z faviconami), akcje: **Ulubione | Open link | Copy URL | Delete**, modal edycji. Ulubione (`favorite`) zapisywane w vaulcie, sortowane na górę.
 
 ## AI
 

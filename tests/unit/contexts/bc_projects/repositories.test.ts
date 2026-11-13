@@ -13,7 +13,7 @@ import {
 } from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 import { PathOutsideVaultError, WorkAreaBlockedError } from "@/lib/nexus/vault-fs";
-import { useTempVault } from "../../lib/nexus/repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const REGISTRY = "Projects/_registry.yaml";
 

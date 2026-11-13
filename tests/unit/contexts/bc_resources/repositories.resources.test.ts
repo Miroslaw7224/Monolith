@@ -8,7 +8,7 @@ import {
   getResources,
   updateResource,
 } from "@/contexts/bc_resources/repositories";
-import { useTempVault } from "../../lib/nexus/repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const FILE = "Resources/resources.yaml";
 const STORED = [

@@ -4,7 +4,7 @@ import { ConflictError } from "@/lib/errors";
 import { VaultConfigError } from "@/lib/nexus/vault-path";
 import { formatYamlList } from "@/lib/nexus/yaml-lists";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import { useTempVault } from "./repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const REL = "Resources/tags.yaml";
 const vault = useTempVault();

@@ -8,7 +8,7 @@
 | Jednorazowy przebieg | `npm run test:run`      | `npx vitest run`            |
 | Z pokryciem          | `npm run test:coverage` | `npx vitest run --coverage` |
 
-Baza: brak — używane są tylko mocki (`lib/firestore-db.js`).
+Baza: brak. Repozytoria testuje się na tymczasowym vaulcie (`tests/unit/helpers/tempVault.ts`), serwisy mockami `repositories` własnego kontekstu.
 
 ---
 

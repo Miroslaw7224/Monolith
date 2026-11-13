@@ -137,6 +137,8 @@ UI wspólne (§5.1) przenosi PR domeny, która pierwsza go dotyka: `src/lib/cale
 
 Usunięcie `services/`, `lib/nexus/repos/`, `lib/validation/`, `types/records.ts`, `lib/firestore-db.ts` (barrel), pustego baseline; reguła 5 bez wyjątku dla `lib/nexus/repos/**`; `repos-static.test.ts` scalony z testem architektury; README i `STAN-W-KODZIE.md` z nowym drzewem.
 
+Zrealizowane w PR 10 (stara warstwa znikła już w PR 9). Po PR 10 reguły 7 i 9 usunięto, dawna reguła 8 to reguła 7; aktualny opis reguł: ADR-021.
+
 ## 8. Ryzyka
 
 - **Duże przenosiny = konflikty.** Jedna domena na PR, bez równoległych PR dotykających tych samych plików; migracje po zmergowaniu 1-1.

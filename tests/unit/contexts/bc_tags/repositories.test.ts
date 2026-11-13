@@ -8,7 +8,7 @@ import {
   getUserTags,
   updateUserTag,
 } from "@/contexts/bc_tags/repositories";
-import { useTempVault } from "../../lib/nexus/repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const FILE = "Resources/tags.yaml";
 const STORED = [

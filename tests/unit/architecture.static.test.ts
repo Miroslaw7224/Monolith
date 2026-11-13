@@ -1,8 +1,9 @@
 // @vitest-environment node
 /**
- * Test architektury: reguły importów 1–9 ze specu struktury kontekstów (§6).
+ * Test architektury: reguły importów 1–7 (ADR-021).
  * Część A sprawdza silnik reguł na sztucznych danych; część B skanuje prawdziwe repo
- * z zamkniętą listą znanych wyjątków (BASELINE).
+ * (bez listy wyjątków: każde naruszenie jest błędem). Część C pilnuje warstwy plikowej
+ * (dawny repos-static): bez firebase/fs/mutacji, zapis do vaulta tylko znanymi ścieżkami.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -71,7 +72,7 @@ const ROUTE_REEXPORT = /^export\s*(?:\{[^}]*\}|\*)\s*from\s*["'][^"']*\/router(?
 
 /**
  * Zwraca posortowaną listę naruszeń bez duplikatów: `<from> → <to> (reguła N)`;
- * dla cyklu (R8) `cykl: <a> → <b> → <a> (reguła 8)`.
+ * dla cyklu (R7) `cykl: <a> → <b> → <a> (reguła 7)`.
  * `routeFiles`: znormalizowana ścieżka trasy (`app/api/.../route`) → treść pliku.
  */
 function violations(edges: Edge[], routeFiles: Map<string, string>): string[] {
@@ -85,10 +86,7 @@ function violations(edges: Edge[], routeFiles: Map<string, string>): string[] {
     // R1: UI nie importuje serwerowych warstw (z kontekstu wolno tylko `schemas`).
     if (
       within(e.from, "src") &&
-      ((t && t.layer !== "schemas") ||
-        within(e.to, "services") ||
-        within(e.to, "lib/nexus") ||
-        within(e.to, "lib/http"))
+      ((t && t.layer !== "schemas") || within(e.to, "lib/nexus") || within(e.to, "lib/http"))
     ) {
       add(e, 1);
     }
@@ -105,11 +103,11 @@ function violations(edges: Edge[], routeFiles: Map<string, string>): string[] {
         (f.layer === "schemas" && t.layer === "models" && e.typeOnly);
       if (!ok) add(e, 3);
     }
-    // Spoza kontekstu: `repositories`/`models` nigdy; `services` tylko ze starego `services/**`
-    // (z `src/` pilnuje R1, z `types/` R9, z innych kontekstów R2).
-    if (t && !(f && f.ctx === t.ctx) && !within(e.from, "src") && !within(e.from, "types")) {
+    // Spoza kontekstu: `repositories`/`models` nigdy; `services` tylko z innych kontekstów (R2);
+    // z `src/` pilnuje R1.
+    if (t && !(f && f.ctx === t.ctx) && !within(e.from, "src")) {
       if (t.layer === "repositories" || t.layer === "models") add(e, 3);
-      if (t.layer === "services" && !f && !within(e.from, "services")) add(e, 3);
+      if (t.layer === "services" && !f) add(e, 3);
     }
     // `schemas` bezpieczne dla klienta: tylko `lib/schema/**` i `import type` z własnego `models`.
     if (f?.layer === "schemas") {
@@ -127,39 +125,23 @@ function violations(edges: Edge[], routeFiles: Map<string, string>): string[] {
       add(e, 4);
     }
 
-    // R5: `lib/nexus/**` tylko z repozytoriów kontekstów i wyjątków przejściowych (z `src/` pilnuje R1).
+    // R5: `lib/nexus/**` tylko z repozytoriów kontekstów, wnętrza `lib/nexus/` i `lib/workGuard` (z `src/` pilnuje R1).
     if (within(e.to, "lib/nexus") && !within(e.from, "src")) {
       const allowed =
         f?.layer === "repositories" ||
         within(e.from, "lib/nexus") ||
         (e.from === "lib/workGuard" &&
-          (e.to === "lib/nexus/vault-path" || (e.to === "lib/nexus/vault-fs" && e.typeOnly))) ||
-        (e.from === "lib/firestore-db" && within(e.to, "lib/nexus/repos"));
+          (e.to === "lib/nexus/vault-path" || (e.to === "lib/nexus/vault-fs" && e.typeOnly)));
       if (!allowed) add(e, 5);
     }
 
     // R6: backend nie importuje UI.
     if (
-      (within(e.from, "app/api") ||
-        within(e.from, "services") ||
-        within(e.from, "lib") ||
-        within(e.from, "contexts") ||
-        within(e.from, "types")) &&
+      (within(e.from, "app/api") || within(e.from, "lib") || within(e.from, "contexts")) &&
       within(e.to, "src")
     ) {
       add(e, 6);
     }
-
-    // R7: konteksty nie sięgają do starych `services/**`, `types/records` ani `lib/firestore-db`.
-    if (
-      f &&
-      (within(e.to, "services") || e.to === "types/records" || e.to === "lib/firestore-db")
-    ) {
-      add(e, 7);
-    }
-
-    // R9: `types/records` nie zależy od kontekstów (poza `schemas`).
-    if (e.from === "types/records" && t && t.layer !== "schemas") add(e, 9);
   }
 
   // R4 (treść tras): trasa z krawędzią do `contexts/**` to jeden re-eksport routera.
@@ -172,7 +154,7 @@ function violations(edges: Edge[], routeFiles: Map<string, string>): string[] {
     }
   }
 
-  // R8: brak cykli między `services` kontekstów (węzeł = kontekst).
+  // R7: brak cykli między `services` kontekstów (węzeł = kontekst).
   const graph = new Map<string, Set<string>>();
   for (const e of edges) {
     const f = ctxInfo(e.from);
@@ -197,7 +179,7 @@ function violations(edges: Edge[], routeFiles: Map<string, string>): string[] {
     for (const next of [...(graph.get(node) ?? [])].sort()) walk(next, [...stack, node]);
   };
   for (const start of [...graph.keys()].sort()) walk(start, []);
-  for (const c of seenCycles) out.add(`cykl: ${c} (reguła 8)`);
+  for (const c of seenCycles) out.add(`cykl: ${c} (reguła 7)`);
 
   return [...out].sort();
 }
@@ -291,16 +273,11 @@ describe("reguły na danych testowych", () => {
       ],
       ["r1b: UI → schemas kontekstu", [e("src/features/x/A", "contexts/bc_p/schemas")], []],
       [
-        "r1c: UI → http, services, lib/nexus",
-        [
-          e("src/features/x/A", "lib/http/apiError"),
-          e("src/features/x/A", "services/x"),
-          e("src/features/x/A", "lib/nexus/vault-fs"),
-        ],
+        "r1c: UI → http, lib/nexus",
+        [e("src/features/x/A", "lib/http/apiError"), e("src/features/x/A", "lib/nexus/vault-fs")],
         [
           rule("src/features/x/A", "lib/http/apiError", 1),
           rule("src/features/x/A", "lib/nexus/vault-fs", 1),
-          rule("src/features/x/A", "services/x", 1),
         ],
       ],
       [
@@ -368,14 +345,14 @@ describe("reguły na danych testowych", () => {
       ],
       ["r3h: schemas → lib/schema", [e("contexts/bc_a/schemas", "lib/schema/looseObject")], []],
       [
-        "r4: services → router",
-        [e("services/x", "contexts/bc_a/router")],
-        [rule("services/x", "contexts/bc_a/router", 4)],
+        "r4: lib → router",
+        [e("lib/x", "contexts/bc_a/router")],
+        [rule("lib/x", "contexts/bc_a/router", 4)],
       ],
       [
-        "r5: services → lib/nexus/vault-fs",
-        [e("services/x", "lib/nexus/vault-fs")],
-        [rule("services/x", "lib/nexus/vault-fs", 5)],
+        "r5: lib → lib/nexus/vault-fs",
+        [e("lib/x", "lib/nexus/vault-fs")],
+        [rule("lib/x", "lib/nexus/vault-fs", 5)],
       ],
       ["r5b: workGuard → vault-path", [e("lib/workGuard", "lib/nexus/vault-path")], []],
       [
@@ -384,35 +361,18 @@ describe("reguły na danych testowych", () => {
         [rule("lib/workGuard", "lib/nexus/vault-fs", 5)],
       ],
       ["r5c: repositories → vault-fs", [e("contexts/bc_a/repositories", "lib/nexus/vault-fs")], []],
-      ["r5d: firestore-db → lib/nexus/repos", [e("lib/firestore-db", "lib/nexus/repos/tags")], []],
       ["r6: lib → src", [e("lib/x", "src/features/y")], [rule("lib/x", "src/features/y", 6)]],
       ["r6b: app/layout → src", [e("app/layout", "src/components/theme/ThemeScript")], []],
       [
-        "r7: kontekst → firestore-db",
-        [e("contexts/bc_a/services", "lib/firestore-db")],
-        [rule("contexts/bc_a/services", "lib/firestore-db", 7)],
-      ],
-      [
-        "r7b: stary serwis → kontekst",
-        [e("services/calendarService", "contexts/bc_a/services")],
-        [],
-      ],
-      [
-        "r8: cykl services",
+        "r7: cykl services",
         [
           e("contexts/bc_a/services", "contexts/bc_b/services"),
           e("contexts/bc_b/services", "contexts/bc_a/services"),
         ],
         [
-          "cykl: contexts/bc_a/services → contexts/bc_b/services → contexts/bc_a/services (reguła 8)",
+          "cykl: contexts/bc_a/services → contexts/bc_b/services → contexts/bc_a/services (reguła 7)",
         ],
       ],
-      [
-        "r9: types/records → models",
-        [e("types/records", "contexts/bc_a/models")],
-        [rule("types/records", "contexts/bc_a/models", 9)],
-      ],
-      ["r9b: types/records → schemas", [e("types/records", "contexts/bc_a/schemas")], []],
     ];
     for (const [name, edges, expected] of cases) {
       it(name, () => {
@@ -458,9 +418,9 @@ describe("reguły na danych testowych", () => {
         rule("contexts/foo/router", "contexts/foo/repositories", 3),
       ]);
     });
-    it("trasa bez krawędzi do contexts/ nie podlega kontroli treści (stare trasy)", () => {
+    it("trasa bez krawędzi do contexts/ nie podlega kontroli treści", () => {
       const routes = new Map([["app/api/old/route", 'import { x } from "zod";']]);
-      expect(violations([e("app/api/old/route", "services/x")], routes)).toEqual([]);
+      expect(violations([e("app/api/old/route", "lib/x")], routes)).toEqual([]);
     });
   });
 });
@@ -468,9 +428,7 @@ describe("reguły na danych testowych", () => {
 // ─── część B: skan prawdziwego repo ──────────────────────────────────────────
 
 const ROOT = process.cwd();
-const SCAN = ["app", "contexts", "lib", "services", "src", "types"]; // + plik middleware.ts
-/** Znane wyjątki (spec struktury §6); lista może tylko maleć. Klucz = `from → to` bez numeru reguły. */
-const BASELINE: readonly string[] = [];
+const SCAN = ["app", "contexts", "lib", "src"]; // + plik middleware.ts
 
 function scanFiles(): string[] {
   const files: string[] = [];
@@ -505,10 +463,10 @@ function loadRepo() {
   return { files, edges, routeFiles };
 }
 
-const keyOf = (violation: string) => violation.replace(/ \(reguła \d+\)$/, "");
+const REPO = loadRepo();
 
 describe("repo", () => {
-  const { files, edges, routeFiles } = loadRepo();
+  const { files, edges, routeFiles } = REPO;
   const found = violations(edges, routeFiles);
 
   it("skanuje kod źródłowy", () => {
@@ -517,12 +475,101 @@ describe("repo", () => {
     expect(files).toContain("lib/http/apiError.ts");
   });
 
-  it("brak naruszeń poza baseline", () => {
-    expect(found.filter((v) => !BASELINE.includes(keyOf(v)))).toEqual([]);
+  it("brak naruszeń reguł 1–7", () => {
+    expect(found).toEqual([]);
+  });
+});
+
+// ─── część C: warstwa plikowa (dawny repos-static) ───────────────────────────
+
+/** Warstwa I/O (`fs`, `process.env`) pilnowana osobno przez `tests/unit/lib/nexus/static.test.ts`. */
+const IO_LAYER = ["lib/nexus/vault-fs.ts", "lib/nexus/vault-path.ts"];
+/**
+ * Jedyne pliki z runtime'owym importem `vault-fs` (zapis do vaulta). Pozostałe repozytoria
+ * piszą przez `yaml-store` / `markdown-dir`. Nowy wpis = świadoma decyzja, osobny commit testu.
+ */
+const VAULT_FS_IMPORTERS = [
+  "contexts/bc_board/repositories",
+  "contexts/bc_calendar/repositories",
+  "contexts/bc_mind_maps/repositories",
+  "contexts/bc_projects/repositories",
+  "contexts/bc_tasks/repositories/tasks",
+  "lib/nexus/markdown-dir",
+  "lib/nexus/yaml-store",
+];
+// Pliki warstwy plikowej: pliki `lib/nexus/` poza I/O oraz repozytoria każdego kontekstu.
+const fileLayer = (files: string[]) =>
+  files.filter(
+    (f) =>
+      !IO_LAYER.includes(f) &&
+      (/^lib\/nexus\/[^/]+\.ts$/.test(f) || /^contexts\/[^/]+\/repositories(?:\.ts|\/)/.test(f))
+  );
+
+const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
+
+function hits(pattern: RegExp, rels: string[]): string[] {
+  const out: string[] = [];
+  const global = new RegExp(pattern.source, pattern.flags.replace("g", "") + "g");
+  for (const rel of rels) {
+    const text = fs.readFileSync(path.join(ROOT, rel), "utf8");
+    for (const m of text.matchAll(global))
+      out.push(`${rel}:${lineOf(text, m.index ?? 0)} (${m[0]})`);
+  }
+  return out;
+}
+
+describe("warstwa plikowa", () => {
+  const layer = fileLayer(REPO.files);
+
+  it("skanuje repozytoria i silnik plików", () => {
+    expect(layer.length).toBeGreaterThan(15);
+    for (const f of [
+      "lib/nexus/yaml-store.ts",
+      "lib/nexus/record-helpers.ts",
+      "contexts/bc_tags/repositories.ts",
+      "contexts/bc_tasks/repositories/tasks.ts",
+      "contexts/bc_resources/repositories/resources.ts",
+    ]) {
+      expect(layer).toContain(f);
+    }
   });
 
-  it("każdy wyjątek z baseline nadal występuje", () => {
-    const keys = new Set(found.map(keyOf));
-    expect(BASELINE.filter((b) => !keys.has(b))).toEqual([]);
+  it("nie ma firebase, bezpośredniego fs, process.env ani mutacji plików", () => {
+    expect(hits(/firebase/i, layer)).toEqual([]);
+    expect(
+      hits(/from\s+["'](?:node:)?fs(?:\/promises)?["']|require\(\s*["'](?:node:)?fs/, layer)
+    ).toEqual([]);
+    expect(hits(/process\.env/, layer)).toEqual([]);
+    expect(
+      hits(
+        /writeFileSync|renameSync|rmSync|mkdirSync|appendFileSync|unlinkSync|createWriteStream/,
+        layer
+      )
+    ).toEqual([]);
+  });
+
+  it("zapis do vaulta (vault-fs) tylko ze znanych plików", () => {
+    const importers = REPO.edges
+      .filter(
+        (edge) =>
+          edge.to === "lib/nexus/vault-fs" &&
+          !edge.typeOnly &&
+          (within(edge.from, "contexts") || within(edge.from, "lib/nexus"))
+      )
+      .map((edge) => edge.from);
+    expect([...new Set(importers)].sort()).toEqual(VAULT_FS_IMPORTERS);
+  });
+
+  it("stara warstwa nie istnieje", () => {
+    for (const gone of [
+      "services",
+      "types",
+      "lib/validation",
+      "lib/nexus/repos",
+      "lib/firestore",
+      "lib/firestore-db.ts",
+    ]) {
+      expect(fs.existsSync(path.join(ROOT, gone)), gone).toBe(false);
+    }
   });
 });

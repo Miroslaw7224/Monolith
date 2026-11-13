@@ -1,4 +1,4 @@
-# Makiety kart a obecny kod (stan 2026-11-11)
+# Makiety kart a obecny kod (ścieżki zaktualizowane 2026-11-13 po migracji do `contexts/`; statusy funkcji z 2026-11-11)
 
 Przegląd gałęzi `main` (app/, src/, lib/, types/) oraz gałęzi `feat/tablica-plotno` (od 2026-11-11 scalona do main).
 Źródło: agy (karty 1–4), cursor (karty 5–8), wyrywkowa weryfikacja Claude.
@@ -8,10 +8,10 @@ Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 
 | Funkcja                         | Stan          | Gdzie / uwagi                                                                                          |
 | ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
-| Kafle z liczbami dnia           | CZĘŚCIOWO     | HomeView.tsx:257 (zadania dziś, nadchodzące); brak inbox, aktywnych tematów, commitów                  |
-| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx:183 (zadania z terminem dziś); brak energii Deep/Quick i projektów                        |
-| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx:186 (lista 48 h); brak osi czasu, linku do spotkania                                      |
-| Sesja pracy                     | CZĘŚCIOWO     | src/lib/activeSession.ts (timer); to nie Save State                                                    |
+| Kafle z liczbami dnia           | CZĘŚCIOWO     | HomeView.tsx (zadania dziś, nadchodzące); brak inbox, aktywnych tematów, commitów                      |
+| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx (zadania z terminem dziś); brak energii Deep/Quick i projektów                            |
+| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx (lista 48 h); brak osi czasu, linku do spotkania                                          |
+| Sesja pracy                     | CZĘŚCIOWO     | src/components/sessions/activeSession.ts (timer); to nie Save State                                    |
 | Punkty skupienia z Save State   | BRAK          |                                                                                                        |
 | Brief i action items            | BRAK          |                                                                                                        |
 | Szybki inbox                    | BRAK          |                                                                                                        |
@@ -19,30 +19,30 @@ Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 | Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                 |
 | Ctrl+K i Alt+1…9                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka) |
 
-## 2. Kalendarz (`src/components/CalendarView.tsx`)
+## 2. Kalendarz (`src/features/calendar/CalendarView.tsx`)
 
-| Funkcja                            | Stan      | Gdzie / uwagi                                             |
-| ---------------------------------- | --------- | --------------------------------------------------------- |
-| Dodawanie wydarzenia               | JEST      | CalendarView.tsx:228, CalendarEventForm.tsx               |
-| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx:260; jest tylko siatka 24 h jednego dnia |
-| Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx:86; ogólne tagi i typ work/meeting       |
-| Planer slotów Deep Work            | BRAK      |                                                           |
-| Szczegóły z briefem i action items | BRAK      |                                                           |
-| Mini-kalendarz miesiąca            | BRAK      |                                                           |
+| Funkcja                            | Stan      | Gdzie / uwagi                                                 |
+| ---------------------------------- | --------- | ------------------------------------------------------------- |
+| Dodawanie wydarzenia               | JEST      | src/features/calendar/CalendarView.tsx, CalendarEventForm.tsx |
+| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx; jest tylko siatka 24 h jednego dnia         |
+| Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx; ogólne tagi i typ work/meeting              |
+| Planer slotów Deep Work            | BRAK      |                                                               |
+| Szczegóły z briefem i action items | BRAK      |                                                               |
+| Mini-kalendarz miesiąca            | BRAK      |                                                               |
 
-## 3. Zadania (`src/components/TasksSection.tsx`, `src/components/tasks/`)
+## 3. Zadania (`src/features/tasks/TasksSection.tsx`)
 
-| Funkcja                              | Stan      | Gdzie / uwagi                                               |
-| ------------------------------------ | --------- | ----------------------------------------------------------- |
-| Termin                               | JEST      | tasks/TaskCard.tsx:40, types/records.ts:69                  |
-| Szablony zadań                       | JEST      | TaskTemplatesModal.tsx                                      |
-| Wspólna lista                        | CZĘŚCIOWO | TasksSection.tsx:107; globalna, bez powiązania z projektami |
-| Priorytet                            | CZĘŚCIOWO | pole w types/records.ts:70, brak kontrolki w UI             |
-| Panel szczegółów                     | CZĘŚCIOWO | TaskDetailModal.tsx; modal, bez checklisty kroków           |
-| Energia Deep / Quick                 | BRAK      |                                                             |
-| Filtry projekt / energia / priorytet | BRAK      | jest tylko wyszukiwanie tekstu (useTasksBoard.ts:16)        |
-| Grupy Teraz / Następne / Icebox      | BRAK      | są kolumny todo / in_progress / to_review / done            |
-| Szybkie dodawanie ze składnią        | BRAK      |                                                             |
+| Funkcja                              | Stan      | Gdzie / uwagi                                                               |
+| ------------------------------------ | --------- | --------------------------------------------------------------------------- |
+| Termin                               | JEST      | src/features/tasks/TaskCard.tsx, `contexts/bc_tasks/models.ts` (`due_date`) |
+| Szablony zadań                       | JEST      | TaskTemplatesModal.tsx                                                      |
+| Wspólna lista                        | CZĘŚCIOWO | TasksSection.tsx; globalna, bez powiązania z projektami                     |
+| Priorytet                            | CZĘŚCIOWO | pole `priority` w `contexts/bc_tasks/models.ts`, brak kontrolki w UI        |
+| Panel szczegółów                     | CZĘŚCIOWO | TaskDetailModal.tsx; modal, bez checklisty kroków                           |
+| Energia Deep / Quick                 | BRAK      |                                                                             |
+| Filtry projekt / energia / priorytet | BRAK      | jest tylko wyszukiwanie tekstu (useTasksBoard.ts)                           |
+| Grupy Teraz / Następne / Icebox      | BRAK      | są kolumny todo / in_progress / to_review / done                            |
+| Szybkie dodawanie ze składnią        | BRAK      |                                                                             |
 
 ## 4. Projekty (`src/features/projects/`, `contexts/bc_projects/`)
 
@@ -67,44 +67,44 @@ dziennik decyzji (`devlog.md`, tylko dopisywanie na górze), `type` projektu (zm
 | Teraz/Następne/Icebox (edycja)           | BRAK      | podetap 1-3                                                     |
 | Paczka kontekstu, etykieta „Firma”       | BRAK      | późniejsze podetapy                                             |
 
-## 5. Notatki (`src/features/notes/`, `src/components/NoteEditor.tsx`)
+## 5. Notatki (`src/features/notes/`, `src/components/note-editor/NoteEditor.tsx`)
 
 | Funkcja                                      | Stan      | Gdzie / uwagi                                      |
 | -------------------------------------------- | --------- | -------------------------------------------------- |
-| Edytor notatki                               | JEST      | NoteEditor.tsx:16                                  |
-| Lista notatek                                | CZĘŚCIOWO | NotesPanel.tsx:46; płaska, bez folderów            |
-| Podgląd                                      | CZĘŚCIOWO | NotesPanel.tsx:160; HTML (prose), nie Markdown     |
+| Edytor notatki                               | JEST      | NoteEditor.tsx                                     |
+| Lista notatek                                | CZĘŚCIOWO | NotesPanel.tsx; płaska, bez folderów               |
+| Podgląd                                      | CZĘŚCIOWO | NotesPanel.tsx; HTML (prose), nie Markdown         |
 | Tagi notatek                                 | BRAK      | rekord notatki nie ma tagów (mają je tylko zasoby) |
 | [[wiki]], backlinks, frontmatter, zakreślacz | BRAK      |                                                    |
-| Wyszukiwarka notatek                         | BRAK      | pole w AppHeader.tsx:45 bez logiki                 |
+| Wyszukiwarka notatek                         | BRAK      | pole w AppHeader.tsx bez logiki                    |
 | Wyszukiwarka decyzji (devlogi)               | BRAK      |                                                    |
 
 ## 6. Płótno
 
-| Funkcja                                  | Stan                                                         | Gdzie / uwagi                                              |
-| ---------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------- |
-| Mapy myśli (drzewo)                      | JEST (main)                                                  | src/features/mind-maps/MindMapEditor.tsx                   |
-| Lista map                                | JEST (main)                                                  | MindMapList.tsx:28                                         |
-| Zoom                                     | JEST (main)                                                  | MindMapEditorToolbar.tsx:11                                |
-| Eksport                                  | JEST (main)                                                  | MindMapEditor.tsx:522 (HTML)                               |
-| Panel właściwości węzła                  | CZĘŚCIOWO                                                    | MindMapNotesPanel.tsx:20 (notatka węzła)                   |
-| Tablica (xyflow) z minimapą i zoomem     | JEST (scalone do main 2026-11-11, zapis jeszcze w Firestore) | src/features/board/BoardCanvas.tsx:300, :344               |
-| Kafelki, ramki, strzałki, pasek narzędzi | CZĘŚCIOWO                                                    | boardActions.ts:54, BoardCanvas.tsx:284 (addTile/addFrame) |
-| Wiele tablic, pełny pasek narzędzi       | BRAK                                                         | BoardList.tsx to lista kafelków, nie tablic                |
+| Funkcja                                  | Stan                                                            | Gdzie / uwagi                                       |
+| ---------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| Mapy myśli (drzewo)                      | JEST (main)                                                     | src/features/mind-maps/MindMapEditor.tsx            |
+| Lista map                                | JEST (main)                                                     | MindMapList.tsx                                     |
+| Zoom                                     | JEST (main)                                                     | MindMapEditorToolbar.tsx                            |
+| Eksport                                  | JEST (main)                                                     | MindMapEditor.tsx (HTML)                            |
+| Panel właściwości węzła                  | CZĘŚCIOWO                                                       | MindMapNotesPanel.tsx (notatka węzła)               |
+| Tablica (xyflow) z minimapą i zoomem     | JEST (zapis w vaulcie: `Board/board.json`, `contexts/bc_board`) | src/features/board/BoardCanvas.tsx                  |
+| Kafelki, ramki, strzałki, pasek narzędzi | CZĘŚCIOWO                                                       | boardActions.ts, BoardCanvas.tsx (addTile/addFrame) |
+| Wiele tablic, pełny pasek narzędzi       | BRAK                                                            | BoardList.tsx to lista kafelków, nie tablic         |
 
 ## 7. Arsenał
 
-| Funkcja                                 | Stan | Gdzie / uwagi                                       |
-| --------------------------------------- | ---- | --------------------------------------------------- |
-| Zasoby (URL, opis, tagi, filtr, kopiuj) | JEST | src/components/ResourceSection.tsx, useResources.ts |
-| Katalog skilli i promptów               | BRAK |                                                     |
-| Kursy z postępem i action items         | BRAK |                                                     |
-| Baza rozwiązań bugów                    | BRAK |                                                     |
+| Funkcja                                 | Stan | Gdzie / uwagi                                               |
+| --------------------------------------- | ---- | ----------------------------------------------------------- |
+| Zasoby (URL, opis, tagi, filtr, kopiuj) | JEST | src/features/resources/ResourceSection.tsx, useResources.ts |
+| Katalog skilli i promptów               | BRAK |                                                             |
+| Kursy z postępem i action items         | BRAK |                                                             |
+| Baza rozwiązań bugów                    | BRAK |                                                             |
 
 ## 8. Mapa
 
-Wszystko **BRAK**: graf projektów, radar blokad, agenci z Herdr, sieć NEXUS. Jest czat agenta
-(PlanowanieView.tsx:260, AgentPendingActions.tsx:18), ale to nie panel Herdr.
+Wszystko **BRAK**: graf projektów, radar blokad, agenci z Herdr, sieć NEXUS. Czat agenta w aplikacji
+usunięto (aplikacja nie woła modeli po API).
 
 ## 9. Kodeks
 
@@ -114,9 +114,7 @@ zależna od warstwy `lib/nexus/` (etap 0c).
 
 ## Wnioski do planu wdrożenia
 
-- **Do przeniesienia na karty:** HomeView (kafle, zapytania) → Kokpit; CalendarView + calendarUtils (CRUD,
-  przeliczanie czasu) → Kalendarz; TasksSection + useTasksBoard (stan, drag-and-drop, szablony) → Zadania;
-  NoteEditor → Notatki; MindMapEditor + `src/features/board/` → Płótno; ResourceSection → Arsenał / Zasoby.
+- **Przeniesione do `src/features/*`** (PR 3–9 migracji kontekstów): kalendarz, zadania, notatki, zasoby, tablica, mapy myśli; zostaje do zrobienia wyłącznie to, co w tabelach ma status BRAK/CZĘŚCIOWO.
 - **Całkiem nowe:** Projekty i Mapa, oraz wszystko oparte o vault (Save State, devlog, [[wiki]], backlinks,
   paczka kontekstu, sieć NEXUS). Zależą od warstwy `lib/nexus/` z etapu 0.
-- **Szkielet:** pasek kart, Alt+1…8 i Ctrl+K nie istnieją; to pierwszy krok wdrożenia kart.
+- **Szkielet:** pasek kart, Alt+1…9 i Ctrl+K istnieją (`src/features/cards/`).

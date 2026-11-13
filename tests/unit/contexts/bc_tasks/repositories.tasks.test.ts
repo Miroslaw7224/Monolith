@@ -9,7 +9,7 @@ import {
   updateTask,
 } from "@/contexts/bc_tasks/repositories";
 import { VaultConfigError } from "@/lib/nexus/vault-path";
-import { useTempVault } from "../../lib/nexus/repos/helpers";
+import { useTempVault } from "../../helpers/tempVault";
 
 const FILE = "Tasks/tasks.md";
 
