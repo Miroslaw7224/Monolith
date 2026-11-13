@@ -1,13 +1,13 @@
 import { DomainError } from "@/lib/errors";
-import type { MindMap, MindMapNode } from "@/types/records";
+import type { MindMap, MindMapNode } from "./models";
 import {
   deleteVaultFile,
   listVaultFiles,
   readVaultFile,
   updateVaultFile,
   writeVaultFile,
-} from "../vault-fs";
-import { generateId, nowIso } from "../record-helpers";
+} from "@/lib/nexus/vault-fs";
+import { generateId, nowIso } from "@/lib/nexus/record-helpers";
 
 const DIR = "MindMaps";
 /** `id` pochodzi z URL, więc budujemy ścieżkę tylko z bezpiecznego identyfikatora. */

@@ -23,15 +23,9 @@ export default defineConfig({
   },
   coverage: {
     provider: "v8",
-    include: ["services/**/*.ts", "lib/**/*.ts", "contexts/**/*.ts"],
+    include: ["lib/**/*.ts", "contexts/**/*.ts"],
     reportsDirectory: "./coverage",
     thresholds: {
-      "services/**/*.ts": {
-        statements: 60,
-        lines: 60,
-        functions: 50,
-        branches: 40,
-      },
       "lib/**/*.ts": {
         statements: 55,
         lines: 55,

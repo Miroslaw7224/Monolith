@@ -4,8 +4,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const DIRS = ["app/api", "services", "lib/nexus", "types", "src", "contexts"];
-const FILES = ["lib/firestore-db.ts"];
+const DIRS = ["app/api", "lib/nexus", "src", "contexts"];
+const FILES: string[] = [];
 const PATTERN = /\b_?userId\b|getAuthUserId|\bauth\.uid\b/;
 
 function collect(): string[] {

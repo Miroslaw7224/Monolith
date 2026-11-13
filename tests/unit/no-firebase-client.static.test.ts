@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const DIRS = ["app", "src", "lib", "services", "types", "contexts"];
+const DIRS = ["app", "src", "lib", "contexts"];
 const EXCLUDED: string[] = [];
 const PATTERN =
   /from ["']firebase\/|firebase-client|\buseAuth\b|getIdToken|\/api\/waitlist|getAuthUserId|LoginScreen/;
