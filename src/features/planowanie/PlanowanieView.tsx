@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
 import dynamic from "next/dynamic";
-import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { CalendarView } from "@/src/features/calendar/CalendarView";
 import { TasksSection } from "@/src/features/tasks/TasksSection";
@@ -15,7 +14,7 @@ import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
 import { useNotesData, type Note } from "@/src/features/notes/useNotesData";
-import { PlanowanieSidebarContent, type PlanningTab } from "./PlanowanieSidebarContent";
+import type { PlanningTab } from "./planningTab";
 import { CardSubTabs } from "@/src/features/cards/CardSubTabs";
 import { cardForView, subtabsForCard } from "@/src/features/cards/cards";
 import {
@@ -38,8 +37,6 @@ export interface PlanowanieViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   lang: "en" | "pl";
   t: TranslationsEn;
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
   appMode: "home" | "planowanie";
   setAppMode: (mode: "home" | "planowanie") => void;
   planningTab: PlanningTab;
@@ -51,8 +48,6 @@ export default function PlanowanieView({
   apiFetch,
   lang,
   t,
-  isSidebarOpen,
-  setIsSidebarOpen,
   appMode,
   setAppMode,
   planningTab,
@@ -176,36 +171,6 @@ export default function PlanowanieView({
     }
   };
 
-  const handleSelectTab = (tab: PlanningTab) => {
-    setAppMode("planowanie");
-    setPlanningTab(tab);
-  };
-
-  const sidebarT: AppSidebarTranslations = {
-    title: t.title,
-    subtitle: t.subtitle,
-  };
-
-  const sidebarContent = (
-    <PlanowanieSidebarContent
-      planningTab={planningTab}
-      setPlanningTab={setPlanningTab}
-      activeMode={appMode}
-      onGoHome={() => setAppMode("home")}
-      onSelectTab={handleSelectTab}
-      modePlanowanie={t.modePlanowanie}
-      tabHome={t.tabHome}
-      tabCalendar={t.tabCalendar}
-      tabActivity={t.tabActivity}
-      tabTasks={t.tabTasks}
-      tabTags={t.tabTags}
-      tabNotes={t.notesTab}
-      tabResources={(t.tabResources as string) ?? "Zasoby"}
-      tabMindMaps={(t.tabMindMaps as string) ?? "Mapy myśli"}
-      tabBoard={(t.tabBoard as string) ?? "Tablica"}
-    />
-  );
-
   const currentCard = cardForView("planowanie", planningTab);
   const cardSubtabs = subtabsForCard(currentCard);
   const subtabItems = cardSubtabs.map((tab) => ({
@@ -223,136 +188,130 @@ export default function PlanowanieView({
   }));
 
   return (
-    <>
-      <AppSidebar isSidebarOpen={isSidebarOpen} lang={lang} setLang={setLang} t={sidebarT}>
-        {sidebarContent}
-      </AppSidebar>
+    <main className="flex-1 min-w-0 flex flex-col relative pb-16 md:pb-0">
+      <AppHeader
+        lang={lang}
+        setLang={setLang}
+        t={{
+          brainActive: t.brainActive,
+          searchPlaceholder: t.searchPlaceholder,
+          feedback: t.feedback,
+        }}
+      />
 
-      <main className="flex-1 min-w-0 flex flex-col relative pb-16 md:pb-0">
-        <AppHeader
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          t={{
-            brainActive: t.brainActive,
-            searchPlaceholder: t.searchPlaceholder,
-            feedback: t.feedback,
-          }}
-        />
+      {cardSubtabs.length >= 2 && (
+        <CardSubTabs tabs={subtabItems} active={planningTab} onSelect={setPlanningTab} />
+      )}
 
-        {cardSubtabs.length >= 2 && (
-          <CardSubTabs tabs={subtabItems} active={planningTab} onSelect={setPlanningTab} />
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col min-h-0">
+        {activeSession && planningTab !== "calendar" && (
+          <div className="flex-shrink-0 px-4 py-2 bg-[var(--accent-bg)] border-b border-[var(--accent)] flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-[var(--text)]">
+              {(t.sessionInProgressSince as string)?.replace(
+                "{time}",
+                new Date(activeSession.startedAt).toLocaleTimeString(
+                  lang === "pl" ? "pl-PL" : "en-US",
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                )
+              ) ??
+                `Work in progress since ${new Date(activeSession.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`}
+            </span>
+            <button
+              type="button"
+              onClick={handleEndSession}
+              className="flex items-center gap-2 px-3 py-1.5 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:brightness-110"
+            >
+              {t.sessionEndButton as string}
+            </button>
+          </div>
         )}
-
-        <div className="flex-1 min-w-0 overflow-hidden flex flex-col min-h-0">
-          {activeSession && planningTab !== "calendar" && (
-            <div className="flex-shrink-0 px-4 py-2 bg-[var(--accent-bg)] border-b border-[var(--accent)] flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-[var(--text)]">
-                {(t.sessionInProgressSince as string)?.replace(
-                  "{time}",
-                  new Date(activeSession.startedAt).toLocaleTimeString(
-                    lang === "pl" ? "pl-PL" : "en-US",
-                    {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }
-                  )
-                ) ??
-                  `Work in progress since ${new Date(activeSession.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`}
-              </span>
-              <button
-                type="button"
-                onClick={handleEndSession}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:brightness-110"
-              >
-                {t.sessionEndButton as string}
-              </button>
-            </div>
-          )}
-          {planningTab === "calendar" ? (
-            <CalendarView
+        {planningTab === "calendar" ? (
+          <CalendarView
+            apiFetch={apiFetch}
+            lang={lang}
+            t={t}
+            userTags={userTags}
+            refreshTrigger={calendarRefreshKey}
+            activeSession={activeSession}
+            onStartSession={handleStartSession}
+            onEndSession={handleEndSession}
+            sessionEndError={sessionEndError}
+            clearSessionEndError={() => setSessionEndError(null)}
+            onOpenTaskDeadline={() => setPlanningTab("tasks")}
+          />
+        ) : planningTab === "activity" ? (
+          <ActivityLog apiFetch={apiFetch} lang={lang} t={t} userTags={userTags} />
+        ) : planningTab === "tags" ? (
+          <TagsSection
+            apiFetch={apiFetch}
+            lang={lang}
+            t={t}
+            userTags={userTags}
+            onTagsChange={fetchTags}
+          />
+        ) : planningTab === "notes" ? (
+          <NotesPanel
+            notes={notes}
+            selectedNote={selectedNote}
+            setSelectedNote={setSelectedNote}
+            noteEditMode={noteEditMode}
+            setNoteEditMode={setNoteEditMode}
+            onSaveNote={handleSaveNote}
+            onDeleteNote={handleDeleteNote}
+            newNote={t.newNote}
+            noteTitlePlaceholder={t.noteTitlePlaceholder}
+            noteContentPlaceholder={t.noteContentPlaceholder}
+            noteCancelEdit={t.noteCancelEdit}
+            saveNote={t.saveNote}
+            noteEdit={t.noteEdit}
+            deleteNote={t.deleteNote}
+          />
+        ) : planningTab === "resources" ? (
+          <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
+            <ResourceSection apiFetch={apiFetch} t={t as Record<string, string | string[]>} />
+          </div>
+        ) : planningTab === "mindmaps" ? (
+          <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
+            <MindMapsTab
+              apiFetch={apiFetch}
+              title={(t.tabMindMaps as string) ?? "Mapy myśli"}
+              t={t}
+            />
+          </div>
+        ) : planningTab === "board" ? (
+          <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
+            <BoardTab
               apiFetch={apiFetch}
               lang={lang}
-              t={t}
-              userTags={userTags}
-              refreshTrigger={calendarRefreshKey}
-              activeSession={activeSession}
-              onStartSession={handleStartSession}
-              onEndSession={handleEndSession}
-              sessionEndError={sessionEndError}
-              clearSessionEndError={() => setSessionEndError(null)}
-              onOpenTaskDeadline={() => setPlanningTab("tasks")}
+              labels={{
+                canvas: t.boardCanvas as string,
+                list: t.boardList as string,
+                saveFailed: t.boardSaveFailed as string,
+                loadFailed: t.boardLoadFailed as string,
+                retry: t.boardRetry as string,
+                outside: t.boardOutside as string,
+                tileTitle: t.boardTileTitle as string,
+                tileNote: t.boardTileNote as string,
+                close: t.boardClose as string,
+              }}
+              canvasLabels={{
+                addTile: t.boardAddTile as string,
+                addFrame: t.boardAddFrame as string,
+                newTile: t.boardNewTile as string,
+                frameName: t.boardFrameName as string,
+                save: t.boardSave as string,
+                cancel: t.boardCancel as string,
+                delete: t.boardDelete as string,
+              }}
             />
-          ) : planningTab === "activity" ? (
-            <ActivityLog apiFetch={apiFetch} lang={lang} t={t} userTags={userTags} />
-          ) : planningTab === "tags" ? (
-            <TagsSection
-              apiFetch={apiFetch}
-              lang={lang}
-              t={t}
-              userTags={userTags}
-              onTagsChange={fetchTags}
-            />
-          ) : planningTab === "notes" ? (
-            <NotesPanel
-              notes={notes}
-              selectedNote={selectedNote}
-              setSelectedNote={setSelectedNote}
-              noteEditMode={noteEditMode}
-              setNoteEditMode={setNoteEditMode}
-              onSaveNote={handleSaveNote}
-              onDeleteNote={handleDeleteNote}
-              newNote={t.newNote}
-              noteTitlePlaceholder={t.noteTitlePlaceholder}
-              noteContentPlaceholder={t.noteContentPlaceholder}
-              noteCancelEdit={t.noteCancelEdit}
-              saveNote={t.saveNote}
-              noteEdit={t.noteEdit}
-              deleteNote={t.deleteNote}
-            />
-          ) : planningTab === "resources" ? (
-            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-              <ResourceSection apiFetch={apiFetch} t={t as Record<string, string | string[]>} />
-            </div>
-          ) : planningTab === "mindmaps" ? (
-            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-              <MindMapsTab
-                apiFetch={apiFetch}
-                title={(t.tabMindMaps as string) ?? "Mapy myśli"}
-                t={t}
-              />
-            </div>
-          ) : planningTab === "board" ? (
-            <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
-              <BoardTab
-                apiFetch={apiFetch}
-                lang={lang}
-                labels={{
-                  canvas: t.boardCanvas as string,
-                  list: t.boardList as string,
-                  saveFailed: t.boardSaveFailed as string,
-                  loadFailed: t.boardLoadFailed as string,
-                  retry: t.boardRetry as string,
-                  outside: t.boardOutside as string,
-                  tileTitle: t.boardTileTitle as string,
-                  tileNote: t.boardTileNote as string,
-                  close: t.boardClose as string,
-                }}
-                canvasLabels={{
-                  addTile: t.boardAddTile as string,
-                  addFrame: t.boardAddFrame as string,
-                  newTile: t.boardNewTile as string,
-                  frameName: t.boardFrameName as string,
-                  save: t.boardSave as string,
-                  cancel: t.boardCancel as string,
-                  delete: t.boardDelete as string,
-                }}
-              />
-            </div>
-          ) : (
-            <TasksSection apiFetch={apiFetch} lang={lang} t={t} />
-          )}
-        </div>
-      </main>
-    </>
+          </div>
+        ) : (
+          <TasksSection apiFetch={apiFetch} lang={lang} t={t} />
+        )}
+      </div>
+    </main>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef } from "react";
-import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 import { cardForView, type CardId } from "./cards";
 
 export interface CardSubTabItem {

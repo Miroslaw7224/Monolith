@@ -13,12 +13,8 @@ import {
   clearActiveSession,
   type ActiveSession,
 } from "@/src/components/sessions/activeSession";
-import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
-import {
-  PlanowanieSidebarContent,
-  type PlanningTab,
-} from "@/src/features/planowanie/PlanowanieSidebarContent";
+import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 import { CockpitSections } from "./CockpitSections";
 import { PinPicker } from "./PinPicker";
 
@@ -28,8 +24,6 @@ interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   lang: "en" | "pl";
   t: T;
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
   appMode: "home" | "planowanie";
   setAppMode: (mode: "home" | "planowanie") => void;
   planningTab: PlanningTab;
@@ -41,8 +35,6 @@ export default function HomeView({
   apiFetch,
   lang,
   t,
-  isSidebarOpen,
-  setIsSidebarOpen,
   appMode,
   setAppMode,
   planningTab,
@@ -145,136 +137,109 @@ export default function HomeView({
     month: "long",
   });
 
-  const sidebarT: AppSidebarTranslations = {
-    title: t.title,
-    subtitle: t.subtitle,
-  };
-
   return (
-    <>
-      <AppSidebar isSidebarOpen={isSidebarOpen} lang={lang} setLang={setLang} t={sidebarT}>
-        <PlanowanieSidebarContent
-          planningTab={planningTab}
-          setPlanningTab={setPlanningTab}
-          activeMode={appMode}
-          onGoHome={() => setAppMode("home")}
-          onSelectTab={goToTab}
-          modePlanowanie={t.modePlanowanie}
-          tabHome={t.tabHome}
-          tabCalendar={t.tabCalendar}
-          tabActivity={t.tabActivity}
-          tabTasks={t.tabTasks}
-          tabTags={t.tabTags}
-          tabNotes={t.notesTab}
-          tabResources={(t.tabResources as string) ?? "Zasoby"}
-          tabMindMaps={(t.tabMindMaps as string) ?? "Mapy myśli"}
-          tabBoard={(t.tabBoard as string) ?? "Tablica"}
-        />
-      </AppSidebar>
-
-      <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
-        <AppHeader
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          t={{
-            brainActive: t.brainActive,
-            searchPlaceholder: t.searchPlaceholder,
-            feedback: t.feedback,
-          }}
-        />
-        <div className="kok flex-1 overflow-y-auto" data-card="kokpit">
-          <header className="kok-head">
-            <div>
-              <p className="kok-eyebrow">Alt+1 · Kokpit</p>
-              <h1 className="kok-title">{greeting} 👋</h1>
-              <p className="kok-sub">{dateStr}</p>
-            </div>
-          </header>
-
-          {loading && cockpit === null ? (
-            <p className="kok-state">…</p>
-          ) : cockpitError !== null ? (
-            <p className="kok-state kok-state--error">
-              Nie udało się wczytać Kokpitu ({cockpitError})
-            </p>
-          ) : cockpit !== null ? (
-            <CockpitSections data={cockpit} onChangeActive={() => setPickerOpen(true)} />
-          ) : null}
-
-          {pickerOpen && (
-            <PinPicker
-              apiFetch={apiFetch}
-              currentIds={cockpit?.topics.map((topic) => topic.id) ?? []}
-              onCancel={() => setPickerOpen(false)}
-              onSaved={() => {
-                setPickerOpen(false);
-                void loadCockpit();
-              }}
-            />
-          )}
-
-          <div className="kok-quick-actions">
-            <h3 className="kok-section-title">{t.homeQuickActions}</h3>
-            <div className="kok-actions">
-              {[
-                { label: t.homeAddNote, action: () => goToTab("notes") },
-                { label: t.homeAddTask, action: () => goToTab("tasks") },
-                { label: t.tabMindMaps, action: () => goToTab("mindmaps") },
-                { label: t.tabResources, action: () => goToTab("resources") },
-              ].map(({ label, action }) => (
-                <button key={label} onClick={action} className="kok-btn kok-btn--sm">
-                  {label}
-                </button>
-              ))}
-            </div>
+    <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
+      <AppHeader
+        lang={lang}
+        setLang={setLang}
+        t={{
+          brainActive: t.brainActive,
+          searchPlaceholder: t.searchPlaceholder,
+          feedback: t.feedback,
+        }}
+      />
+      <div className="kok flex-1 overflow-y-auto" data-card="kokpit">
+        <header className="kok-head">
+          <div>
+            <p className="kok-eyebrow">Alt+1 · Kokpit</p>
+            <h1 className="kok-title">{greeting} 👋</h1>
+            <p className="kok-sub">{dateStr}</p>
           </div>
+        </header>
 
-          <div className="kok-activity-slot">
-            <ActivityLog
-              apiFetch={apiFetch}
-              lang={lang}
-              t={t as Record<string, string | string[]>}
-              userTags={userTags}
-              activeSession={activeSession}
-              onStartSession={() => setSessionModalOpen(true)}
-              onEndSession={handleEndSession}
-            />
+        {loading && cockpit === null ? (
+          <p className="kok-state">…</p>
+        ) : cockpitError !== null ? (
+          <p className="kok-state kok-state--error">
+            Nie udało się wczytać Kokpitu ({cockpitError})
+          </p>
+        ) : cockpit !== null ? (
+          <CockpitSections data={cockpit} onChangeActive={() => setPickerOpen(true)} />
+        ) : null}
+
+        {pickerOpen && (
+          <PinPicker
+            apiFetch={apiFetch}
+            currentIds={cockpit?.topics.map((topic) => topic.id) ?? []}
+            onCancel={() => setPickerOpen(false)}
+            onSaved={() => {
+              setPickerOpen(false);
+              void loadCockpit();
+            }}
+          />
+        )}
+
+        <div className="kok-quick-actions">
+          <h3 className="kok-section-title">{t.homeQuickActions}</h3>
+          <div className="kok-actions">
+            {[
+              { label: t.homeAddNote, action: () => goToTab("notes") },
+              { label: t.homeAddTask, action: () => goToTab("tasks") },
+              { label: t.tabMindMaps, action: () => goToTab("mindmaps") },
+              { label: t.tabResources, action: () => goToTab("resources") },
+            ].map(({ label, action }) => (
+              <button key={label} onClick={action} className="kok-btn kok-btn--sm">
+                {label}
+              </button>
+            ))}
           </div>
-
-          {sessionEndError && <p className="kok-state kok-state--error">{sessionEndError}</p>}
-
-          {sessionModalOpen && (
-            <div className="kok-overlay">
-              <div
-                className="kok-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-label={lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
-              >
-                <h3 className="kok-modal__title">
-                  {lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
-                </h3>
-                <StartSessionModal
-                  existingTags={userTags.map((u) => u.tag)}
-                  tagTitles={Object.fromEntries(userTags.map((u) => [u.tag, u.title ?? u.tag]))}
-                  tagColors={Object.fromEntries(userTags.map((u) => [u.tag, u.color]))}
-                  onSubmit={(payload) => {
-                    handleStartSession(payload);
-                    setSessionModalOpen(false);
-                  }}
-                  onCancel={() => setSessionModalOpen(false)}
-                  submitLabel={lang === "pl" ? "Rozpocznij" : "Start"}
-                  cancelLabel={lang === "pl" ? "Anuluj" : "Cancel"}
-                  titleLabel={lang === "pl" ? "Tytuł" : "Title"}
-                  tagsLabel={lang === "pl" ? "Tagi" : "Tags"}
-                  tagPlaceholder={lang === "pl" ? "Dodaj tag..." : "Add tag..."}
-                  suggestionsLabel={lang === "pl" ? "Ostatnie tagi" : "Recent tags"}
-                />
-              </div>
-            </div>
-          )}
         </div>
-      </main>
-    </>
+
+        <div className="kok-activity-slot">
+          <ActivityLog
+            apiFetch={apiFetch}
+            lang={lang}
+            t={t as Record<string, string | string[]>}
+            userTags={userTags}
+            activeSession={activeSession}
+            onStartSession={() => setSessionModalOpen(true)}
+            onEndSession={handleEndSession}
+          />
+        </div>
+
+        {sessionEndError && <p className="kok-state kok-state--error">{sessionEndError}</p>}
+
+        {sessionModalOpen && (
+          <div className="kok-overlay">
+            <div
+              className="kok-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label={lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
+            >
+              <h3 className="kok-modal__title">
+                {lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
+              </h3>
+              <StartSessionModal
+                existingTags={userTags.map((u) => u.tag)}
+                tagTitles={Object.fromEntries(userTags.map((u) => [u.tag, u.title ?? u.tag]))}
+                tagColors={Object.fromEntries(userTags.map((u) => [u.tag, u.color]))}
+                onSubmit={(payload) => {
+                  handleStartSession(payload);
+                  setSessionModalOpen(false);
+                }}
+                onCancel={() => setSessionModalOpen(false)}
+                submitLabel={lang === "pl" ? "Rozpocznij" : "Start"}
+                cancelLabel={lang === "pl" ? "Anuluj" : "Cancel"}
+                titleLabel={lang === "pl" ? "Tytuł" : "Title"}
+                tagsLabel={lang === "pl" ? "Tagi" : "Tags"}
+                tagPlaceholder={lang === "pl" ? "Dodaj tag..." : "Add tag..."}
+                suggestionsLabel={lang === "pl" ? "Ostatnie tagi" : "Recent tags"}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

@@ -2,7 +2,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Link, Briefcase, Tag, Map, LayoutDashboard } from "lucide-react";
-import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 
 interface MobileMoreDrawerProps {
   isOpen: boolean;

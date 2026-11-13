@@ -40,7 +40,6 @@ export default function App() {
     onOpenPalette: openPalette,
     disabled: paletteOpen,
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
 
   return (
@@ -58,8 +57,6 @@ export default function App() {
           apiFetch={apiFetch}
           lang={lang}
           t={t}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
           appMode={appMode}
           setAppMode={setAppMode}
           planningTab={planningTab}
@@ -71,8 +68,6 @@ export default function App() {
           apiFetch={apiFetch}
           lang={lang}
           t={t}
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
           appMode={appMode}
           setAppMode={setAppMode}
           planningTab={planningTab}

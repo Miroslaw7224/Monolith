@@ -4,8 +4,7 @@
  */
 
 import React from "react";
-import { ChevronRight, Search, History, MessageCircle, X } from "lucide-react";
-import { cn } from "@/src/lib/cn";
+import { Search, History, MessageCircle, X } from "lucide-react";
 import { ThemeToggle } from "@/src/components/theme/ThemeToggle";
 
 export interface AppHeaderTranslations {
@@ -15,25 +14,17 @@ export interface AppHeaderTranslations {
 }
 
 export interface AppHeaderProps {
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
+  lang: "en" | "pl";
+  setLang: (lang: "en" | "pl") => void;
   t: AppHeaderTranslations;
 }
 
-export function AppHeader({ isSidebarOpen, setIsSidebarOpen, t }: AppHeaderProps) {
+export function AppHeader({ lang, setLang, t }: AppHeaderProps) {
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   return (
     <>
       <header className="h-16 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between px-6 z-10">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text)]"
-          >
-            <ChevronRight
-              className={cn("w-5 h-5 transition-transform", isSidebarOpen && "rotate-180")}
-            />
-          </button>
           <div className="hidden md:flex items-center gap-2 ml-2">
             <div className="w-2 h-2 bg-[var(--green)] rounded-full animate-pulse" />
             <span className="text-sm font-semibold text-[var(--text)]">{t.brainActive}</span>
@@ -48,6 +39,14 @@ export function AppHeader({ isSidebarOpen, setIsSidebarOpen, t }: AppHeaderProps
               className="pl-10 pr-4 py-2 bg-[var(--bg3)] border-none rounded-full text-sm w-64 text-[var(--text)] placeholder-[var(--text3)] focus:ring-2 focus:ring-[var(--accent)] transition-all"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => setLang(lang === "en" ? "pl" : "en")}
+            className="px-2 py-1 bg-[var(--toggle-bg)] rounded text-[10px] font-bold hover:bg-[var(--bg3)] transition-colors text-[var(--text2)]"
+            aria-label="Zmień język / Change language"
+          >
+            {lang === "en" ? "PL" : "EN"}
+          </button>
           <ThemeToggle />
           <button
             onClick={() => setFeedbackOpen(true)}
