@@ -1,11 +1,17 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import type { RegistryEntry } from "@/contexts/bc_projects/models";
+import type { ProjectState, RegistryEntry } from "@/contexts/bc_projects/models";
 import {
+  appendDevlogEntry,
+  readDevlog,
   readProjectContent,
   readProjectIndex,
+  readProjectState,
   readRegistry,
+  writeProjectState,
+  writeProjectType,
 } from "@/contexts/bc_projects/repositories";
+import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 import { PathOutsideVaultError, WorkAreaBlockedError } from "@/lib/nexus/vault-fs";
 import { useTempVault } from "../../lib/nexus/repos/helpers";
 
@@ -195,5 +201,192 @@ describe("bc_projects repositories", () => {
   it("folder: Work/x/", () => {
     const e = entry({ id: "work", folder: "Work/x/" });
     expect(() => readProjectIndex(e)).toThrow(WorkAreaBlockedError);
+  });
+});
+
+describe("bc_projects repositories: type, state.md, devlog.md (odczyt)", () => {
+  const e = entry({ id: "p", folder: "Projects/p/" });
+  const STATE =
+    "---\nbranch: main\nenv: local\nblocker: X\nnext_step: Y\nlinks:\n  - https://a\nmilestone: M\n---\n\nnotatka\n";
+
+  it("type z index.md", () => {
+    vault.write("Projects/p/index.md", "---\ntype: wlasny\n---\n\ntreść\n");
+    expect(readProjectIndex(e).type).toBe("wlasny");
+  });
+
+  it("nieznany type jest pomijany", () => {
+    vault.write("Projects/p/index.md", "---\ntype: coś\n---\n\ntreść\n");
+    expect(readProjectIndex(e).type).toBeUndefined();
+  });
+
+  it("brak state.md", () => {
+    expect(readProjectState(e)).toEqual({ state: null, version: null });
+  });
+
+  it("state.md z frontmatterem i wersją", () => {
+    vault.write("Projects/p/state.md", STATE);
+    const { state, version } = readProjectState(e);
+    expect(state?.branch).toBe("main");
+    expect(state?.links).toEqual(["https://a"]);
+    expect(version?.size).toBeGreaterThan(0);
+    expect(version?.hash).toHaveLength(64);
+  });
+
+  it("zepsuty state.md rzuca błąd z nazwą pliku", () => {
+    vault.write("Projects/p/state.md", "---\nbranch: [\n---\n");
+    expect(() => readProjectState(e)).toThrow(/Projects\/p\/state\.md: zepsuty frontmatter/);
+  });
+
+  it("brak devlog.md", () => {
+    expect(readDevlog(e)).toEqual([]);
+  });
+
+  it("devlog.md z dwoma wpisami w kolejności pliku", () => {
+    vault.write(
+      "Projects/p/devlog.md",
+      "# Devlog\n\n## 2026-11-13 — B\n\nb\n\n## 2026-11-12 — A\n\na\n"
+    );
+    expect(readDevlog(e).map((x) => x.title)).toEqual(["B", "A"]);
+  });
+
+  it("folder: Work/x/ przy odczycie state.md i devlog.md", () => {
+    const work = entry({ id: "w", folder: "Work/x/" });
+    expect(() => readProjectState(work)).toThrow(WorkAreaBlockedError);
+    expect(() => readDevlog(work)).toThrow(WorkAreaBlockedError);
+  });
+});
+
+describe("bc_projects repositories: zapisy", () => {
+  const e = entry({ id: "p", folder: "Projects/p/" });
+  const STATE: ProjectState = {
+    branch: "main",
+    env: "local",
+    blocker: "",
+    nextStep: "krok",
+    links: ["https://a"],
+    milestone: "M",
+    updated: "2026-11-13T09:15",
+    notes: "",
+  };
+  const ENTRY = { date: "2026-11-13", title: "T", why: "W" };
+
+  it("writeProjectState: nowy plik i zwrócona wersja", () => {
+    const version = writeProjectState(e, STATE, null);
+    expect(vault.read("Projects/p/state.md")).toContain("branch: main");
+    expect(version).toEqual(readProjectState(e).version);
+  });
+
+  it("writeProjectState: zapis ze zgodną wersją", () => {
+    const v1 = writeProjectState(e, STATE, null);
+    writeProjectState(e, { ...STATE, branch: "inny" }, v1);
+    expect(readProjectState(e).state?.branch).toBe("inny");
+  });
+
+  it("writeProjectState: stara wersja daje ConflictError i nie nadpisuje zmiany zewnętrznej", () => {
+    const v1 = writeProjectState(e, STATE, null);
+    vault.write("Projects/p/state.md", "---\nbranch: zewnętrzny\n---\n");
+    expect(() => writeProjectState(e, { ...STATE, branch: "nasz" }, v1)).toThrow(ConflictError);
+    expect(vault.read("Projects/p/state.md")).toContain("zewnętrzny");
+  });
+
+  it("writeProjectState: expected null przy istniejącym pliku", () => {
+    writeProjectState(e, STATE, null);
+    expect(() => writeProjectState(e, STATE, null)).toThrow(ConflictError);
+  });
+
+  it("writeProjectState: oczekiwana wersja przy braku pliku", () => {
+    expect(() => writeProjectState(e, STATE, { size: 1, hash: "x" })).toThrow(ConflictError);
+  });
+
+  it("appendDevlogEntry: brak pliku", async () => {
+    await appendDevlogEntry(e, ENTRY);
+    expect(vault.read("Projects/p/devlog.md")).toBe("# Devlog\n\n## 2026-11-13 — T\n\nW\n");
+  });
+
+  it("appendDevlogEntry: nowy wpis przed starym", async () => {
+    vault.write("Projects/p/devlog.md", "# Devlog\n\n## 2026-11-12 — Stary\n\nS\n");
+    await appendDevlogEntry(e, ENTRY);
+    expect(vault.read("Projects/p/devlog.md")).toBe(
+      "# Devlog\n\n## 2026-11-13 — T\n\nW\n\n## 2026-11-12 — Stary\n\nS\n"
+    );
+  });
+
+  it("writeProjectType: tylko linia type, reszta pliku bez zmian", async () => {
+    vault.write("Projects/p/index.md", '---\n# komentarz\nname: "A"\ntype: "etat"\n---\n\nTreść\n');
+    await writeProjectType(e, "wlasny");
+    expect(vault.read("Projects/p/index.md")).toBe(
+      '---\n# komentarz\nname: "A"\ntype: wlasny\n---\n\nTreść\n'
+    );
+  });
+
+  it("writeProjectType: CRLF zapisane jako LF, treść i pola zachowane", async () => {
+    vault.write("Projects/p/index.md", "---\r\nname: A\r\ntype: etat\r\n---\r\n\r\nTreść\r\n");
+    await writeProjectType(e, "biblioteka");
+    expect(vault.read("Projects/p/index.md")).toBe(
+      "---\nname: A\ntype: biblioteka\n---\n\nTreść\n"
+    );
+  });
+
+  it("writeProjectType: brak index.md", async () => {
+    await expect(writeProjectType(e, "etat")).rejects.toThrow(NotFoundError);
+    expect(vault.read("Projects/p/index.md")).toBeNull();
+  });
+
+  it("writeProjectType: index.md bez frontmattera", async () => {
+    vault.write("Projects/p/index.md", "Treść bez frontmattera\n");
+    const error = await writeProjectType(e, "etat").catch((err: unknown) => err);
+    expect(error).toBeInstanceOf(DomainError);
+    expect((error as DomainError).statusCode).toBe(422);
+    expect(vault.read("Projects/p/index.md")).toBe("Treść bez frontmattera\n");
+  });
+
+  it("folder: Work/x/ i ../x/ przy zapisach", async () => {
+    const work = entry({ id: "w", folder: "Work/x/" });
+    const out = entry({ id: "o", folder: "../x/" });
+    expect(() => writeProjectState(work, STATE, null)).toThrow(WorkAreaBlockedError);
+    expect(() => writeProjectState(out, STATE, null)).toThrow(PathOutsideVaultError);
+    await expect(appendDevlogEntry(work, ENTRY)).rejects.toThrow(WorkAreaBlockedError);
+    await expect(appendDevlogEntry(out, ENTRY)).rejects.toThrow(PathOutsideVaultError);
+    await expect(writeProjectType(work, "etat")).rejects.toThrow(WorkAreaBlockedError);
+    await expect(writeProjectType(out, "etat")).rejects.toThrow(PathOutsideVaultError);
+  });
+});
+
+describe("bc_projects repositories: zapis tylko w Projects/<id>/", () => {
+  const ENTRY = { date: "2026-11-13", title: "T", why: "W" };
+  const STATE: ProjectState = {
+    branch: "main",
+    env: "",
+    blocker: "",
+    nextStep: "",
+    links: [],
+    milestone: "",
+    notes: "",
+  };
+
+  it.each([
+    ["Notes/x/"],
+    ["Projects/"],
+    ["Projects/."],
+    ["Projects/./"],
+    ["Projects/a/b/"],
+    ["Archive/Projects/x/"],
+    ["projects-x/y/"],
+  ])("folder %s: zapis odrzucony (422), nic nie powstaje", async (folder) => {
+    const e = entry({ id: "n", folder });
+    const check = (err: unknown) => {
+      expect(err).toBeInstanceOf(DomainError);
+      expect((err as DomainError).statusCode).toBe(422);
+    };
+    try {
+      writeProjectState(e, STATE, null);
+      expect.unreachable();
+    } catch (err) {
+      check(err);
+    }
+    check(await appendDevlogEntry(e, ENTRY).catch((err: unknown) => err));
+    check(await writeProjectType(e, "etat").catch((err: unknown) => err));
+    expect(vault.read(`${folder}state.md`)).toBeNull();
+    expect(vault.read(`${folder}devlog.md`)).toBeNull();
   });
 });

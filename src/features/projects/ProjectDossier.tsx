@@ -1,11 +1,33 @@
-import React from "react";
-import type { ProjectDetailDto } from "@/contexts/bc_projects/schemas";
+import React, { useState } from "react";
+import type { ProjectDetailDto, ProjectType } from "@/contexts/bc_projects/schemas";
+import { isHttpUrl } from "./isHttpUrl";
+import type { ProjectActions } from "./mutation";
+import { ProjectDevlog } from "./ProjectDevlog";
+import { ProjectSaveState } from "./ProjectSaveState";
 
-/** Linkujemy tylko http(s); inny protokół z rejestru (np. `javascript:`) wyświetlamy jako zwykły tekst. */
-const isHttpUrl = (url: string) => /^https?:\/\//i.test(url);
+const TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
+  { value: "etat", label: "Etat" },
+  { value: "wlasny", label: "Własny" },
+  { value: "biblioteka", label: "Biblioteka" },
+];
 
-export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.Element {
-  const { project } = props;
+export function ProjectDossier(props: {
+  project: ProjectDetailDto;
+  actions: ProjectActions;
+}): React.JSX.Element {
+  const { project, actions } = props;
+  const [typeSaving, setTypeSaving] = useState(false);
+  const [typeError, setTypeError] = useState<string | null>(null);
+
+  const changeType = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setTypeSaving(true);
+    setTypeError(null);
+    const result = await actions.setType(e.target.value as ProjectType);
+    setTypeSaving(false);
+    // `=== false`: przy `strict: false` tylko takie porównanie zawęża unię.
+    if (result.ok === false) setTypeError(result.error);
+  };
+
   const activeBugs = project.bugs.filter((b) => b.section !== "Zamknięte");
   const closedBugs = project.bugs.filter((b) => b.section === "Zamknięte");
 
@@ -41,12 +63,43 @@ export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.
           ) : null}
           <code className="prj-local-path">{project.localPath}</code>
         </div>
+        <div className="prj-meta-row">
+          <select
+            className="prj-type-select"
+            aria-label="Typ projektu"
+            value={project.type ?? ""}
+            disabled={typeSaving}
+            onChange={changeType}
+          >
+            <option value="" disabled>
+              Nie ustawiono
+            </option>
+            {TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          {project.state?.milestone ? (
+            <p className="prj-milestone">
+              Kamień milowy: {project.state.milestone}
+              {project.state.milestoneDue ? ` · do ${project.state.milestoneDue}` : ""}
+            </p>
+          ) : null}
+        </div>
+        {typeError ? (
+          <p className="prj-alert" role="alert">
+            {typeError}
+          </p>
+        ) : null}
       </article>
 
-      <article className="prj-card">
-        <h3 className="prj-section-title">Gdzie skończyłem</h3>
-        <p className="prj-where">{project.whereIStopped ?? "Brak wpisu"}</p>
-      </article>
+      <ProjectSaveState
+        key={project.id}
+        project={project}
+        onSave={actions.saveState}
+        onReload={actions.reloadDetail}
+      />
 
       <article className="prj-card">
         <h3 className="prj-section-title">Zadania</h3>
@@ -54,6 +107,7 @@ export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.
           {project.tasks.map((section) => (
             <div key={section.heading} className="prj-task-section">
               <h4 className="prj-task-section__title">{section.heading}</h4>
+              {section.items.length === 0 ? <p className="prj-task-empty">Brak</p> : null}
               <ul className="prj-task-list">
                 {section.items.map((item, index) => (
                   <li key={`${section.heading}-${index}`}>
@@ -93,6 +147,12 @@ export function ProjectDossier(props: { project: ProjectDetailDto }): React.JSX.
           </>
         )}
       </article>
+
+      <ProjectDevlog
+        key={`${project.id}-devlog`}
+        entries={project.devlog}
+        onAdd={actions.addDevlogEntry}
+      />
     </section>
   );
 }

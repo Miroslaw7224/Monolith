@@ -1,5 +1,6 @@
 import React from "react";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProjectDetailDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
 import { ProjectsView } from "@/src/features/projects/ProjectsView";
@@ -28,6 +29,9 @@ function detail(
     tasks: [],
     bugs: [],
     whereIStopped: null,
+    state: null,
+    stateVersion: null,
+    devlog: [],
     ...partial,
   };
 }
@@ -175,3 +179,142 @@ function itemButton(id: string): HTMLElement {
   if (!button) throw new Error(`brak przycisku dla ${id}`);
   return button;
 }
+
+/** apiFetch z zapisem: trzyma bieżące szczegóły projektu `a` i odpowiada na PUT/POST/PATCH. */
+function makeRwApiFetch(initial: ProjectDetailDto, patchResponse?: Response) {
+  let current = initial;
+  const fetchFn = vi.fn(async (url: string, options?: RequestInit) => {
+    const method = options?.method ?? "GET";
+    if (url === "/api/projects") return listResponse([summary({ id: "a" })]);
+    if (url === "/api/projects/a" && method === "GET") {
+      return new Response(JSON.stringify(current), { status: 200 });
+    }
+    if (url === "/api/projects/a" && method === "PATCH") {
+      if (patchResponse) return patchResponse;
+      current = { ...current, type: JSON.parse(String(options?.body)).type };
+      return new Response(JSON.stringify(current), { status: 200 });
+    }
+    if (url === "/api/projects/a/state" && method === "PUT") {
+      const body = JSON.parse(String(options?.body));
+      current = {
+        ...current,
+        state: {
+          branch: body.branch,
+          env: body.env,
+          blocker: body.blocker,
+          nextStep: body.nextStep,
+          links: body.links,
+          milestone: body.milestone,
+          updated: "2026-11-13T09:15",
+        },
+        stateVersion: "9:h",
+      };
+      return new Response(JSON.stringify(current), { status: 200 });
+    }
+    if (url === "/api/projects/a/devlog" && method === "POST") {
+      const body = JSON.parse(String(options?.body));
+      current = {
+        ...current,
+        devlog: [{ date: "2026-11-13", title: body.title, why: body.why }, ...current.devlog],
+      };
+      return new Response(JSON.stringify(current), { status: 201 });
+    }
+    return new Response("{}", { status: 404 });
+  });
+  return fetchFn;
+}
+
+describe("ProjectsView: Save State, devlog, typ", () => {
+  it("projekt bez state: „Gdzie skończyłem”, przycisk utworzenia i pusty devlog", async () => {
+    const apiFetch = makeRwApiFetch(detail({ id: "a", whereIStopped: "tu skończyłem" }));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    expect(await screen.findByText("tu skończyłem")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Utwórz Save State" })).toBeInTheDocument();
+    expect(screen.getByText("Brak wpisów")).toBeInTheDocument();
+  });
+
+  it("projekt ze state: kafle i kamień milowy bez paska postępu", async () => {
+    const apiFetch = makeRwApiFetch(
+      detail({
+        id: "a",
+        stateVersion: "5:h",
+        state: {
+          branch: "feat/x",
+          env: "",
+          blocker: "",
+          nextStep: "krok",
+          links: ["javascript:x"],
+          milestone: "M",
+          milestoneDue: "2026-12-01",
+        },
+      })
+    );
+    render(<ProjectsView apiFetch={apiFetch} />);
+    expect(await screen.findByText("feat/x")).toBeInTheDocument();
+    expect(screen.getByText(/Kamień milowy: M/)).toBeInTheDocument();
+    expect(screen.getByText(/do 2026-12-01/)).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByText("javascript:x")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "javascript:x" })).toBeNull();
+  });
+
+  it("zmiana typu: PATCH z {type} i wartość z odpowiedzi", async () => {
+    const user = userEvent.setup();
+    const apiFetch = makeRwApiFetch(detail({ id: "a" }));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    const select = await screen.findByLabelText("Typ projektu");
+    await user.selectOptions(select, "wlasny");
+    await waitFor(() => expect(select).toHaveValue("wlasny"));
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: "wlasny" }),
+    });
+  });
+
+  it("PATCH 422: komunikat w role=alert", async () => {
+    const user = userEvent.setup();
+    const apiFetch = makeRwApiFetch(
+      detail({ id: "a" }),
+      new Response(JSON.stringify({ error: "index.md nie ma frontmattera" }), { status: 422 })
+    );
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await user.selectOptions(await screen.findByLabelText("Typ projektu"), "etat");
+    expect(await screen.findByRole("alert")).toHaveTextContent("index.md nie ma frontmattera");
+  });
+
+  it("utworzenie Save State: PUT z version null i kafle z odpowiedzi", async () => {
+    const user = userEvent.setup();
+    const apiFetch = makeRwApiFetch(detail({ id: "a" }));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await user.click(await screen.findByRole("button", { name: "Utwórz Save State" }));
+    await user.type(screen.getByLabelText("Branch"), "feat/y");
+    await user.click(screen.getByRole("button", { name: "Zapisz" }));
+    expect(await screen.findByText("feat/y")).toBeInTheDocument();
+    const put = apiFetch.mock.calls.find((c) => c[1]?.method === "PUT");
+    expect(JSON.parse(String(put?.[1]?.body))).toMatchObject({ branch: "feat/y", version: null });
+    expect(screen.getByRole("button", { name: "Edytuj" })).toBeInTheDocument();
+  });
+
+  it("dopisanie wpisu devlogu: lista z odpowiedzi serwera", async () => {
+    const user = userEvent.setup();
+    const apiFetch = makeRwApiFetch(detail({ id: "a" }));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await user.type(await screen.findByLabelText("Tytuł"), "Decyzja");
+    await user.type(screen.getByLabelText("Dlaczego"), "bo tak");
+    await user.click(screen.getByRole("button", { name: "Dodaj wpis" }));
+    expect(await screen.findByText("Decyzja")).toBeInTheDocument();
+    expect(screen.getByText("bo tak")).toBeInTheDocument();
+    expect(screen.getByText("2026-11-13")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tytuł")).toHaveValue("");
+  });
+
+  it("zadania: sekcja Blokery bez pozycji pokazuje „Brak”", async () => {
+    const apiFetch = makeRwApiFetch(
+      detail({ id: "a", tasks: [{ heading: "Blokery", items: [] }] })
+    );
+    render(<ProjectsView apiFetch={apiFetch} />);
+    const heading = await screen.findByText("Blokery");
+    expect(within(heading.parentElement as HTMLElement).getByText("Brak")).toBeInTheDocument();
+  });
+});

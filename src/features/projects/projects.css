@@ -303,3 +303,240 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Save State (tryb odczytu i formularz) — wg .prj-savestate / .prj-statebox z makiety 04-projekty.html */
+.prj-savestate {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-3);
+}
+
+.prj-statebox {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.prj-statebox--wide {
+  grid-column: span 2;
+}
+
+.prj-statebox__lbl {
+  font: 600 10px / 1 var(--font-mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.prj-statebox__val {
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--text);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.prj-statebox__next {
+  font: 600 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--accent-text);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.prj-statebox__meta {
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-statebox__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font: 500 var(--fs-xs) / 1.35 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.prj-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-3);
+}
+
+.prj-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.prj-field--wide {
+  grid-column: span 2;
+}
+
+.prj-field > span {
+  font: 600 10px / 1 var(--font-mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.prj-field input,
+.prj-field textarea {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+}
+
+.prj-field input:focus-visible,
+.prj-field textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.prj-form__actions {
+  grid-column: span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.prj-form .prj-form__actions {
+  margin-top: 0;
+}
+
+.prj-btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  cursor: pointer;
+}
+
+.prj-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.prj-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prj-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.prj-alert {
+  grid-column: span 2;
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+}
+
+/* Devlog — wg .prj-devlog z makiety 04-projekty.html */
+.prj-devlog {
+  list-style: none;
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.prj-devlog__item {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.prj-devlog__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-devlog__date {
+  color: var(--accent-text);
+}
+
+.prj-devlog__title {
+  font: 600 var(--fs-sm) / 1.35 var(--font-display);
+  color: var(--text);
+  margin: 0;
+}
+
+.prj-devlog__why {
+  margin: 2px 0 0;
+  padding-left: var(--s-2);
+  border-left: 2px solid var(--line);
+  font: 400 var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.prj-devlog-form {
+  grid-template-columns: 1fr;
+}
+
+.prj-devlog-form .prj-field--wide,
+.prj-devlog-form .prj-form__actions,
+.prj-devlog-form .prj-alert {
+  grid-column: auto;
+}
+
+/* Metryczka: typ projektu i kamień milowy (bez paska postępu) */
+.prj-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+
+.prj-type-select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-1) var(--s-2);
+  font: 600 var(--fs-xs) / 1.2 var(--font-mono);
+}
+
+.prj-type-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.prj-milestone {
+  margin: 0;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--accent-text);
+}
+
+.prj-task-empty {
+  margin: 0;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}

@@ -8,13 +8,13 @@ Nadrzędne: `2026-11-11-asystent-lokalny-nexus-design.md` (§6.1 karta projektu,
 
 Etap 1 (karta projektu) dzieli się na podetapy, każdy z własnym specem, planem i PR:
 
-| Podetap | Zakres                                                                                    |
-| ------- | ----------------------------------------------------------------------------------------- |
-| **1-1** | **Rejestr + karta Projekty (Alt+4) tylko do odczytu. Ten dokument.**                      |
-| 1-2     | Save State (`state.md`) i dziennik decyzji (`devlog.md`) z zapisem; `type`, kamień milowy |
-| 1-3     | Tablica zadań projektu (Teraz / Następne / Icebox) z edycją                               |
-| 1-4     | Kontekst dla AI i paczka kontekstu (git tylko do odczytu, mapowanie `local_path`)         |
-| 1-5     | `owner` (Firma/Moje), `Work/_registry.work.yaml`, strażnik `Work/`                        |
+| Podetap | Zakres                                                                                                                                                                   |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1-1** | **Rejestr + karta Projekty (Alt+4) tylko do odczytu. Ten dokument.**                                                                                                     |
+| 1-2     | Save State (`state.md`) i dziennik decyzji (`devlog.md`) z zapisem; `type`, kamień milowy (wykonany 2026-11-13, spec: `2026-11-13-etap-1-2-save-state-devlog-design.md`) |
+| 1-3     | Tablica zadań projektu (Teraz / Następne / Icebox) z edycją                                                                                                              |
+| 1-4     | Kontekst dla AI i paczka kontekstu (git tylko do odczytu, mapowanie `local_path`)                                                                                        |
+| 1-5     | `owner` (Firma/Moje), `Work/_registry.work.yaml`, strażnik `Work/`                                                                                                       |
 
 Po 1-1 karta Alt+4 przestaje być zaślepką: pokazuje rejestr projektów z NEXUS i szczegóły wybranego projektu (zadania, bugi, akapit „Gdzie skończyłem”). 1-1 jest pierwszym kontekstem `bc_*` w repo i wzorcem dla migracji pozostałych domen.
 

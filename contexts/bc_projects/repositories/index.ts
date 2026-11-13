@@ -1,13 +1,34 @@
 import YAML from "yaml";
-import type {
-  BugEntry,
-  ChecklistSection,
-  ProjectIndex,
-  RegistryEntry,
+import {
+  PROJECT_TYPES,
+  type BugEntry,
+  type ChecklistSection,
+  type DevlogEntry,
+  type ProjectIndex,
+  type ProjectState,
+  type ProjectType,
+  type RegistryEntry,
+  type VersionToken,
 } from "@/contexts/bc_projects/models";
+import { DomainError, NotFoundError } from "@/lib/errors";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
-import { readVaultFile } from "@/lib/nexus/vault-fs";
-import { parseBugs, parseChecklist, parseSections } from "./markdown";
+import { getVaultRoot } from "@/lib/nexus/vault-path";
+import {
+  readVaultFile,
+  resolveInsideVault,
+  updateVaultFile,
+  writeVaultFile,
+} from "@/lib/nexus/vault-fs";
+import {
+  parseBugs,
+  parseChecklist,
+  parseDevlog,
+  parseSections,
+  parseState,
+  prependDevlogEntry,
+  serializeState,
+  setFrontmatterType,
+} from "./markdown";
 
 const REGISTRY = "Projects/_registry.yaml";
 const MISSING_PROJECTS_LIST = "Projects/_registry.yaml: brak listy 'projects'";
@@ -117,6 +138,8 @@ export function readProjectIndex(entry: RegistryEntry): ProjectIndex {
   if (lastWorked) index.lastWorked = lastWorked;
   const stateConfidence = text(meta.state_confidence);
   if (stateConfidence) index.stateConfidence = stateConfidence;
+  const type = text(meta.type);
+  if ((PROJECT_TYPES as readonly string[]).includes(type)) index.type = type as ProjectType;
 
   return index;
 }
@@ -139,4 +162,61 @@ export function readProjectContent(entry: RegistryEntry): {
   const bugs = bugsFile === null ? [] : parseBugs(bugsFile.text);
 
   return { tasks, bugs };
+}
+
+export function readProjectState(entry: RegistryEntry): {
+  state: ProjectState | null;
+  version: VersionToken | null;
+} {
+  const rel = projectPath(entry.folder, "state.md");
+  const file = readVaultFile(rel);
+  if (file === null) return { state: null, version: null };
+  return { state: parseState(file.text, rel), version: file.version };
+}
+
+export function readDevlog(entry: RegistryEntry): DevlogEntry[] {
+  const file = readVaultFile(projectPath(entry.folder, "devlog.md"));
+  return file === null ? [] : parseDevlog(file.text);
+}
+
+/**
+ * Zapis tylko w `Projects/<id>/` (rejestr jest plikiem edytowalnym ręcznie, więc `folder` nie jest zaufany).
+ * Najpierw strażnik vaulta (`PathOutsideVaultError`, `WorkAreaBlockedError` mają pierwszeństwo).
+ */
+function assertWritable(entry: RegistryEntry, rel: string): void {
+  resolveInsideVault(getVaultRoot(), rel);
+  if (!/^Projects\/(?!\.{1,2}(?:\/|$))[^/]+\/?$/.test(entry.folder)) {
+    throw new DomainError(`Zapis tylko w Projects/<id>/ (folder: ${entry.folder})`, 422);
+  }
+}
+
+/** Zapis `state.md` z kontrolą wersji: niezgodność z `expected` daje `ConflictError` (409). */
+export function writeProjectState(
+  entry: RegistryEntry,
+  state: ProjectState,
+  expected: VersionToken | null
+): VersionToken {
+  const rel = projectPath(entry.folder, "state.md");
+  assertWritable(entry, rel);
+  return writeVaultFile(rel, serializeState(state), { expected });
+}
+
+/** Dopisuje wpis na górze `devlog.md` (tworzy plik); zmiana lokalna, więc ponawiana po konflikcie. */
+export async function appendDevlogEntry(
+  entry: RegistryEntry,
+  devlogEntry: { date: string; title: string; why: string }
+): Promise<void> {
+  const rel = projectPath(entry.folder, "devlog.md");
+  assertWritable(entry, rel);
+  await updateVaultFile(rel, (current) => prependDevlogEntry(current, devlogEntry));
+}
+
+/** Zmienia tylko linię `type:` w `index.md`; brak pliku to `NotFoundError`. */
+export async function writeProjectType(entry: RegistryEntry, type: ProjectType): Promise<void> {
+  const rel = projectPath(entry.folder, "index.md");
+  assertWritable(entry, rel);
+  await updateVaultFile(rel, (current) => {
+    if (current === null) throw new NotFoundError(`Brak pliku ${rel}`);
+    return setFrontmatterType(current, type);
+  });
 }
