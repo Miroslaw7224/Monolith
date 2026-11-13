@@ -242,6 +242,42 @@ describe("tasks-file: add", () => {
     );
   });
 
+  it("proza zaczynająca się od „Brak” obok innej treści nie jest placeholderem i zostaje", () => {
+    const out = applyTaskOp(
+      "## Next\n\nNotatka:\nBrak odpowiedzi API.\n\n## Backlog\n",
+      { op: "add", column: "next", text: "a" },
+      CTX
+    );
+    expect(out).toBe("## Next\n\nNotatka:\nBrak odpowiedzi API.\n\n- [ ] a\n\n## Backlog\n");
+  });
+
+  it("placeholder obok prozy zostaje (nie jest jedyną treścią sekcji)", () => {
+    const out = applyTaskOp(
+      "## Next\n\n_Brak_\n\nNotatka.\n\n## Backlog\n",
+      { op: "add", column: "next", text: "a" },
+      CTX
+    );
+    expect(out).toBe("## Next\n\n_Brak_\n\nNotatka.\n\n- [ ] a\n\n## Backlog\n");
+  });
+
+  it("proza bez pustej linii przed następnym nagłówkiem: dodaje separator", () => {
+    const out = applyTaskOp(
+      "## Blokery\nNotatka.\n## Next\n",
+      { op: "add", column: "blockers", text: "x" },
+      CTX
+    );
+    expect(out).toBe("## Blokery\nNotatka.\n\n- [ ] x\n\n## Next\n");
+  });
+
+  it("proza na końcu pliku bez końcowego newline: wynik kończy się newline", () => {
+    const out = applyTaskOp(
+      "## Backlog\n\nNotatka.",
+      { op: "add", column: "icebox", text: "x" },
+      CTX
+    );
+    expect(out).toBe("## Backlog\n\nNotatka.\n\n- [ ] x\n");
+  });
+
   it("sekcja z prozą bez zadań: po ostatniej niepustej linii", () => {
     const out = applyTaskOp(
       "## Next\n\nNotatka.\n\n## Backlog\n",

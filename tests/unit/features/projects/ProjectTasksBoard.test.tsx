@@ -169,6 +169,26 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     ]);
   });
 
+  it("po udanej mutacji innego zadania otwarta edycja i potwierdzenie usunięcia się zamykają", async () => {
+    const user = userEvent.setup();
+    const after = board({ next: [{ text: "Trzecie", done: false }] });
+    const api = makeApi(detail(board()), () => json(detail(after)));
+    render(<ProjectsView apiFetch={api} />);
+    await user.click(await screen.findByRole("button", { name: "Edytuj: Trzecie" }));
+    expect(screen.getByLabelText("Edytuj zadanie")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Usuń: Pierwsze" }));
+    expect(screen.queryByLabelText("Edytuj zadanie")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Potwierdź usunięcie: Pierwsze" }));
+    await waitFor(() => expect(posts(api)).toHaveLength(1));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /Potwierdź usunięcie/ })).not.toBeInTheDocument()
+    );
+    await user.click(screen.getByRole("button", { name: "Usuń: Trzecie" }));
+    await user.click(within(column("Teraz")).getByRole("checkbox", { name: "Drugie" }));
+    await waitFor(() => expect(posts(api)).toHaveLength(2));
+    expect(screen.queryByRole("button", { name: /Potwierdź usunięcie/ })).not.toBeInTheDocument();
+  });
+
   it("usuwanie dwuetapowe: dopiero potwierdzenie wysyła POST remove", async () => {
     const user = userEvent.setup();
     const api = makeApi(detail(board()));

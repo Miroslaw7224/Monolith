@@ -252,17 +252,21 @@ function insertBlock(text: string, kind: SectionKind, block: string[]): string {
     return scan.lines.join("\n");
   }
 
-  const body = scan.lines
-    .slice(section.heading + 1, section.end)
-    .filter((line) => !PLACEHOLDER_RE.test(line.trim()));
+  const raw = scan.lines.slice(section.heading + 1, section.end);
+  // Placeholder znika tylko wtedy, gdy jest jedyną treścią sekcji; proza zaczynająca się od „Brak” zostaje.
+  const onlyPlaceholders = raw
+    .filter((line) => line.trim() !== "")
+    .every((line) => PLACEHOLDER_RE.test(line.trim()));
+  const body = onlyPlaceholders ? [] : raw;
   let lastNonBlank = -1;
   body.forEach((line, i) => {
     if (line.trim() !== "") lastNonBlank = i;
   });
+  const tail = body.slice(lastNonBlank + 1);
   const newBody =
     lastNonBlank === -1
       ? ["", ...block, ""]
-      : [...body.slice(0, lastNonBlank + 1), "", ...block, ...body.slice(lastNonBlank + 1)];
+      : [...body.slice(0, lastNonBlank + 1), "", ...block, ...(tail.length === 0 ? [""] : tail)];
   scan.lines.splice(section.heading + 1, section.end - section.heading - 1, ...newBody);
   return scan.lines.join("\n");
 }

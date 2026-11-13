@@ -51,6 +51,12 @@ export function ProjectTasksBoard(props: {
     setError(null);
     const result = await onOp(input);
     setBusy(false);
+    // Indeksy zadań zmieniają się po każdej udanej mutacji, więc otwarta edycja i potwierdzenie
+    // usunięcia (trzymane po indeksie) przestałyby wskazywać to samo zadanie.
+    if (result.ok === true) {
+      setEditing(null);
+      setConfirming(null);
+    }
     // `=== false`: przy `strict: false` tylko takie porównanie zawęża unię.
     if (result.ok === false) {
       setError(result.conflict ? CONFLICT_MESSAGE : result.error);
@@ -177,7 +183,10 @@ export function ProjectTasksBoard(props: {
               className="prj-btn"
               aria-label={`Usuń: ${task.text}`}
               disabled={busy}
-              onClick={() => setConfirming({ column, index })}
+              onClick={() => {
+                setEditing(null);
+                setConfirming({ column, index });
+              }}
             >
               Usuń
             </button>
