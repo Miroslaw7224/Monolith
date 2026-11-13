@@ -11,6 +11,18 @@ const inMnt = (p: string) => p === "/mnt" || p.startsWith(MNT);
 
 const within = (p: string, dir: string) => p === dir || p.startsWith(dir.replace(/\/?$/, "/"));
 
+/** `gitdir: <ścieżka>` z pliku `.git` worktree (względna liczona od katalogu projektu) musi istnieć w domu. */
+function worktreeGitDirInsideHome(dotGitFile: string, repoDir: string, realHome: string): boolean {
+  try {
+    const match = /^gitdir:\s*(.+?)\s*$/m.exec(fs.readFileSync(dotGitFile, "utf8").slice(0, 4096));
+    if (!match) return false;
+    const target = fs.realpathSync(path.resolve(repoDir, match[1]));
+    return !inMnt(target) && within(target, realHome);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * `local_path` z rejestru → bezpieczny katalog repozytorium (tylko WSL, w katalogu domowym).
  * `E:\…`, `/mnt/…`, ścieżki względne i wszystko poza domem (także przez `..` i symlinki) jest odrzucane.
@@ -45,13 +57,21 @@ export function resolveRepoPath(localPath: string, opts: { home?: string } = {})
   }
   if (inMnt(real) || !within(real, realHome)) return { ok: false, reason: "outside-home" };
 
-  // `.git` musi leżeć bezpośrednio w katalogu projektu (katalog albo plik worktree):
-  // git nie może „znaleźć” repozytorium w katalogu nadrzędnym.
-  // Symlink `.git` nie wystarcza (mógłby wskazywać repozytorium poza domem).
+  // `.git` musi leżeć bezpośrednio w katalogu projektu: git nie może „znaleźć” repozytorium
+  // w katalogu nadrzędnym. Symlink `.git` nie wystarcza (mógłby wskazywać repozytorium poza domem).
+  const dotGitPath = path.join(real, ".git");
+  let dotGit: fs.Stats;
   try {
-    const dotGit = fs.lstatSync(path.join(real, ".git"));
-    if (!dotGit.isDirectory() && !dotGit.isFile()) return { ok: false, reason: "not-a-repo" };
+    dotGit = fs.lstatSync(dotGitPath);
   } catch {
+    return { ok: false, reason: "not-a-repo" };
+  }
+  if (dotGit.isFile()) {
+    // Worktree: `.git` to plik `gitdir: <ścieżka>`; cel też musi leżeć w domu (poza /mnt/).
+    if (!worktreeGitDirInsideHome(dotGitPath, real, realHome)) {
+      return { ok: false, reason: "not-a-repo" };
+    }
+  } else if (!dotGit.isDirectory()) {
     return { ok: false, reason: "not-a-repo" };
   }
   return { ok: true, path: real };

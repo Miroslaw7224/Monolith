@@ -118,4 +118,25 @@ describe("ProjectContextPack", () => {
     expect(await screen.findByText(/Skopiowano paczkę kontekstu/)).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+  it("odmontowanie w trakcie ładowania: schowek nietknięty", async () => {
+    let resolve!: (value: ContextPackResult) => void;
+    const onLoad = vi.fn(
+      () =>
+        new Promise<ContextPackResult>((r) => {
+          resolve = r;
+        })
+    );
+    const user = userEvent.setup();
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    const { unmount } = render(<ProjectContextPack onLoad={onLoad} />);
+
+    await user.click(button());
+    unmount();
+    await act(async () => {
+      resolve({ ok: true, pack: PACK });
+    });
+
+    expect(writeText).not.toHaveBeenCalled();
+  });
 });

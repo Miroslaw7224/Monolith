@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { ContextPackDto } from "@/contexts/bc_projects/schemas";
 import type { ContextPackResult } from "./mutation";
 
@@ -13,12 +13,21 @@ export function ProjectContextPack(props: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<ContextPackDto | null>(null);
+  /** Po odmontowaniu (np. zmiana projektu w trakcie ładowania) spóźniona odpowiedź nie rusza schowka. */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const copy = async () => {
     setBusy(true);
     setError(null);
     setCopied(null);
     const result = await onLoad();
+    if (!mounted.current) return;
     if (result.ok === false) {
       setError(result.error);
       setBusy(false);

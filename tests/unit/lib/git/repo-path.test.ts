@@ -34,11 +34,43 @@ describe("resolveRepoPath", () => {
     expect(resolveRepoPath(p, { home })).toEqual({ ok: true, path: p });
   });
 
-  it(".git jako plik (worktree) wystarcza", () => {
+  it(".git jako plik (worktree) z gitdir w domu wystarcza", () => {
+    const main = repo(path.join(home, "main"));
+    const wt = path.join(main, ".git", "worktrees", "p");
+    fs.mkdirSync(wt, { recursive: true });
     const p = path.join(home, "p");
     fs.mkdirSync(p);
-    fs.writeFileSync(path.join(p, ".git"), "gitdir: /x\n");
+    fs.writeFileSync(path.join(p, ".git"), `gitdir: ${wt}\n`);
     expect(resolveRepoPath("~/p", { home })).toEqual({ ok: true, path: p });
+  });
+
+  it(".git jako plik z gitdir względnym (w domu) wystarcza", () => {
+    const main = repo(path.join(home, "main"));
+    fs.mkdirSync(path.join(main, ".git", "worktrees", "p"), { recursive: true });
+    const p = path.join(home, "p");
+    fs.mkdirSync(p);
+    fs.writeFileSync(path.join(p, ".git"), "gitdir: ../main/.git/worktrees/p\n");
+    expect(resolveRepoPath("~/p", { home })).toEqual({ ok: true, path: p });
+  });
+
+  it.each([
+    ["poza domem", (b: string) => path.join(b, "outside-gitdir")],
+    ["w /mnt/", () => "/mnt/c/gitdir"],
+    ["nieistniejący", (b: string) => path.join(b, "home", "nie-ma")],
+  ])("plik .git z gitdir %s jest odrzucony", (_name, target) => {
+    const dir = target(base);
+    if (dir.startsWith(base) && !dir.endsWith("nie-ma")) fs.mkdirSync(dir);
+    const p = path.join(home, "p");
+    fs.mkdirSync(p);
+    fs.writeFileSync(path.join(p, ".git"), `gitdir: ${dir}\n`);
+    expect(resolveRepoPath("~/p", { home })).toEqual({ ok: false, reason: "not-a-repo" });
+  });
+
+  it("plik .git bez linii gitdir jest odrzucony", () => {
+    const p = path.join(home, "p");
+    fs.mkdirSync(p);
+    fs.writeFileSync(path.join(p, ".git"), "cokolwiek\n");
+    expect(resolveRepoPath("~/p", { home })).toEqual({ ok: false, reason: "not-a-repo" });
   });
 
   it.each(["E:\\x\\y", "", "   ", "p"])("nieobsługiwana ścieżka %j", (input) => {
