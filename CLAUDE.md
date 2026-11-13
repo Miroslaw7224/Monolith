@@ -97,7 +97,13 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   a do NEXUS przez `../NEXUS/...` (oba mają odczyt NEXUS). Uprawnienia komend cursora są w globalnym
   `~/.cursor/cli-config.json` (`Brain_7224/.cursor/cli.json` nie jest wczytywany z tego katalogu).
 - Pomocnicy nie widzą tej rozmowy: w prompcie podawaj cel, ścieżki, ograniczenia i oczekiwany format odpowiedzi.
-- Jeśli pomocnik jest `blocked` (czeka na zgodę), nie zatwierdzaj za użytkownika; poproś go o kliknięcie w panelu.
+- Jeśli pomocnik jest `blocked` (czeka na zgodę), przeczytaj prośbę w panelu (`hc read <terminal>`).
+  **Zgoda użytkownika (2026-11-13):** wolno mi zatwierdzić (`hc keys <terminal> enter` = „Yes, run command”, jednorazowo)
+  polecenia wyłącznie do odczytu, które nic nie zmieniają w kodzie ani w vaulcie: `head`, `cat`, `ls`, `grep`, `rg`, `find`
+  (bez `-exec`/`-delete`), `git show|diff|log|status`, `wc`, `sed -n`. Nie wybieram opcji „always allow” (2 i 3).
+  Wszystko inne (zapis, `rm`/`mv`/`cp`, przekierowania `>`/`>>`, `tee`, `git add|commit|push|checkout|reset`,
+  `npm`/`npx`/`node`/`tsx`, instalacje, sieć, pipe do interpretera) nadal wymaga kliknięcia użytkownika: wtedy
+  nie zatwierdzam, tylko go proszę.
 
 ### Kiedy delegować
 
