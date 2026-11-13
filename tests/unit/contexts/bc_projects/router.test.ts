@@ -10,6 +10,7 @@ const mockGetProject = vi.hoisted(() => vi.fn());
 const mockSaveState = vi.hoisted(() => vi.fn());
 const mockAddDevlogEntry = vi.hoisted(() => vi.fn());
 const mockSetProjectType = vi.hoisted(() => vi.fn());
+const mockApplyTaskOp = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_projects/services", () => ({
   listProjects: mockListProjects,
@@ -17,12 +18,14 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   saveState: mockSaveState,
   addDevlogEntry: mockAddDevlogEntry,
   setProjectType: mockSetProjectType,
+  applyTaskOp: mockApplyTaskOp,
 }));
 
 import { GET as listGET } from "@/app/api/projects/route";
 import { GET as detailGET, PATCH as detailPATCH } from "@/app/api/projects/[id]/route";
 import { PUT as statePUT } from "@/app/api/projects/[id]/state/route";
 import { POST as devlogPOST } from "@/app/api/projects/[id]/devlog/route";
+import { POST as tasksPOST } from "@/app/api/projects/[id]/tasks/route";
 
 const summaryProject: Project = {
   id: "a",
@@ -244,5 +247,85 @@ describe("bc_projects router: zapisy", () => {
       A
     );
     expect(conflict.status).toBe(409);
+  });
+});
+
+describe("bc_projects router: zadania (POST tasks)", () => {
+  const HASH = "a".repeat(64);
+  const post = (body: unknown) =>
+    tasksPOST(jsonRequest("POST", "http://localhost/api/projects/a/tasks", body), A);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockApplyTaskOp.mockResolvedValue({
+      ...detailProject,
+      board: {
+        blockers: [],
+        now: [],
+        next: [{ text: "x", done: false }],
+        icebox: [],
+        version: null,
+      },
+    });
+  });
+
+  it("add: 200, pełny DTO z board, serwis dostaje op bez wersji i version null", async () => {
+    const res = await post({ op: "add", column: "next", text: "x", version: null });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.board.next).toEqual([{ text: "x", done: false }]);
+    expect("folder" in body).toBe(false);
+    expect(mockApplyTaskOp).toHaveBeenCalledWith(
+      "a",
+      { op: "add", column: "next", text: "x" },
+      null
+    );
+  });
+
+  it("move: wersja size:hash zamieniona na obiekt", async () => {
+    const res = await post({
+      op: "move",
+      column: "next",
+      index: 0,
+      text: "x",
+      to: "now",
+      version: `7:${HASH}`,
+    });
+    expect(res.status).toBe(200);
+    expect(mockApplyTaskOp).toHaveBeenCalledWith(
+      "a",
+      { op: "move", column: "next", index: 0, text: "x", to: "now" },
+      { size: 7, hash: HASH }
+    );
+  });
+
+  it.each([
+    ["nieznana operacja", { op: "zly", column: "next", text: "x", version: null }],
+    ["brak kolumny", { op: "add", text: "x", version: null }],
+    ["toggle bez wersji", { op: "toggle", column: "next", index: 0, text: "x", version: null }],
+    ["tekst z [now::]", { op: "add", column: "next", text: "x [now::]", version: null }],
+  ])("zły kształt (%s): 400 i serwis niewywołany", async (_label, body) => {
+    const res = await post(body);
+    expect(res.status).toBe(400);
+    expect(mockApplyTaskOp).not.toHaveBeenCalled();
+  });
+
+  it("uszkodzony JSON: 400", async () => {
+    const res = await tasksPOST(
+      jsonRequest("POST", "http://localhost/api/projects/a/tasks", "{"),
+      A
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it.each([
+    ["ConflictError", new ConflictError("zmieniło się"), 409],
+    ["DomainError 422", new DomainError("limit", 422), 422],
+    ["NotFoundError", new NotFoundError("brak"), 404],
+  ])("błąd serwisu %s mapowany na %i", async (_label, err, status) => {
+    mockApplyTaskOp.mockRejectedValue(err);
+    const res = await post({ op: "add", column: "next", text: "x", version: null });
+    expect(res.status).toBe(status);
+    expect(await res.json()).toEqual({ error: err.message });
   });
 });

@@ -5,6 +5,7 @@ import {
   DevlogInputSchema,
   ProjectTypeInputSchema,
   StateInputSchema,
+  TaskOpInputSchema,
   toDetailDto,
   toSummaryDto,
 } from "./schemas";
@@ -75,6 +76,20 @@ export async function postDevlog(req: NextRequest, ctx: RouteContext): Promise<N
       why: parsed.data.why ?? "",
     });
     return NextResponse.json(toDetailDto(project), { status: 201 });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function postTasks(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  try {
+    const parsed = await parseBody(req, TaskOpInputSchema);
+    if (parsed.success === false) return parsed.response;
+    const { id } = await ctx.params;
+    // `version` idzie osobno od operacji; `strict: false` jak w `putProjectState`: jawne domknięcie null.
+    const { version, ...op } = parsed.data;
+    const project = await services.applyTaskOp(id, op, version ?? null);
+    return NextResponse.json(toDetailDto(project));
   } catch (err) {
     return handleServiceError(err);
   }
