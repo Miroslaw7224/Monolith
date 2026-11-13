@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DomainError } from "@/lib/errors";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
-import { createNote, deleteNote, getNotes, updateNote } from "@/lib/nexus/repos/notes";
-import { useTempVault } from "./helpers";
+import { createNote, deleteNote, getNotes, updateNote } from "@/contexts/bc_notes/repositories";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const NOW = "2026-11-12T10:00:00.000Z";
 const FIXTURE = `---

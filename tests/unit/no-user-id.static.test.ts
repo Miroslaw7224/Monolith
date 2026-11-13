@@ -26,7 +26,7 @@ function collect(): string[] {
 describe("0d-1 static guard: the server layer has no userId and no auth", () => {
   it("scans existing sources", () => {
     const files = collect();
-    expect(files).toContain("services/noteService.ts");
+    expect(files).toContain("contexts/bc_notes/services.ts");
     expect(files).toContain("app/api/notes/route.ts");
     expect(files).toContain("contexts/bc_tasks/repositories/tasks.ts");
     expect(files).toContain("src/components/sessions/activeSession.ts");

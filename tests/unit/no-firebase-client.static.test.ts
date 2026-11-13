@@ -29,7 +29,7 @@ describe("0d-2 static guard: no Firebase client, login or waitlist in applicatio
     const files = collect();
     expect(files).toContain("src/App.tsx");
     expect(files).toContain("app/dashboard/page.tsx");
-    expect(files).toContain("services/noteService.ts");
+    expect(files).toContain("contexts/bc_notes/services.ts");
   });
 
   it("does not use the firebase client SDK, useAuth, tokens or the waitlist", () => {

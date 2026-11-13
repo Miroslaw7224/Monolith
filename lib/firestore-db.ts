@@ -1,7 +1,6 @@
-export type { DocumentRecord, NoteRecord, NoteResourceRecord } from "@/types/records";
+export type { DocumentRecord, NoteResourceRecord } from "@/types/records";
 
 export { getDocuments, createDocument, deleteDocument } from "@/lib/nexus/repos/documents";
-export { getNotes, createNote, updateNote, deleteNote } from "@/lib/nexus/repos/notes";
 export {
   addResourceToFirestore,
   getResourcesFromFirestore,
