@@ -2,8 +2,10 @@
 import { describe, expect, it } from "vitest";
 import type { RegistryEntry } from "@/contexts/bc_projects/models";
 import {
+  readDevlog,
   readProjectContent,
   readProjectIndex,
+  readProjectState,
   readRegistry,
 } from "@/contexts/bc_projects/repositories";
 import { PathOutsideVaultError, WorkAreaBlockedError } from "@/lib/nexus/vault-fs";
@@ -195,5 +197,57 @@ describe("bc_projects repositories", () => {
   it("folder: Work/x/", () => {
     const e = entry({ id: "work", folder: "Work/x/" });
     expect(() => readProjectIndex(e)).toThrow(WorkAreaBlockedError);
+  });
+});
+
+describe("bc_projects repositories: type, state.md, devlog.md (odczyt)", () => {
+  const e = entry({ id: "p", folder: "Projects/p/" });
+  const STATE =
+    "---\nbranch: main\nenv: local\nblocker: X\nnext_step: Y\nlinks:\n  - https://a\nmilestone: M\n---\n\nnotatka\n";
+
+  it("type z index.md", () => {
+    vault.write("Projects/p/index.md", "---\ntype: wlasny\n---\n\ntreść\n");
+    expect(readProjectIndex(e).type).toBe("wlasny");
+  });
+
+  it("nieznany type jest pomijany", () => {
+    vault.write("Projects/p/index.md", "---\ntype: coś\n---\n\ntreść\n");
+    expect(readProjectIndex(e).type).toBeUndefined();
+  });
+
+  it("brak state.md", () => {
+    expect(readProjectState(e)).toEqual({ state: null, version: null });
+  });
+
+  it("state.md z frontmatterem i wersją", () => {
+    vault.write("Projects/p/state.md", STATE);
+    const { state, version } = readProjectState(e);
+    expect(state?.branch).toBe("main");
+    expect(state?.links).toEqual(["https://a"]);
+    expect(version?.size).toBeGreaterThan(0);
+    expect(version?.hash).toHaveLength(64);
+  });
+
+  it("zepsuty state.md rzuca błąd z nazwą pliku", () => {
+    vault.write("Projects/p/state.md", "---\nbranch: [\n---\n");
+    expect(() => readProjectState(e)).toThrow(/Projects\/p\/state\.md: zepsuty frontmatter/);
+  });
+
+  it("brak devlog.md", () => {
+    expect(readDevlog(e)).toEqual([]);
+  });
+
+  it("devlog.md z dwoma wpisami w kolejności pliku", () => {
+    vault.write(
+      "Projects/p/devlog.md",
+      "# Devlog\n\n## 2026-11-13 — B\n\nb\n\n## 2026-11-12 — A\n\na\n"
+    );
+    expect(readDevlog(e).map((x) => x.title)).toEqual(["B", "A"]);
+  });
+
+  it("folder: Work/x/ przy odczycie state.md i devlog.md", () => {
+    const work = entry({ id: "w", folder: "Work/x/" });
+    expect(() => readProjectState(work)).toThrow(WorkAreaBlockedError);
+    expect(() => readDevlog(work)).toThrow(WorkAreaBlockedError);
   });
 });

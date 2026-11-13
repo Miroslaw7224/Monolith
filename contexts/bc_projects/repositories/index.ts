@@ -1,13 +1,18 @@
 import YAML from "yaml";
-import type {
-  BugEntry,
-  ChecklistSection,
-  ProjectIndex,
-  RegistryEntry,
+import {
+  PROJECT_TYPES,
+  type BugEntry,
+  type ChecklistSection,
+  type DevlogEntry,
+  type ProjectIndex,
+  type ProjectState,
+  type ProjectType,
+  type RegistryEntry,
+  type VersionToken,
 } from "@/contexts/bc_projects/models";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
 import { readVaultFile } from "@/lib/nexus/vault-fs";
-import { parseBugs, parseChecklist, parseSections } from "./markdown";
+import { parseBugs, parseChecklist, parseDevlog, parseSections, parseState } from "./markdown";
 
 const REGISTRY = "Projects/_registry.yaml";
 const MISSING_PROJECTS_LIST = "Projects/_registry.yaml: brak listy 'projects'";
@@ -117,6 +122,8 @@ export function readProjectIndex(entry: RegistryEntry): ProjectIndex {
   if (lastWorked) index.lastWorked = lastWorked;
   const stateConfidence = text(meta.state_confidence);
   if (stateConfidence) index.stateConfidence = stateConfidence;
+  const type = text(meta.type);
+  if ((PROJECT_TYPES as readonly string[]).includes(type)) index.type = type as ProjectType;
 
   return index;
 }
@@ -139,4 +146,19 @@ export function readProjectContent(entry: RegistryEntry): {
   const bugs = bugsFile === null ? [] : parseBugs(bugsFile.text);
 
   return { tasks, bugs };
+}
+
+export function readProjectState(entry: RegistryEntry): {
+  state: ProjectState | null;
+  version: VersionToken | null;
+} {
+  const rel = projectPath(entry.folder, "state.md");
+  const file = readVaultFile(rel);
+  if (file === null) return { state: null, version: null };
+  return { state: parseState(file.text, rel), version: file.version };
+}
+
+export function readDevlog(entry: RegistryEntry): DevlogEntry[] {
+  const file = readVaultFile(projectPath(entry.folder, "devlog.md"));
+  return file === null ? [] : parseDevlog(file.text);
 }
