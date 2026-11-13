@@ -2,8 +2,8 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
-import { CalendarView } from "@/src/components/CalendarView";
-import { MONTH_NAMES } from "@/src/components/calendar/calendarUtils";
+import { CalendarView } from "@/src/features/calendar/CalendarView";
+import { MONTH_NAMES } from "@/src/features/calendar/calendarUtils";
 
 const apiFetch = vi.fn();
 

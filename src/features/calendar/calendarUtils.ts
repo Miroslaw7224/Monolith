@@ -1,6 +1,6 @@
-import type { CalendarEvent } from "@/types/records";
+import type { CalendarEventDto } from "@/contexts/bc_calendar/schemas";
 
-export type { CalendarEvent };
+export type CalendarEvent = CalendarEventDto;
 
 /** Row in the day grid (one event may produce several segments across midnights). */
 export interface CalendarEventSegment {

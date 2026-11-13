@@ -4,7 +4,7 @@ import { vi, beforeEach, test, expect } from "vitest";
 import HomeView from "@/src/features/home/HomeView";
 import { translations } from "@/src/translations";
 
-vi.mock("@/src/components/ActivityLog", () => ({
+vi.mock("@/src/components/sessions/ActivityLog", () => ({
   ActivityLog: () => <div data-testid="activity-log" />,
 }));
 vi.mock("@/src/components/layout/AppSidebar", () => ({

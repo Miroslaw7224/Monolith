@@ -15,7 +15,8 @@ const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
 const FILE_REPOS = [
   "lib/nexus/markdown-dir.ts",
   "contexts/bc_tasks/repositories/tasks.ts",
-  ...["calendarEvents", "mindMaps", "board"].map((name) => `lib/nexus/repos/${name}.ts`),
+  "contexts/bc_calendar/repositories/index.ts",
+  ...["mindMaps", "board"].map((name) => `lib/nexus/repos/${name}.ts`),
 ];
 const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
 
@@ -70,7 +71,6 @@ describe("0c-2 / 0c-3 static guards", () => {
       [
         STORE,
         "lib/nexus/repos/board.ts",
-        "lib/nexus/repos/calendarEvents.ts",
         "lib/nexus/markdown-dir.ts",
         "lib/nexus/repos/mindMaps.ts",
       ].sort()
@@ -84,7 +84,7 @@ describe("0c-2 / 0c-3 static guards", () => {
   it("the barrel points every collection at lib/nexus/repos", () => {
     const barrel = read("lib/firestore-db.ts");
     expect(barrel).not.toMatch(/lib\/firestore\//);
-    for (const name of ["resources", "calendarEvents", "notes", "documents", "mindMaps", "board"]) {
+    for (const name of ["resources", "notes", "documents", "mindMaps", "board"]) {
       expect(barrel).toContain(`@/lib/nexus/repos/${name}`);
     }
   });

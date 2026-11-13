@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, ChevronLeft, ChevronRight, Trash2, Play, Square } from "lucide-react";
 import { CalendarEventForm, type CalendarEventFormData } from "./CalendarEventForm";
-import { StartSessionModal } from "./StartSessionModal";
+import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
 import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
-import {
-  type CalendarEvent,
-  MONTH_NAMES,
-  DAY_NAMES,
-  expandEventToSegments,
-} from "./calendar/calendarUtils";
-import { CalendarDayColumn } from "./calendar/CalendarDayColumn";
-import { useCalendarData } from "./calendar/useCalendarData";
+import { type CalendarEvent, MONTH_NAMES, DAY_NAMES, expandEventToSegments } from "./calendarUtils";
+import { CalendarDayColumn } from "./CalendarDayColumn";
+import { useCalendarData } from "./useCalendarData";
 import type { UserTag } from "@/src/features/tags/TagsSection";
-import type { ActiveSession } from "@/src/lib/activeSession";
+import type { ActiveSession } from "@/src/components/sessions/activeSession";
 
-export type { CalendarEvent } from "./calendar/calendarUtils";
+export type { CalendarEvent } from "./calendarUtils";
 
 const HOURS = 24;
 
