@@ -474,3 +474,11 @@ git commit -m "docs: stan po migracji kontekstów w ADR-021, CLAUDE.md, README i
 - [ ] **Step 4: Push i PR** (`gh pr create`, base `main`, opis z listą commitów i adnotacją „zero zmian w kodzie produkcyjnym”; do przeglądu przez użytkownika: diff `CLAUDE.md`).
 
 - [ ] **Step 5: Po mergu** w `../NEXUS/Vault/Projects/monolith/tasks.md`: odhaczyć „PR 9” (PR #34, 2026-11-13) i „PR 10” (PR #NN), dopisać wpisy w Backlogu; commit tylko `tasks.md` (niezacommitowany `index.md` w NEXUS nie jest mój). Następny krok w kolejce wyłącznie za zgodą użytkownika: decyzja o `looseObject` → `strict` albo plan 0e.
+
+---
+
+## Odchylenia przy wykonaniu
+
+- Task 1: `useTempVault` importowało 12 testów, nie 10: oprócz 10 w `tests/unit/contexts/**` także `tests/unit/lib/nexus/markdown-dir.test.ts` i `yaml-store.test.ts` (import `./repos/helpers`). Wszystkie przepięte na `../../helpers/tempVault`.
+- Task 3: w kodzie części C komentarz `/** … `contexts/_/repositories_` */` zamykał się przedwcześnie (`*/` w ścieżce). Zamieniony na komentarz `//`.
+- Task 4: w `STAN-W-KODZIE.md` poza zamianami ścieżek poprawiono dwa jawnie nieprawdziwe zdania (czat agenta w §8, „szkielet kart nie istnieje”).
