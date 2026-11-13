@@ -430,7 +430,7 @@ W `useProjects.test.tsx` dodaj `it("loadContextPack: pobiera paczkę wybranego p
 
 ### Task 11: Dokumentacja
 
-**Files:** Modify `CLAUDE.md`, `docs/adr/ADR-021*.md` , `docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md`
+**Files:** Modify `CLAUDE.md`, `docs/adr/021-struktura-kontekstow-wg-vaulta-nexus.md`, `docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md`
 
 - [ ] **Step 1:** `CLAUDE.md`, „Struktura kodu”: w linii „Infrastruktura wspólna” dopisz `lib/git/` (odczyt repozytoriów projektów: ścieżka z walidacją, whitelistowany git, `CLAUDE.md`; `fs` i `child_process` tylko tu, nie w `repositories`). Jedno zdanie, bez zmiany reszty.
 - [ ] **Step 2:** ADR-021: w opisie infrastruktury wspólnej dopisz `lib/git/` tym samym zdaniem; test architektury bez zmian.
