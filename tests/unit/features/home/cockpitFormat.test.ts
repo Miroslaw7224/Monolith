@@ -1,0 +1,138 @@
+import { describe, expect, it } from "vitest";
+import {
+  briefLines,
+  upcomingWindows,
+  windowsLabel,
+  commitsLabel,
+  anchorLabel,
+  formatLongDate,
+  hhmm,
+  meetingsLabel,
+  projectsLabel,
+  minutesUntil,
+  relativeDays,
+  weekNumber,
+} from "@/src/features/home/cockpitFormat";
+
+describe("hhmm", () => {
+  it("formatuje minuty od północy", () => {
+    expect(hhmm(590)).toBe("09:50");
+    expect(hhmm(0)).toBe("00:00");
+    expect(hhmm(1439)).toBe("23:59");
+  });
+});
+
+describe("weekNumber (ISO 8601)", () => {
+  it("liczy tydzień roku", () => {
+    expect(weekNumber(new Date(2026, 10, 11))).toBe(46);
+    expect(weekNumber(new Date(2026, 0, 1))).toBe(1);
+    expect(weekNumber(new Date(2021, 0, 3))).toBe(53);
+  });
+});
+
+describe("minutesUntil", () => {
+  it("różnica do startu, ujemna gdy minęło", () => {
+    expect(minutesUntil(588, 630)).toBe(42);
+    expect(minutesUntil(700, 630)).toBe(-70);
+  });
+});
+
+describe("relativeDays", () => {
+  const today = new Date(2026, 10, 11);
+  it("dziś / wczoraj / N dni temu", () => {
+    expect(relativeDays("2026-11-11", today)).toBe("dziś");
+    expect(relativeDays("2026-11-10", today)).toBe("wczoraj");
+    expect(relativeDays("2026-11-05", today)).toBe("6 dni temu");
+    expect(relativeDays("2026-11-10T21:40", today)).toBe("wczoraj");
+  });
+  it("brak lub błędna data → null", () => {
+    expect(relativeDays(null, today)).toBeNull();
+    expect(relativeDays("jutro", today)).toBeNull();
+  });
+  it("data z przyszłości → dziś (nie ujemne dni)", () => {
+    expect(relativeDays("2026-11-20", today)).toBe("dziś");
+  });
+});
+
+describe("formatLongDate", () => {
+  it("dzień tygodnia z wielkiej litery, dzień i miesiąc", () => {
+    expect(formatLongDate(new Date(2026, 10, 11))).toBe("Środa, 11 listopada");
+    expect(formatLongDate(new Date(2026, 10, 13))).toBe("Piątek, 13 listopada");
+  });
+});
+
+describe("meetingsLabel", () => {
+  it("odmienia liczbę spotkań", () => {
+    expect(meetingsLabel(0)).toBe("brak spotkań dziś");
+    expect(meetingsLabel(1)).toBe("1 spotkanie dziś");
+    expect(meetingsLabel(3)).toBe("3 spotkania dziś");
+    expect(meetingsLabel(5)).toBe("5 spotkań dziś");
+    expect(meetingsLabel(12)).toBe("12 spotkań dziś");
+    expect(meetingsLabel(22)).toBe("22 spotkania dziś");
+  });
+});
+
+describe("projectsLabel", () => {
+  it("odmienia liczbę projektów z commitami", () => {
+    expect(projectsLabel(0)).toBe("jeszcze bez commitów");
+    expect(projectsLabel(1)).toBe("1 projekt");
+    expect(projectsLabel(2)).toBe("2 projekty");
+    expect(projectsLabel(5)).toBe("5 projektów");
+    expect(projectsLabel(12)).toBe("12 projektów");
+    expect(projectsLabel(22)).toBe("22 projekty");
+  });
+});
+
+describe("anchorLabel", () => {
+  const today = new Date(2026, 10, 13);
+  it("wczoraj, sprzed N dni, dziś i błędna data", () => {
+    expect(anchorLabel("2026-11-12", today)).toBe("Zaczep z wczoraj");
+    expect(anchorLabel("2026-11-10", today)).toBe("Zaczep sprzed 3 dni");
+    expect(anchorLabel("2026-11-13", today)).toBe("Zaczep");
+    expect(anchorLabel("jutro", today)).toBe("Zaczep");
+  });
+});
+
+describe("commitsLabel", () => {
+  it("odmienia liczbę commitów", () => {
+    expect(commitsLabel(0)).toBe("0 commitów");
+    expect(commitsLabel(1)).toBe("1 commit");
+    expect(commitsLabel(2)).toBe("2 commity");
+    expect(commitsLabel(5)).toBe("5 commitów");
+    expect(commitsLabel(12)).toBe("12 commitów");
+    expect(commitsLabel(22)).toBe("22 commity");
+  });
+});
+
+describe("windowsLabel / upcomingWindows", () => {
+  it("odmienia okna Deep Work", () => {
+    expect(windowsLabel(0)).toBe("");
+    expect(windowsLabel(1)).toBe("1 okno Deep Work");
+    expect(windowsLabel(2)).toBe("2 okna Deep Work");
+    expect(windowsLabel(5)).toBe("5 okien Deep Work");
+  });
+
+  it("odrzuca okna, które już się skończyły", () => {
+    const w = (s: number, e: number) => ({
+      startMinutes: s,
+      endMinutes: e,
+      energy: "deep" as const,
+      title: "x",
+      projectName: null,
+    });
+    expect(
+      upcomingWindows([w(480, 570), w(570, 600), w(600, 700)], 600).map((x) => x.startMinutes)
+    ).toEqual([600]);
+  });
+});
+
+describe("briefLines", () => {
+  it("dzieli na punkty, zdejmuje znaczniki listy i puste linie", () => {
+    expect(briefLines("- A\n\n* B\n • C\n  D  ")).toEqual(["A", "B", "C", "D"]);
+  });
+  it("null i pusty tekst dają pustą listę; myślnik w środku zostaje", () => {
+    expect(briefLines(null)).toEqual([]);
+    expect(briefLines("  \n ")).toEqual([]);
+    expect(briefLines("GP-002 - README")).toEqual(["GP-002 - README"]);
+  });
+});

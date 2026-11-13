@@ -8,6 +8,10 @@ export type CalendarEvent = {
   tags: string[];
   color: string;
   type: "work" | "meeting";
+  /** Adres spotkania online (http/https); brak pola = brak linku. */
+  link?: string;
+  /** Notatka przed spotkaniem (wiele linii; każda linia = punkt); brak pola = brak briefu. */
+  brief?: string;
   created_at?: string;
 };
 

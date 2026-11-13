@@ -19,18 +19,21 @@ export function TileNode({ id, data, selected }: NodeProps<TileFlowNode>) {
         onResizeEnd={(_event, params) => data.onResizeEnd?.(params)}
       />
       <Handle type="target" position={Position.Left} />
-      <div className="h-full w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-sm font-semibold text-[var(--text)]">
-        {data.tile.title}
-        {selected ? (
-          <button
-            type="button"
-            aria-label="delete-tile"
-            className="ml-2"
-            onClick={() => data.onDelete(id)}
-          >
-            ×
-          </button>
-        ) : null}
+      <div className={`plo-tile ${selected ? "plo-tile--selected" : ""}`}>
+        <div className="plo-tile__head">
+          <span className="plo-tile__title">{data.tile.title}</span>
+          {selected ? (
+            <button
+              type="button"
+              aria-label="delete-tile"
+              className="plo-node-del"
+              onClick={() => data.onDelete(id)}
+            >
+              ×
+            </button>
+          ) : null}
+        </div>
+        {data.tile.note ? <p className="plo-tile__note">{data.tile.note}</p> : null}
       </div>
       <Handle type="source" position={Position.Right} />
     </>

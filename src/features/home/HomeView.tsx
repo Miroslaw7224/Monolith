@@ -1,61 +1,52 @@
 // src/features/home/HomeView.tsx
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
-import type { translations } from "@/src/translations";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import "./home.css";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
-import { ActivityLog } from "@/src/components/sessions/ActivityLog";
-import type { UserTag } from "@/src/features/tags/TagsSection";
-import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
-import {
-  getActiveSession,
-  setActiveSession,
-  clearActiveSession,
-  type ActiveSession,
-} from "@/src/components/sessions/activeSession";
-import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
-import { AppHeader } from "@/src/components/layout/AppHeader";
-import {
-  PlanowanieSidebarContent,
-  type PlanningTab,
-} from "@/src/features/planowanie/PlanowanieSidebarContent";
+import { CloseDayDialog } from "./CloseDayDialog";
+import { ClosingAnchor } from "./ClosingAnchor";
 import { CockpitSections } from "./CockpitSections";
 import { PinPicker } from "./PinPicker";
-
-type T = (typeof translations)["en"];
+import { StatusBar } from "./StatusBar";
+import {
+  formatLongDate,
+  hhmm,
+  localDay,
+  meetingsLabel,
+  upcomingWindows,
+  weekNumber,
+  windowsLabel,
+} from "./cockpitFormat";
 
 interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "en" | "pl";
-  t: T;
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-  appMode: "home" | "planowanie";
-  setAppMode: (mode: "home" | "planowanie") => void;
-  planningTab: PlanningTab;
-  setPlanningTab: (tab: PlanningTab) => void;
-  setLang: (lang: "en" | "pl") => void;
+  /** „Wejdź” na karcie tematu: otwiera kartę Projekty z wybranym projektem. */
+  onOpenProject?: (id: string) => void;
+  /** „Otwórz w Zadaniach” z podglądu zadania ogólnego. */
+  onOpenTasks?: () => void;
+  /** Alt+I: ustaw fokus w polu szybkiego zapisu inboxu; `onInboxFocused` kasuje żądanie. */
+  focusInbox?: boolean;
+  onInboxFocused?: () => void;
 }
 
 export default function HomeView({
   apiFetch,
-  lang,
-  t,
-  isSidebarOpen,
-  setIsSidebarOpen,
-  appMode,
-  setAppMode,
-  planningTab,
-  setPlanningTab,
-  setLang,
+  onOpenProject,
+  onOpenTasks,
+  focusInbox,
+  onInboxFocused,
 }: HomeViewProps) {
   const [cockpit, setCockpit] = useState<CockpitDto | null>(null);
   const [cockpitError, setCockpitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [userTags, setUserTags] = useState<UserTag[]>([]);
-  const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
-  const [sessionModalOpen, setSessionModalOpen] = useState(false);
-  const [sessionEndError, setSessionEndError] = useState<string | null>(null);
+  const [closeOpen, setCloseOpen] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadCockpit = useCallback(async () => {
     setLoading(true);
@@ -75,201 +66,118 @@ export default function HomeView({
     void loadCockpit();
   }, [loadCockpit]);
 
+  // Przejście przez północ przy otwartej karcie: dane Kokpitu są z wczoraj, więc wczytujemy je od nowa.
+  const today = localDay(now);
+  const lastDay = useRef(today);
   useEffect(() => {
-    apiFetch("/api/tags")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setUserTags(Array.isArray(data) ? data : []))
-      .catch(() => setUserTags([]));
-  }, [apiFetch]);
+    if (lastDay.current === today) return;
+    lastDay.current = today;
+    void loadCockpit();
+  }, [today, loadCockpit]);
 
-  useEffect(() => {
-    setActiveSessionState(getActiveSession());
-  }, []);
-
-  const handleStartSession = useCallback(
-    (payload: { title: string; tags: string[]; color: string }) => {
-      const session: ActiveSession = {
-        title: payload.title,
-        startedAt: new Date().toISOString(),
-        tags: payload.tags,
-        color: payload.color,
-      };
-      setActiveSessionState(session);
-      setActiveSession(session);
-    },
-    []
-  );
-
-  const handleEndSession = useCallback(async () => {
-    if (!activeSession) return;
-    setSessionEndError(null);
-    const started = new Date(activeSession.startedAt);
-    const now = Date.now();
-    const dateStr = `${started.getFullYear()}-${String(started.getMonth() + 1).padStart(2, "0")}-${String(started.getDate()).padStart(2, "0")}`;
-    const startMinutes = Math.floor((started.getHours() * 60 + started.getMinutes()) / 15) * 15;
-    const durationMinutes = Math.ceil((now - started.getTime()) / (15 * 60 * 1000)) * 15;
-    try {
-      const res = await apiFetch("/api/calendar/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: dateStr,
-          start_minutes: startMinutes,
-          duration_minutes: Math.max(15, durationMinutes),
-          title: activeSession.title,
-          tags: activeSession.tags,
-          color: activeSession.color,
-        }),
-      });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error((errBody as { error?: string }).error ?? `HTTP ${res.status}`);
-      }
-      setActiveSessionState(null);
-      clearActiveSession();
-    } catch (err) {
-      setSessionEndError(err instanceof Error ? err.message : "Failed to save");
-    }
-  }, [activeSession, apiFetch]);
-
-  const goToTab = (tab: PlanningTab) => {
-    setPlanningTab(tab);
-    setAppMode("planowanie");
-  };
-
-  const greeting = t.homeGreeting;
-  const dateStr = new Date().toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-
-  const sidebarT: AppSidebarTranslations = {
-    title: t.title,
-    subtitle: t.subtitle,
-  };
+  const meetings = cockpit?.events.filter((e) => e.type === "meeting").length ?? null;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const deepWindows = cockpit
+    ? upcomingWindows(cockpit.windows, nowMinutes).filter((w) => w.energy === "deep").length
+    : 0;
 
   return (
-    <>
-      <AppSidebar isSidebarOpen={isSidebarOpen} lang={lang} setLang={setLang} t={sidebarT}>
-        <PlanowanieSidebarContent
-          planningTab={planningTab}
-          setPlanningTab={setPlanningTab}
-          activeMode={appMode}
-          onGoHome={() => setAppMode("home")}
-          onSelectTab={goToTab}
-          modePlanowanie={t.modePlanowanie}
-          tabHome={t.tabHome}
-          tabCalendar={t.tabCalendar}
-          tabActivity={t.tabActivity}
-          tabTasks={t.tabTasks}
-          tabTags={t.tabTags}
-          tabNotes={t.notesTab}
-          tabResources={(t.tabResources as string) ?? "Zasoby"}
-          tabMindMaps={(t.tabMindMaps as string) ?? "Mapy myśli"}
-          tabBoard={(t.tabBoard as string) ?? "Tablica"}
-        />
-      </AppSidebar>
-
-      <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
-        <AppHeader
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-          t={{
-            brainActive: t.brainActive,
-            searchPlaceholder: t.searchPlaceholder,
-            feedback: t.feedback,
-          }}
-        />
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[var(--bg)]">
+    <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
+      <div className="kok flex-1 min-h-0 overflow-y-auto" data-card="kokpit">
+        {cockpit?.closing.anchor ? (
+          <ClosingAnchor
+            anchor={cockpit.closing.anchor}
+            today={now}
+            onOpenProject={(id) => onOpenProject?.(id)}
+          />
+        ) : null}
+        <header className="kok-head">
           <div>
-            <h2 className="text-xl font-bold text-[var(--text)]">{greeting} 👋</h2>
-            <p className="text-sm text-[var(--text2)] mt-1">{dateStr}</p>
+            <p className="kok-eyebrow">Alt+1 · Kokpit</p>
+            <h1 className="kok-title">{formatLongDate(now)}</h1>
+            {meetings !== null ? (
+              <p className="kok-sub">
+                {[meetingsLabel(meetings), windowsLabel(deepWindows)].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
           </div>
-
-          {loading && cockpit === null ? (
-            <p className="text-sm text-[var(--text3)]">…</p>
-          ) : cockpitError !== null ? (
-            <p className="text-sm text-red-500">Nie udało się wczytać Kokpitu ({cockpitError})</p>
-          ) : cockpit !== null ? (
-            <CockpitSections data={cockpit} onChangeActive={() => setPickerOpen(true)} />
-          ) : null}
-
-          {pickerOpen && (
-            <PinPicker
-              apiFetch={apiFetch}
-              currentIds={cockpit?.topics.map((topic) => topic.id) ?? []}
-              onCancel={() => setPickerOpen(false)}
-              onSaved={() => {
-                setPickerOpen(false);
-                void loadCockpit();
-              }}
-            />
-          )}
-
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--text2)] mb-3">
-              {t.homeQuickActions}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: t.homeAddNote, action: () => goToTab("notes") },
-                { label: t.homeAddTask, action: () => goToTab("tasks") },
-                { label: t.tabMindMaps, action: () => goToTab("mindmaps") },
-                { label: t.tabResources, action: () => goToTab("resources") },
-              ].map(({ label, action }) => (
-                <button
-                  key={label}
-                  onClick={action}
-                  className="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text2)] hover:bg-[var(--bg2)] transition-colors"
-                >
-                  {label}
-                </button>
-              ))}
+          <div className="kok-head__right">
+            <div className="kok-clock" aria-label="Aktualna godzina">
+              {hhmm(now.getHours() * 60 + now.getMinutes())}
+              <small>tydz. {weekNumber(now)}</small>
             </div>
+            {cockpit ? (
+              <button
+                type="button"
+                className="kok-btn kok-btn--primary"
+                onClick={() => setCloseOpen(true)}
+              >
+                {cockpit.closing.today ? "Dzień zamknięty · zmień" : "Zamknij dzień"}
+              </button>
+            ) : null}
           </div>
+        </header>
 
-          <div>
-            <ActivityLog
+        {loading && cockpit === null ? (
+          <p className="kok-state">…</p>
+        ) : cockpit === null ? (
+          <p className="kok-state kok-state--error">
+            Nie udało się wczytać Kokpitu ({cockpitError ?? "brak danych"})
+          </p>
+        ) : (
+          <>
+            {cockpitError !== null ? (
+              <p className="kok-state kok-state--error" role="alert">
+                Nie udało się odświeżyć Kokpitu ({cockpitError}); widać ostatnie wczytane dane
+              </p>
+            ) : null}
+            <CockpitSections
+              data={cockpit}
+              now={now}
               apiFetch={apiFetch}
-              lang={lang}
-              t={t as Record<string, string | string[]>}
-              userTags={userTags}
-              activeSession={activeSession}
-              onStartSession={() => setSessionModalOpen(true)}
-              onEndSession={handleEndSession}
+              onChangeActive={() => setPickerOpen(true)}
+              onOpenProject={(id) => onOpenProject?.(id)}
+              onInboxChanged={() => void loadCockpit()}
+              onQueueChanged={() => void loadCockpit()}
+              onOpenTasks={() => onOpenTasks?.()}
+              focusInbox={focusInbox}
+              onInboxFocused={onInboxFocused}
             />
-          </div>
+          </>
+        )}
 
-          {sessionEndError && <p className="text-sm text-red-500">{sessionEndError}</p>}
+        {closeOpen && cockpit ? (
+          <CloseDayDialog
+            apiFetch={apiFetch}
+            initialText={cockpit.closing.today?.text ?? ""}
+            initialProjectId={cockpit.closing.today?.projectId ?? null}
+            commitsToday={cockpit.git?.commitsToday ?? null}
+            onCancel={() => setCloseOpen(false)}
+            onSaved={() => {
+              setCloseOpen(false);
+              void loadCockpit();
+            }}
+          />
+        ) : null}
 
-          {sessionModalOpen && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-[var(--bg2)] rounded-2xl p-6 w-full max-w-md shadow-2xl">
-                <h3 className="text-base font-bold text-[var(--text)] mb-4">
-                  {lang === "pl" ? "Rozpocznij sesję pracy" : "Start work session"}
-                </h3>
-                <StartSessionModal
-                  existingTags={userTags.map((u) => u.tag)}
-                  tagTitles={Object.fromEntries(userTags.map((u) => [u.tag, u.title ?? u.tag]))}
-                  tagColors={Object.fromEntries(userTags.map((u) => [u.tag, u.color]))}
-                  onSubmit={(payload) => {
-                    handleStartSession(payload);
-                    setSessionModalOpen(false);
-                  }}
-                  onCancel={() => setSessionModalOpen(false)}
-                  submitLabel={lang === "pl" ? "Rozpocznij" : "Start"}
-                  cancelLabel={lang === "pl" ? "Anuluj" : "Cancel"}
-                  titleLabel={lang === "pl" ? "Tytuł" : "Title"}
-                  tagsLabel={lang === "pl" ? "Tagi" : "Tags"}
-                  tagPlaceholder={lang === "pl" ? "Dodaj tag..." : "Add tag..."}
-                  suggestionsLabel={lang === "pl" ? "Ostatnie tagi" : "Recent tags"}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
-    </>
+        {pickerOpen && (
+          <PinPicker
+            apiFetch={apiFetch}
+            currentIds={cockpit?.pinnedIds ?? []}
+            onCancel={() => setPickerOpen(false)}
+            onSaved={() => {
+              setPickerOpen(false);
+              void loadCockpit();
+            }}
+          />
+        )}
+      </div>
+      <StatusBar
+        projectId={cockpit?.topics[0]?.id ?? null}
+        branch={cockpit?.git?.branch ?? null}
+        warningsCount={cockpit?.warnings.length ?? 0}
+        now={now}
+      />
+    </main>
   );
 }

@@ -4,31 +4,37 @@ Przegląd gałęzi `main` (app/, src/, lib/, types/) oraz gałęzi `feat/tablica
 Źródło: agy (karty 1–4), cursor (karty 5–8), wyrywkowa weryfikacja Claude.
 Legenda: **JEST** · **CZĘŚCIOWO** (co brakuje) · **BRAK**.
 
+**Wygląd (2026-11-13):** karty Kokpit, Kalendarz, Zadania, Projekty, Notatki, Płótno i Arsenał mają wygląd z makiet
+(osobny plik CSS z motywem `[data-card]`: `home.css`, `calendar.css`, `tasks.css`, `projects.css`, `notes.css`,
+`board.css`, `resources.css`). Odmalowany jest tylko **wygląd istniejących funkcji**: statusy funkcji w tabelach
+poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu `09-kodeks.html` jest pełna, kod: część B specu Kodeksu).
+
 ## 1. Kokpit (`src/features/home/HomeView.tsx`)
 
-| Funkcja                         | Stan          | Gdzie / uwagi                                                                                          |
-| ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------ |
-| Kafle z liczbami dnia           | CZĘŚCIOWO     | HomeView.tsx (zadania dziś, nadchodzące); brak inbox, aktywnych tematów, commitów                      |
-| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx (zadania z terminem dziś); brak energii Deep/Quick i projektów                            |
-| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx (lista 48 h); brak osi czasu, linku do spotkania                                          |
-| Sesja pracy                     | CZĘŚCIOWO     | src/components/sessions/activeSession.ts (timer); to nie Save State                                    |
-| Punkty skupienia z Save State   | BRAK          |                                                                                                        |
-| Brief i action items            | BRAK          |                                                                                                        |
-| Szybki inbox                    | BRAK          |                                                                                                        |
-| Rytuał zamknięcia dnia / zaczep | BRAK          |                                                                                                        |
-| Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                 |
-| Ctrl+K i Alt+1…9                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka) |
+| Funkcja                           | Stan          | Gdzie / uwagi                                                                                                                             |
+| --------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Kafle z liczbami dnia             | CZĘŚCIOWO     | CockpitSections.tsx (następne spotkanie, kolejka, aktywne tematy, commity dziś z git (K7), inbox (K3), deep/quick w kafelku kolejki (K2)) |
+| Kolejka zadań na dziś             | CZĘŚCIOWO     | HomeView.tsx (zadania z terminem dziś); brak energii Deep/Quick i projektów                                                               |
+| Spotkania dnia                    | CZĘŚCIOWO     | HomeView.tsx (lista 48 h); brak osi czasu, linku do spotkania                                                                             |
+| Sesja pracy                       | CZĘŚCIOWO     | src/components/sessions/activeSession.ts (timer); to nie Save State                                                                       |
+| Punkty skupienia z Save State     | JEST          | CockpitSections.tsx (K1, 2026-11-13): następny krok, branch, bloker, ostatnio + pewność, Kopiuj kontekst, Wejdź                           |
+| Brief i action items              | BRAK          |                                                                                                                                           |
+| Szybki inbox                      | JEST          | bc_inbox, InboxPanel.tsx, Inbox/inbox.md, Alt+I (K3, 2026-11-13)                                                                          |
+| Historia commitów (dzień po dniu) | JEST          | CommitHistory.tsx, GET /api/cockpit/commits (K8, 2026-11-13)                                                                              |
+| Rytuał zamknięcia dnia / zaczep   | JEST          | ClosingAnchor.tsx, CloseDayDialog.tsx, Cockpit/closing.yaml (K6, 2026-11-13)                                                              |
+| Przełącznik praca / życie         | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                                                    |
+| Ctrl+K i Alt+1…9                  | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka)                                    |
 
 ## 2. Kalendarz (`src/features/calendar/CalendarView.tsx`)
 
-| Funkcja                            | Stan      | Gdzie / uwagi                                                 |
-| ---------------------------------- | --------- | ------------------------------------------------------------- |
-| Dodawanie wydarzenia               | JEST      | src/features/calendar/CalendarView.tsx, CalendarEventForm.tsx |
-| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx; jest tylko siatka 24 h jednego dnia         |
-| Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx; ogólne tagi i typ work/meeting              |
-| Planer slotów Deep Work            | BRAK      |                                                               |
-| Szczegóły z briefem i action items | BRAK      |                                                               |
-| Mini-kalendarz miesiąca            | BRAK      |                                                               |
+| Funkcja                            | Stan      | Gdzie / uwagi                                                          |
+| ---------------------------------- | --------- | ---------------------------------------------------------------------- |
+| Dodawanie wydarzenia               | JEST      | src/features/calendar/CalendarView.tsx, CalendarEventForm.tsx          |
+| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx; jest tylko siatka 24 h jednego dnia                  |
+| Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx; ogólne tagi i typ work/meeting                       |
+| Planer slotów Deep Work            | JEST      | planWindows (bc_cockpit/services), sloty na osi czasu (K5, 2026-11-13) |
+| Szczegóły z briefem i action items | BRAK      |                                                                        |
+| Mini-kalendarz miesiąca            | BRAK      |                                                                        |
 
 ## 3. Zadania (`src/features/tasks/TasksSection.tsx`)
 

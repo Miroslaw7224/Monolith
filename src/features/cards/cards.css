@@ -222,3 +222,90 @@
   font-size: 24px;
   font-weight: 700;
 }
+
+/* Podwidoki kart (zakładki) */
+.card-subtabs {
+  --c: var(--shell-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--shell-bg);
+  border-bottom: 1px solid var(--shell-line);
+}
+
+.card-subtabs[data-card="kokpit"] {
+  --c: var(--c-kokpit);
+}
+
+.card-subtabs[data-card="kalendarz"] {
+  --c: var(--c-kalendarz);
+}
+
+.card-subtabs[data-card="zadania"] {
+  --c: var(--c-zadania);
+}
+
+.card-subtabs[data-card="projekty"] {
+  --c: var(--c-projekty);
+}
+
+.card-subtabs[data-card="notatki"] {
+  --c: var(--c-notatki);
+}
+
+.card-subtabs[data-card="plotno"] {
+  --c: var(--c-plotno);
+}
+
+.card-subtabs[data-card="arsenal"] {
+  --c: var(--c-arsenal);
+}
+
+.card-subtabs[data-card="mapa"] {
+  --c: var(--c-mapa);
+}
+
+.card-subtabs[data-card="kodeks"] {
+  --c: var(--c-kodeks);
+}
+
+.card-subtabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--shell-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition:
+    background 0.15s var(--shell-ease),
+    color 0.15s var(--shell-ease),
+    border-color 0.15s var(--shell-ease);
+}
+
+.card-subtabs__tab:hover {
+  background: #18181d;
+  color: var(--shell-text);
+}
+
+.card-subtabs__tab:focus-visible {
+  outline: 2px solid var(--c, var(--shell-text));
+  outline-offset: 2px;
+}
+
+.card-subtabs__tab--active,
+.card-subtabs__tab[aria-selected="true"] {
+  color: var(--shell-text);
+  border-color: var(--c);
+  background: #18181d;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 30%, transparent);
+}

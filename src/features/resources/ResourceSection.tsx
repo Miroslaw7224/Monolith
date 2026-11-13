@@ -7,6 +7,7 @@ import { ResourceAddForm } from "./ResourceAddForm";
 import { ResourceFavoritesBar } from "./ResourceFavoritesBar";
 import { ResourceListItem } from "./ResourceListItem";
 import { ResourceEditModal } from "./ResourceEditModal";
+import "./resources.css";
 
 export type { NoteResource } from "./resourceTypes";
 
@@ -54,20 +55,35 @@ export function ResourceSection({ apiFetch, t }: ResourceSectionProps) {
   const favorites = resources.filter((r) => r.isFavorite === true);
 
   return (
-    <div style={{ display: "contents" }}>
-      <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-4">
-        <h2 className="text-lg font-bold">{labels.tabResources}</h2>
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={labels.resourceSearchPlaceholder}
-          className="flex-1 max-w-xs px-4 py-2 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none"
-          aria-label={labels.resourceSearchPlaceholder}
-        />
-      </div>
-      <div className="flex-1 overflow-auto p-6 flex gap-6 min-h-0">
-        <div className="flex-[1_1_0%] min-w-0 space-y-6 overflow-auto pr-2">
+    <div className="ars" data-card="arsenal">
+      <header className="ars-head">
+        <div>
+          <p className="ars-eyebrow">Alt+7 · Arsenał</p>
+          <h1 className="ars-title">{labels.tabResources}</h1>
+          <p className="ars-sub">
+            {resources.length} {resources.length === 1 ? "zasób" : "zasobów"} · baza linków i
+            dokumentacji
+          </p>
+        </div>
+        <div className="ars-head__actions">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={labels.resourceSearchPlaceholder}
+            className="input ars-search"
+            aria-label={labels.resourceSearchPlaceholder}
+          />
+        </div>
+      </header>
+
+      <div className="ars-layout">
+        <div className="ars-col-main">
+          <ResourceFavoritesBar
+            favorites={favorites}
+            sectionTitle={labels.resourceFavoritesSectionTitle}
+          />
+
           {!loading && resources.length > 0 && (
             <ResourceFilterSidebar
               allTags={allTags}
@@ -80,6 +96,38 @@ export function ResourceSection({ apiFetch, t }: ResourceSectionProps) {
               clearFiltersLabel={labels.resourceClearFilters}
             />
           )}
+
+          <div className="ars-res-section">
+            {loading ? (
+              <div className="ars-state ars-state--loading">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Loading...</span>
+              </div>
+            ) : resources.length === 0 ? (
+              <p className="ars-state">{labels.resourceNoResources}</p>
+            ) : filteredResources.length === 0 ? (
+              <p className="ars-state">{labels.resourceNoMatchingTags}</p>
+            ) : (
+              <ul className="ars-res-list">
+                {filteredResources.map((r) => (
+                  <ResourceListItem
+                    key={r.id}
+                    resource={r}
+                    titleUnavailableLabel={labels.resourceTitleUnavailable}
+                    resourceFavoriteLabel={labels.resourceFavorite}
+                    resourceEditLabel={labels.resourceEdit}
+                    onOpenEdit={openEditModal}
+                    onToggleFavorite={handleToggleFavorite}
+                    onCopy={handleCopy}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <aside className="ars-sidebar" aria-label="Dodawanie zasobów">
           <ResourceAddForm
             resourceDescriptionPlaceholder={labels.resourceDescriptionPlaceholder}
             resourceUrlPlaceholder={labels.resourceUrlPlaceholder}
@@ -108,48 +156,7 @@ export function ResourceSection({ apiFetch, t }: ResourceSectionProps) {
             blockFormatError={blockFormatError}
             copyMessage={copyMessage}
           />
-        </div>
-
-        <div
-          className={
-            !loading && resources.length > 0
-              ? "flex-[2_2_0%] min-w-0 space-y-3 overflow-auto"
-              : "flex-1 min-w-0 space-y-3 overflow-auto"
-          }
-        >
-          <ResourceFavoritesBar
-            favorites={favorites}
-            sectionTitle={labels.resourceFavoritesSectionTitle}
-          />
-          <div className="border-t border-[var(--border)] pt-4">
-            {loading ? (
-              <div className="flex items-center gap-2 text-[var(--text3)]">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Loading...</span>
-              </div>
-            ) : resources.length === 0 ? (
-              <p className="text-[var(--text3)] font-medium">{labels.resourceNoResources}</p>
-            ) : filteredResources.length === 0 ? (
-              <p className="text-[var(--text3)] font-medium">{labels.resourceNoMatchingTags}</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {filteredResources.map((r) => (
-                  <ResourceListItem
-                    key={r.id}
-                    resource={r}
-                    titleUnavailableLabel={labels.resourceTitleUnavailable}
-                    resourceFavoriteLabel={labels.resourceFavorite}
-                    resourceEditLabel={labels.resourceEdit}
-                    onOpenEdit={openEditModal}
-                    onToggleFavorite={handleToggleFavorite}
-                    onCopy={handleCopy}
-                    onDelete={handleDelete}
-                  />
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+        </aside>
       </div>
 
       <ResourceEditModal

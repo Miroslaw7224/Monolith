@@ -47,30 +47,40 @@ export function TileDialog({
       role="dialog"
       aria-modal="true"
       aria-label={titleLabel}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="plo-dialog-backdrop"
       onKeyDown={keepFocusInDialog}
     >
-      <div className="w-full max-w-md rounded-xl bg-[var(--surface)] p-4">
-        <label className="block text-sm text-[var(--text)]">
-          {titleLabel}
+      <div className="panel plo-dialog">
+        <div className="panel__head plo-panel__head">
+          <h2 className="panel__title plo-panel__title">
+            <b>{titleLabel}</b>
+          </h2>
+          <span className="chip chip--accent plo-chip">Kafelek</span>
+        </div>
+
+        <label className="plo-field">
+          <span className="plo-field__label">{titleLabel}</span>
           <input
             ref={titleInputRef}
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+            className="input plo-input"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
           />
         </label>
-        <label className="mt-3 block text-sm text-[var(--text)]">
-          {noteLabel}
+
+        <label className="plo-field">
+          <span className="plo-field__label">{noteLabel}</span>
           <textarea
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"
+            className="input plo-input plo-textarea"
             value={note}
             onChange={(event) => setNote(event.target.value)}
           />
         </label>
-        <div className="mt-4 flex justify-end">
+
+        <div className="plo-dialog__actions">
           <button
             type="button"
+            className="btn btn--primary plo-btn plo-btn--primary"
             onClick={() =>
               onSave({ title: title.trim().slice(0, 200), note: note.slice(0, 10000) })
             }

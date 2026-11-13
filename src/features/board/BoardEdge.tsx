@@ -31,7 +31,7 @@ export function BoardEdge({
   });
   return (
     <>
-      <BaseEdge id={id} path={path} />
+      <BaseEdge id={id} path={path} className={selected ? "plo-edge--selected" : undefined} />
       {selected ? (
         <EdgeLabelRenderer>
           <button
@@ -41,7 +41,7 @@ export function BoardEdge({
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: "all",
             }}
-            className="nodrag nopan"
+            className="nodrag nopan plo-edge-del"
             onClick={() => data?.onRemove(id)}
           >
             ×

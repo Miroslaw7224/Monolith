@@ -24,9 +24,12 @@ export function PinPicker({
   useEffect(() => {
     apiFetch("/api/projects")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((data: { projects?: ProjectOption[] }) =>
-        setProjects(Array.isArray(data.projects) ? data.projects : [])
-      )
+      .then((data: { projects?: ProjectOption[] }) => {
+        const list = Array.isArray(data.projects) ? data.projects : [];
+        setProjects(list);
+        // id spoza rejestru (projekt usunięty) odpada, żeby nie blokował limitu i nie wracał przy zapisie
+        setSelected((prev) => prev.filter((id) => list.some((p) => p.id === id)));
+      })
       .catch(() => setError("Nie udało się wczytać listy projektów"));
   }, [apiFetch]);
 
@@ -55,49 +58,44 @@ export function PinPicker({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div
-        role="dialog"
-        aria-label="Zmień aktywne tematy"
-        className="bg-[var(--bg2)] rounded-2xl p-6 w-full max-w-md shadow-2xl"
-      >
-        <h3 className="text-base font-bold text-[var(--text)] mb-1">Zmień aktywne tematy</h3>
-        <p className="text-xs text-[var(--text3)] mb-4">
-          Wybrano {selected.length} z {MAX_PINNED}
-        </p>
-        <ul className="space-y-2 max-h-72 overflow-y-auto">
+    <div className="kok-overlay">
+      <div role="dialog" aria-label="Zmień aktywne tematy" className="kok-modal">
+        <div className="kok-modal__head">
+          <h3 className="kok-modal__title">Zmień aktywne tematy</h3>
+          <p className="kok-modal__sub">
+            Wybrano {selected.length} z {MAX_PINNED}
+          </p>
+        </div>
+        <ul className="kok-modal__list">
           {projects.map((p) => {
             const checked = selected.includes(p.id);
             const locked = !checked && selected.length >= MAX_PINNED;
             return (
               <li key={p.id}>
-                <label className="flex items-center gap-2 text-sm text-[var(--text)]">
+                <label className="kok-modal__item">
                   <input
                     type="checkbox"
+                    className="kok-check"
                     checked={checked}
                     disabled={locked}
                     onChange={() => toggle(p.id)}
                   />
-                  {p.name}
+                  <span>{p.name}</span>
                 </label>
               </li>
             );
           })}
         </ul>
-        {error ? <p className="text-sm text-red-500 mt-3">{error}</p> : null}
-        <div className="flex justify-end gap-2 mt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-sm text-[var(--text2)]"
-          >
+        {error ? <p className="kok-state kok-state--error">{error}</p> : null}
+        <div className="kok-modal__actions">
+          <button type="button" onClick={onCancel} className="kok-btn kok-btn--ghost">
             Anuluj
           </button>
           <button
             type="button"
             onClick={save}
             disabled={saving}
-            className="px-4 py-2 text-sm font-semibold rounded-xl bg-[var(--accent)] text-white"
+            className="kok-btn kok-btn--primary"
           >
             Zapisz
           </button>

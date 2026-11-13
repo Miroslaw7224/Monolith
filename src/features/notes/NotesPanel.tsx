@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { markdownToHtml } from "@/lib/markdown/html-markdown";
 import { cn } from "@/src/lib/cn";
 import type { Note } from "./useNotesData";
+import "./notes.css";
 
 const NoteEditor = dynamic<
   ComponentProps<typeof import("@/src/components/note-editor/NoteEditor").NoteEditor>
@@ -44,143 +45,210 @@ export function NotesPanel({
   noteEdit,
   deleteNote,
 }: NotesPanelProps) {
+  const handleCreateNew = () => {
+    setSelectedNote({
+      id: "",
+      title: "",
+      content: "",
+      created_at: "",
+    });
+    setNoteEditMode(true);
+  };
+
+  const activeTitle = selectedNote ? selectedNote.title || "Untitled" : null;
+  const notesCountLabel = `${notes.length} ${notes.length === 1 ? "notatka" : "notatek"}`;
+  const subText = activeTitle
+    ? `${notesCountLabel} · aktywna: ${activeTitle}`
+    : `${notesCountLabel} w bazie`;
+
+  // Nowa (niezapisana) notatka zawsze pokazuje formularz, więc zakładka i chip mają to odzwierciedlać.
+  const editing = noteEditMode || (selectedNote !== null && selectedNote.id === "");
+
   return (
-    <div className="flex-1 flex overflow-hidden">
-      <div
-        data-testid="notes-sidebar-list"
-        className="w-64 border-r border-[var(--border)] bg-[var(--surface)] overflow-y-auto p-4 space-y-2"
-      >
-        <button
-          onClick={() => {
-            setSelectedNote({
-              id: "",
-              title: "",
-              content: "",
-              created_at: "",
-            });
-            setNoteEditMode(true);
-          }}
-          className="w-full flex items-center gap-2 p-3 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:scale-[1.02] transition-all mb-4"
-        >
-          <Plus className="w-4 h-4" />
-          {newNote}
-        </button>
-        {notes.map((note) => (
-          <button
-            key={note.id}
-            onClick={() => {
-              setSelectedNote(note);
-              setNoteEditMode(false);
-            }}
-            className={cn(
-              "w-full text-left p-3 rounded-xl transition-all border",
-              selectedNote?.id === note.id
-                ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                : "bg-[var(--surface)] text-[var(--text)] border-transparent hover:bg-[var(--bg3)]"
-            )}
-          >
-            <p className="text-sm font-bold truncate">{note.title || "Untitled"}</p>
-            <p
-              className={cn(
-                "text-[10px] uppercase font-bold",
-                selectedNote?.id === note.id ? "text-white/60" : "text-[var(--text3)]"
-              )}
-            >
-              {new Date(note.created_at).toLocaleDateString()}
-            </p>
+    <div className="not flex-1 min-w-0 flex flex-col overflow-auto" data-card="notatki">
+      <header className="view-head not-head">
+        <div>
+          <p className="view-head__eyebrow not-eyebrow">Alt+5 · Notatki</p>
+          <h1 className="view-head__title not-title">Baza wiedzy i notatki</h1>
+          <p className="view-head__sub not-sub">{subText}</p>
+        </div>
+        <div className="view-head__actions not-head__actions">
+          <button type="button" onClick={handleCreateNew} className="btn not-btn">
+            <Plus className="w-4 h-4" />
+            {newNote}
           </button>
-        ))}
-      </div>
-      <div className="flex-1 bg-[var(--surface)] p-8 overflow-y-auto min-w-0">
-        {selectedNote ? (
-          <div className="w-full max-w-full space-y-6">
-            {noteEditMode || selectedNote.id === "" ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <input
-                    type="text"
-                    value={selectedNote.title}
-                    onChange={(e) => setSelectedNote({ ...selectedNote, title: e.target.value })}
-                    placeholder={noteTitlePlaceholder}
-                    className="text-3xl font-bold border-none focus:ring-0 w-full p-0"
-                  />
-                  <div className="flex items-center gap-2">
-                    {selectedNote.id !== "" && (
-                      <>
-                        <button
-                          onClick={() => setNoteEditMode(false)}
-                          className="px-4 py-2 border border-[var(--border)] rounded-xl text-sm font-semibold text-[var(--text)] hover:bg-[var(--bg2)] transition-all"
-                        >
-                          {noteCancelEdit}
-                        </button>
-                        <button
-                          onClick={() => onDeleteNote(selectedNote.id)}
-                          className="p-2 hover:bg-red-50 text-red-400 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </>
-                    )}
+          {noteEditMode || (selectedNote && selectedNote.id === "") ? (
+            <>
+              {selectedNote && selectedNote.id !== "" && (
+                <button
+                  type="button"
+                  onClick={() => setNoteEditMode(false)}
+                  className="btn not-btn"
+                >
+                  {noteCancelEdit}
+                </button>
+              )}
+              {selectedNote && selectedNote.id !== "" && (
+                <button
+                  type="button"
+                  onClick={() => onDeleteNote(selectedNote.id)}
+                  className="btn not-btn not-btn--danger"
+                  title={deleteNote}
+                  aria-label={deleteNote}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onSaveNote}
+                className="btn btn--primary not-btn--primary"
+              >
+                {saveNote}
+              </button>
+            </>
+          ) : selectedNote ? (
+            <>
+              <button type="button" onClick={() => setNoteEditMode(true)} className="btn not-btn">
+                <Pencil className="w-4 h-4" />
+                {noteEdit}
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteNote(selectedNote.id)}
+                className="btn not-btn not-btn--danger"
+                title={deleteNote}
+                aria-label={deleteNote}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          ) : null}
+        </div>
+      </header>
+
+      <div className="not-layout">
+        <aside className="not-sidebar" data-testid="notes-sidebar-list" aria-label="Lista notatek">
+          <div className="not-sidebar__head">
+            <h2 className="not-sidebar__title">
+              <b>Pliki</b> · Markdown
+            </h2>
+            <span className="chip not-chip">{notes.length}</span>
+          </div>
+
+          {notes.length === 0 ? (
+            <p className="not-state">Brak notatek</p>
+          ) : (
+            <ul className="not-files">
+              {notes.map((note) => {
+                const isActive = selectedNote?.id === note.id;
+                return (
+                  <li key={note.id}>
                     <button
-                      onClick={onSaveNote}
-                      className="px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all"
+                      type="button"
+                      onClick={() => {
+                        setSelectedNote(note);
+                        setNoteEditMode(false);
+                      }}
+                      className={cn("not-file", isActive && "not-file--active")}
+                      aria-current={isActive ? "page" : undefined}
                     >
-                      {saveNote}
+                      <span className="not-file__name">{note.title || "Untitled"}</span>
+                      {note.created_at ? (
+                        <span className="not-file__meta">
+                          {new Date(note.created_at).toLocaleDateString()}
+                        </span>
+                      ) : null}
                     </button>
-                  </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </aside>
+
+        <main className="not-editor-col">
+          {selectedNote ? (
+            <div className="not-editor-wrap">
+              <div className="not-toolbar">
+                <div className="not-toolbar__path">
+                  <span>Notatki/</span>
+                  <b>{selectedNote.title || "Untitled"}</b>
                 </div>
-                <NoteEditor
-                  key={selectedNote.id || "new"}
-                  format="markdown"
-                  content={selectedNote.content}
-                  onContentChange={(markdown) =>
-                    setSelectedNote({ ...selectedNote, content: markdown })
-                  }
-                  placeholder={noteContentPlaceholder}
-                />
-              </>
-            ) : (
-              <>
-                <div className="flex items-center justify-between gap-4">
-                  <h1 className="text-3xl font-bold text-[var(--text)] flex-1 min-w-0">
-                    {selectedNote.title || noteTitlePlaceholder}
-                  </h1>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="not-toolbar__tools">
+                  <span className={cn("chip not-chip", editing ? "chip--warn" : "chip--ok")}>
+                    {editing ? "edycja" : "podgląd"}
+                  </span>
+                  <div className="tabs not-tabs" role="tablist">
                     <button
+                      type="button"
+                      className="tabs__btn not-tabs__btn"
+                      role="tab"
+                      aria-selected={!editing}
+                      onClick={() => setNoteEditMode(false)}
+                    >
+                      Podgląd
+                    </button>
+                    <button
+                      type="button"
+                      className="tabs__btn not-tabs__btn"
+                      role="tab"
+                      aria-selected={editing}
                       onClick={() => setNoteEditMode(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:scale-105 transition-all"
                     >
-                      <Pencil className="w-4 h-4" />
-                      {noteEdit}
-                    </button>
-                    <button
-                      onClick={() => onDeleteNote(selectedNote.id)}
-                      className="p-2 hover:bg-red-50 text-red-400 rounded-lg transition-colors"
-                      title={deleteNote}
-                    >
-                      <Trash2 className="w-5 h-5" />
+                      Edycja
                     </button>
                   </div>
                 </div>
-                <div
-                  className="prose prose-lg max-w-none min-h-[20vh] text-[var(--text)] leading-relaxed prose-p:my-2 prose-headings:font-bold prose-headings:text-[var(--text)]"
-                  dangerouslySetInnerHTML={{
-                    __html:
-                      markdownToHtml(selectedNote.content) ||
-                      '<p class="text-[var(--text3)]">' + noteContentPlaceholder + "</p>",
-                  }}
-                />
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 bg-[var(--bg3)] rounded-2xl flex items-center justify-center mb-4">
-              <Plus className="w-8 h-8 text-[var(--text3)]" />
+              </div>
+
+              <article className="not-sheet">
+                {editing ? (
+                  <div className="not-editor-form">
+                    <input
+                      type="text"
+                      value={selectedNote.title}
+                      onChange={(e) => setSelectedNote({ ...selectedNote, title: e.target.value })}
+                      placeholder={noteTitlePlaceholder}
+                      aria-label={noteTitlePlaceholder}
+                      className="not-title-input"
+                    />
+                    <NoteEditor
+                      key={selectedNote.id || "new"}
+                      format="markdown"
+                      content={selectedNote.content}
+                      onContentChange={(markdown) =>
+                        setSelectedNote({ ...selectedNote, content: markdown })
+                      }
+                      placeholder={noteContentPlaceholder}
+                    />
+                  </div>
+                ) : (
+                  <div className="not-sheet__body">
+                    <h1 className="not-h1">{selectedNote.title || noteTitlePlaceholder}</h1>
+                    <div
+                      className="not-prose"
+                      dangerouslySetInnerHTML={{
+                        __html:
+                          markdownToHtml(selectedNote.content) ||
+                          '<p class="not-placeholder">' + noteContentPlaceholder + "</p>",
+                      }}
+                    />
+                  </div>
+                )}
+              </article>
             </div>
-            <p className="text-[var(--text3)] font-medium">{newNote}</p>
-          </div>
-        )}
+          ) : (
+            <div className="not-editor-wrap not-editor-wrap--empty">
+              <div className="not-empty">
+                <div className="not-empty__icon">
+                  <Plus className="w-8 h-8" />
+                </div>
+                <p className="not-empty__text">{newNote}</p>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

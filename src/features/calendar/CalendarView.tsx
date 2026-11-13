@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, ChevronLeft, ChevronRight, Trash2, Play, Square } from "lucide-react";
+import { Plus, Trash2, Play, Square } from "lucide-react";
+import "./calendar.css";
 import { CalendarEventForm, type CalendarEventFormData } from "./CalendarEventForm";
 import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
 import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
@@ -159,7 +160,6 @@ export function CalendarView({
 
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const cellWidth = 80;
-  const rowHeight = 44;
   const dayLabelWidth = 80;
   const totalWidth = dayLabelWidth + HOURS * cellWidth;
 
@@ -176,109 +176,101 @@ export function CalendarView({
     (activeSession ? `Work in progress since ${formatSessionTime(activeSession.startedAt)}` : "");
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-      <div className="flex items-center justify-between p-4 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-lg font-bold min-w-[180px] text-center">
-            {monthLabel} {viewYear}
-          </span>
-          <button
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+    <div className="kal flex-1 min-w-0 flex flex-col overflow-hidden" data-card="kalendarz">
+      <header className="kal-head">
+        <div>
+          <p className="kal-eyebrow">Alt+2 · Kalendarz</p>
+          <div className="kal-head__title-group">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="kal-btn kal-btn--icon kal-btn--ghost"
+              aria-label="Poprzedni miesiąc"
+            >
+              ‹
+            </button>
+            <h1 className="kal-title">
+              {monthLabel} {viewYear}
+            </h1>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="kal-btn kal-btn--icon kal-btn--ghost"
+              aria-label="Następny miesiąc"
+            >
+              ›
+            </button>
+          </div>
+          <p className="kal-sub">
+            {lang === "pl"
+              ? "etat i projekty w jednym planie"
+              : "full-time job and projects in one schedule"}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="kal-head__actions">
           {activeSession ? (
-            <>
-              <span className="text-sm font-medium text-[var(--text2)]">
-                {sessionInProgressLabel}
-              </span>
+            <div className="kal-session-active">
+              <span className="kal-session-badge">{sessionInProgressLabel}</span>
               <button
                 type="button"
                 onClick={() => onEndSession?.()}
-                className="flex items-center gap-2 px-4 py-2 border-2 border-[var(--accent)] text-[var(--accent)] bg-transparent rounded-xl text-sm font-semibold hover:bg-[var(--accent-bg)]"
+                className="kal-btn kal-btn--accent"
               >
-                <Square className="w-4 h-4" />
+                <Square className="w-3.5 h-3.5" />
                 {(t.sessionEndButton as string) ?? "End work"}
               </button>
-            </>
+            </div>
           ) : (
             <button
               type="button"
               onClick={() => setStartSessionModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--bg3)] text-[var(--text)] border border-[var(--border)] rounded-xl text-sm font-semibold hover:bg-[var(--bg2)]"
+              className="kal-btn kal-btn--ghost"
             >
-              <Play className="w-4 h-4" />
+              <Play className="w-3.5 h-3.5" />
               {(t.sessionStartButton as string) ?? "Start work"}
             </button>
           )}
           <button
+            type="button"
             onClick={() => {
               setAddDate(days[0]?.date ?? startDate);
               setEditingEvent(null);
               setSaveError(null);
               setModalOpen(true);
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold"
+            className="kal-btn kal-btn--primary"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             {(t.calendarAddEntry as string) ?? "Add entry"}
           </button>
         </div>
-      </div>
+      </header>
 
       {sessionEndError && (
-        <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/30 flex items-center justify-between gap-2">
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-            {sessionEndError}
-          </p>
+        <div className="kal-alert">
+          <p role="alert">{sessionEndError}</p>
           {clearSessionEndError && (
-            <button
-              type="button"
-              onClick={clearSessionEndError}
-              className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
-            >
+            <button type="button" onClick={clearSessionEndError} className="kal-alert-dismiss">
               Dismiss
             </button>
           )}
         </div>
       )}
 
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col p-4" ref={gridRef}>
+      <div className="kal-grid-card" ref={gridRef}>
         {loading ? (
-          <div className="flex items-center justify-center h-64 text-[var(--text2)]">Loading…</div>
+          <div className="kal-state">Loading…</div>
         ) : (
-          <div
-            className="overflow-auto overflow-x-scroll overflow-y-auto w-full"
-            style={{ maxWidth: "100%", flex: "1 1 0" }}
-          >
-            <div style={{ width: totalWidth, minWidth: totalWidth }}>
-              <div
-                className="flex border-b border-[var(--border)] bg-[var(--bg2)] sticky top-0 z-20 shadow-sm"
-                style={{ height: rowHeight }}
-              >
-                <div
-                  className="flex-shrink-0 border-r border-[var(--border)] flex items-center px-2 text-xs font-bold text-[var(--text3)] bg-[var(--bg2)] sticky left-0 z-30"
-                  style={{ width: dayLabelWidth }}
-                >
+          <div className="kal-grid-scroll">
+            <div className="kal-grid-table" style={{ width: totalWidth, minWidth: totalWidth }}>
+              <div className="kal-grid-header">
+                <div className="kal-grid-header__day-label" style={{ width: dayLabelWidth }}>
                   {(t.calendarDay as string) ?? "Day"}
                 </div>
-                <div className="flex bg-[var(--bg2)]">
+                <div className="kal-grid-header__hours">
                   {Array.from({ length: HOURS }, (_, h) => (
-                    <div
-                      key={h}
-                      className="border-r border-[var(--border)] text-[10px] text-[var(--text3)] font-medium flex items-center justify-center flex-shrink-0"
-                      style={{ width: cellWidth, height: rowHeight }}
-                    >
-                      {h}
+                    <div key={h} className="kal-grid-header__hour" style={{ width: cellWidth }}>
+                      {String(h).padStart(2, "0")}
                     </div>
                   ))}
                 </div>
@@ -294,12 +286,7 @@ export function CalendarView({
                     lang={lang}
                     dayNames={DAY_NAMES[lang]}
                     isToday={day.date === todayStr}
-                    onAddClick={(date) => {
-                      setAddDate(date);
-                      setEditingEvent(null);
-                      setSaveError(null);
-                      setModalOpen(true);
-                    }}
+                    onAddClick={(date) => handleOpenAdd(date)}
                     onEventClick={handleOpenEdit}
                     activeSession={activeSession}
                     todayStr={todayStr}
@@ -315,9 +302,9 @@ export function CalendarView({
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
-            <h3 className="text-lg font-bold mb-4">
+        <div className="kal-overlay">
+          <div className="kal-modal" role="dialog" aria-modal="true">
+            <h3 className="kal-modal__title">
               {editingEvent
                 ? ((t.calendarEditEntry as string) ?? "Edit entry")
                 : ((t.calendarNewEntry as string) ?? "New entry")}
@@ -332,6 +319,8 @@ export function CalendarView({
                       title: editingEvent.title,
                       tags: editingEvent.tags,
                       type: editingEvent.type === "meeting" ? "meeting" : "work",
+                      link: editingEvent.link ?? "",
+                      brief: editingEvent.brief ?? "",
                     }
                   : addDate
                     ? {
@@ -361,16 +350,16 @@ export function CalendarView({
               }
             />
             {saveError && (
-              <p className="mt-3 text-sm text-red-500" role="alert">
+              <p className="kal-alert" role="alert" style={{ marginTop: "var(--s-3)" }}>
                 {saveError}
               </p>
             )}
             {editingEvent && (
-              <div className="mt-4 pt-4 border-t border-[var(--border)]">
+              <div className="kal-delete-section">
                 <button
                   type="button"
                   onClick={() => handleDelete(editingEvent.id)}
-                  className="flex items-center gap-2 text-red-500 text-sm font-medium hover:bg-red-50 px-3 py-2 rounded-lg"
+                  className="kal-btn kal-btn--danger"
                 >
                   <Trash2 className="w-4 h-4" />
                   {(t.calendarDeleteEntry as string) ?? "Delete entry"}
@@ -382,11 +371,9 @@ export function CalendarView({
       )}
 
       {startSessionModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto p-6">
-            <h3 className="text-lg font-bold mb-4">
-              {(t.sessionModalTitle as string) ?? "Start work"}
-            </h3>
+        <div className="kal-overlay">
+          <div className="kal-modal" role="dialog" aria-modal="true">
+            <h3 className="kal-modal__title">{(t.sessionModalTitle as string) ?? "Start work"}</h3>
             <StartSessionModal
               existingTags={allTags}
               tagTitles={tagTitles}

@@ -1,4 +1,4 @@
-import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 
 export type CardId =
   | "kokpit"
@@ -56,8 +56,18 @@ const TAB_TO_CARD: Record<PlanningTab, CardId> = {
   mindmaps: "plotno",
   resources: "arsenal",
   tags: "arsenal",
-  activity: "kokpit",
+  activity: "kalendarz",
 };
+
+export const CARD_SUBTABS: Partial<Record<CardId, readonly PlanningTab[]>> = {
+  kalendarz: ["calendar", "activity"],
+  plotno: ["board", "mindmaps"],
+  arsenal: ["resources", "tags"],
+};
+
+export function subtabsForCard(id: CardId): readonly PlanningTab[] {
+  return CARD_SUBTABS[id] ?? [];
+}
 
 export function getCard(id: CardId): CardDef {
   const card = CARDS.find((c) => c.id === id);

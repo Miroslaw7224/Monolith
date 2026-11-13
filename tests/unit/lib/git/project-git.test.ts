@@ -4,7 +4,15 @@ import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
-import { runGit, snapshotRepo, type GitCommand } from "@/lib/git/project-git";
+import {
+  commitsByDay,
+  commitsSince,
+  currentBranch,
+  mergedPrsByDay,
+  runGit,
+  snapshotRepo,
+  type GitCommand,
+} from "@/lib/git/project-git";
 import { useTempRepos } from "../../helpers/tempGit";
 
 const repos = useTempRepos();
@@ -92,5 +100,177 @@ describe("konfiguracja obcego repo nie wykonuje kodu", () => {
     snapshotRepo(r.dir);
 
     expect(fs.existsSync(marker)).toBe(false);
+  });
+});
+
+const localDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+describe("commitsSince", () => {
+  it("liczy commity od podanego dnia (dziś: 2, od jutra: 0)", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    r.write("a.txt", "2");
+    r.commit("c2");
+    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 2 });
+    expect(commitsSince(r.dir, "2099-01-01")).toEqual({ ok: true, count: 0 });
+  });
+
+  it("uwzględnia commity z innych lokalnych gałęzi, bez podwójnego liczenia", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    execFileSync("git", ["checkout", "-q", "-b", "feat/x"], { cwd: r.dir });
+    r.write("a.txt", "2");
+    r.commit("c2");
+    execFileSync("git", ["checkout", "-q", "main"], { cwd: r.dir });
+    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 2 });
+  });
+
+  it("repo bez commitów: 0; katalog bez .git: błąd", () => {
+    const r = repos.create();
+    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 0 });
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(commitsSince(plain, "2026-01-01")).toEqual({ ok: false });
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+  });
+
+  it("odrzuca datę o złym formacie (nic nie trafia do gita)", () => {
+    const r = repos.create();
+    expect(() => commitsSince(r.dir, "--all")).toThrow(/data/);
+    expect(() => commitsSince(r.dir, "2026-13-40x")).toThrow(/data/);
+  });
+});
+
+describe("currentBranch", () => {
+  it("zwraca nazwę gałęzi", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    expect(currentBranch(r.dir)).toBe("main");
+  });
+
+  it("odłączony HEAD i brak repo dają null", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1");
+    execFileSync("git", ["checkout", "-q", "--detach"], { cwd: r.dir });
+    expect(currentBranch(r.dir)).toBeNull();
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(currentBranch(plain)).toBeNull();
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("commitsByDay", () => {
+  it("grupuje commity po dniu (data zatwierdzenia, czas lokalny) w zakresie od–do włącznie", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1", "2026-11-10");
+    r.write("a.txt", "2");
+    r.commit("c2", "2026-11-12");
+    r.write("a.txt", "3");
+    r.commit("c3", "2026-11-12");
+    r.write("a.txt", "4");
+    r.commit("c4", "2026-11-14");
+    expect(commitsByDay(r.dir, "2026-11-10", "2026-11-13")).toEqual({
+      ok: true,
+      days: { "2026-11-10": 1, "2026-11-12": 2 },
+    });
+    expect(commitsByDay(r.dir, "2026-11-11", "2026-11-11")).toEqual({ ok: true, days: {} });
+  });
+
+  it("liczy commity z innych lokalnych gałęzi raz i pomija merge'e", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1", "2026-11-10");
+    execFileSync("git", ["checkout", "-q", "-b", "feat/x"], { cwd: r.dir });
+    r.write("b.txt", "2");
+    r.commit("c2", "2026-11-11");
+    execFileSync("git", ["checkout", "-q", "main"], { cwd: r.dir });
+    expect(commitsByDay(r.dir, "2026-11-10", "2026-11-11")).toEqual({
+      ok: true,
+      days: { "2026-11-10": 1, "2026-11-11": 1 },
+    });
+  });
+
+  it("repo bez commitów: pusto; katalog bez .git: błąd; zła data: wyjątek", () => {
+    const r = repos.create();
+    expect(commitsByDay(r.dir, "2026-11-01", "2026-11-13")).toEqual({ ok: true, days: {} });
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(commitsByDay(plain, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+    expect(() => commitsByDay(r.dir, "--all", "2026-11-13")).toThrow(/data/);
+    expect(() => commitsByDay(r.dir, "2026-11-01", "x")).toThrow(/data/);
+    expect(() => commitsByDay(r.dir, "2026-11-13", "2026-11-01")).toThrow(/zakres/);
+  });
+});
+
+describe("mergedPrsByDay", () => {
+  const run = (cwd: string, args: string[], day?: string) =>
+    execFileSync(
+      "git",
+      ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", ...args],
+      {
+        cwd,
+        stdio: "ignore",
+        env: day
+          ? {
+              ...process.env,
+              GIT_AUTHOR_DATE: `${day}T12:00:00`,
+              GIT_COMMITTER_DATE: `${day}T12:00:00`,
+            }
+          : process.env,
+      }
+    );
+
+  it("liczy merge'e „Merge pull request #N” i squashe „(#N)”, pomija zwykłe commity i merge'e gałęzi", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("start", "2026-11-09");
+    run(r.dir, ["checkout", "-q", "-b", "feat/a"]);
+    r.write("b.txt", "2");
+    r.commit("praca na gałęzi", "2026-11-10");
+    run(r.dir, ["checkout", "-q", "main"]);
+    run(
+      r.dir,
+      ["merge", "--no-ff", "-q", "-m", "Merge pull request #7 from u/feat/a", "feat/a"],
+      "2026-11-11"
+    );
+    r.write("c.txt", "3");
+    r.commit("Napraw coś (#9)", "2026-11-11");
+    r.write("d.txt", "4");
+    r.commit("Zwykły commit z (#) w środku (nie PR)", "2026-11-12");
+    run(r.dir, ["checkout", "-q", "-b", "feat/b"]);
+    r.write("e.txt", "5");
+    r.commit("na b", "2026-11-12");
+    run(r.dir, ["checkout", "-q", "main"]);
+    run(r.dir, ["merge", "--no-ff", "-q", "-m", "Merge branch 'feat/b'", "feat/b"], "2026-11-12");
+    expect(mergedPrsByDay(r.dir, "2026-11-09", "2026-11-13")).toEqual({
+      ok: true,
+      prs: { "2026-11-11": 2 },
+    });
+    expect(mergedPrsByDay(r.dir, "2026-11-12", "2026-11-13")).toEqual({ ok: true, prs: {} });
+  });
+
+  it("katalog bez .git: błąd; zła data: wyjątek", () => {
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(mergedPrsByDay(plain, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+    const r = repos.create();
+    expect(() => mergedPrsByDay(r.dir, "x", "2026-11-13")).toThrow(/data/);
   });
 });

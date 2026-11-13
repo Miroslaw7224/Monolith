@@ -10,33 +10,33 @@
 
 ## Implementation status (verified 2026-08-04)
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Task 1 — `type` on Firestore events + API | **Done** | `lib/firestore-db.ts`, `services/calendarService.ts` (create/update only), both API routes already have `type` |
-| Task 2 — virtual `task_deadline` events | Pending | `getCalendarEvents` in `calendarService.ts` still passthrough |
-| Tasks 3–6 — frontend types, form, grid, click routing | Pending | No `type` in `calendarUtils.ts` / UI yet |
-| Task 7 — filter deadlines from ActivityLog / Home | Pending | **Added during plan review** — see below |
-| Task 8 — manual verification | Pending | |
+| Task                                                  | Status   | Notes                                                                                                          |
+| ----------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| Task 1 — `type` on Firestore events + API             | **Done** | `lib/firestore-db.ts`, `services/calendarService.ts` (create/update only), both API routes already have `type` |
+| Task 2 — virtual `task_deadline` events               | Pending  | `getCalendarEvents` in `calendarService.ts` still passthrough                                                  |
+| Tasks 3–6 — frontend types, form, grid, click routing | Pending  | No `type` in `calendarUtils.ts` / UI yet                                                                       |
+| Task 7 — filter deadlines from ActivityLog / Home     | Pending  | **Added during plan review** — see below                                                                       |
+| Task 8 — manual verification                          | Pending  |                                                                                                                |
 
 Task 1 commit may still be outstanding — run `git status` before skipping its commit step.
 
 ## File map
 
-| File | Role in this feature |
-|------|----------------------|
-| `lib/firestore-db.ts` | `CalendarEventRecord.type`, CRUD persistence, `getTasks` source for deadlines |
-| `services/calendarService.ts` | Merge tasks → virtual `task_deadline` entries in `getCalendarEvents` |
-| `app/api/calendar/events/route.ts` | GET (passthrough), POST accepts `type` |
-| `app/api/calendar/events/[id]/route.ts` | PUT accepts `type`, DELETE (real events only) |
-| `tests/unit/services/calendarService.test.ts` | Unit tests for deadline merge |
-| `src/components/calendar/calendarUtils.ts` | Frontend `CalendarEvent` type |
-| `src/components/calendarConstants.ts` | `EVENT_TYPE_DEFAULT_DURATION` |
-| `src/components/CalendarEventForm.tsx` | Work / Meeting selector |
-| `src/components/calendar/CalendarDayColumn.tsx` | Visual differentiation (bell / flag / dashed border) |
-| `src/components/CalendarView.tsx` | Click routing, form `initial.type`, save passes `type` via form |
-| `src/features/planowanie/PlanowanieView.tsx` | `onOpenTaskDeadline` → Tasks tab |
-| `src/components/ActivityLog.tsx` | **Must exclude** `task:*` ids (not a calendar view) |
-| `src/features/home/HomeView.tsx` | **Must exclude** `task:*` from upcoming-events widget (tasks already listed separately) |
+| File                                            | Role in this feature                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `lib/firestore-db.ts`                           | `CalendarEventRecord.type`, CRUD persistence, `getTasks` source for deadlines           |
+| `services/calendarService.ts`                   | Merge tasks → virtual `task_deadline` entries in `getCalendarEvents`                    |
+| `app/api/calendar/events/route.ts`              | GET (passthrough), POST accepts `type`                                                  |
+| `app/api/calendar/events/[id]/route.ts`         | PUT accepts `type`, DELETE (real events only)                                           |
+| `tests/unit/services/calendarService.test.ts`   | Unit tests for deadline merge                                                           |
+| `src/components/calendar/calendarUtils.ts`      | Frontend `CalendarEvent` type                                                           |
+| `src/components/calendarConstants.ts`           | `EVENT_TYPE_DEFAULT_DURATION`                                                           |
+| `src/components/CalendarEventForm.tsx`          | Work / Meeting selector                                                                 |
+| `src/components/calendar/CalendarDayColumn.tsx` | Visual differentiation (bell / flag / dashed border)                                    |
+| `src/components/CalendarView.tsx`               | Click routing, form `initial.type`, save passes `type` via form                         |
+| `src/features/planowanie/PlanowanieView.tsx`    | `onOpenTaskDeadline` → Tasks tab                                                        |
+| `src/components/ActivityLog.tsx`                | **Must exclude** `task:*` ids (not a calendar view)                                     |
+| `src/features/home/HomeView.tsx`                | **Must exclude** `task:*` from upcoming-events widget (tasks already listed separately) |
 
 **Untouched (by design):** `services/planService.ts` (creates work sessions; Task 1 fallback keeps them as `"work"`), `expandEventToSegments` / lane layout code.
 
@@ -98,34 +98,34 @@ export type CalendarEventRecord = {
 In `lib/firestore-db.ts:446-456`, change the mapped object:
 
 ```ts
-    return {
-      id: d.id,
-      date: data.date ?? "",
-      start_minutes: data.start_minutes ?? 0,
-      duration_minutes: data.duration_minutes ?? 0,
-      title: data.title ?? "",
-      tags: Array.isArray(data.tags) ? data.tags : data.tags ? [data.tags] : [],
-      color: data.color ?? "#3B82F6",
-      created_at: createdAt?.toDate?.()?.toISOString?.(),
-      createdAt: data.createdAt ?? createdAt,
-    };
+return {
+  id: d.id,
+  date: data.date ?? "",
+  start_minutes: data.start_minutes ?? 0,
+  duration_minutes: data.duration_minutes ?? 0,
+  title: data.title ?? "",
+  tags: Array.isArray(data.tags) ? data.tags : data.tags ? [data.tags] : [],
+  color: data.color ?? "#3B82F6",
+  created_at: createdAt?.toDate?.()?.toISOString?.(),
+  createdAt: data.createdAt ?? createdAt,
+};
 ```
 
 to:
 
 ```ts
-    return {
-      id: d.id,
-      date: data.date ?? "",
-      start_minutes: data.start_minutes ?? 0,
-      duration_minutes: data.duration_minutes ?? 0,
-      title: data.title ?? "",
-      tags: Array.isArray(data.tags) ? data.tags : data.tags ? [data.tags] : [],
-      color: data.color ?? "#3B82F6",
-      type: data.type === "meeting" ? "meeting" : "work",
-      created_at: createdAt?.toDate?.()?.toISOString?.(),
-      createdAt: data.createdAt ?? createdAt,
-    };
+return {
+  id: d.id,
+  date: data.date ?? "",
+  start_minutes: data.start_minutes ?? 0,
+  duration_minutes: data.duration_minutes ?? 0,
+  title: data.title ?? "",
+  tags: Array.isArray(data.tags) ? data.tags : data.tags ? [data.tags] : [],
+  color: data.color ?? "#3B82F6",
+  type: data.type === "meeting" ? "meeting" : "work",
+  created_at: createdAt?.toDate?.()?.toISOString?.(),
+  createdAt: data.createdAt ?? createdAt,
+};
 ```
 
 - [x] **Step 3: Accept and persist `type` in `createCalendarEvent`**
@@ -362,85 +362,79 @@ export async function updateCalendarEvent(
 In `app/api/calendar/events/route.ts`, change:
 
 ```ts
-  let body: {
-    date?: string;
-    start_minutes?: number;
-    duration_minutes?: number;
-    title?: string;
-    tags?: string[];
-    color?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const { date, start_minutes, duration_minutes, title, tags, color } = body;
-  if (!date || duration_minutes == null) {
-    return NextResponse.json({ error: "date and duration_minutes required" }, { status: 400 });
-  }
-  if (duration_minutes % 15 !== 0) {
-    return NextResponse.json(
-      { error: "duration_minutes must be a multiple of 15" },
-      { status: 400 }
-    );
-  }
-  try {
-    const event = await calendarService.createCalendarEvent(auth.uid, {
-      date,
-      start_minutes: Number(start_minutes) ?? 0,
-      duration_minutes: Number(duration_minutes),
-      title: title ?? "",
-      tags: Array.isArray(tags) ? tags : tags ? [tags] : [],
-      color: color ?? "#3B82F6",
-    });
-    return NextResponse.json(event);
-  } catch (err) {
-    return handleServiceError(err);
-  }
+let body: {
+  date?: string;
+  start_minutes?: number;
+  duration_minutes?: number;
+  title?: string;
+  tags?: string[];
+  color?: string;
+};
+try {
+  body = await request.json();
+} catch {
+  return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+}
+const { date, start_minutes, duration_minutes, title, tags, color } = body;
+if (!date || duration_minutes == null) {
+  return NextResponse.json({ error: "date and duration_minutes required" }, { status: 400 });
+}
+if (duration_minutes % 15 !== 0) {
+  return NextResponse.json({ error: "duration_minutes must be a multiple of 15" }, { status: 400 });
+}
+try {
+  const event = await calendarService.createCalendarEvent(auth.uid, {
+    date,
+    start_minutes: Number(start_minutes) ?? 0,
+    duration_minutes: Number(duration_minutes),
+    title: title ?? "",
+    tags: Array.isArray(tags) ? tags : tags ? [tags] : [],
+    color: color ?? "#3B82F6",
+  });
+  return NextResponse.json(event);
+} catch (err) {
+  return handleServiceError(err);
+}
 ```
 
 to:
 
 ```ts
-  let body: {
-    date?: string;
-    start_minutes?: number;
-    duration_minutes?: number;
-    title?: string;
-    tags?: string[];
-    color?: string;
-    type?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const { date, start_minutes, duration_minutes, title, tags, color, type } = body;
-  if (!date || duration_minutes == null) {
-    return NextResponse.json({ error: "date and duration_minutes required" }, { status: 400 });
-  }
-  if (duration_minutes % 15 !== 0) {
-    return NextResponse.json(
-      { error: "duration_minutes must be a multiple of 15" },
-      { status: 400 }
-    );
-  }
-  try {
-    const event = await calendarService.createCalendarEvent(auth.uid, {
-      date,
-      start_minutes: Number(start_minutes) ?? 0,
-      duration_minutes: Number(duration_minutes),
-      title: title ?? "",
-      tags: Array.isArray(tags) ? tags : tags ? [tags] : [],
-      color: color ?? "#3B82F6",
-      type: type === "meeting" ? "meeting" : "work",
-    });
-    return NextResponse.json(event);
-  } catch (err) {
-    return handleServiceError(err);
-  }
+let body: {
+  date?: string;
+  start_minutes?: number;
+  duration_minutes?: number;
+  title?: string;
+  tags?: string[];
+  color?: string;
+  type?: string;
+};
+try {
+  body = await request.json();
+} catch {
+  return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+}
+const { date, start_minutes, duration_minutes, title, tags, color, type } = body;
+if (!date || duration_minutes == null) {
+  return NextResponse.json({ error: "date and duration_minutes required" }, { status: 400 });
+}
+if (duration_minutes % 15 !== 0) {
+  return NextResponse.json({ error: "duration_minutes must be a multiple of 15" }, { status: 400 });
+}
+try {
+  const event = await calendarService.createCalendarEvent(auth.uid, {
+    date,
+    start_minutes: Number(start_minutes) ?? 0,
+    duration_minutes: Number(duration_minutes),
+    title: title ?? "",
+    tags: Array.isArray(tags) ? tags : tags ? [tags] : [],
+    color: color ?? "#3B82F6",
+    type: type === "meeting" ? "meeting" : "work",
+  });
+  return NextResponse.json(event);
+} catch (err) {
+  return handleServiceError(err);
+}
 ```
 
 - [x] **Step 7: Accept `type` in the PUT route**
@@ -448,77 +442,71 @@ to:
 In `app/api/calendar/events/[id]/route.ts`, change:
 
 ```ts
-  let body: {
-    date?: string;
-    start_minutes?: number;
-    duration_minutes?: number;
-    title?: string;
-    tags?: string[];
-    color?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  if (body.duration_minutes != null && body.duration_minutes % 15 !== 0) {
-    return NextResponse.json(
-      { error: "duration_minutes must be a multiple of 15" },
-      { status: 400 }
-    );
-  }
-  try {
-    await calendarService.updateCalendarEvent(auth.uid, id, {
-      date: body.date,
-      start_minutes: body.start_minutes,
-      duration_minutes: body.duration_minutes,
-      title: body.title,
-      tags: body.tags,
-      color: body.color,
-    });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return handleServiceError(err);
-  }
+let body: {
+  date?: string;
+  start_minutes?: number;
+  duration_minutes?: number;
+  title?: string;
+  tags?: string[];
+  color?: string;
+};
+try {
+  body = await request.json();
+} catch {
+  return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+}
+if (body.duration_minutes != null && body.duration_minutes % 15 !== 0) {
+  return NextResponse.json({ error: "duration_minutes must be a multiple of 15" }, { status: 400 });
+}
+try {
+  await calendarService.updateCalendarEvent(auth.uid, id, {
+    date: body.date,
+    start_minutes: body.start_minutes,
+    duration_minutes: body.duration_minutes,
+    title: body.title,
+    tags: body.tags,
+    color: body.color,
+  });
+  return NextResponse.json({ success: true });
+} catch (err) {
+  return handleServiceError(err);
+}
 ```
 
 to:
 
 ```ts
-  let body: {
-    date?: string;
-    start_minutes?: number;
-    duration_minutes?: number;
-    title?: string;
-    tags?: string[];
-    color?: string;
-    type?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  if (body.duration_minutes != null && body.duration_minutes % 15 !== 0) {
-    return NextResponse.json(
-      { error: "duration_minutes must be a multiple of 15" },
-      { status: 400 }
-    );
-  }
-  try {
-    await calendarService.updateCalendarEvent(auth.uid, id, {
-      date: body.date,
-      start_minutes: body.start_minutes,
-      duration_minutes: body.duration_minutes,
-      title: body.title,
-      tags: body.tags,
-      color: body.color,
-      type: body.type !== undefined ? (body.type === "meeting" ? "meeting" : "work") : undefined,
-    });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return handleServiceError(err);
-  }
+let body: {
+  date?: string;
+  start_minutes?: number;
+  duration_minutes?: number;
+  title?: string;
+  tags?: string[];
+  color?: string;
+  type?: string;
+};
+try {
+  body = await request.json();
+} catch {
+  return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+}
+if (body.duration_minutes != null && body.duration_minutes % 15 !== 0) {
+  return NextResponse.json({ error: "duration_minutes must be a multiple of 15" }, { status: 400 });
+}
+try {
+  await calendarService.updateCalendarEvent(auth.uid, id, {
+    date: body.date,
+    start_minutes: body.start_minutes,
+    duration_minutes: body.duration_minutes,
+    title: body.title,
+    tags: body.tags,
+    color: body.color,
+    type: body.type !== undefined ? (body.type === "meeting" ? "meeting" : "work") : undefined,
+  });
+  return NextResponse.json({ success: true });
+} catch (err) {
+  return handleServiceError(err);
+}
 ```
 
 - [ ] **Step 8: Type-check**
@@ -599,92 +587,92 @@ describe("calendarService", () => {
 Then, still in the same file, **update the existing happy-path mock** in `describe("getCalendarEvents")` to include `type: "work"` (Firestore now always returns it):
 
 ```ts
-      const events = [
-        {
-          id: "e1",
-          date: "2025-02-20",
-          start_minutes: 540,
-          duration_minutes: 60,
-          title: "Meeting",
-          tags: [],
-          color: "#3B82F6",
-          type: "work" as const,
-        },
-      ];
+const events = [
+  {
+    id: "e1",
+    date: "2025-02-20",
+    start_minutes: 540,
+    duration_minutes: 60,
+    title: "Meeting",
+    tags: [],
+    color: "#3B82F6",
+    type: "work" as const,
+  },
+];
 ```
 
 Then add these three tests inside the existing `describe("getCalendarEvents", ...)` block (after its two existing `it(...)` cases, before the closing `});` of that `describe`):
 
 ```ts
-    it("given a task with a due_date in range and status not done, when getCalendarEvents is called, then includes a task_deadline pseudo-event", async () => {
-      mockGetCalendarEvents.mockResolvedValue([]);
-      mockGetTasks.mockResolvedValue([
-        {
-          id: "t1",
-          title: "Finish report",
-          description: "",
-          status: "todo",
-          due_date: "2025-02-20",
-          priority: null,
-        },
-      ]);
+it("given a task with a due_date in range and status not done, when getCalendarEvents is called, then includes a task_deadline pseudo-event", async () => {
+  mockGetCalendarEvents.mockResolvedValue([]);
+  mockGetTasks.mockResolvedValue([
+    {
+      id: "t1",
+      title: "Finish report",
+      description: "",
+      status: "todo",
+      due_date: "2025-02-20",
+      priority: null,
+    },
+  ]);
 
-      const result = await getCalendarEvents("user-1", {
-        startDate: "2025-02-01",
-        endDate: "2025-02-28",
-      });
+  const result = await getCalendarEvents("user-1", {
+    startDate: "2025-02-01",
+    endDate: "2025-02-28",
+  });
 
-      expect(result).toEqual([
-        expect.objectContaining({
-          id: "task:t1",
-          date: "2025-02-20",
-          title: "Finish report",
-          type: "task_deadline",
-        }),
-      ]);
-    });
+  expect(result).toEqual([
+    expect.objectContaining({
+      id: "task:t1",
+      date: "2025-02-20",
+      title: "Finish report",
+      type: "task_deadline",
+    }),
+  ]);
+});
 
-    it("given a task with status done, when getCalendarEvents is called, then excludes it from results", async () => {
-      mockGetCalendarEvents.mockResolvedValue([]);
-      mockGetTasks.mockResolvedValue([
-        {
-          id: "t1",
-          title: "Finish report",
-          description: "",
-          status: "done",
-          due_date: "2025-02-20",
-          priority: null,
-        },
-      ]);
+it("given a task with status done, when getCalendarEvents is called, then excludes it from results", async () => {
+  mockGetCalendarEvents.mockResolvedValue([]);
+  mockGetTasks.mockResolvedValue([
+    {
+      id: "t1",
+      title: "Finish report",
+      description: "",
+      status: "done",
+      due_date: "2025-02-20",
+      priority: null,
+    },
+  ]);
 
-      const result = await getCalendarEvents("user-1", {
-        startDate: "2025-02-01",
-        endDate: "2025-02-28",
-      });
+  const result = await getCalendarEvents("user-1", {
+    startDate: "2025-02-01",
+    endDate: "2025-02-28",
+  });
 
-      expect(result).toEqual([]);
-    });
+  expect(result).toEqual([]);
+});
 
-    it("given a task due_date outside the requested range, when getCalendarEvents is called, then excludes it from results", async () => {
-      mockGetCalendarEvents.mockResolvedValue([]);
-      mockGetTasks.mockResolvedValue([
-        {
-          id: "t1",
-          title: "Finish report",
-          description: "",
-          status: "todo",
-          due_date: "2025-03-15",
-          priority: null,
-        },
-      ]);
+it("given a task due_date outside the requested range, when getCalendarEvents is called, then excludes it from results", async () => {
+  mockGetCalendarEvents.mockResolvedValue([]);
+  mockGetTasks.mockResolvedValue([
+    {
+      id: "t1",
+      title: "Finish report",
+      description: "",
+      status: "todo",
+      due_date: "2025-03-15",
+      priority: null,
+    },
+  ]);
 
-      const result = await getCalendarEvents("user-1", {
-        startDate: "2025-02-01",
-        endDate: "2025-02-28",
-      });
+  const result = await getCalendarEvents("user-1", {
+    startDate: "2025-02-01",
+    endDate: "2025-02-28",
+  });
 
-      expect(result).toEqual([]);
-    });
+  expect(result).toEqual([]);
+});
 ```
 
 - [ ] **Step 2: Run the new tests to verify they fail**
@@ -851,7 +839,6 @@ export interface CalendarEvent {
 In `src/components/calendarConstants.ts`, add this export at the end of the file:
 
 ```ts
-
 export const EVENT_TYPE_DEFAULT_DURATION: Record<"work" | "meeting", number> = {
   work: 60,
   meeting: 30,
@@ -925,24 +912,24 @@ export interface CalendarEventFormData {
 Change:
 
 ```ts
-  const [date, setDate] = useState(initial?.date ?? "");
-  const [startMinutes, setStartMinutes] = useState(
-    initial?.start_minutes != null ? Math.round(initial.start_minutes / 15) * 15 : 9 * 60
-  );
-  const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? 60);
-  const [title, setTitle] = useState(initial?.title ?? "");
+const [date, setDate] = useState(initial?.date ?? "");
+const [startMinutes, setStartMinutes] = useState(
+  initial?.start_minutes != null ? Math.round(initial.start_minutes / 15) * 15 : 9 * 60
+);
+const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? 60);
+const [title, setTitle] = useState(initial?.title ?? "");
 ```
 
 to:
 
 ```ts
-  const [date, setDate] = useState(initial?.date ?? "");
-  const [eventType, setEventType] = useState<"work" | "meeting">(initial?.type ?? "work");
-  const [startMinutes, setStartMinutes] = useState(
-    initial?.start_minutes != null ? Math.round(initial.start_minutes / 15) * 15 : 9 * 60
-  );
-  const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? 60);
-  const [title, setTitle] = useState(initial?.title ?? "");
+const [date, setDate] = useState(initial?.date ?? "");
+const [eventType, setEventType] = useState<"work" | "meeting">(initial?.type ?? "work");
+const [startMinutes, setStartMinutes] = useState(
+  initial?.start_minutes != null ? Math.round(initial.start_minutes / 15) * 15 : 9 * 60
+);
+const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? 60);
+const [title, setTitle] = useState(initial?.title ?? "");
 ```
 
 - [ ] **Step 3: Include `type` in the submitted payload**
@@ -950,28 +937,28 @@ to:
 Change:
 
 ```ts
-    onSubmit({
-      date,
-      start_minutes: startMinutes,
-      duration_minutes: durationMinutes,
-      title: title.trim(),
-      tags,
-      color,
-    });
+onSubmit({
+  date,
+  start_minutes: startMinutes,
+  duration_minutes: durationMinutes,
+  title: title.trim(),
+  tags,
+  color,
+});
 ```
 
 to:
 
 ```ts
-    onSubmit({
-      date,
-      start_minutes: startMinutes,
-      duration_minutes: durationMinutes,
-      title: title.trim(),
-      tags,
-      color,
-      type: eventType,
-    });
+onSubmit({
+  date,
+  start_minutes: startMinutes,
+  duration_minutes: durationMinutes,
+  title: title.trim(),
+  tags,
+  color,
+  type: eventType,
+});
 ```
 
 - [ ] **Step 4: Add the type selector to the form UI**
@@ -1068,104 +1055,104 @@ import { Pencil, Square, Bell, Flag } from "lucide-react";
 Change the segment render block:
 
 ```tsx
-        {daySegments.map((seg) => {
-          const lane = lanes.get(seg.segmentKey) ?? 0;
-          const stackSize = Math.max(
-            1,
-            Math.min(CALENDAR_MAX_STACK, overlapCounts.get(seg.segmentKey) ?? 1)
-          );
-          const leftPx = (seg.start_minutes / 60) * cellWidth;
-          const widthPx = (seg.duration_minutes / 60) * cellWidth;
-          const heightPct = 100 / stackSize - 2;
-          const topPct = lane * (100 / stackSize);
-          const ev = seg.source;
-          const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}`;
-          return (
-            <div
-              key={seg.segmentKey}
-              data-event
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventClick(ev);
-              }}
-              className="absolute rounded overflow-hidden cursor-pointer border border-white/50 shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80"
-              style={{
-                left: leftPx,
-                width: Math.max(24, widthPx),
-                top: `${topPct}%`,
-                height: `${heightPct}%`,
-                backgroundColor: ev.color,
-              }}
-              title={titleTip}
-            >
-              <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
-                {ev.title}
-              </span>
-              <Pencil
-                className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
-                aria-hidden
-              />
-            </div>
-          );
-        })}
+{
+  daySegments.map((seg) => {
+    const lane = lanes.get(seg.segmentKey) ?? 0;
+    const stackSize = Math.max(
+      1,
+      Math.min(CALENDAR_MAX_STACK, overlapCounts.get(seg.segmentKey) ?? 1)
+    );
+    const leftPx = (seg.start_minutes / 60) * cellWidth;
+    const widthPx = (seg.duration_minutes / 60) * cellWidth;
+    const heightPct = 100 / stackSize - 2;
+    const topPct = lane * (100 / stackSize);
+    const ev = seg.source;
+    const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}`;
+    return (
+      <div
+        key={seg.segmentKey}
+        data-event
+        onClick={(e) => {
+          e.stopPropagation();
+          onEventClick(ev);
+        }}
+        className="absolute rounded overflow-hidden cursor-pointer border border-white/50 shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80"
+        style={{
+          left: leftPx,
+          width: Math.max(24, widthPx),
+          top: `${topPct}%`,
+          height: `${heightPct}%`,
+          backgroundColor: ev.color,
+        }}
+        title={titleTip}
+      >
+        <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
+          {ev.title}
+        </span>
+        <Pencil
+          className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
+          aria-hidden
+        />
+      </div>
+    );
+  });
+}
 ```
 
 to:
 
 ```tsx
-        {daySegments.map((seg) => {
-          const lane = lanes.get(seg.segmentKey) ?? 0;
-          const stackSize = Math.max(
-            1,
-            Math.min(CALENDAR_MAX_STACK, overlapCounts.get(seg.segmentKey) ?? 1)
-          );
-          const leftPx = (seg.start_minutes / 60) * cellWidth;
-          const widthPx = (seg.duration_minutes / 60) * cellWidth;
-          const heightPct = 100 / stackSize - 2;
-          const topPct = lane * (100 / stackSize);
-          const ev = seg.source;
-          const isMeeting = ev.type === "meeting";
-          const isDeadline = ev.type === "task_deadline";
-          const typeSuffix = isDeadline ? " · Task deadline" : isMeeting ? " · Meeting" : "";
-          const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}${typeSuffix}`;
-          return (
-            <div
-              key={seg.segmentKey}
-              data-event
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventClick(ev);
-              }}
-              className={`absolute rounded overflow-hidden cursor-pointer shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80 ${
-                isDeadline ? "border-2 border-dashed border-white/80" : "border border-white/50"
-              }`}
-              style={{
-                left: leftPx,
-                width: Math.max(24, widthPx),
-                top: `${topPct}%`,
-                height: `${heightPct}%`,
-                backgroundColor: ev.color,
-              }}
-              title={titleTip}
-            >
-              {isMeeting && (
-                <Bell className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />
-              )}
-              {isDeadline && (
-                <Flag className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />
-              )}
-              <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
-                {ev.title}
-              </span>
-              {!isDeadline && (
-                <Pencil
-                  className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
-                  aria-hidden
-                />
-              )}
-            </div>
-          );
-        })}
+{
+  daySegments.map((seg) => {
+    const lane = lanes.get(seg.segmentKey) ?? 0;
+    const stackSize = Math.max(
+      1,
+      Math.min(CALENDAR_MAX_STACK, overlapCounts.get(seg.segmentKey) ?? 1)
+    );
+    const leftPx = (seg.start_minutes / 60) * cellWidth;
+    const widthPx = (seg.duration_minutes / 60) * cellWidth;
+    const heightPct = 100 / stackSize - 2;
+    const topPct = lane * (100 / stackSize);
+    const ev = seg.source;
+    const isMeeting = ev.type === "meeting";
+    const isDeadline = ev.type === "task_deadline";
+    const typeSuffix = isDeadline ? " · Task deadline" : isMeeting ? " · Meeting" : "";
+    const titleTip = `${ev.title} ${ev.tags.map((tag) => `#${tag}`).join(" ")} · ${formatDuration(seg.duration_minutes)}${typeSuffix}`;
+    return (
+      <div
+        key={seg.segmentKey}
+        data-event
+        onClick={(e) => {
+          e.stopPropagation();
+          onEventClick(ev);
+        }}
+        className={`absolute rounded overflow-hidden cursor-pointer shadow-sm flex items-center gap-1 group hover:ring-2 hover:ring-white/80 ${
+          isDeadline ? "border-2 border-dashed border-white/80" : "border border-white/50"
+        }`}
+        style={{
+          left: leftPx,
+          width: Math.max(24, widthPx),
+          top: `${topPct}%`,
+          height: `${heightPct}%`,
+          backgroundColor: ev.color,
+        }}
+        title={titleTip}
+      >
+        {isMeeting && <Bell className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />}
+        {isDeadline && <Flag className="w-3 h-3 text-white/90 flex-shrink-0 ml-1" aria-hidden />}
+        <span className="truncate text-[10px] font-medium text-white px-1 drop-shadow flex-1 min-w-0">
+          {ev.title}
+        </span>
+        {!isDeadline && (
+          <Pencil
+            className="w-3 h-3 text-white/90 flex-shrink-0 opacity-70 group-hover:opacity-100 mr-1"
+            aria-hidden
+          />
+        )}
+      </div>
+    );
+  });
+}
 ```
 
 - [ ] **Step 3: Type-check**
@@ -1266,27 +1253,27 @@ export function CalendarView({
 Change:
 
 ```ts
-  const handleOpenEdit = (ev: CalendarEvent) => {
-    setEditingEvent(ev);
-    setAddDate(null);
-    setSaveError(null);
-    setModalOpen(true);
-  };
+const handleOpenEdit = (ev: CalendarEvent) => {
+  setEditingEvent(ev);
+  setAddDate(null);
+  setSaveError(null);
+  setModalOpen(true);
+};
 ```
 
 to:
 
 ```ts
-  const handleOpenEdit = (ev: CalendarEvent) => {
-    if (ev.type === "task_deadline") {
-      onOpenTaskDeadline?.(ev.id.replace(/^task:/, ""));
-      return;
-    }
-    setEditingEvent(ev);
-    setAddDate(null);
-    setSaveError(null);
-    setModalOpen(true);
-  };
+const handleOpenEdit = (ev: CalendarEvent) => {
+  if (ev.type === "task_deadline") {
+    onOpenTaskDeadline?.(ev.id.replace(/^task:/, ""));
+    return;
+  }
+  setEditingEvent(ev);
+  setAddDate(null);
+  setSaveError(null);
+  setModalOpen(true);
+};
 ```
 
 - [ ] **Step 3: Include `type` in the form's `initial` values**
@@ -1348,36 +1335,36 @@ to:
 In `src/features/planowanie/PlanowanieView.tsx`, change:
 
 ```tsx
-            <CalendarView
-              apiFetch={apiFetch}
-              lang={lang}
-              t={t}
-              userTags={userTags}
-              refreshTrigger={calendarRefreshKey}
-              activeSession={activeSession}
-              onStartSession={handleStartSession}
-              onEndSession={handleEndSession}
-              sessionEndError={sessionEndError}
-              clearSessionEndError={() => setSessionEndError(null)}
-            />
+<CalendarView
+  apiFetch={apiFetch}
+  lang={lang}
+  t={t}
+  userTags={userTags}
+  refreshTrigger={calendarRefreshKey}
+  activeSession={activeSession}
+  onStartSession={handleStartSession}
+  onEndSession={handleEndSession}
+  sessionEndError={sessionEndError}
+  clearSessionEndError={() => setSessionEndError(null)}
+/>
 ```
 
 to:
 
 ```tsx
-            <CalendarView
-              apiFetch={apiFetch}
-              lang={lang}
-              t={t}
-              userTags={userTags}
-              refreshTrigger={calendarRefreshKey}
-              activeSession={activeSession}
-              onStartSession={handleStartSession}
-              onEndSession={handleEndSession}
-              sessionEndError={sessionEndError}
-              clearSessionEndError={() => setSessionEndError(null)}
-              onOpenTaskDeadline={() => setPlanningTab("tasks")}
-            />
+<CalendarView
+  apiFetch={apiFetch}
+  lang={lang}
+  t={t}
+  userTags={userTags}
+  refreshTrigger={calendarRefreshKey}
+  activeSession={activeSession}
+  onStartSession={handleStartSession}
+  onEndSession={handleEndSession}
+  sessionEndError={sessionEndError}
+  clearSessionEndError={() => setSessionEndError(null)}
+  onOpenTaskDeadline={() => setPlanningTab("tasks")}
+/>
 ```
 
 - [ ] **Step 5: Type-check the whole project**
@@ -1413,31 +1400,31 @@ Task 2 merges `task_deadline` pseudo-events into every `GET /api/calendar/events
 In `src/components/ActivityLog.tsx`, change the `.then` body that calls `setEvents`:
 
 ```ts
-        if (!cancelled)
-          setEvents(
-            Array.isArray(data)
-              ? data.sort(
-                  (a: CalendarEvent, b: CalendarEvent) =>
-                    a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
-                )
-              : []
-          );
+if (!cancelled)
+  setEvents(
+    Array.isArray(data)
+      ? data.sort(
+          (a: CalendarEvent, b: CalendarEvent) =>
+            a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
+        )
+      : []
+  );
 ```
 
 to:
 
 ```ts
-        if (!cancelled)
-          setEvents(
-            Array.isArray(data)
-              ? data
-                  .filter((ev: CalendarEvent) => !ev.id.startsWith("task:"))
-                  .sort(
-                    (a: CalendarEvent, b: CalendarEvent) =>
-                      a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
-                  )
-              : []
-          );
+if (!cancelled)
+  setEvents(
+    Array.isArray(data)
+      ? data
+          .filter((ev: CalendarEvent) => !ev.id.startsWith("task:"))
+          .sort(
+            (a: CalendarEvent, b: CalendarEvent) =>
+              a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes
+          )
+      : []
+  );
 ```
 
 - [ ] **Step 2: Filter in HomeView upcoming-events list**
@@ -1445,15 +1432,15 @@ to:
 In `src/features/home/HomeView.tsx`, change:
 
 ```ts
-  const upcomingEvents = events.filter((n) => n.date && n.date >= today && n.date <= limit48h);
+const upcomingEvents = events.filter((n) => n.date && n.date >= today && n.date <= limit48h);
 ```
 
 to:
 
 ```ts
-  const upcomingEvents = events.filter(
-    (n) => n.date && n.date >= today && n.date <= limit48h && !n.id.startsWith("task:")
-  );
+const upcomingEvents = events.filter(
+  (n) => n.date && n.date >= today && n.date <= limit48h && !n.id.startsWith("task:")
+);
 ```
 
 - [ ] **Step 3: Type-check**

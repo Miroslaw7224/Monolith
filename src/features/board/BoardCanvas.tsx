@@ -279,10 +279,11 @@ function CanvasInner({
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex gap-2 p-2">
+    <div className="plo-canvas-container">
+      <div className="plo-toolbar" role="toolbar" aria-label="Narzędzia tablicy">
         <button
           type="button"
+          className="btn btn--primary plo-btn plo-btn--primary"
           onClick={() => {
             const added = addTile(board, center(), labels.newTile);
             onChange(added.board);
@@ -291,11 +292,15 @@ function CanvasInner({
         >
           {labels.addTile}
         </button>
-        <button type="button" onClick={() => setNaming({ id: null, title: "" })}>
+        <button
+          type="button"
+          className="btn plo-btn"
+          onClick={() => setNaming({ id: null, title: "" })}
+        >
           {labels.addFrame}
         </button>
       </div>
-      <div ref={paneRef} className="min-h-0 flex-1">
+      <div ref={paneRef} className="plo-canvas-wrap">
         <ReactFlow
           nodes={nodes}
           edges={edges}

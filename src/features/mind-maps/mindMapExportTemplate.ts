@@ -506,7 +506,7 @@ function buildMindMapExportJs(rootJson: string, colWidthsJson: string): string {
 export function buildMindMapExportHtmlDocument(
   title: string,
   rootJson: string,
-  colWidthsJson: string,
+  colWidthsJson: string
 ): string {
   const css = MIND_MAP_EXPORT_CSS;
   const js = buildMindMapExportJs(rootJson, colWidthsJson);

@@ -28,7 +28,10 @@ async function readError(res: Response): Promise<string> {
   return `HTTP ${res.status}`;
 }
 
-export function useProjects(apiFetch: ApiFetch): {
+export function useProjects(
+  apiFetch: ApiFetch,
+  initialProjectId: string | null = null
+): {
   status: "loading" | "error" | "ready";
   error: string | null;
   projects: ProjectSummaryDto[];
@@ -47,6 +50,8 @@ export function useProjects(apiFetch: ApiFetch): {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   /** Wybrany projekt dla zapisów: aktualizowany synchronicznie (razem ze stanem), nie dopiero w efekcie. */
+  /** Projekt z „Wejdź” w Kokpicie; czytany tylko przy pierwszym wczytaniu listy. */
+  const initialIdRef = useRef(initialProjectId);
   const selectedIdRef = useRef<string | null>(null);
   /** Projekt, którego szczegóły są teraz w `detail`; przeładowanie tego samego projektu nie czyści `detail`. */
   const loadedIdRef = useRef<string | null>(null);
@@ -141,8 +146,11 @@ export function useProjects(apiFetch: ApiFetch): {
         setWarnings(Array.isArray(body.warnings) ? body.warnings : []);
         setStatus("ready");
         setError(null);
-        selectedIdRef.current = list[0]?.id ?? null;
-        setSelectedId(list[0]?.id ?? null);
+        const first =
+          (initialIdRef.current && list.find((p) => p.id === initialIdRef.current)?.id) ||
+          (list[0]?.id ?? null);
+        selectedIdRef.current = first;
+        setSelectedId(first);
       } catch (err) {
         if (cancelled) return;
         setStatus("error");

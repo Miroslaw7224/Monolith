@@ -17,7 +17,13 @@ import {
   type VersionToken,
 } from "@/contexts/bc_projects/models";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
-import { snapshotRepo } from "@/lib/git/project-git";
+import {
+  commitsByDay,
+  commitsSince,
+  currentBranch,
+  mergedPrsByDay,
+  snapshotRepo,
+} from "@/lib/git/project-git";
 import { readRepoFile } from "@/lib/git/repo-file";
 import { resolveRepoPath } from "@/lib/git/repo-path";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
@@ -291,6 +297,32 @@ export function readGitSnapshot(entry: RegistryEntry): GitSnapshotResult {
   const repo = resolveRepoPath(entry.localPath);
   if (repo.ok === false) return { ok: false, reason: repo.reason };
   return snapshotRepo(repo.path);
+}
+
+/** Commity od dnia `day` (`RRRR-MM-DD`) i bieżąca gałąź; `ok: false`, gdy repozytorium jest niedostępne. */
+export function readGitActivity(
+  entry: RegistryEntry,
+  day: string
+): { ok: true; commits: number; branch: string | null } | { ok: false } {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false };
+  const commits = commitsSince(repo.path, day);
+  if (commits.ok === false) return { ok: false };
+  return { ok: true, commits: commits.count, branch: currentBranch(repo.path) };
+}
+
+/** Commity po dniach w zakresie `from`–`to`; `ok: false`, gdy repozytorium jest niedostępne. */
+export function readGitHistory(
+  entry: RegistryEntry,
+  from: string,
+  to: string
+): { ok: true; days: Record<string, number>; prs: Record<string, number> } | { ok: false } {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false };
+  const commits = commitsByDay(repo.path, from, to);
+  if (commits.ok === false) return { ok: false };
+  const prs = mergedPrsByDay(repo.path, from, to);
+  return { ok: true, days: commits.days, prs: prs.ok ? prs.prs : {} };
 }
 
 /** `CLAUDE.md` z repozytorium projektu (zwykły plik, do 64 KB). */

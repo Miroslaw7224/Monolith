@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 import { type AppMode, type CardId, cardForView, cardFromHash, getCard } from "./cards";
 
 export interface CardNavigation {

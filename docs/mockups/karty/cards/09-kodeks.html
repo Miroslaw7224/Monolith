@@ -1,29 +1,2302 @@
 <!doctype html>
 <html lang="pl" data-card="kodeks" data-project="second-brain" data-branch="main">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kodeks · Second Brain</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap">
-<link rel="stylesheet" href="../tokens.css">
-<link rel="stylesheet" href="../shell.css">
-</head>
-<body>
-<div class="app">
-<main class="view">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kodeks · Second Brain</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap"
+    />
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../shell.css" />
+    <style>
+      /* --- Karta Kodeks: czytnik reguł i checklisty (prefiks .kod-) --- */
+      :root {
+        --kod-work-badge: #f59e0b;
+        --kod-work-bg: rgba(245, 158, 11, 0.12);
+        --kod-work-border: rgba(245, 158, 11, 0.4);
+        --kod-must-bg: rgba(61, 220, 132, 0.14);
+        --kod-should-bg: rgba(168, 170, 178, 0.12);
+        --kod-highlight: rgba(61, 220, 132, 0.35);
+      }
 
-  <header class="view-head">
-    <div>
-      <p class="view-head__eyebrow">Alt+9 · Kodeks</p>
-      <h1 class="view-head__title">Kodeks pracy nad kodem</h1>
-      <p class="view-head__sub">Zaślepka makiety. Pełny układ (czytnik reguł z filtrem MUST/SHOULD i checklisty) powstaje w części B, po etapie 0c: <code>docs/superpowers/specs/2026-11-12-karta-kodeks-design.md</code> §4.7.</p>
+      /* Pasek przełącznika trybów demo makiety */
+      .kod-demo-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-3);
+        padding: var(--s-2) var(--s-3);
+        margin-bottom: var(--s-4);
+        border-radius: var(--r-md);
+        background: var(--surface-2);
+        border: 1px dashed var(--line);
+        font-size: var(--fs-xs);
+      }
+      .kod-demo-bar__label {
+        font: 600 var(--fs-xs)/1 var(--font-mono);
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .kod-demo-bar__label::before {
+        content: "DEMO";
+        display: inline-block;
+        padding: 2px 5px;
+        border-radius: 4px;
+        background: var(--accent-soft);
+        color: var(--accent-text);
+        font-weight: 700;
+      }
+      .kod-demo-bar__modes {
+        display: flex;
+        gap: var(--s-2);
+        align-items: center;
+      }
+
+      /* Pasek metadanych pliku (mtime) */
+      .kod-filebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-3);
+        padding: var(--s-3) var(--s-4);
+        margin-bottom: var(--s-5);
+        border-radius: var(--r-md);
+        background: linear-gradient(90deg, var(--accent-soft), transparent 75%);
+        border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+        flex-wrap: wrap;
+      }
+      .kod-filebar__main {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        flex-wrap: wrap;
+      }
+      .kod-filebar__path {
+        font: 600 var(--fs-sm)/1.2 var(--font-mono);
+        color: var(--text);
+      }
+      .kod-filebar__mtime {
+        font: 400 var(--fs-xs)/1.2 var(--font-mono);
+        color: var(--muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .kod-filebar__mtime b {
+        color: var(--accent-text);
+        font-weight: 500;
+      }
+      .kod-filebar__badge {
+        font: 600 10px/1 var(--font-mono);
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: var(--r-pill);
+        background: var(--surface);
+        color: var(--ok);
+        border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .kod-filebar__actions {
+        display: flex;
+        gap: var(--s-2);
+        align-items: center;
+      }
+
+      /* Kafle statusu u góry */
+      .kod-tiles {
+        --cols: 4;
+        margin-bottom: var(--s-5);
+      }
+      .kod-tiles .tile__value {
+        font-size: var(--fs-2xl);
+      }
+
+      /* Ostrzeżenia w UI (nieblokujące) */
+      .kod-alerts {
+        margin-bottom: var(--s-5);
+        background: color-mix(in srgb, var(--warn) 8%, var(--surface));
+        border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line));
+        border-radius: var(--r-lg);
+        padding: var(--s-3) var(--s-4);
+      }
+      .kod-alerts__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-2);
+        margin-bottom: var(--s-2);
+      }
+      .kod-alerts__title {
+        font: 600 var(--fs-xs)/1 var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--warn);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+      }
+      .kod-alerts__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .kod-alerts__item {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--s-2);
+        font: 400 var(--fs-xs)/1.4 var(--font-mono);
+        color: var(--text);
+      }
+      .kod-alerts__tag {
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--warn) 20%, transparent);
+        color: var(--warn);
+        white-space: nowrap;
+      }
+
+      /* Główny układ karty: lewy spis treści, środek reguły, prawa checklista */
+      .kod-layout {
+        display: grid;
+        grid-template-columns: 260px 1.4fr 1.15fr;
+        gap: var(--s-4);
+        align-items: start;
+      }
+      @media (max-width: 1400px) {
+        .kod-layout {
+          grid-template-columns: 240px 1.3fr 1.1fr;
+        }
+      }
+      @media (max-width: 1100px) {
+        .kod-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* --- LEWA KOLUMNA: Spis treści --- */
+      .kod-toc {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: var(--s-3);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-3);
+        position: sticky;
+        top: var(--s-3);
+      }
+      .kod-toc__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--s-1) var(--s-2);
+        border-bottom: 1px solid var(--line);
+        padding-bottom: var(--s-2);
+      }
+      .kod-toc__title {
+        font: 700 var(--fs-xs)/1.2 var(--font-display);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .kod-toc__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .kod-toc__link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-2);
+        padding: var(--s-2) var(--s-2);
+        border-radius: var(--r-sm);
+        text-decoration: none;
+        color: var(--muted);
+        font-size: var(--fs-sm);
+        transition:
+          background 0.12s var(--ease),
+          color 0.12s var(--ease);
+      }
+      .kod-toc__link:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+      .kod-toc__link--active {
+        background: var(--accent-soft);
+        color: var(--accent-text);
+        font-weight: 600;
+      }
+      .kod-toc__badge {
+        font: 600 10px/1 var(--font-mono);
+        color: var(--muted);
+      }
+      .kod-toc__meta {
+        padding: var(--s-3);
+        border-radius: var(--r-md);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        font: 400 var(--fs-xs)/1.4 var(--font-mono);
+        color: var(--muted);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .kod-toc__meta-item b {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      /* --- ŚRODEK: Reguły kodeksu --- */
+      .kod-rules {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-4);
+      }
+      .kod-toolbar {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: var(--s-3);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-3);
+      }
+      .kod-toolbar__row {
+        display: flex;
+        align-items: center;
+        gap: var(--s-3);
+        flex-wrap: wrap;
+      }
+      .kod-search {
+        flex: 1;
+        min-width: 220px;
+        height: 36px;
+        font-size: var(--fs-sm);
+      }
+      .kod-filter-group {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--s-1);
+        background: var(--surface-2);
+        padding: 3px;
+        border-radius: var(--r-pill);
+        border: 1px solid var(--line);
+      }
+      .kod-filter-btn {
+        height: 24px;
+        padding: 0 var(--s-3);
+        border-radius: var(--r-pill);
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        font: 600 var(--fs-xs)/1 var(--font-mono);
+        cursor: pointer;
+        transition:
+          background 0.12s var(--ease),
+          color 0.12s var(--ease);
+      }
+      .kod-filter-btn[aria-pressed="true"] {
+        background: var(--accent);
+        color: var(--accent-ink);
+        box-shadow: 0 0 10px var(--glow);
+      }
+
+      /* Sekcja reguł z kotwicami */
+      .kod-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-3);
+        scroll-margin-top: var(--s-4);
+      }
+      .kod-section__head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--s-2);
+        padding-bottom: var(--s-1);
+        border-bottom: 1px solid var(--line);
+      }
+      .kod-section__title {
+        font: 700 var(--fs-lg)/1.2 var(--font-display);
+        margin: 0;
+        color: var(--text);
+      }
+      .kod-section__meta {
+        font: 500 var(--fs-xs)/1 var(--font-mono);
+        color: var(--muted);
+      }
+
+      /* Karta reguły */
+      .kod-rule {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: var(--s-3) var(--s-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-2);
+        scroll-margin-top: 80px;
+        transition:
+          border-color 0.2s var(--ease),
+          box-shadow 0.2s var(--ease),
+          background 0.2s var(--ease);
+      }
+      .kod-rule:hover {
+        border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+      }
+      .kod-rule--highlight {
+        border-color: var(--accent) !important;
+        background: color-mix(in srgb, var(--surface) 85%, var(--accent-soft)) !important;
+        box-shadow:
+          0 0 0 2px var(--accent),
+          0 0 24px var(--glow) !important;
+      }
+      .kod-rule__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-2);
+        flex-wrap: wrap;
+      }
+      .kod-rule__id-group {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+      }
+      .kod-rule__anchor {
+        font: 700 var(--fs-xs)/1 var(--font-mono);
+        color: var(--accent-text);
+        text-decoration: none;
+        letter-spacing: 0.5px;
+        padding: 2px 6px;
+        border-radius: var(--r-sm);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+      }
+      .kod-rule__anchor:hover {
+        border-color: var(--accent);
+        color: var(--text);
+      }
+      .kod-badge-must {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        padding: 0 8px;
+        border-radius: var(--r-pill);
+        background: var(--accent);
+        color: var(--accent-ink);
+        font: 700 10px/1 var(--font-mono);
+        letter-spacing: 0.8px;
+      }
+      .kod-badge-should {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 20px;
+        padding: 0 8px;
+        border-radius: var(--r-pill);
+        background: var(--surface-2);
+        color: var(--muted);
+        border: 1px solid var(--line);
+        font: 600 10px/1 var(--font-mono);
+        letter-spacing: 0.8px;
+      }
+      .kod-rule__content {
+        font-size: var(--fs-sm);
+        line-height: 1.5;
+        color: var(--text);
+      }
+      .kod-rule__content b,
+      .kod-rule__content strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .kod-rule__content code {
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        padding: 1px 5px;
+        border-radius: 4px;
+        color: var(--accent-text);
+      }
+      .kod-rule__sublist {
+        margin: var(--s-2) 0 0;
+        padding-left: 20px;
+        font-size: var(--fs-xs);
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .kod-rule__sublist li {
+        margin-bottom: 3px;
+      }
+
+      /* --- PRAWA KOLUMNA: Checklisty i Uruchomienie --- */
+      .kod-checklists {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-4);
+      }
+
+      .kod-run {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: var(--s-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-3);
+      }
+      .kod-run__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--s-3);
+        padding-bottom: var(--s-3);
+        border-bottom: 1px solid var(--line);
+      }
+      .kod-run__title {
+        font: 700 var(--fs-lg)/1.2 var(--font-display);
+        margin: 0;
+        color: var(--text);
+      }
+      .kod-run__sub {
+        font: 400 var(--fs-xs)/1.4 var(--font-mono);
+        color: var(--muted);
+        margin: 3px 0 0;
+      }
+
+      /* Przełącznik owner (personal / work) */
+      .kod-owner-box {
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-2);
+        padding: var(--s-3);
+        border-radius: var(--r-md);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+      }
+      .kod-owner-box__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--s-2);
+      }
+      .kod-owner-box__label {
+        font: 600 10px/1 var(--font-mono);
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .kod-owner-selector {
+        display: inline-flex;
+        padding: 2px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-pill);
+        gap: 2px;
+      }
+      .kod-owner-btn {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        padding: 3px 10px;
+        border-radius: var(--r-pill);
+        font: 600 var(--fs-xs)/1 var(--font-mono);
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .kod-owner-btn[aria-pressed="true"] {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      .kod-owner-btn--work[aria-pressed="true"] {
+        background: var(--kod-work-badge);
+        color: #1a0f00;
+      }
+
+      .kod-owner-info {
+        font: 400 var(--fs-xs)/1.35 var(--font-mono);
+        color: var(--muted);
+      }
+      .kod-owner-info--work {
+        display: none;
+        color: var(--kod-work-badge);
+        background: var(--kod-work-bg);
+        border: 1px dashed var(--kod-work-border);
+        padding: var(--s-2);
+        border-radius: var(--r-sm);
+      }
+      .kod-owner-info--work.is-active {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--s-2);
+      }
+      .kod-owner-info--personal.is-active {
+        display: block;
+      }
+      .kod-owner-info--personal {
+        display: none;
+      }
+
+      /* Pasek postępu checklisty */
+      .kod-progress-box {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: var(--s-2) 0;
+      }
+      .kod-progress-box__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font: 600 var(--fs-xs)/1 var(--font-mono);
+      }
+      .kod-progress-box__count {
+        color: var(--text);
+      }
+      .kod-progress-box__count b {
+        color: var(--accent-text);
+      }
+
+      /* Elementy checklisty */
+      .kod-items-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-2);
+      }
+      .kod-item {
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        display: flex;
+        flex-direction: column;
+        gap: var(--s-2);
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .kod-item:hover {
+        border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+      }
+      .kod-item--checked {
+        border-color: color-mix(in srgb, var(--ok) 40%, var(--line));
+        background: color-mix(in srgb, var(--surface-2) 93%, rgba(94, 234, 212, 0.08));
+      }
+      .kod-item__row {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--s-2);
+      }
+      .kod-item__check {
+        margin-top: 2px;
+      }
+      .kod-item__body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .kod-item__label {
+        font-size: var(--fs-sm);
+        line-height: 1.35;
+        color: var(--text);
+        cursor: pointer;
+      }
+      .kod-rule-ref {
+        font: 700 var(--fs-xs)/1 var(--font-mono);
+        color: var(--accent-text);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+        margin-right: 4px;
+      }
+      .kod-rule-ref:hover {
+        color: var(--text);
+      }
+      .kod-item__status-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font: 600 10px/1 var(--font-mono);
+        letter-spacing: 0.5px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: auto;
+        white-space: nowrap;
+        border: 1px solid transparent;
+      }
+      /* Spec §3: zielony akcent leży blisko statusu --ok, więc odznaka sukcesu ma dodatkową ikonę SVG/znacznika */
+      .kod-item__status-tag--done {
+        background: color-mix(in srgb, var(--ok) 16%, transparent);
+        color: var(--ok);
+        border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+      }
+      .kod-item__status-tag--todo {
+        background: var(--surface);
+        color: var(--muted);
+        border-color: var(--line);
+      }
+      .kod-note {
+        height: 30px;
+        font-size: var(--fs-xs);
+        font-family: var(--font-mono);
+        background: var(--surface);
+      }
+      .kod-note::placeholder {
+        color: var(--muted);
+        opacity: 0.7;
+      }
+
+      /* --- STANY SPECJALNE (Brak pliku / Błąd konfiguracji) --- */
+      .kod-state-view {
+        display: none;
+        margin-top: var(--s-4);
+      }
+      .kod-state-view.is-visible {
+        display: block;
+      }
+      .kod-empty-box {
+        background: var(--surface);
+        border: 1px dashed var(--line);
+        border-radius: var(--r-lg);
+        padding: var(--s-6);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--s-4);
+        max-width: 680px;
+        margin: 0 auto;
+      }
+      .kod-empty-box__icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--r-md);
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        color: var(--accent-text);
+      }
+      .kod-empty-box__title {
+        font: 700 var(--fs-xl)/1.2 var(--font-display);
+        margin: 0;
+      }
+      .kod-empty-box__desc {
+        color: var(--muted);
+        font-size: var(--fs-sm);
+        line-height: 1.5;
+        margin: 0;
+      }
+      .kod-codeblock {
+        width: 100%;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: var(--s-3);
+        text-align: left;
+        font: 400 var(--fs-xs)/1.5 var(--font-mono);
+        color: var(--text);
+        overflow-x: auto;
+        white-space: pre;
+      }
+      .kod-error-box {
+        border-color: var(--danger);
+        background: color-mix(in srgb, var(--danger) 8%, var(--surface));
+      }
+      .kod-error-box .kod-empty-box__icon {
+        color: var(--danger);
+        border-color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="view">
+        <!-- Pasek przełącznika trybów demo (spełnia wymóg przełączalnych stanów w makiecie) -->
+        <aside class="kod-demo-bar" aria-label="Narzędzie podglądu stanów makiety">
+          <span class="kod-demo-bar__label">Podgląd wariantów stanu:</span>
+          <div class="kod-demo-bar__modes" role="group" aria-label="Warianty widoku">
+            <button
+              class="btn btn--sm btn--primary"
+              id="btn-mode-normal"
+              type="button"
+              aria-pressed="true"
+            >
+              Czytnik normalny
+            </button>
+            <button class="btn btn--sm" id="btn-mode-empty" type="button" aria-pressed="false">
+              Pusty stan (brak pliku)
+            </button>
+            <button class="btn btn--sm" id="btn-mode-error" type="button" aria-pressed="false">
+              Błąd konfiguracji (brak vaulta)
+            </button>
+          </div>
+        </aside>
+
+        <!-- GŁÓWNY WIDOK: STAN NORMALNY (DOMYŚLNY) -->
+        <div id="view-normal">
+          <!-- Nagłówek karty z eyebrow, tytułem i akcjami -->
+          <header class="view-head">
+            <div>
+              <p class="view-head__eyebrow">Alt+9 · Kodeks</p>
+              <h1 class="view-head__title">Kodeks inżynierii oprogramowania</h1>
+              <p class="view-head__sub">
+                Czytnik reguł normatywnych <code>Vault/Knowledge/kodeks.md</code> i interaktywne
+                checklisty zadań
+              </p>
+            </div>
+            <div class="view-head__actions">
+              <button
+                class="btn btn--sm"
+                type="button"
+                data-toast="Odświeżono stan mtime: plik aktualny (11.11.2026 08:30:14)"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path
+                    d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                  ></path>
+                </svg>
+                Odśwież mtime
+              </button>
+              <button
+                class="btn btn--sm"
+                type="button"
+                data-toast="Skopiowano ścieżkę: Vault/Knowledge/kodeks.md"
+              >
+                Kopiuj ścieżkę
+              </button>
+            </div>
+          </header>
+
+          <!-- Pasek z datą modyfikacji pliku (mtime) -->
+          <div class="kod-filebar" data-src="Vault/Knowledge/kodeks.md · mtime">
+            <div class="kod-filebar__main">
+              <span class="kod-filebar__badge">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Tylko do odczytu
+              </span>
+              <span class="kod-filebar__path">Vault/Knowledge/kodeks.md</span>
+              <span class="kod-filebar__mtime"
+                >mtime: <b>środa, 11 listopada 2026, 08:30:14</b></span
+              >
+            </div>
+            <div class="kod-filebar__actions">
+              <span class="chip chip--accent">Projekt: second-brain</span>
+              <span class="chip">Gałąź: main</span>
+            </div>
+          </div>
+
+          <!-- Kafle statusu u góry (wzorce Kokpit/Projekty) -->
+          <div class="tiles kod-tiles" data-src="Vault/Knowledge/kodeks.md · statystyki">
+            <div class="tile tile--accent">
+              <span class="tile__label">Reguły kodeksu</span>
+              <span class="tile__value">11</span>
+              <span class="tile__meta">7 MUST (mocne) · 4 SHOULD</span>
+            </div>
+            <div class="tile">
+              <span class="tile__label">Uruchomiona checklista</span>
+              <span class="tile__value" id="tile-stat-progress">4 / 6</span>
+              <span class="tile__meta">Definition of Done (66%)</span>
+            </div>
+            <div class="tile">
+              <span class="tile__label">Dziennik zdarzeń</span>
+              <span class="tile__value">142</span>
+              <span class="tile__meta">2026-11.jsonl · dopisywanie</span>
+            </div>
+            <div class="tile">
+              <span class="tile__label">Stan walidacji</span>
+              <span class="tile__value" style="color: var(--warn)">3</span>
+              <span class="tile__meta">Ostrzeżenia parsera (nieblokujące)</span>
+            </div>
+          </div>
+
+          <!-- Ostrzeżenia w UI (nieblokujące błędy ze specu §4.1 i §4.2) -->
+          <section
+            class="kod-alerts"
+            aria-label="Ostrzeżenia parsera kodeksu"
+            data-src="Vault/Knowledge/kodeks.md · parser diagnostics"
+          >
+            <div class="kod-alerts__head">
+              <h2 class="kod-alerts__title">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                  ></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Ostrzeżenia diagnostyczne (parsowanie poprawne, czytanie kontynuowane)
+              </h2>
+              <span class="chip chip--warn">3 uwagi</span>
+            </div>
+            <ul class="kod-alerts__list">
+              <li class="kod-alerts__item">
+                <span class="kod-alerts__tag">Zduplikowany identyfikator</span>
+                <span
+                  >Reguła <code>[TDD-1]</code> występuje powtórnie w linii 118 pliku
+                  <code>kodeks.md</code>. Zastosowano definicję pierwszą, kolejne zignorowano.</span
+                >
+              </li>
+              <li class="kod-alerts__item">
+                <span class="kod-alerts__tag">Brakująca reguła</span>
+                <span
+                  >Checklista „Przed PR” zawiera odwołanie do <code>[SEC-4]</code>, którego nie
+                  znaleziono w rejestrze reguł (kliknięcie odznacza brakujący cel).</span
+                >
+              </li>
+              <li class="kod-alerts__item">
+                <span class="kod-alerts__tag">Dziennik zdarzeń</span>
+                <span
+                  >Pominięto <b>2 uszkodzone linie</b> w
+                  <code>Vault/Checklists/2026-11.jsonl</code> podczas rekonstrukcji stanu sesji
+                  (stan odtworzony z poprawnych wpisów).</span
+                >
+              </li>
+            </ul>
+          </section>
+
+          <!-- Główny podział na 3 kolumny: Spis treści | Reguły | Checklisty -->
+          <div class="kod-layout">
+            <!-- LEWA KOLUMNA: SPIS TREŚCI Z NAGŁÓWKÓW -->
+            <aside
+              class="kod-toc"
+              aria-label="Spis treści kodeksu"
+              data-src="Vault/Knowledge/kodeks.md · nagłówki"
+            >
+              <div class="kod-toc__head">
+                <h2 class="kod-toc__title">Spis treści</h2>
+                <span class="kod-toc__badge">6 sekcji</span>
+              </div>
+              <nav>
+                <ul class="kod-toc__list">
+                  <li>
+                    <a href="#sec-tdd" class="kod-toc__link kod-toc__link--active">
+                      <span>1. Kardynalne TDD</span>
+                      <span class="kod-toc__badge">2 MUST</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#sec-asercje" class="kod-toc__link">
+                      <span>2. Jakość asercji</span>
+                      <span class="kod-toc__badge">2 MUST · 1 SHOULD</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#sec-dowody" class="kod-toc__link">
+                      <span>3. Dowody przed twierdzeniem</span>
+                      <span class="kod-toc__badge">1 MUST · 1 SHOULD</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#sec-zakres" class="kod-toc__link">
+                      <span>4. Zakres zmian i atomowość</span>
+                      <span class="kod-toc__badge">1 MUST · 1 SHOULD</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#sec-agent" class="kod-toc__link">
+                      <span>5. Współpraca z agentami AI</span>
+                      <span class="kod-toc__badge">1 MUST · 1 SHOULD</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#sec-checklisty" class="kod-toc__link">
+                      <span>6. Checklisty operacyjne</span>
+                      <span class="kod-toc__badge">2 zestawy</span>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+
+              <div class="kod-toc__meta">
+                <div class="kod-toc__meta-item">Plik źródłowy: <b>kodeks.md</b></div>
+                <div class="kod-toc__meta-item">Konwencja: <b>Knowledge/ D5</b></div>
+                <div class="kod-toc__meta-item">Powiązanie: <b>[[ai-coding-guardrails]]</b></div>
+                <div class="kod-toc__meta-item">Parser: <b>strict regex (§4.1)</b></div>
+              </div>
+            </aside>
+
+            <!-- ŚRODKOWA KOLUMNA: REGUŁY JAKO LISTA Z KOTWICAMI -->
+            <section
+              class="kod-rules"
+              aria-label="Reguły kodeksu"
+              data-src="Vault/Knowledge/kodeks.md · reguły"
+            >
+              <!-- Pasek narzędziowy: wyszukiwanie + filtr MUST/SHOULD -->
+              <div class="kod-toolbar">
+                <div class="kod-toolbar__row">
+                  <input
+                    type="search"
+                    id="kod-search-input"
+                    class="input kod-search"
+                    placeholder="Szukaj reguły po ID (np. TDD-1) lub tekście..."
+                    aria-label="Wyszukiwanie reguł"
+                  />
+
+                  <div class="kod-filter-group" role="group" aria-label="Filtr poziomu reguł">
+                    <button
+                      type="button"
+                      class="kod-filter-btn"
+                      data-filter="all"
+                      aria-pressed="true"
+                    >
+                      Wszystkie (11)
+                    </button>
+                    <button
+                      type="button"
+                      class="kod-filter-btn"
+                      data-filter="must"
+                      aria-pressed="false"
+                    >
+                      MUST (7)
+                    </button>
+                    <button
+                      type="button"
+                      class="kod-filter-btn"
+                      data-filter="should"
+                      aria-pressed="false"
+                    >
+                      SHOULD (4)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="kod-rules-container" class="stack" style="--gap: var(--s-5)">
+                <!-- Sekcja 1: TDD -->
+                <article id="sec-tdd" class="kod-section">
+                  <div class="kod-section__head">
+                    <h2 class="kod-section__title">1. Zasady kardynalne TDD</h2>
+                    <span class="kod-section__meta">2 reguły</span>
+                  </div>
+
+                  <!-- Reguła TDD-1 -->
+                  <div id="rule-tdd-1" class="kod-rule" data-level="must" data-id="TDD-1">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-tdd-1"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły TDD-1"
+                          >#TDD-1</a
+                        >
+                        <span class="kod-badge-must">MUST</span>
+                      </div>
+                      <span class="chip">Kardynalne</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b>Brak kodu produkcyjnego bez czerwonego testu</b> (komenda weryfikacyjna,
+                      kod wyjścia <code>exit ≠ 0</code>, zarejestrowana przyczyna błędu).
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Test musi zakończyć się niepowodzeniem z powodu
+                          <strong>braku oczekiwanej logiki</strong>, a nie błędu składni, lintera
+                          czy importu modułu.
+                        </li>
+                        <li>
+                          Utrwal w devlogu zadania komendę uruchomieniową oraz uzyskany komunikat
+                          błędu przed rozpoczęciem fazy zielonej.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reguła TDD-2 -->
+                  <div id="rule-tdd-2" class="kod-rule" data-level="should" data-id="TDD-2">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-tdd-2"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły TDD-2"
+                          >#TDD-2</a
+                        >
+                        <span class="kod-badge-should">SHOULD</span>
+                      </div>
+                      <span class="chip">Dyscyplina</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b>Pętla Red-Green-Refactor w krótkich interwałach do 15 minut.</b>
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Jeśli faza czerwona trwa dłużej niż 15 minut, wycofaj zmiany robocze
+                          (<code>git checkout</code>) i rozbij zadanie na mniejsze kroki.
+                        </li>
+                        <li>
+                          Nie łącz refaktoringu z implementacją nowej funkcjonalności w ramach
+                          jednego przejścia pętli.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Sekcja 2: Jakość asercji -->
+                <article id="sec-asercje" class="kod-section">
+                  <div class="kod-section__head">
+                    <h2 class="kod-section__title">2. Jakość asercji i weryfikacja</h2>
+                    <span class="kod-section__meta">3 reguły</span>
+                  </div>
+
+                  <!-- Reguła ASERCJE-1 -->
+                  <div id="rule-asercje-1" class="kod-rule" data-level="must" data-id="ASERCJE-1">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-asercje-1"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły ASERCJE-1"
+                          >#ASERCJE-1</a
+                        >
+                        <span class="kod-badge-must">MUST</span>
+                      </div>
+                      <span class="chip">Asercje</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b>Zakaz asercji pozornych i tautologii w testach jednostkowych.</b>
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Niedopuszczalne jest stosowanie <code>expect(true).toBe(true)</code> ani
+                          sprawdzanie wyłącznie braku rzucenia wyjątku (<code>not.toThrow()</code>),
+                          gdy funkcja zwraca stan.
+                        </li>
+                        <li>
+                          Każda asercja musi bezpośrednio weryfikować oczekiwany stan obiektu,
+                          strukturę danych lub precyzyjny efekt uboczny.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reguła ASERCJE-2 -->
+                  <div id="rule-asercje-2" class="kod-rule" data-level="must" data-id="ASERCJE-2">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-asercje-2"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły ASERCJE-2"
+                          >#ASERCJE-2</a
+                        >
+                        <span class="kod-badge-must">MUST</span>
+                      </div>
+                      <span class="chip">Diagnostyka</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b
+                        >Jednoznaczne komunikaty błędów w asercjach niestandardowych i warunkach
+                        brzegowych.</b
+                      >
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Weryfikacja rzucenia błędu musi sprawdzać dokładny typ wyjątku oraz
+                          fragment komunikatu (np.
+                          <code>toThrowError(/niepoprawny format/i)</code>).
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reguła ASERCJE-3 -->
+                  <div id="rule-asercje-3" class="kod-rule" data-level="should" data-id="ASERCJE-3">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-asercje-3"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły ASERCJE-3"
+                          >#ASERCJE-3</a
+                        >
+                        <span class="kod-badge-should">SHOULD</span>
+                      </div>
+                      <span class="chip">Architektura</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b>Testowanie wielopoziomowe zamiast nadmiaru mocków i atrap.</b>
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Atrapy (mocki) stosuj wyłącznie na fizycznych granicach I/O (sieć, zegar,
+                          system plików). Logika domenowa ma być sprawdzana na rzeczywistych
+                          obiektach.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Sekcja 3: Dowody przed twierdzeniami -->
+                <article id="sec-dowody" class="kod-section">
+                  <div class="kod-section__head">
+                    <h2 class="kod-section__title">3. Dowody przed twierdzeniami</h2>
+                    <span class="kod-section__meta">2 reguły</span>
+                  </div>
+
+                  <!-- Reguła DOWODY-1 -->
+                  <div id="rule-dowody-1" class="kod-rule" data-level="must" data-id="DOWODY-1">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-dowody-1"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły DOWODY-1"
+                          >#DOWODY-1</a
+                        >
+                        <span class="kod-badge-must">MUST</span>
+                      </div>
+                      <span class="chip">Weryfikacja</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b>Dowód przed twierdzeniem o naprawie błędu lub ukończeniu etapu prac.</b>
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Przed poinformowaniem o rozwiązaniu problemu przedstaw w konsoli: zrzut z
+                          terminala, kod wyjścia <code>exit = 0</code> z testu regresyjnego oraz
+                          zielony przebieg powiązanego pakietu.
+                        </li>
+                        <li>
+                          Zakaz twierdzeń opartych wyłącznie na założeniu, że edycja kodu powinna
+                          działać.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reguła DOWODY-2 -->
+                  <div id="rule-dowody-2" class="kod-rule" data-level="should" data-id="DOWODY-2">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-dowody-2"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły DOWODY-2"
+                          >#DOWODY-2</a
+                        >
+                        <span class="kod-badge-should">SHOULD</span>
+                      </div>
+                      <span class="chip">Dokumentacja</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b
+                        >Zapis dowodu weryfikacji w devlogu zadania lub treści zatwierdzenia (commit
+                        message).</b
+                      >
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Dołącz skróconą linijkę z komendą weryfikacyjną i czasem wykonania testów
+                          automatycznych.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Sekcja 4: Zakres zmian -->
+                <article id="sec-zakres" class="kod-section">
+                  <div class="kod-section__head">
+                    <h2 class="kod-section__title">4. Zakres zmian i atomowość</h2>
+                    <span class="kod-section__meta">2 reguły</span>
+                  </div>
+
+                  <!-- Reguła ZAKRES-1 -->
+                  <div id="rule-zakres-1" class="kod-rule" data-level="must" data-id="ZAKRES-1">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-zakres-1"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły ZAKRES-1"
+                          >#ZAKRES-1</a
+                        >
+                        <span class="kod-badge-must">MUST</span>
+                      </div>
+                      <span class="chip">Git / Higiena</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b
+                        >Zmiany w repozytorium ściśle ograniczone do zakresu opisanego w
+                        specyfikacji zadania.</b
+                      >
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Zakaz przypadkowego formatowania sąsiednich plików, zmieniania
+                          konfiguracji lintera lub refaktoryzacji kodu "przy okazji".
+                        </li>
+                        <li>
+                          Commity muszą być atomowe, spójne logicznie i samodzielnie kompilowalne.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reguła ZAKRES-2 -->
+                  <div id="rule-zakres-2" class="kod-rule" data-level="should" data-id="ZAKRES-2">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-zakres-2"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły ZAKRES-2"
+                          >#ZAKRES-2</a
+                        >
+                        <span class="kod-badge-should">SHOULD</span>
+                      </div>
+                      <span class="chip">Commity</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b>Ścisłe rozdzielenie refaktoryzacji od dodawania nowych funkcjonalności.</b>
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Najpierw przygotuj osobny commit z refaktoryzacją (zachowujący zielony
+                          stan testów), a dopiero po nim commit z nową cechą.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Sekcja 5: Agenci AI -->
+                <article id="sec-agent" class="kod-section">
+                  <div class="kod-section__head">
+                    <h2 class="kod-section__title">5. Współpraca z agentami AI</h2>
+                    <span class="kod-section__meta">2 reguły</span>
+                  </div>
+
+                  <!-- Reguła AGENT-1 (ze specu §5) -->
+                  <div id="rule-agent-1" class="kod-rule" data-level="must" data-id="AGENT-1">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-agent-1"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły AGENT-1"
+                          >#AGENT-1</a
+                        >
+                        <span class="kod-badge-must">MUST</span>
+                      </div>
+                      <span class="chip">Agent Prompting</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b
+                        >Plan implementacji (spec → plan) powstaje wyłącznie z odczytu istniejącego
+                        kodu i rozumowania.</b
+                      >
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Nie buduj kodu roboczego, scratch projektu ani środowiska testowego po to,
+                          by plan napisać: implementacja powstaje raz, w kroku wykonania, w TDD.
+                        </li>
+                        <li>
+                          Weryfikacja kodu należy do wykonawcy planu (czerwony test, zielony test),
+                          a nie do autora planu.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reguła AGENT-2 -->
+                  <div id="rule-agent-2" class="kod-rule" data-level="should" data-id="AGENT-2">
+                    <div class="kod-rule__top">
+                      <div class="kod-rule__id-group">
+                        <a
+                          href="#rule-agent-2"
+                          class="kod-rule__anchor"
+                          title="Kotwica do reguły AGENT-2"
+                          >#AGENT-2</a
+                        >
+                        <span class="kod-badge-should">SHOULD</span>
+                      </div>
+                      <span class="chip">Ograniczanie kontekstu</span>
+                    </div>
+                    <div class="kod-rule__content">
+                      <b
+                        >Ścisłe ograniczanie okna kontekstu agenta i precyzyjne kryteria wyjścia
+                        narzędzi.</b
+                      >
+                      <ul class="kod-rule__sublist">
+                        <li>
+                          Dostarczaj agentowi wyłącznie pliki objęte zadaniem oraz jednoznaczne
+                          polecenie z oczekiwanym kodem wyjścia.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <!-- PRAWA KOLUMNA: CHECKLISTY I PANEL URUCHOMIENIA -->
+            <section
+              id="sec-checklisty"
+              class="kod-checklists"
+              aria-label="Sekcja checklist operacyjnych"
+              data-src="Vault/Knowledge/kodeks.md · ## Checklisty"
+            >
+              <div class="kod-run">
+                <div class="kod-run__head">
+                  <div>
+                    <h2 class="kod-run__title" id="run-checklist-title">Uruchomienie checklisty</h2>
+                    <p class="kod-run__sub">
+                      Rejestracja zdarzeń w formacie append-only <code>.jsonl</code>
+                    </p>
+                  </div>
+                  <!-- Zakładki wyboru checklisty -->
+                  <div class="tabs" role="tablist" aria-label="Wybór checklisty">
+                    <button
+                      class="tabs__btn"
+                      id="tab-dod"
+                      type="button"
+                      role="tab"
+                      aria-selected="true"
+                      data-tab="dod"
+                    >
+                      DoD
+                    </button>
+                    <button
+                      class="tabs__btn"
+                      id="tab-pr"
+                      type="button"
+                      role="tab"
+                      aria-selected="false"
+                      data-tab="pr"
+                    >
+                      Przed PR
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Metryczka zadania -->
+                <div class="kod-owner-box">
+                  <div class="kod-owner-box__top">
+                    <span class="kod-owner-box__label">Kontekst zadania i prywatność:</span>
+
+                    <!-- Przełącznik owner: personal / work -->
+                    <div
+                      class="kod-owner-selector"
+                      role="radiogroup"
+                      aria-label="Strefa zapisu owner"
+                    >
+                      <button
+                        type="button"
+                        id="btn-owner-personal"
+                        class="kod-owner-btn"
+                        role="radio"
+                        aria-checked="true"
+                        aria-pressed="true"
+                      >
+                        personal
+                      </button>
+                      <button
+                        type="button"
+                        id="btn-owner-work"
+                        class="kod-owner-btn kod-owner-btn--work"
+                        role="radio"
+                        aria-checked="false"
+                        aria-pressed="false"
+                      >
+                        work
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Informacja dla trybu personal -->
+                  <div
+                    id="info-owner-personal"
+                    class="kod-owner-info kod-owner-info--personal is-active"
+                  >
+                    Zapis: <code>Vault/Checklists/2026-11.jsonl</code> (projekt <b>second-brain</b>,
+                    repozytorium prywatne).
+                  </div>
+
+                  <!-- Informacja dla trybu work ze specjalnym znacznikiem i ostrzeżeniem o ignorowaniu przez git -->
+                  <div id="info-owner-work" class="kod-owner-info kod-owner-info--work">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                    </svg>
+                    <div>
+                      <b>[Dane z firmy]</b> Zapis kierowany wyłącznie do strefy
+                      <code>Vault/Work/Checklists/</code> ignorowanej przez git (zgodnie z
+                      <code>.gitignore</code> i §4.3 specu). Notatki i opisy nie trafią do
+                      repozytorium publicznego.
+                    </div>
+                  </div>
+
+                  <div style="font-size: var(--fs-xs); color: var(--muted); margin-top: 2px">
+                    Zadanie: <b style="color: var(--text)">Makieta karty Kodeks (09-kodeks.html)</b>
+                  </div>
+                </div>
+
+                <!-- Licznik odhaczonych z N i pasek postępu -->
+                <div class="kod-progress-box">
+                  <div class="kod-progress-box__top">
+                    <span class="kod-progress-box__count"
+                      >Postęp: <b id="run-progress-text">4 z 6 odhaczone</b></span
+                    >
+                    <span
+                      class="kod-progress-box__pct mono"
+                      id="run-progress-pct"
+                      style="color: var(--accent-text)"
+                      >66%</span
+                    >
+                  </div>
+                  <div
+                    class="progress"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    aria-valuenow="66"
+                  >
+                    <span id="run-progress-bar" style="--v: 66%"></span>
+                  </div>
+                </div>
+
+                <!-- LISTA PUNKTÓW DLA DEFINITION OF DONE (DOD) -->
+                <div id="checklist-view-dod" class="stack" style="--gap: var(--s-2)">
+                  <ul class="kod-items-list" data-src="Vault/Checklists/2026-11.jsonl · dod">
+                    <!-- Punkt 1 -->
+                    <li class="kod-item kod-item--checked">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-dod-1"
+                          checked
+                          aria-label="Punkt 1: TDD czerwony test"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-dod-1" class="kod-item__label">
+                            <a href="#rule-tdd-1" class="kod-rule-ref" data-target="rule-tdd-1"
+                              >[TDD-1]</a
+                            >
+                            Czerwony test napisany i potwierdzony przed kodem (exit ≠ 0).
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--done">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Odhaczone
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="Test zakończony exit 1 (brak widoku)"
+                        placeholder="Jednolinijkowa notatka (K4 bez dowodów)..."
+                        aria-label="Notatka do punktu 1"
+                      />
+                    </li>
+
+                    <!-- Punkt 2 -->
+                    <li class="kod-item kod-item--checked">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-dod-2"
+                          checked
+                          aria-label="Punkt 2: Asercje bez pozorów"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-dod-2" class="kod-item__label">
+                            <a
+                              href="#rule-asercje-1"
+                              class="kod-rule-ref"
+                              data-target="rule-asercje-1"
+                              >[ASERCJE-1]</a
+                            >
+                            Brak asercji pozornych; sprawdzone konkretne elementy widoku.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--done">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Odhaczone
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="Asercje sprawdzają obecność tokenów i id"
+                        placeholder="Jednolinijkowa notatka (K4 bez dowodów)..."
+                        aria-label="Notatka do punktu 2"
+                      />
+                    </li>
+
+                    <!-- Punkt 3 -->
+                    <li class="kod-item kod-item--checked">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-dod-3"
+                          checked
+                          aria-label="Punkt 3: Dowód przed twierdzeniem"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-dod-3" class="kod-item__label">
+                            <a
+                              href="#rule-dowody-1"
+                              class="kod-rule-ref"
+                              data-target="rule-dowody-1"
+                              >[DOWODY-1]</a
+                            >
+                            Dowód przed zgłoszeniem sukcesu: testy zielone, kod kompiluje się.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--done">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Odhaczone
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="npx vitest run zakończone kodem 0"
+                        placeholder="Jednolinijkowa notatka (K4 bez dowodów)..."
+                        aria-label="Notatka do punktu 3"
+                      />
+                    </li>
+
+                    <!-- Punkt 4 -->
+                    <li class="kod-item kod-item--checked">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-dod-4"
+                          checked
+                          aria-label="Punkt 4: Zakres zmian"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-dod-4" class="kod-item__label">
+                            <a
+                              href="#rule-zakres-1"
+                              class="kod-rule-ref"
+                              data-target="rule-zakres-1"
+                              >[ZAKRES-1]</a
+                            >
+                            Git diff sprawdzony: zmiana wyłącznie w pliku wskazanym w zadaniu.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--done">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Odhaczone
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="Zmieniono wyłącznie docs/mockups/karty/cards/09-kodeks.html"
+                        placeholder="Jednolinijkowa notatka (K4 bez dowodów)..."
+                        aria-label="Notatka do punktu 4"
+                      />
+                    </li>
+
+                    <!-- Punkt 5 -->
+                    <li class="kod-item">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-dod-5"
+                          aria-label="Punkt 5: Zasada planowania agenta"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-dod-5" class="kod-item__label">
+                            <a href="#rule-agent-1" class="kod-rule-ref" data-target="rule-agent-1"
+                              >[AGENT-1]</a
+                            >
+                            Planowanie bez przedwczesnego generowania kodu implementacji.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--todo"
+                            >Do zrobienia</span
+                          >
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value=""
+                        placeholder="Dodaj jednolinijkową notatkę..."
+                        aria-label="Notatka do punktu 5"
+                      />
+                    </li>
+
+                    <!-- Punkt 6 -->
+                    <li class="kod-item">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-dod-6"
+                          aria-label="Punkt 6: Architektura testów"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-dod-6" class="kod-item__label">
+                            <a
+                              href="#rule-asercje-3"
+                              class="kod-rule-ref"
+                              data-target="rule-asercje-3"
+                              >[ASERCJE-3]</a
+                            >
+                            Brak nadmiarowych atrap obiektów wewnętrznych; logika weryfikowana na
+                            żywo.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--todo"
+                            >Do zrobienia</span
+                          >
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value=""
+                        placeholder="Dodaj jednolinijkową notatkę..."
+                        aria-label="Notatka do punktu 6"
+                      />
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- LISTA PUNKTÓW DLA PRZED PR (UKRYTA DOMYŚLNIE) -->
+                <div id="checklist-view-pr" class="stack" style="--gap: var(--s-2); display: none">
+                  <ul class="kod-items-list" data-src="Vault/Checklists/2026-11.jsonl · pr">
+                    <!-- Punkt PR 1 -->
+                    <li class="kod-item kod-item--checked">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-pr-1"
+                          checked
+                          aria-label="Punkt PR 1"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-pr-1" class="kod-item__label">
+                            <a href="#rule-tdd-2" class="kod-rule-ref" data-target="rule-tdd-2"
+                              >[TDD-2]</a
+                            >
+                            Krótkie cykle Red-Green-Refactor, brak przerośniętych commity.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--done">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Odhaczone
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="Cykle poniżej 15 minut"
+                        placeholder="Jednolinijkowa notatka..."
+                        aria-label="Notatka do punktu PR 1"
+                      />
+                    </li>
+
+                    <!-- Punkt PR 2 -->
+                    <li class="kod-item kod-item--checked">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-pr-2"
+                          checked
+                          aria-label="Punkt PR 2"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-pr-2" class="kod-item__label">
+                            <a
+                              href="#rule-dowody-2"
+                              class="kod-rule-ref"
+                              data-target="rule-dowody-2"
+                              >[DOWODY-2]</a
+                            >
+                            Wynik komendy weryfikacyjnej dołączony do opisu zmian.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--done">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="3"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Odhaczone
+                          </span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="Zrzut konsoli w podsumowaniu"
+                        placeholder="Jednolinijkowa notatka..."
+                        aria-label="Notatka do punktu PR 2"
+                      />
+                    </li>
+
+                    <!-- Punkt PR 3 -->
+                    <li class="kod-item">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-pr-3"
+                          aria-label="Punkt PR 3"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-pr-3" class="kod-item__label">
+                            <a
+                              href="#rule-zakres-2"
+                              class="kod-rule-ref"
+                              data-target="rule-zakres-2"
+                              >[ZAKRES-2]</a
+                            >
+                            Osobne commity dla refaktoringu i logiki nowej cechy.
+                          </label>
+                          <span class="kod-item__status-tag kod-item__status-tag--todo"
+                            >Do zrobienia</span
+                          >
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value=""
+                        placeholder="Dodaj jednolinijkową notatkę..."
+                        aria-label="Notatka do punktu PR 3"
+                      />
+                    </li>
+
+                    <!-- Punkt PR 4 (OSTRZEŻENIE: brakujące ID w kodeksie ze specu §4.1) -->
+                    <li class="kod-item">
+                      <div class="kod-item__row">
+                        <input
+                          type="checkbox"
+                          class="check kod-item__check"
+                          id="chk-pr-4"
+                          aria-label="Punkt PR 4"
+                        />
+                        <div class="kod-item__body">
+                          <label for="chk-pr-4" class="kod-item__label">
+                            <a
+                              href="#rule-sec-4"
+                              class="kod-rule-ref"
+                              data-target="rule-sec-4"
+                              style="color: var(--warn)"
+                              >[SEC-4]</a
+                            >
+                            Weryfikacja braku wrażliwych danych i kluczy API w kodzie.
+                          </label>
+                          <span
+                            class="chip chip--warn"
+                            style="font-size: 10px; height: 18px; margin-left: auto"
+                            >Brak definicji ID</span
+                          >
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        class="input kod-note"
+                        value="Identyfikator SEC-4 nie istnieje w kodeks.md"
+                        placeholder="Dodaj jednolinijkową notatkę..."
+                        aria-label="Notatka do punktu PR 4"
+                      />
+                    </li>
+                  </ul>
+                </div>
+
+                <div
+                  style="
+                    font-size: var(--fs-xs);
+                    color: var(--muted);
+                    border-top: 1px solid var(--line);
+                    padding-top: var(--s-3);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
+                  <span>Dziennik: <code>Vault/Checklists/</code></span>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    data-toast="Zapisano migawkę zdarzeń do dziennika .jsonl"
+                  >
+                    Zapisz sesję
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- WIDOK ALTERNATYWNY 1: BRAK PLIKU KODEKSU (§4.5 specu) -->
+        <div id="view-empty" class="kod-state-view">
+          <div class="kod-empty-box">
+            <div class="kod-empty-box__icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </div>
+            <h2 class="kod-empty-box__title">Brak pliku kodeksu inżynierskiego</h2>
+            <p class="kod-empty-box__desc">
+              Aplikacja oczekuje pliku w ścieżce <code>Vault/Knowledge/kodeks.md</code> w prywatnym
+              repozytorium NEXUS. Plik nie został odnaleziony na dysku. Aby uruchomić czytnik,
+              utwórz plik w vault za pomocą poniższego szablonu.
+            </p>
+
+            <div class="kod-codeblock">
+              # Utwórz plik w repozytorium NEXUS: mkdir -p "$NEXUS_VAULT_PATH/Knowledge" cat
+              &lt;&lt; 'EOF' &gt; "$NEXUS_VAULT_PATH/Knowledge/kodeks.md" --- name: Kodeks pracy nad
+              kodem slug: kodeks type: knowledge categories: [engineering, guardrails] status:
+              active --- # Kodeks pracy nad kodem ## 1. Zasady kardynalne TDD - **[TDD-1] MUST**
+              Brak kodu produkcyjnego bez czerwonego testu (komenda, exit ≠ 0, powód). - Test musi
+              kończyć się niepowodzeniem z powodu braku implementacji. - **[TDD-2] SHOULD** Pętla
+              Red-Green-Refactor w interwałach do 15 minut. ## Checklisty ### Definition of Done - [
+              ] [TDD-1] Czerwony test napisany i potwierdzony przed kodem. EOF
+            </div>
+
+            <div class="row" style="gap: var(--s-3)">
+              <button
+                class="btn btn--primary"
+                type="button"
+                data-toast="Skopiowano polecenie utworzenia pliku kodeks.md"
+              >
+                Kopiuj instrukcję utworzenia
+              </button>
+              <button
+                class="btn"
+                type="button"
+                onclick="document.getElementById('btn-mode-normal').click()"
+              >
+                Powrót do czytnika
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- WIDOK ALTERNATYWNY 2: BŁĄD KONFIGURACJI NEXUS_VAULT_PATH (§4.5 specu) -->
+        <div id="view-error" class="kod-state-view">
+          <div class="kod-empty-box kod-error-box">
+            <div class="kod-empty-box__icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+            </div>
+            <h2 class="kod-empty-box__title" style="color: var(--danger)">
+              Błąd konfiguracji: brak NEXUS_VAULT_PATH
+            </h2>
+            <p class="kod-empty-box__desc">
+              Zmienna środowiskowa <code>NEXUS_VAULT_PATH</code> nie jest zdefiniowana lub wskazuje
+              nieistniejący katalog. Aplikacja nie może zlokalizować repozytorium NEXUS Vault do
+              odczytu reguł i zapisu zdarzeń checklist.
+            </p>
+
+            <div class="kod-codeblock">
+              # Rozwiązanie problemu konfiguracji: # 1. Sprawdź plik .env.local w katalogu Monolith:
+              NEXUS_VAULT_PATH=/home/miro7224/projects/Brain_7224/Vault # 2. Dla środowiska WSL
+              upewnij się, że montowanie dysku Windows jest aktywne: # ls -la /mnt/c/Users/.../NEXUS
+            </div>
+
+            <div class="row" style="gap: var(--s-3)">
+              <button
+                class="btn btn--primary"
+                type="button"
+                data-toast="Przeładowano konfigurację środowiska (atrapa)"
+              >
+                Sprawdź połączenie ponownie
+              </button>
+              <button
+                class="btn"
+                type="button"
+                onclick="document.getElementById('btn-mode-normal').click()"
+              >
+                Powrót do widoku czytnika
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
-  </header>
+    <script src="../shell.js"></script>
+    <script>
+      /* Interaktywna obsługa czytnika reguł i checklist karty Kodeks */
+      document.addEventListener("DOMContentLoaded", () => {
+        // 1. Przełączanie wariantów stanu makiety (Normalny / Brak pliku / Błąd konfiguracji)
+        const btnNormal = document.getElementById("btn-mode-normal");
+        const btnEmpty = document.getElementById("btn-mode-empty");
+        const btnError = document.getElementById("btn-mode-error");
+        const viewNormal = document.getElementById("view-normal");
+        const viewEmpty = document.getElementById("view-empty");
+        const viewError = document.getElementById("view-error");
 
-</main>
-</div>
-<script src="../shell.js"></script>
-</body>
+        const setMode = (mode) => {
+          [btnNormal, btnEmpty, btnError].forEach((b) => {
+            b.classList.remove("btn--primary");
+            b.setAttribute("aria-pressed", "false");
+          });
+          [viewNormal, viewEmpty, viewError].forEach((v) => v.classList.remove("is-visible"));
+
+          if (mode === "normal") {
+            btnNormal.classList.add("btn--primary");
+            btnNormal.setAttribute("aria-pressed", "true");
+            viewNormal.style.display = "block";
+          } else {
+            viewNormal.style.display = "none";
+          }
+
+          if (mode === "empty") {
+            btnEmpty.classList.add("btn--primary");
+            btnEmpty.setAttribute("aria-pressed", "true");
+            viewEmpty.classList.add("is-visible");
+          }
+          if (mode === "error") {
+            btnError.classList.add("btn--primary");
+            btnError.setAttribute("aria-pressed", "true");
+            viewError.classList.add("is-visible");
+          }
+        };
+
+        btnNormal.addEventListener("click", () => setMode("normal"));
+        btnEmpty.addEventListener("click", () => setMode("empty"));
+        btnError.addEventListener("click", () => setMode("error"));
+
+        // 2. Filtrowanie reguł (Wszystkie / MUST / SHOULD)
+        const filterButtons = document.querySelectorAll(".kod-filter-btn");
+        const rules = document.querySelectorAll(".kod-rule");
+        const searchInput = document.getElementById("kod-search-input");
+
+        const applyRuleFilters = () => {
+          const activeFilterBtn = document.querySelector(".kod-filter-btn[aria-pressed='true']");
+          const currentLevel = activeFilterBtn ? activeFilterBtn.dataset.filter : "all";
+          const query = (searchInput.value || "").trim().toLowerCase();
+
+          rules.forEach((rule) => {
+            const level = rule.dataset.level;
+            const text = rule.textContent.toLowerCase();
+            const matchesLevel = currentLevel === "all" || level === currentLevel;
+            const matchesQuery = !query || text.includes(query);
+
+            rule.style.display = matchesLevel && matchesQuery ? "flex" : "none";
+          });
+
+          // Ukryj sekcje bez widocznych reguł
+          document.querySelectorAll(".kod-section").forEach((sec) => {
+            const hasVisible = Array.from(sec.querySelectorAll(".kod-rule")).some(
+              (r) => r.style.display !== "none"
+            );
+            sec.style.display = hasVisible ? "flex" : "none";
+          });
+        };
+
+        filterButtons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            filterButtons.forEach((b) => b.setAttribute("aria-pressed", "false"));
+            btn.setAttribute("aria-pressed", "true");
+            applyRuleFilters();
+          });
+        });
+
+        searchInput.addEventListener("input", applyRuleFilters);
+
+        // 3. Przełączanie zakładek checklisty (DoD vs Przed PR)
+        const tabDod = document.getElementById("tab-dod");
+        const tabPr = document.getElementById("tab-pr");
+        const viewDod = document.getElementById("checklist-view-dod");
+        const viewPr = document.getElementById("checklist-view-pr");
+        const runTitle = document.getElementById("run-checklist-title");
+
+        const switchChecklist = (which) => {
+          if (which === "dod") {
+            tabDod.setAttribute("aria-selected", "true");
+            tabPr.setAttribute("aria-selected", "false");
+            viewDod.style.display = "flex";
+            viewPr.style.display = "none";
+            runTitle.textContent = "Definition of Done (DoD)";
+          } else {
+            tabDod.setAttribute("aria-selected", "false");
+            tabPr.setAttribute("aria-selected", "true");
+            viewDod.style.display = "none";
+            viewPr.style.display = "flex";
+            runTitle.textContent = "Checklista Przed PR";
+          }
+          updateChecklistProgress();
+        };
+
+        tabDod.addEventListener("click", () => switchChecklist("dod"));
+        tabPr.addEventListener("click", () => switchChecklist("pr"));
+
+        // 4. Przełącznik strefy zapisu owner (personal vs work)
+        const btnOwnerPersonal = document.getElementById("btn-owner-personal");
+        const btnOwnerWork = document.getElementById("btn-owner-work");
+        const infoOwnerPersonal = document.getElementById("info-owner-personal");
+        const infoOwnerWork = document.getElementById("info-owner-work");
+
+        btnOwnerPersonal.addEventListener("click", () => {
+          btnOwnerPersonal.setAttribute("aria-pressed", "true");
+          btnOwnerPersonal.setAttribute("aria-checked", "true");
+          btnOwnerWork.setAttribute("aria-pressed", "false");
+          btnOwnerWork.setAttribute("aria-checked", "false");
+          infoOwnerPersonal.classList.add("is-active");
+          infoOwnerWork.classList.remove("is-active");
+        });
+
+        btnOwnerWork.addEventListener("click", () => {
+          btnOwnerWork.setAttribute("aria-pressed", "true");
+          btnOwnerWork.setAttribute("aria-checked", "true");
+          btnOwnerPersonal.setAttribute("aria-pressed", "false");
+          btnOwnerPersonal.setAttribute("aria-checked", "false");
+          infoOwnerWork.classList.add("is-active");
+          infoOwnerPersonal.classList.remove("is-active");
+        });
+
+        // 5. Interaktywne odhaczanie checklisty z aktualizacją licznika i ikon sukcesu
+        const updateChecklistProgress = () => {
+          const activeContainer = viewDod.style.display !== "none" ? viewDod : viewPr;
+          const checkboxes = activeContainer.querySelectorAll(".kod-item__check");
+          const total = checkboxes.length;
+          let checked = 0;
+
+          checkboxes.forEach((chk) => {
+            const item = chk.closest(".kod-item");
+            const statusTag = item.querySelector(".kod-item__status-tag");
+
+            if (chk.checked) {
+              checked++;
+              item.classList.add("kod-item--checked");
+              if (statusTag) {
+                statusTag.className = "kod-item__status-tag kod-item__status-tag--done";
+                statusTag.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg> Odhaczone`;
+              }
+            } else {
+              item.classList.remove("kod-item--checked");
+              if (statusTag) {
+                statusTag.className = "kod-item__status-tag kod-item__status-tag--todo";
+                statusTag.textContent = "Do zrobienia";
+              }
+            }
+          });
+
+          const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+          const progressText = document.getElementById("run-progress-text");
+          const progressPct = document.getElementById("run-progress-pct");
+          const progressBar = document.getElementById("run-progress-bar");
+          const statProgress = document.getElementById("tile-stat-progress");
+
+          if (progressText) progressText.textContent = `${checked} z ${total} odhaczone`;
+          if (progressPct) progressPct.textContent = `${pct}%`;
+          if (progressBar) progressBar.style.setProperty("--v", `${pct}%`);
+          if (statProgress && activeContainer === viewDod)
+            statProgress.textContent = `${checked} / ${total}`;
+        };
+
+        document.querySelectorAll(".kod-item__check").forEach((chk) => {
+          chk.addEventListener("change", () => {
+            updateChecklistProgress();
+            if (window.sbToast) {
+              window.sbToast(
+                chk.checked
+                  ? "Zarejestrowano zdarzenie toggle: ukończono punkt"
+                  : "Zarejestrowano zdarzenie toggle: cofnięto punkt"
+              );
+            }
+          });
+        });
+
+        // 6. Kliknięcie odwołania do reguły [ID] w checkliście -> płynne przewinięcie i podświetlenie reguły
+        document.querySelectorAll(".kod-rule-ref").forEach((ref) => {
+          ref.addEventListener("click", (e) => {
+            const targetId = ref.dataset.target;
+            if (!targetId) return;
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+              e.preventDefault();
+              targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+              targetEl.classList.add("kod-rule--highlight");
+              setTimeout(() => {
+                targetEl.classList.remove("kod-rule--highlight");
+              }, 1800);
+              if (window.sbToast) {
+                window.sbToast(`Przewinięto do reguły #${targetEl.dataset.id || targetId}`);
+              }
+            }
+          });
+        });
+
+        // 7. Notatki jednolinijkowe: komunikat o zapisie po opuszczeniu pola
+        document.querySelectorAll(".kod-note").forEach((input) => {
+          input.addEventListener("change", () => {
+            if (window.sbToast) {
+              window.sbToast("Dopisano notatkę punktu do dziennika zdarzeń (append-only)");
+            }
+          });
+        });
+      });
+    </script>
+  </body>
 </html>

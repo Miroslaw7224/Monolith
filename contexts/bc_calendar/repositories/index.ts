@@ -34,6 +34,11 @@ function monthFiles(): string[] {
     .map((name) => `${DIR}/${name}`);
 }
 
+/** Link z pliku (mógł być edytowany ręcznie): zostaje tylko adres http(s); inne schematy (np. `javascript:`) odpadają. */
+function safeLink(value: string | undefined): string | undefined {
+  return value !== undefined && /^https?:\/\/\S+$/i.test(value.trim()) ? value.trim() : undefined;
+}
+
 function toEvent(r: YamlRecord): CalendarEvent {
   return {
     id: str(r.id),
@@ -44,6 +49,8 @@ function toEvent(r: YamlRecord): CalendarEvent {
     tags: Array.isArray(r.tags) ? r.tags.map(String) : r.tags ? [String(r.tags)] : [],
     color: optStr(r.color) ?? "#3B82F6",
     type: r.type === "meeting" ? "meeting" : "work",
+    link: safeLink(optStr(r.link)),
+    brief: optStr(r.brief),
     created_at: optStr(r.created),
   };
 }
@@ -93,6 +100,8 @@ export async function createCalendarEvent(data: {
   tags: string[];
   color: string;
   type?: "work" | "meeting";
+  link?: string;
+  brief?: string;
 }): Promise<CalendarEvent> {
   const file = monthFile(data.date);
   const record = await appendRecord(file, KEY, (taken) => ({
@@ -104,6 +113,8 @@ export async function createCalendarEvent(data: {
     tags: data.tags ?? [],
     color: data.color ?? "#3B82F6",
     type: data.type === "meeting" ? "meeting" : "work",
+    ...(data.link ? { link: data.link } : {}),
+    ...(data.brief ? { brief: data.brief } : {}),
     created: nowIso(),
   }));
   return toEvent(record);
@@ -119,6 +130,10 @@ export async function updateCalendarEvent(
     tags: string[];
     color: string;
     type: "work" | "meeting";
+    /** Pusty tekst usuwa link. */
+    link: string;
+    /** Pusty tekst usuwa brief. */
+    brief: string;
   }>
 ): Promise<void> {
   const patch: YamlRecord = {};
@@ -129,6 +144,8 @@ export async function updateCalendarEvent(
   if (data.tags !== undefined) patch.tags = data.tags;
   if (data.color !== undefined) patch.color = data.color;
   if (data.type !== undefined) patch.type = data.type === "meeting" ? "meeting" : "work";
+  if (data.link !== undefined) patch.link = data.link === "" ? undefined : data.link;
+  if (data.brief !== undefined) patch.brief = data.brief === "" ? undefined : data.brief;
   if (Object.keys(patch).length === 0) return;
   const newFile = data.date !== undefined ? monthFile(data.date) : undefined;
   patch.updated = nowIso();

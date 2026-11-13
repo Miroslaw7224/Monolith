@@ -79,7 +79,15 @@ export type TaskOp =
   | ({ op: "move"; to: TaskColumn } & TaskRef);
 
 /** Niezakończone zadanie z kolumny „Teraz” jednego projektu (widok zbiorczy Kokpitu, etap 2-1). */
-export type NowTask = { projectId: string; projectName: string; owner: Owner; text: string };
+export type NowTask = {
+  projectId: string;
+  projectName: string;
+  owner: Owner;
+  priority: string;
+  text: string;
+  /** Numer wśród niezakończonych zadań o identycznym tekście w tej kolumnie (0 = pierwsze). */
+  occurrence: number;
+};
 
 export type Project = RegistryEntry & ProjectIndex & { freshness: Freshness };
 export type ProjectWithContent = Project & {
@@ -105,6 +113,24 @@ export type GitSnapshot = { status: string; log: string; diffStat: string };
 export type GitSnapshotResult =
   | { ok: true; snapshot: GitSnapshot }
   | { ok: false; reason: RepoUnavailableReason };
+
+/** Aktywność gita projektu z dostępnym repozytorium (tylko odczyt). */
+export type GitActivity = {
+  projectId: string;
+  /** Bieżąca gałąź; `null` dla odłączonego HEAD albo repo bez commitów. */
+  branch: string | null;
+  /** Commity (bez merge'y) na lokalnych gałęziach od początku dzisiejszego dnia. */
+  commitsToday: number;
+};
+
+/** Commity projektu po dniach (`RRRR-MM-DD` → liczba); dni bez commitów pominięte. */
+export type GitHistory = {
+  projectId: string;
+  name: string;
+  days: Record<string, number>;
+  /** Zmergowane PR-y po dniach (z tematów commitów); dni bez PR pominięte. */
+  prs: Record<string, number>;
+};
 
 export type RepoRulesResult =
   | { ok: true; text: string }

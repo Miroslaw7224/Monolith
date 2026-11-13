@@ -6,13 +6,25 @@ import { useTempVault } from "../../helpers/tempVault";
 const mockResolve = vi.hoisted(() => vi.fn());
 const mockSnapshot = vi.hoisted(() => vi.fn());
 const mockReadFile = vi.hoisted(() => vi.fn());
+const mockCommitsSince = vi.hoisted(() => vi.fn());
+const mockCurrentBranch = vi.hoisted(() => vi.fn());
+const mockCommitsByDay = vi.hoisted(() => vi.fn());
+const mockMergedPrsByDay = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/git/repo-path", () => ({ resolveRepoPath: mockResolve }));
-vi.mock("@/lib/git/project-git", () => ({ snapshotRepo: mockSnapshot }));
+vi.mock("@/lib/git/project-git", () => ({
+  snapshotRepo: mockSnapshot,
+  commitsSince: mockCommitsSince,
+  currentBranch: mockCurrentBranch,
+  commitsByDay: mockCommitsByDay,
+  mergedPrsByDay: mockMergedPrsByDay,
+}));
 vi.mock("@/lib/git/repo-file", () => ({ readRepoFile: mockReadFile }));
 
 import {
   readAiContext,
+  readGitActivity,
+  readGitHistory,
   readGitSnapshot,
   readIndexRules,
   readRepoRules,
@@ -140,5 +152,68 @@ describe("readRepoRules", () => {
     mockResolve.mockReturnValue({ ok: false, reason: "unsupported-path" });
     expect(readRepoRules(entry)).toEqual({ ok: false, reason: "unsupported-path" });
     expect(mockReadFile).not.toHaveBeenCalled();
+  });
+});
+
+describe("readGitActivity", () => {
+  it("odmowa ścieżki: ok:false, git niewołany", () => {
+    mockResolve.mockReturnValue({ ok: false, reason: "missing" });
+    expect(readGitActivity(entry, "2026-11-13")).toEqual({ ok: false });
+    expect(mockCommitsSince).not.toHaveBeenCalled();
+    expect(mockCurrentBranch).not.toHaveBeenCalled();
+  });
+
+  it("ścieżka ok: liczba commitów od dnia i gałąź", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsSince.mockReturnValue({ ok: true, count: 3 });
+    mockCurrentBranch.mockReturnValue("feat/x");
+    expect(readGitActivity(entry, "2026-11-13")).toEqual({
+      ok: true,
+      commits: 3,
+      branch: "feat/x",
+    });
+    expect(mockCommitsSince).toHaveBeenCalledWith("/h/p", "2026-11-13");
+  });
+
+  it("błąd gita: ok:false, gałąź niepytana", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsSince.mockReturnValue({ ok: false });
+    expect(readGitActivity(entry, "2026-11-13")).toEqual({ ok: false });
+    expect(mockCurrentBranch).not.toHaveBeenCalled();
+  });
+});
+
+describe("readGitHistory", () => {
+  it("odmowa ścieżki albo błąd gita: ok:false", () => {
+    mockResolve.mockReturnValue({ ok: false, reason: "missing" });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+    expect(mockCommitsByDay).not.toHaveBeenCalled();
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsByDay.mockReturnValue({ ok: false });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+  });
+
+  it("błąd tylko przy liczeniu PR nie psuje commitów: prs puste", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsByDay.mockReturnValue({ ok: true, days: { "2026-11-12": 2 } });
+    mockMergedPrsByDay.mockReturnValue({ ok: false });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({
+      ok: true,
+      days: { "2026-11-12": 2 },
+      prs: {},
+    });
+  });
+
+  it("ścieżka ok: liczby po dniach z gita", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsByDay.mockReturnValue({ ok: true, days: { "2026-11-12": 2 } });
+    mockMergedPrsByDay.mockReturnValue({ ok: true, prs: { "2026-11-12": 1 } });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({
+      ok: true,
+      days: { "2026-11-12": 2 },
+      prs: { "2026-11-12": 1 },
+    });
+    expect(mockMergedPrsByDay).toHaveBeenCalledWith("/h/p", "2026-11-01", "2026-11-13");
+    expect(mockCommitsByDay).toHaveBeenCalledWith("/h/p", "2026-11-01", "2026-11-13");
   });
 });

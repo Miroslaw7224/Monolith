@@ -40,30 +40,32 @@ export function ConfirmDeleteDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="board-delete-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="plo-dialog-backdrop"
       onKeyDown={keepFocusInDialog}
     >
-      <div className="w-full max-w-md rounded-xl bg-[var(--surface)] p-4">
-        <h2 id="board-delete-title" className="text-base font-bold text-[var(--text)]">
-          {title}
-        </h2>
-        {lines.map((line) => (
-          <p key={line} className="mt-2 text-sm text-[var(--text2)]">
-            {line}
-          </p>
-        ))}
-        <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            className="rounded-lg px-3 py-2 text-sm"
-            autoFocus
-            onClick={onCancel}
-          >
+      <div className="panel plo-dialog">
+        <div className="panel__head plo-panel__head">
+          <h2 id="board-delete-title" className="panel__title plo-panel__title">
+            <b>{title}</b>
+          </h2>
+          <span className="chip chip--danger plo-chip">Usuwanie</span>
+        </div>
+
+        <div className="plo-dialog__content">
+          {lines.map((line) => (
+            <p key={line} className="plo-dialog__line">
+              {line}
+            </p>
+          ))}
+        </div>
+
+        <div className="plo-dialog__actions">
+          <button type="button" className="btn plo-btn" autoFocus onClick={onCancel}>
             {cancelLabel}
           </button>
           <button
             type="button"
-            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm text-white"
+            className="btn btn--danger plo-btn plo-btn--danger"
             onClick={onConfirm}
           >
             {confirmLabel}

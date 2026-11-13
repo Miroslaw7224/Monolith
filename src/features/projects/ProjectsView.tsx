@@ -8,7 +8,10 @@ import { useProjects } from "./useProjects";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
-export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
+export function ProjectsView(props: {
+  apiFetch: ApiFetch;
+  initialProjectId?: string | null;
+}): React.JSX.Element {
   const {
     status,
     error,
@@ -24,7 +27,7 @@ export function ProjectsView(props: { apiFetch: ApiFetch }): React.JSX.Element {
     tasksOp,
     loadContextPack,
     reloadDetail,
-  } = useProjects(props.apiFetch);
+  } = useProjects(props.apiFetch, props.initialProjectId ?? null);
 
   if (status === "loading") {
     return (

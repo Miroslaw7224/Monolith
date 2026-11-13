@@ -1,0 +1,1257 @@
+/* =========================================================================
+   Second Brain — Karta Kokpit (Alt+1)
+   Klasy z prefiksem .kok- wg docs/mockups/karty/cards/01-kokpit.html
+   Tokeny wg tokens.css ([data-card="kokpit"])
+   Komponenty wg shell.css
+   ========================================================================= */
+
+.kok[data-card="kokpit"],
+[data-card="kokpit"] .kok,
+.kok,
+.kok-statusbar {
+  --bg: #16171a;
+  --surface: #1f2125;
+  --surface-2: #2a2d32;
+  --line: #383c43;
+  --text: #f1ede6;
+  --muted: #a9a59d;
+  /* aliasy starych zmiennych aplikacji, żeby osadzone komponenty miały w karcie ciemne kolory */
+  --bg2: var(--surface);
+  --bg3: var(--surface-2);
+  --border: var(--line);
+  --text2: var(--muted);
+  --text3: var(--muted);
+  --accent: #ff9f1c;
+  --accent-text: #ffb04d;
+  --accent-ink: #1a1206;
+  --accent-soft: rgba(255, 159, 28, 0.14);
+  --glow: rgba(255, 159, 28, 0.45);
+  --ok: #5ee08a;
+  --warn: #ffd166;
+  --danger: #ff6b5e;
+  --font-display: "Space Grotesk", var(--font-body, system-ui, sans-serif);
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 34px;
+  --fs-3xl: 48px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--pattern), var(--bg);
+  padding: var(--s-5) var(--s-6) var(--s-6);
+  font-family: var(--font-body);
+  box-sizing: border-box;
+}
+
+.kok *,
+.kok *::before,
+.kok *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Nagłówek widoku ---------- */
+.kok-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--s-4);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.kok-eyebrow {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent-text);
+  margin: 0 0 var(--s-2);
+}
+
+.kok-title {
+  font: 700 var(--fs-2xl) / 1.1 var(--font-display);
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.kok-sub {
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--muted);
+  margin: var(--s-2) 0 0;
+}
+
+/* ---------- Kafle liczbowe na górze (.tiles) ---------- */
+.kok-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+
+.kok-tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s var(--ease);
+}
+
+.kok-tile::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.kok-tile--accent {
+  border-color: var(--accent);
+  box-shadow: 0 0 22px -8px var(--glow);
+}
+
+.kok-tile--accent::after {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+.kok-tile__label {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.kok-tile__value {
+  font: 600 var(--fs-2xl) / 1.1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.kok-tile--accent .kok-tile__value {
+  color: var(--accent-text);
+}
+
+.kok-tile__sub {
+  font-size: var(--fs-lg);
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.kok-tile__meta {
+  font: 400 var(--fs-xs) / 1.3 var(--font-mono);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ---------- Siatka główna (oś dnia, punkty skupienia, kolejka) ---------- */
+.kok-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1.35fr 1fr;
+  gap: var(--s-4);
+  align-items: start;
+  margin-bottom: var(--s-5);
+}
+
+@media (max-width: 1100px) {
+  .kok-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Panele ---------- */
+.kok-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.kok-panel--active {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 28px -6px var(--glow);
+}
+
+.kok-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-bottom: var(--s-2);
+}
+
+.kok-panel__title {
+  margin: 0;
+  font: 600 var(--fs-sm) / 1.2 var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.kok-panel__title b {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* ---------- Oś dnia (Timeline) ---------- */
+.kok-tl {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.kok-tl::before {
+  content: "";
+  position: absolute;
+  left: 49.5px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--line);
+}
+
+.kok-tl__item {
+  display: grid;
+  grid-template-columns: 40px 18px 1fr;
+  gap: 0 var(--s-2);
+  padding: var(--s-2) 0;
+  align-items: start;
+}
+
+.kok-tl__time {
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.kok-tl__node {
+  width: 9px;
+  height: 9px;
+  margin: 5px auto 0;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 8px var(--glow);
+}
+
+.kok-tl__body {
+  min-width: 0;
+}
+
+.kok-tl__title {
+  font: 600 var(--fs-sm) / 1.3 var(--font-body);
+  color: var(--text);
+}
+
+.kok-tl__meta {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.kok-brief {
+  margin-top: var(--s-2);
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-sm);
+}
+
+.kok-brief ul {
+  margin: var(--s-1) 0 0;
+  padding-left: 18px;
+}
+
+.kok-brief li {
+  margin: 2px 0;
+}
+
+.kok-brief__label {
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- Punkty skupienia (Focus) ---------- */
+.kok-focus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.kok-topic {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  transition: border-color 0.15s var(--ease);
+}
+
+.kok-topic:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.kok-topic__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.kok-topic__name {
+  font: 700 var(--fs-lg) / 1.2 var(--font-display);
+  margin: 0;
+  color: var(--text);
+}
+
+.kok-topic__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+}
+
+.kok-topic__next {
+  margin: 0;
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--accent-text);
+}
+
+.kok-topic__next::before {
+  content: "→ ";
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.kok-kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px var(--s-3);
+  font-size: var(--fs-sm);
+  margin: 0;
+}
+
+.kok-kv dt {
+  color: var(--muted);
+  font: 600 var(--fs-xs) / 1.5 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.kok-kv dd {
+  margin: 0;
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--text);
+  overflow-wrap: anywhere;
+  /* „Gdzie skończyłem” bywa całym akapitem: karta pokazuje początek, pełny tekst w title. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}
+
+.kok-topic__empty {
+  margin: 0;
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-empty {
+  border: 1px dashed var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 500 var(--fs-sm) / 1 var(--font-body);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease),
+    color 0.15s var(--ease);
+}
+
+.kok-empty:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* ---------- Kolejka (Queue) ---------- */
+.kok-queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.kok-group {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+}
+
+.kok-group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-2);
+}
+
+.kok-group__title {
+  font: 700 var(--fs-sm) / 1.2 var(--font-display);
+  color: var(--text);
+  margin: 0;
+}
+
+.kok-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.kok-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+  font-size: var(--fs-sm);
+}
+
+.kok-list__item:last-child {
+  border-bottom: none;
+}
+
+.kok-list__title {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Chipy, odznaki i elementy pomocnicze ---------- */
+.kok-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.kok-chip--accent {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+}
+
+.kok-chip--warn {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+}
+
+.kok-chip--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.kok-chip--ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
+}
+
+.kok-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  font: 600 10px / 1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.kok-badge--danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.kok-badge--warn {
+  border-color: var(--warn);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+}
+
+.kok-badge--accent {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+/* Checkbox */
+.kok-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--muted);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+  flex-shrink: 0;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.kok-check:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.kok-check:checked::after {
+  content: "✓";
+  font: 700 11px / 1 var(--font-mono);
+  color: var(--accent-ink);
+}
+
+.kok-check:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Klawisz kbd */
+.kok-kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  text-align: center;
+  font: 500 11px / 1.5 var(--font-mono);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+/* ---------- Przyciski ---------- */
+.kok-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  height: 34px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 500 var(--fs-sm) / 1 var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease),
+    background-color 0.15s var(--ease);
+}
+
+.kok-btn:hover {
+  border-color: var(--accent);
+}
+
+.kok-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.kok-btn--primary:hover {
+  box-shadow: 0 0 16px -2px var(--glow);
+}
+
+.kok-btn--ghost {
+  background: transparent;
+}
+
+.kok-btn--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.kok-btn--danger:hover {
+  border-color: var(--danger);
+}
+
+.kok-btn--sm {
+  height: 26px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-xs);
+  border-radius: var(--r-sm);
+}
+
+/* ---------- Modal i nakładka (.kok-overlay, .kok-modal) ---------- */
+.kok-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 5, 8, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: var(--s-4);
+}
+
+.kok-modal {
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-lg);
+  box-shadow:
+    0 30px 80px -20px rgba(0, 0, 0, 0.8),
+    0 0 36px -10px var(--glow);
+  padding: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.kok-modal__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kok-modal__title {
+  font: 700 var(--fs-lg) / 1.2 var(--font-display);
+  color: var(--text);
+  margin: 0;
+}
+
+.kok-modal__sub {
+  font: 400 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+  margin: 0;
+}
+
+.kok-modal__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.kok-modal__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text);
+  cursor: pointer;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  transition: background-color 0.15s;
+}
+
+.kok-modal__item:hover {
+  background: var(--surface-2);
+}
+
+.kok-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+/* ---------- Ostrzeżenia i komunikaty stanu ---------- */
+.kok-warnings {
+  list-style: none;
+  margin: var(--s-4) 0 0;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--warn);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kok-state {
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+  margin: var(--s-4) 0;
+}
+
+.kok-state--error {
+  color: var(--danger);
+}
+
+.kok-empty-msg {
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+  margin: 0;
+  padding: var(--s-3) 0;
+}
+
+/* ---------- Szybkie akcje i ActivityLog ---------- */
+/* ---------- K1: zegar, oś czasu, karta tematu, pasek statusu ---------- */
+.kok-clock {
+  font: 600 var(--fs-3xl) / 1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+  color: var(--accent-text);
+  text-shadow: 0 0 24px var(--glow);
+}
+
+.kok-clock small {
+  font-size: var(--fs-md);
+  letter-spacing: 0;
+  color: var(--muted);
+  text-shadow: none;
+  margin-left: var(--s-2);
+}
+
+.kok-tl__now {
+  display: grid;
+  grid-template-columns: 44px 16px 1fr;
+  gap: 0 var(--s-2);
+  align-items: center;
+  margin: 2px 0;
+  list-style: none;
+}
+
+.kok-tl__now span {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--accent-text);
+  text-align: right;
+}
+
+.kok-tl__now i {
+  height: 2px;
+  grid-column: 2 / 4;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  box-shadow: 0 0 8px var(--glow);
+}
+
+.kok-tl__item--current .kok-tl__node {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.kok-tl__item--current .kok-tl__time {
+  color: var(--accent-text);
+}
+
+.kok-focus__limit {
+  margin-left: auto;
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-topic--lead {
+  border-color: var(--accent);
+  box-shadow: 0 0 26px -10px var(--glow);
+}
+
+.kok-topic__next {
+  font: 500 var(--fs-lg) / 1.4 var(--font-body);
+  color: var(--text);
+}
+
+.kok-topic__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  margin-top: var(--s-2);
+}
+
+.kok-topic__chips,
+.kok-topic__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.kok-list__sub {
+  display: block;
+  margin-top: 2px;
+  font: 400 var(--fs-xs) / 1.2 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-statusbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-2) var(--s-5);
+  border-top: 1px solid var(--shell-line);
+  background: var(--shell-bg);
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--shell-text);
+}
+
+.kok-statusbar b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.kok-statusbar__left,
+.kok-statusbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.kok-statusbar__vault i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.kok-statusbar__vault.is-ok i {
+  background: var(--ok, #3fb950);
+}
+
+.kok-statusbar__vault.is-warn i {
+  background: var(--warn, #d29922);
+}
+
+/* ---------- K6: zaczep z wczoraj, przycisk „Zamknij dzień”, pola dialogu ---------- */
+.kok-anchor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.kok-anchor__label {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.kok-anchor__text {
+  flex: 1;
+  min-width: 200px;
+  font: 500 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text);
+}
+
+.kok-head__right {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-5);
+}
+
+.kok-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-input {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  resize: vertical;
+}
+
+.kok-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ---------- K8: historia commitów ---------- */
+.kok-history {
+  margin-top: 0;
+}
+
+.kok-history__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-2);
+  height: 120px;
+  padding-top: var(--s-2);
+}
+
+.kok-history__col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 4px;
+  text-align: center;
+}
+
+.kok-history__value,
+.kok-history__day {
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+  min-height: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kok-history__bar {
+  width: 100%;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: var(--accent);
+}
+
+.kok-history__bar.is-empty {
+  background: var(--line);
+}
+
+/* ---------- K3: Inbox ---------- */
+.kok-inbox {
+  margin-top: 0;
+}
+
+.kok-capture {
+  display: flex;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.kok-inbox__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.kok-inbox__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text);
+}
+
+.kok-inbox__type {
+  flex-shrink: 0;
+  min-width: 52px;
+  padding: 2px var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  text-align: center;
+  color: var(--muted);
+}
+
+.kok-inbox__text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* treść wpisu jest przyciskiem otwierającym modal */
+.kok-inbox__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kok-inbox__open:hover {
+  color: var(--accent);
+}
+
+.kok-inbox__clear {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text-muted, var(--text));
+}
+
+.kok-inbox__full {
+  margin: 0 0 var(--s-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- K2: energia deep/quick ---------- */
+.kok-panel__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.kok-chip--btn {
+  cursor: pointer;
+  background: transparent;
+}
+
+.kok-chip--btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kok-energy {
+  flex-shrink: 0;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-energy--deep {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kok-energy-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+/* przełącznik energii w wierszu kolejki: wybrana świeci, pozostała jest przygaszona do najechania */
+.kok-energy--btn {
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.4;
+}
+
+.kok-energy--btn[aria-pressed="false"] {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.kok-energy--btn[aria-pressed="true"],
+.kok-list__item:hover .kok-energy--btn,
+.kok-energy--btn:focus-visible {
+  opacity: 1;
+}
+
+.kok-energy--btn[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.kok-energy--btn:disabled {
+  cursor: default;
+}
+
+.kok-history__pair {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.kok-history__pair .kok-history__bar {
+  flex: 1;
+  min-width: 0;
+}
+
+.kok-history__bar--pr {
+  background: var(--kok-pr, color-mix(in srgb, var(--accent) 55%, var(--surface)));
+}
+
+/* liczby nad słupkami mają kolor swojego słupka: commity = akcent, PR = jaśniejszy odcień */
+.kok-history {
+  --kok-pr: color-mix(in srgb, var(--accent) 55%, var(--surface));
+}
+
+.kok-history__commit-value {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.kok-history__pr-value {
+  color: var(--kok-pr);
+  font-weight: 600;
+}
+
+.kok-history__legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-history__swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.kok-history__swatch--pr {
+  background: var(--kok-pr, color-mix(in srgb, var(--accent) 55%, var(--surface)));
+}
+
+/* kolumny siatki: panele jednej kolumny jeden pod drugim */
+.kok-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.kok-tile__join {
+  align-self: flex-start;
+  margin-top: var(--s-2);
+}
+
+/* ---------- K5: proponowane okna na osi czasu ---------- */
+.kok-tl__slot {
+  grid-column: 3;
+  padding: var(--s-2) var(--s-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  font: 400 var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-tl__slot b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ---------- Podgląd zadania z kolejki ---------- */
+.kok-list__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kok-list__open:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.kok-preview {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+}
+
+.kok-preview > div {
+  display: flex;
+  gap: var(--s-3);
+}
+
+.kok-preview dt {
+  min-width: 130px;
+  color: var(--muted);
+  font: 400 var(--fs-xs) / 1.6 var(--font-mono);
+}
+
+.kok-preview dd {
+  margin: 0;
+}

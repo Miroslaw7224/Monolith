@@ -19,16 +19,11 @@ export function TaskDescriptionLink({ link, className }: TaskDescriptionLinkProp
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className={[
-        "inline-flex items-center gap-1 text-xs text-sky-400 hover:text-sky-300 hover:underline max-w-full min-w-0",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={["zad-desc-link", className].filter(Boolean).join(" ")}
       title={href}
     >
       <ExternalLink className="w-3 h-3 flex-shrink-0" aria-hidden />
-      <span className="truncate">{trimmed}</span>
+      <span className="zad-desc-link__text">{trimmed}</span>
     </a>
   );
 }

@@ -5,8 +5,11 @@ import { useCardHotkeys } from "@/src/features/cards/useCardHotkeys";
 function setup(disabled = false) {
   const onSelectCard = vi.fn();
   const onOpenPalette = vi.fn();
-  const hook = renderHook(() => useCardHotkeys({ onSelectCard, onOpenPalette, disabled }));
-  return { onSelectCard, onOpenPalette, ...hook };
+  const onCaptureInbox = vi.fn();
+  const hook = renderHook(() =>
+    useCardHotkeys({ onSelectCard, onOpenPalette, onCaptureInbox, disabled })
+  );
+  return { onSelectCard, onOpenPalette, onCaptureInbox, ...hook };
 }
 
 describe("useCardHotkeys", () => {
@@ -20,6 +23,31 @@ describe("useCardHotkeys", () => {
     const { onSelectCard } = setup();
     fireEvent.keyDown(window, { key: "9", code: "Digit9", altKey: true });
     expect(onSelectCard).toHaveBeenCalledWith("kodeks");
+  });
+
+  test("Alt+I uruchamia szybki zapis do inboxu i blokuje domyślną akcję", () => {
+    const { onCaptureInbox, onSelectCard } = setup();
+    const ev = new KeyboardEvent("keydown", {
+      key: "i",
+      code: "KeyI",
+      altKey: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(ev);
+    expect(onCaptureInbox).toHaveBeenCalledTimes(1);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(onSelectCard).not.toHaveBeenCalled();
+  });
+
+  test("samo I, Ctrl+Alt+I (AltGr) i disabled nie uruchamiają inboxu", () => {
+    const a = setup();
+    fireEvent.keyDown(window, { key: "i", code: "KeyI" });
+    fireEvent.keyDown(window, { key: "i", code: "KeyI", altKey: true, ctrlKey: true });
+    expect(a.onCaptureInbox).not.toHaveBeenCalled();
+    a.unmount();
+    const b = setup(true);
+    fireEvent.keyDown(window, { key: "i", code: "KeyI", altKey: true });
+    expect(b.onCaptureInbox).not.toHaveBeenCalled();
   });
 
   test("Alt+0 nic nie robi", () => {

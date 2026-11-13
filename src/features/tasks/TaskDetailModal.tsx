@@ -82,14 +82,14 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="zad-modal-overlay"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="task-detail-title"
     >
       <div
-        className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="zad-modal"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
@@ -98,26 +98,23 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
           }
         }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h3 id="task-detail-title" className="text-lg font-bold text-[var(--text)]">
+        <div className="zad-modal__head">
+          <h3 id="task-detail-title" className="zad-modal__title">
             {modalTitle}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text2)]"
+            className="zad-btn zad-btn--ghost zad-btn--sm"
             aria-label={closeLabel}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
-          <div>
-            <label
-              htmlFor="task-detail-title-field"
-              className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-            >
+        <div className="zad-modal__body">
+          <div className="zad-field">
+            <label htmlFor="task-detail-title-field" className="zad-label">
               {titleLabel}
             </label>
             <input
@@ -125,15 +122,12 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
+              className="zad-input"
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="task-detail-link"
-              className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-            >
+          <div className="zad-field">
+            <label htmlFor="task-detail-link" className="zad-label">
               {linkLabel}
             </label>
             <input
@@ -142,38 +136,34 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder={linkPlaceholder}
-              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
+              className="zad-input"
             />
           </div>
 
-          <div>
-            <span className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5">
-              {statusLabel}
-            </span>
-            <div className="flex flex-wrap gap-2">
+          <div className="zad-field">
+            <span className="zad-label">{statusLabel}</span>
+            <div className="zad-status-group">
               {statusOptions.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => setStatus(opt.value)}
                   className={[
-                    "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                    status === opt.value
-                      ? "bg-[var(--accent)] text-white"
-                      : "bg-[var(--bg3)] text-[var(--text2)] hover:bg-[var(--border)]",
-                  ].join(" ")}
+                    "zad-status-btn",
+                    status === opt.value ? "zad-status-btn--active" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
+                  <span className={`zad-dot zad-dot--${opt.value}`} aria-hidden="true" />
                   {opt.label}
                 </button>
               ))}
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="task-detail-due"
-              className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-            >
+          <div className="zad-field">
+            <label htmlFor="task-detail-due" className="zad-label">
               {deadlineLabel}
             </label>
             <input
@@ -181,15 +171,12 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full max-w-xs px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm"
+              className="zad-input zad-due-input--field"
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="task-detail-note"
-              className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-            >
+          <div className="zad-field">
+            <label htmlFor="task-detail-note" className="zad-label">
               {noteLabel}
             </label>
             <textarea
@@ -197,25 +184,21 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={notePlaceholder}
-              rows={8}
-              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm min-h-[120px] resize-y focus:ring-2 focus:ring-[var(--accent)] outline-none"
+              rows={6}
+              className="zad-textarea"
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 p-4 border-t border-[var(--border)]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-[var(--text2)] hover:bg-[var(--bg3)]"
-          >
+        <div className="zad-modal__footer">
+          <button type="button" onClick={onClose} className="zad-btn zad-btn--ghost">
             {closeLabel}
           </button>
           <button
             type="button"
             onClick={() => void handleSave()}
             disabled={saving || !title.trim()}
-            className="px-4 py-2 rounded-xl text-sm font-semibold bg-[var(--accent)] text-white disabled:opacity-50"
+            className="zad-btn zad-btn--primary"
           >
             {saving ? ((t.tasksDetailSaving as string) ?? "…") : saveLabel}
           </button>

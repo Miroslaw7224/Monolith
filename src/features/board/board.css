@@ -1,0 +1,844 @@
+/* =========================================================================
+   Second Brain — Karta Płótno (Alt+6)
+   Klasy z prefiksem .plo- wg docs/mockups/karty/cards/06-plotno.html
+   Tokeny wg tokens.css ([data-card="plotno"])
+   Komponenty wg shell.css
+   ========================================================================= */
+
+.plo[data-card="plotno"],
+[data-card="plotno"] .plo,
+.plo {
+  --bg: #15161a;
+  --surface: #1e1f24;
+  --surface-2: #282a30;
+  --line: #373a42;
+  --text: #f0f0f2;
+  --muted: #a8aab2;
+  /* aliasy starych zmiennych aplikacji, żeby osadzone komponenty miały w karcie ciemne kolory */
+  --bg2: var(--surface);
+  --bg3: var(--surface-2);
+  --border: var(--line);
+  --text2: var(--muted);
+  --text3: var(--muted);
+  --accent: #22d3ee;
+  --accent-text: #22d3ee;
+  --accent-ink: #03202a;
+  --accent-soft: rgba(34, 211, 238, 0.14);
+  --glow: rgba(34, 211, 238, 0.5);
+  --ok: #4ade80;
+  --warn: #fcd34d;
+  --danger: #fb7185;
+  --font-display: "Space Mono", var(--font-mono, monospace);
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+
+  /* Specyficzne dla Płótna z 06-plotno.html */
+  --plo-grid-line: color-mix(in srgb, var(--line) 45%, transparent);
+  --plo-grid-dot: color-mix(in srgb, var(--accent) 22%, transparent);
+  --plo-sticky-bg: #23221b;
+  --plo-sticky-border: #ffd84d;
+  --plo-sticky-ink: #fef9c3;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 34px;
+  --fs-3xl: 48px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--pattern), var(--bg);
+  min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-4) var(--s-5) var(--s-5);
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+.plo *,
+.plo *::before,
+.plo *::after {
+  box-sizing: border-box;
+}
+
+/* ---------- Nagłówek karty (.plo-head / .view-head) ---------- */
+.plo-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+  flex-shrink: 0;
+}
+
+.plo-eyebrow {
+  font: 500 var(--fs-xs)/1 var(--font-mono);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--accent-text);
+  margin: 0 0 var(--s-2);
+}
+
+.plo-title {
+  font: 700 var(--fs-2xl)/1.05 var(--font-display);
+  margin: 0;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.plo-sub {
+  margin: var(--s-2) 0 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+.plo-head__actions {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+/* ---------- Przyciski (.plo-btn / .btn) ---------- */
+.plo .btn,
+.plo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  height: 34px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.1s var(--ease),
+    box-shadow 0.15s var(--ease),
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.plo .btn:hover,
+.plo-btn:hover {
+  border-color: var(--accent);
+}
+
+.plo .btn:active,
+.plo-btn:active {
+  transform: translateY(1px);
+}
+
+.plo .btn--primary,
+.plo-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.plo .btn--primary:hover,
+.plo-btn--primary:hover {
+  box-shadow: 0 0 18px -2px var(--glow);
+}
+
+.plo .btn--danger,
+.plo-btn--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.plo .btn--danger:hover,
+.plo-btn--danger:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.plo .btn--ghost,
+.plo-btn--ghost {
+  background: transparent;
+}
+
+.plo .btn--sm,
+.plo-btn--sm {
+  height: 26px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-xs);
+  border-radius: var(--r-sm);
+}
+
+/* ---------- Chipy (.plo-chip / .chip) ---------- */
+.plo .chip,
+.plo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  background: transparent;
+}
+
+.plo .chip--accent,
+.plo-chip--accent {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+}
+
+.plo .chip--danger,
+.plo-chip--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+/* ---------- Zakładki widoku (.plo-tabs / .tabs) ---------- */
+.plo .tabs,
+.plo-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.plo .tabs__btn,
+.plo-tab-btn {
+  height: 28px;
+  padding: 0 var(--s-3);
+  border: 0;
+  background: transparent;
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.plo .tabs__btn:hover,
+.plo-tab-btn:hover {
+  color: var(--text);
+}
+
+.plo .tabs__btn[aria-pressed="true"],
+.plo-tab-btn--active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow:
+    0 1px 0 var(--line),
+    0 0 0 1px var(--accent);
+}
+
+/* ---------- Komunikaty stanu i błędy ---------- */
+.plo-state-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: var(--s-3);
+  padding: var(--s-6);
+}
+
+.plo-state {
+  margin: 0;
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+  text-align: center;
+}
+
+.plo-state--error {
+  color: var(--danger);
+}
+
+.plo-state--muted {
+  font-size: var(--fs-xs);
+  padding: var(--s-3);
+}
+
+.plo-alert {
+  padding: var(--s-2) var(--s-3);
+  margin-bottom: var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--text);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+}
+
+/* ---------- Główny obszar (.plo-main) ---------- */
+.plo-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Płótno i pasek narzędzi (.plo-canvas-container) ---------- */
+.plo-canvas-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.plo-toolbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.plo-canvas-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+/* ---------- Nadpisywanie stylów ReactFlow w zakresie .plo ---------- */
+.plo .react-flow {
+  background: var(--surface);
+  width: 100%;
+  height: 100%;
+}
+
+.plo .react-flow__pane {
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(to right, var(--plo-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--plo-grid-line) 1px, transparent 1px),
+    radial-gradient(circle, var(--plo-grid-dot) 1px, transparent 1px);
+  background-size:
+    48px 48px,
+    48px 48px,
+    12px 12px;
+  cursor: grab;
+}
+
+.plo .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.plo .react-flow__background {
+  display: none;
+}
+
+/* Kontrolki zoomu React Flow wg .plo-zoom-bar */
+.plo .react-flow__controls {
+  box-shadow: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(4px);
+  padding: 3px;
+  display: flex;
+  gap: 3px;
+  left: var(--s-3) !important;
+  bottom: var(--s-3) !important;
+}
+
+.plo .react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  fill: var(--muted);
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.plo .react-flow__controls-button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+  fill: var(--text);
+}
+
+.plo .react-flow__controls-button svg {
+  fill: currentColor;
+  max-width: 13px;
+  max-height: 13px;
+}
+
+/* Minimapa React Flow wg .plo-minimap */
+.plo .react-flow__minimap {
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  box-shadow: none;
+  overflow: hidden;
+  right: var(--s-3) !important;
+  bottom: var(--s-3) !important;
+  width: 140px;
+  height: 90px;
+}
+
+.plo .react-flow__minimap-mask {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.plo .react-flow__minimap-node {
+  fill: var(--surface-2);
+  stroke: var(--line);
+}
+
+/* Połączenia (edges) */
+.plo .react-flow__edge-path {
+  stroke: color-mix(in srgb, var(--line) 65%, var(--accent));
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 4;
+  transition:
+    stroke 0.15s,
+    stroke-width 0.15s;
+}
+
+.plo .react-flow__edge.selected .react-flow__edge-path,
+.plo .react-flow__edge:hover .react-flow__edge-path,
+.plo-edge--selected {
+  stroke: var(--accent) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 6px var(--glow));
+}
+
+.plo .react-flow__edge marker path,
+.plo .react-flow__arrowhead path {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.plo-edge-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--danger);
+  background: var(--surface-2);
+  color: var(--danger);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.plo-edge-del:hover {
+  background: color-mix(in srgb, var(--danger) 20%, var(--surface-2));
+  transform: scale(1.1);
+}
+
+/* Uchwyty połączeń (handles) */
+.plo .react-flow__handle {
+  width: 9px;
+  height: 9px;
+  background: var(--accent);
+  border: 2px solid var(--surface);
+  border-radius: var(--r-pill);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.plo .react-flow__handle:hover {
+  background: var(--accent-text);
+  box-shadow: 0 0 8px var(--glow);
+  transform: scale(1.2);
+}
+
+/* Kontrolki zmiany rozmiaru NodeResizer */
+.plo .react-flow__resize-control.handle {
+  border-color: var(--accent);
+  background: var(--accent);
+  border-radius: 2px;
+  width: 7px;
+  height: 7px;
+}
+
+.plo .react-flow__resize-control.line {
+  border-color: var(--accent);
+}
+
+/* ---------- Kafelki płótna (TileNode) ---------- */
+.plo-tile {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1.5px solid var(--line);
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color 0.15s var(--ease),
+    background-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+}
+
+.plo-tile:hover {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+}
+
+.plo-tile--selected {
+  background: color-mix(in srgb, var(--surface-2) 85%, var(--accent-soft));
+  border-color: var(--accent);
+  border-width: 2px;
+  box-shadow: 0 0 14px -2px var(--glow);
+}
+
+.plo-tile__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.plo-tile__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plo-tile--selected .plo-tile__title {
+  color: var(--accent-text);
+}
+
+.plo-tile__note {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.plo-node-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.plo-node-del:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+/* ---------- Ramki płótna (FrameNode) ---------- */
+.plo-frame {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-lg);
+  border: 1.5px dashed var(--line);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  transition:
+    border-color 0.15s var(--ease),
+    background-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
+  pointer-events: all;
+}
+
+.plo-frame:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.plo-frame--selected {
+  border-color: var(--accent);
+  border-style: solid;
+  border-width: 2px;
+  background: color-mix(in srgb, var(--accent-soft) 40%, transparent);
+  box-shadow: 0 0 18px -4px var(--glow);
+}
+
+.plo-frame__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px dashed color-mix(in srgb, var(--line) 70%, transparent);
+}
+
+.plo-frame--selected .plo-frame__head {
+  border-bottom-color: var(--accent);
+  border-bottom-style: solid;
+}
+
+.plo-frame__title {
+  background: transparent;
+  border: none;
+  font: 700 var(--fs-xs) / 1.2 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.plo-frame__title:hover {
+  color: var(--text);
+}
+
+.plo-frame--selected .plo-frame__title {
+  color: var(--accent-text);
+}
+
+/* ---------- Widok listy kafelków (BoardList) ---------- */
+.plo-list-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-1);
+}
+
+.plo .panel,
+.plo-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.plo .panel__head,
+.plo-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.plo .panel__title,
+.plo-panel__title {
+  font: 700 var(--fs-xs) / 1.2 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.plo .panel__title b,
+.plo-panel__title b {
+  color: var(--text);
+}
+
+.plo-boards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.plo-board-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: border-color 0.15s;
+}
+
+.plo-board-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+}
+
+.plo-board-item__btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--accent-text);
+  font: 600 var(--fs-sm) / 1.3 var(--font-display);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+}
+
+.plo-board-item__btn:hover {
+  text-decoration: underline;
+}
+
+.plo-board-item__note {
+  font: 400 var(--fs-xs) / 1.3 var(--font-mono);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Okna dialogowe ---------- */
+.plo-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  padding: var(--s-4);
+}
+
+.plo-dialog {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.plo-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.plo-field__label {
+  font: 600 10px / 1 var(--font-mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.plo .input,
+.plo-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 var(--s-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text);
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.plo .input:focus,
+.plo-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.plo-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: var(--s-2) var(--s-3);
+  resize: vertical;
+}
+
+.plo-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.plo-dialog__line {
+  margin: 0;
+  font: 500 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--muted);
+}
+
+.plo-dialog__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}

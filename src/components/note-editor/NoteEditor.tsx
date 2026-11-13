@@ -125,18 +125,20 @@ export function NoteEditor({
   return (
     <div
       className={twMerge(
-        "border border-[var(--border)] rounded-xl bg-[var(--surface)]",
+        "border border-[var(--border)] rounded-xl bg-[var(--surface)] note-editor",
         variant === "panel" ? "flex flex-col h-full min-h-0 overflow-hidden" : "overflow-hidden",
         className
       )}
     >
       <NoteEditorToolbar editor={editor} format={format} />
       {variant === "panel" ? (
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden note-editor-content">
           <EditorContent editor={editor} />
         </div>
       ) : (
-        <EditorContent editor={editor} />
+        <div className="note-editor-content">
+          <EditorContent editor={editor} />
+        </div>
       )}
       <style jsx global>{`
         .ProseMirror p.is-editor-empty:first-child::before {

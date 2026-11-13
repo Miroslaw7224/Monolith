@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Plus, Search, Settings2 } from "lucide-react";
+import "./tasks.css";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskTemplatesModal } from "./TaskTemplatesModal";
 import { TaskColumn } from "./TaskColumn";
@@ -103,109 +104,132 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     showLess: (t.tasksShowLess as string) ?? "Show less",
   };
 
+  const dateSubtitle = useMemo(() => {
+    const activeCount = tasks.filter((x) => x.status !== "done").length;
+    const doneCount = tasks.filter((x) => x.status === "done").length;
+    const today = new Date();
+    const dateFormatted = today.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const capitalizedDate = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
+    if (lang === "pl") {
+      return `${capitalizedDate} · ${activeCount} zadań aktywnych · ${doneCount} ukończonych`;
+    }
+    return `${capitalizedDate} · ${activeCount} active tasks · ${doneCount} completed`;
+  }, [tasks, lang]);
+
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-      <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)]">
-        <div className="max-w-3xl flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-            <div className="sm:w-44 flex-shrink-0">
-              <label
-                htmlFor="new-task-template"
-                className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-              >
-                {labels.templateLabel}
-              </label>
-              <select
-                id="new-task-template"
-                value={selectedTemplateId}
-                onChange={(e) => applyTemplate(e.target.value)}
-                className="w-full px-3 py-3 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
-              >
-                <option value="">{labels.templateNone}</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1 min-w-0">
-              <label
-                htmlFor="new-task-title"
-                className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-              >
-                {labels.titleField}
-              </label>
-              <input
-                id="new-task-title"
-                type="text"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                onKeyDown={handleNewTaskTitleKeyDown}
-                placeholder={labels.titlePlaceholder}
-                className="w-full px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] outline-none"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <label
-                htmlFor="new-task-link"
-                className="block text-xs font-bold text-[var(--text2)] uppercase tracking-wider mb-1.5"
-              >
-                {labels.linkLabel}
-              </label>
-              <input
-                id="new-task-link"
-                ref={linkInputRef}
-                type="url"
-                value={newTaskLink}
-                onChange={(e) => setNewTaskLink(e.target.value)}
-                onKeyDown={handleNewTaskLinkKeyDown}
-                placeholder={labels.linkPlaceholder}
-                className="w-full px-4 py-3 bg-[var(--bg3)] border-none rounded-xl text-base focus:ring-2 focus:ring-[var(--accent)] outline-none"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => void addTask()}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--accent)] text-white rounded-xl text-base font-semibold flex-shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              {(t.tasksAdd as string) ?? "Add"}
-            </button>
-          </div>
+    <div className="zad" data-card="zadania">
+      <header className="zad-head">
+        <div>
+          <p className="zad-eyebrow">{lang === "pl" ? "Alt+3 · Zadania" : "Alt+3 · Tasks"}</p>
+          <h1 className="zad-heading">{lang === "pl" ? "Zadania projektowe" : "Project Tasks"}</h1>
+          <p className="zad-sub">{dateSubtitle}</p>
+        </div>
+        <div className="zad-head__actions">
           <button
             type="button"
             onClick={() => setTemplatesModalOpen(true)}
-            className="self-start flex items-center gap-2 text-sm text-[var(--text2)] hover:text-[var(--accent)] transition-colors"
+            className="zad-btn zad-btn--ghost"
           >
             <Settings2 className="w-4 h-4" />
             {labels.manageTemplates}
           </button>
         </div>
-        <div className="max-w-3xl mt-3 relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text3)] pointer-events-none"
-            aria-hidden
+      </header>
+
+      <div className="zad-toolbar">
+        <div className="zad-cli">
+          <span className="zad-cli__prompt" aria-hidden="true">
+            &gt;
+          </span>
+          <div className="zad-cli__field">
+            <label htmlFor="new-task-template" className="zad-sr-only">
+              {labels.templateLabel}
+            </label>
+            <select
+              id="new-task-template"
+              value={selectedTemplateId}
+              onChange={(e) => applyTemplate(e.target.value)}
+              className="zad-cli__select"
+              aria-label={labels.templateLabel}
+            >
+              <option value="">{labels.templateNone}</option>
+              {templates.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label htmlFor="new-task-title" className="zad-sr-only">
+            {labels.titleField}
+          </label>
+          <input
+            id="new-task-title"
+            type="text"
+            value={newTaskTitle}
+            onChange={(e) => setNewTaskTitle(e.target.value)}
+            onKeyDown={handleNewTaskTitleKeyDown}
+            placeholder={labels.titlePlaceholder}
+            aria-label={labels.titleField}
+            className="zad-cli__input"
           />
+
+          <label htmlFor="new-task-link" className="zad-sr-only">
+            {labels.linkLabel}
+          </label>
+          <input
+            id="new-task-link"
+            ref={linkInputRef}
+            type="url"
+            value={newTaskLink}
+            onChange={(e) => setNewTaskLink(e.target.value)}
+            onKeyDown={handleNewTaskLinkKeyDown}
+            placeholder={labels.linkPlaceholder}
+            aria-label={labels.linkLabel}
+            className="zad-cli__input zad-cli__input--link"
+          />
+
+          <div className="zad-cli__meta">
+            <kbd className="zad-kbd">Enter</kbd>
+            <button
+              type="button"
+              onClick={() => void addTask()}
+              className="zad-btn zad-btn--primary zad-btn--sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {(t.tasksAdd as string) ?? "Add"}
+            </button>
+          </div>
+        </div>
+
+        <div className="zad-search-bar">
+          <Search className="zad-search-icon" aria-hidden="true" />
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={labels.searchPlaceholder}
             aria-label={labels.searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2.5 bg-[var(--bg3)] border border-[var(--border)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)] focus:border-transparent outline-none"
+            className="zad-search-input"
           />
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-6 flex flex-col min-h-0">
+
+      <div className="zad-board-container">
         {loading ? (
-          <div className="text-[var(--text2)] text-base">Loading…</div>
+          <p className="zad-state zad-state--loading">Loading…</p>
         ) : tasks.length === 0 ? (
-          <p className="text-[var(--text3)] font-medium text-base">{labels.noTasks}</p>
+          <p className="zad-state">{labels.noTasks}</p>
         ) : filteredTasks.length === 0 ? (
-          <p className="text-[var(--text3)] font-medium text-base">{labels.noSearchResults}</p>
+          <p className="zad-state">{labels.noSearchResults}</p>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-w-0 w-full content-start">
+          <div className="zad-board">
             {TASK_STATUSES.map((status) => (
               <TaskColumn
                 key={status}
@@ -249,6 +273,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
           </div>
         )}
       </div>
+
       <TaskDetailModal
         task={detailTaskId ? (tasks.find((x) => x.id === detailTaskId) ?? null) : null}
         isOpen={detailTaskId !== null}

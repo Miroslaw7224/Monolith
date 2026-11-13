@@ -2,7 +2,7 @@
 import React from "react";
 import { Home, CheckSquare, FileText, Calendar, MoreHorizontal } from "lucide-react";
 import { cn } from "@/src/lib/cn";
-import type { PlanningTab } from "@/src/features/planowanie/PlanowanieSidebarContent";
+import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 
 type AppMode = "home" | "planowanie";
 

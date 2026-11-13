@@ -6,12 +6,15 @@ import { type CardId, cardByHotkey } from "./cards";
 export interface CardHotkeysOptions {
   onSelectCard: (id: CardId) => void;
   onOpenPalette: () => void;
+  /** Alt+I: szybki zapis do inboxu (Kokpit, pole zapisu). */
+  onCaptureInbox?: () => void;
   disabled?: boolean;
 }
 
 export function useCardHotkeys({
   onSelectCard,
   onOpenPalette,
+  onCaptureInbox,
   disabled = false,
 }: CardHotkeysOptions) {
   useEffect(() => {
@@ -23,6 +26,11 @@ export function useCardHotkeys({
         return;
       }
       if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.code === "KeyI" && onCaptureInbox) {
+          e.preventDefault();
+          onCaptureInbox();
+          return;
+        }
         const match = /^Digit([1-9])$/.exec(e.code);
         const card = match ? cardByHotkey(Number(match[1])) : undefined;
         if (card) {
@@ -33,5 +41,5 @@ export function useCardHotkeys({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onSelectCard, onOpenPalette, disabled]);
+  }, [onSelectCard, onOpenPalette, onCaptureInbox, disabled]);
 }

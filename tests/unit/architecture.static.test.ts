@@ -491,6 +491,7 @@ const IO_LAYER = ["lib/nexus/vault-fs.ts", "lib/nexus/vault-path.ts"];
 const VAULT_FS_IMPORTERS = [
   "contexts/bc_board/repositories",
   "contexts/bc_calendar/repositories",
+  "contexts/bc_inbox/repositories",
   "contexts/bc_mind_maps/repositories",
   "contexts/bc_projects/repositories",
   "contexts/bc_tasks/repositories/tasks",

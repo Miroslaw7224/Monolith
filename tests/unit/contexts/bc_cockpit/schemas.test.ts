@@ -1,7 +1,14 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { MAX_PINNED, type Cockpit } from "@/contexts/bc_cockpit/models";
-import { PinnedInputSchema, toCockpitDto, toPinnedDto } from "@/contexts/bc_cockpit/schemas";
+import {
+  ClosingInputSchema,
+  CompleteQueueItemSchema,
+  PinnedInputSchema,
+  toCockpitDto,
+  toCommitHistoryDto,
+  toPinnedDto,
+} from "@/contexts/bc_cockpit/schemas";
 
 describe("PinnedInputSchema", () => {
   it("przyjmuje 0..3 różnych niepustych id i przycina spacje", () => {
@@ -26,9 +33,31 @@ describe("PinnedInputSchema", () => {
   });
 });
 
+describe("ClosingInputSchema", () => {
+  it("przycina tekst, projectId opcjonalne", () => {
+    expect(ClosingInputSchema.parse({ text: "  Zacząć od K6 " })).toEqual({ text: "Zacząć od K6" });
+    expect(ClosingInputSchema.parse({ text: "x", projectId: " nexus " })).toEqual({
+      text: "x",
+      projectId: "nexus",
+    });
+    expect(ClosingInputSchema.parse({ text: "x", projectId: null })).toEqual({
+      text: "x",
+      projectId: null,
+    });
+  });
+
+  it("odrzuca pusty tekst, tekst > 300 znaków i brak pola", () => {
+    expect(ClosingInputSchema.safeParse({ text: "  " }).success).toBe(false);
+    expect(ClosingInputSchema.safeParse({ text: "a".repeat(301) }).success).toBe(false);
+    expect(ClosingInputSchema.safeParse({ text: "a".repeat(300) }).success).toBe(true);
+    expect(ClosingInputSchema.safeParse({}).success).toBe(false);
+  });
+});
+
 describe("mapery DTO", () => {
   const model: Cockpit = {
     date: "2026-11-13",
+    pinnedIds: ["nexus"],
     topics: [
       {
         id: "nexus",
@@ -39,6 +68,11 @@ describe("mapery DTO", () => {
         nextStep: "Plan",
         blocker: null,
         whereIStopped: null,
+        branch: "main",
+        lastActivity: "2026-11-12T21:40",
+        confidence: "sure",
+        nowCount: 2,
+        bugCount: 1,
       },
     ],
     queue: [
@@ -46,7 +80,17 @@ describe("mapery DTO", () => {
         projectId: null,
         name: "Ogólne",
         owner: "personal",
-        items: [{ kind: "today", title: "Faktura", due: "2026-11-13" }],
+        items: [
+          {
+            kind: "today",
+            title: "Faktura",
+            due: "2026-11-13",
+            projectName: null,
+            priority: null,
+            energy: "quick",
+            source: { type: "task", taskId: "t1" },
+          },
+        ],
       },
     ],
     events: [
@@ -57,18 +101,102 @@ describe("mapery DTO", () => {
         durationMinutes: 30,
         type: "meeting",
         color: "#fff",
+        link: "https://meet.google.com/abc-defg-hij",
+        brief: "Punkt 1\nPunkt 2",
       },
     ],
+    nextMeeting: {
+      date: "2026-11-18",
+      title: "Spotkanie",
+      startMinutes: 570,
+      durationMinutes: 30,
+      link: "https://meet.google.com/abc-defg-hij",
+    },
+    git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
+    inbox: { open: 3 },
+    windows: [
+      { startMinutes: 540, endMinutes: 615, energy: "deep", title: "Porty", projectName: "NEXUS" },
+    ],
+    closing: {
+      anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
+      today: null,
+    },
     warnings: ["uwaga"],
   };
 
   it("toCockpitDto zachowuje kształt i nie wpuszcza dodatkowych pól", () => {
     const dto = toCockpitDto({ ...model, extra: "x" } as Cockpit);
     expect(dto).toEqual(model);
-    expect(Object.keys(dto).sort()).toEqual(["date", "events", "queue", "topics", "warnings"]);
+    expect(Object.keys(dto).sort()).toEqual([
+      "closing",
+      "date",
+      "events",
+      "git",
+      "inbox",
+      "nextMeeting",
+      "pinnedIds",
+      "queue",
+      "topics",
+      "warnings",
+      "windows",
+    ]);
   });
 
   it("toPinnedDto", () => {
     expect(toPinnedDto({ ids: ["a"] })).toEqual({ ids: ["a"] });
+  });
+});
+
+describe("toCommitHistoryDto", () => {
+  it("zachowuje kształt i nie wpuszcza dodatkowych pól", () => {
+    const model = {
+      from: "2026-11-12",
+      to: "2026-11-13",
+      available: true,
+      total: 2,
+      totalPrs: 1,
+      days: [
+        { date: "2026-11-12", total: 0, prs: 0, projects: [] },
+        {
+          date: "2026-11-13",
+          total: 2,
+          prs: 1,
+          projects: [{ projectId: "a", name: "A", count: 2 }],
+        },
+      ],
+    };
+    const dto = toCommitHistoryDto({ ...model, extra: 1 } as never);
+    expect(dto).toEqual(model);
+    expect(Object.keys(dto).sort()).toEqual([
+      "available",
+      "days",
+      "from",
+      "to",
+      "total",
+      "totalPrs",
+    ]);
+  });
+});
+
+describe("CompleteQueueItemSchema", () => {
+  it("przyjmuje zadanie ogólne i zadanie projektu", () => {
+    expect(CompleteQueueItemSchema.parse({ type: "task", taskId: " t1 " })).toMatchObject({
+      type: "task",
+      taskId: "t1",
+    });
+    expect(
+      CompleteQueueItemSchema.parse({ type: "project", projectId: "nexus", text: "Porty #deep" })
+    ).toMatchObject({ type: "project", projectId: "nexus", text: "Porty #deep" });
+  });
+
+  it.each([
+    [{}],
+    [{ type: "task" }],
+    [{ type: "task", taskId: " " }],
+    [{ type: "project", projectId: "a" }],
+    [{ type: "project", text: "t" }],
+    [{ type: "inne", taskId: "x" }],
+  ])("odrzuca %j", (body) => {
+    expect(CompleteQueueItemSchema.safeParse(body).success).toBe(false);
   });
 });
