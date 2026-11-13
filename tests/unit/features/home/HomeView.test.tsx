@@ -2,14 +2,7 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, vi, beforeEach, describe, test, expect } from "vitest";
 import HomeView from "@/src/features/home/HomeView";
-import { translations } from "@/src/translations";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
-
-vi.mock("@/src/components/layout/AppHeader", () => ({
-  AppHeader: () => <div data-testid="header" />,
-}));
-
-const t = translations["pl"];
 
 const EMPTY: CockpitDto = {
   date: "2026-11-13",
@@ -135,16 +128,7 @@ function respond(cockpit: CockpitDto | "fail") {
   });
 }
 
-const defaultProps = {
-  apiFetch: mockApiFetch,
-  lang: "pl" as const,
-  t,
-  appMode: "home" as const,
-  setAppMode: vi.fn(),
-  planningTab: "tasks" as const,
-  setPlanningTab: vi.fn(),
-  setLang: vi.fn(),
-};
+const defaultProps = { apiFetch: mockApiFetch };
 
 beforeEach(() => {
   mockApiFetch.mockReset();

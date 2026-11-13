@@ -2,39 +2,19 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import "./home.css";
-import type { translations } from "@/src/translations";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
-import { AppHeader } from "@/src/components/layout/AppHeader";
-import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 import { CockpitSections } from "./CockpitSections";
 import { PinPicker } from "./PinPicker";
 import { StatusBar } from "./StatusBar";
 import { formatLongDate, hhmm, meetingsLabel, weekNumber } from "./cockpitFormat";
 
-type T = (typeof translations)["en"];
-
 interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "en" | "pl";
-  t: T;
-  appMode: "home" | "planowanie";
-  setAppMode: (mode: "home" | "planowanie") => void;
-  planningTab: PlanningTab;
-  setPlanningTab: (tab: PlanningTab) => void;
-  setLang: (lang: "en" | "pl") => void;
   /** „Wejdź” na karcie tematu: otwiera kartę Projekty z wybranym projektem. */
   onOpenProject?: (id: string) => void;
 }
 
-export default function HomeView({
-  apiFetch,
-  lang,
-  t,
-  setAppMode,
-  setPlanningTab,
-  setLang,
-  onOpenProject,
-}: HomeViewProps) {
+export default function HomeView({ apiFetch, onOpenProject }: HomeViewProps) {
   const [cockpit, setCockpit] = useState<CockpitDto | null>(null);
   const [cockpitError, setCockpitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,24 +44,10 @@ export default function HomeView({
     void loadCockpit();
   }, [loadCockpit]);
 
-  const goToTab = (tab: PlanningTab) => {
-    setPlanningTab(tab);
-    setAppMode("planowanie");
-  };
-
   const meetings = cockpit?.events.filter((e) => e.type === "meeting").length ?? null;
 
   return (
     <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
-      <AppHeader
-        lang={lang}
-        setLang={setLang}
-        t={{
-          brainActive: t.brainActive,
-          searchPlaceholder: t.searchPlaceholder,
-          feedback: t.feedback,
-        }}
-      />
       <div className="kok flex-1 min-h-0 overflow-y-auto" data-card="kokpit">
         <header className="kok-head">
           <div>
@@ -122,22 +88,6 @@ export default function HomeView({
             }}
           />
         )}
-
-        <div className="kok-quick-actions">
-          <h3 className="kok-section-title">{t.homeQuickActions}</h3>
-          <div className="kok-actions">
-            {[
-              { label: t.homeAddNote, action: () => goToTab("notes") },
-              { label: t.homeAddTask, action: () => goToTab("tasks") },
-              { label: t.tabMindMaps, action: () => goToTab("mindmaps") },
-              { label: t.tabResources, action: () => goToTab("resources") },
-            ].map(({ label, action }) => (
-              <button key={label} onClick={action} className="kok-btn kok-btn--sm">
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
       <StatusBar
         projectId={cockpit?.topics[0]?.id ?? null}

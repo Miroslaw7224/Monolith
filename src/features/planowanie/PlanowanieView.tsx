@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useCallback, type ComponentProps } from "react";
 import dynamic from "next/dynamic";
-import { AppHeader } from "@/src/components/layout/AppHeader";
 import { CalendarView } from "@/src/features/calendar/CalendarView";
 import { TasksSection } from "@/src/features/tasks/TasksSection";
 import { TagsSection, type UserTag } from "@/src/features/tags/TagsSection";
@@ -41,7 +40,6 @@ export interface PlanowanieViewProps {
   setAppMode: (mode: "home" | "planowanie") => void;
   planningTab: PlanningTab;
   setPlanningTab: (tab: PlanningTab) => void;
-  setLang: (lang: "en" | "pl") => void;
 }
 
 export default function PlanowanieView({
@@ -52,7 +50,6 @@ export default function PlanowanieView({
   setAppMode,
   planningTab,
   setPlanningTab,
-  setLang,
 }: PlanowanieViewProps) {
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
   const [userTags, setUserTags] = useState<UserTag[]>([]);
@@ -193,16 +190,6 @@ export default function PlanowanieView({
 
   return (
     <main className="flex-1 min-w-0 flex flex-col relative pb-16 md:pb-0">
-      <AppHeader
-        lang={lang}
-        setLang={setLang}
-        t={{
-          brainActive: t.brainActive,
-          searchPlaceholder: t.searchPlaceholder,
-          feedback: t.feedback,
-        }}
-      />
-
       {cardSubtabs.length >= 2 && (
         <CardSubTabs tabs={subtabItems} active={planningTab} onSelect={setPlanningTab} />
       )}

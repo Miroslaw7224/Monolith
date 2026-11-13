@@ -9,9 +9,26 @@ interface MobileMoreDrawerProps {
   onClose: () => void;
   lang: "en" | "pl";
   onSelectTab: (tab: PlanningTab) => void;
+  /** Ustawienia dawnego górnego paska; na telefonie nie ma palety Ctrl+K. */
+  onToggleLang?: () => void;
+  onToggleTheme?: () => void;
+  onFeedback?: () => void;
 }
 
-export function MobileMoreDrawer({ isOpen, onClose, lang, onSelectTab }: MobileMoreDrawerProps) {
+export function MobileMoreDrawer({
+  isOpen,
+  onClose,
+  lang,
+  onSelectTab,
+  onToggleLang,
+  onToggleTheme,
+  onFeedback,
+}: MobileMoreDrawerProps) {
+  const settings = [
+    { id: "lang", label: lang === "pl" ? "EN" : "PL", run: onToggleLang },
+    { id: "theme", label: lang === "pl" ? "Motyw" : "Theme", run: onToggleTheme },
+    { id: "feedback", label: "Feedback", run: onFeedback },
+  ].filter((s) => s.run);
   const items: Array<{
     id: PlanningTab;
     icon: React.ReactNode;
@@ -86,6 +103,20 @@ export function MobileMoreDrawer({ isOpen, onClose, lang, onSelectTab }: MobileM
                 );
               })}
             </div>
+            {settings.length > 0 && (
+              <div className="px-4 pt-3 mt-3 border-t border-[var(--border)] flex gap-2">
+                {settings.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={s.run}
+                    className="flex-1 p-3 rounded-xl bg-[var(--bg3)] text-[var(--text)] text-sm font-semibold"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
         </>
       )}

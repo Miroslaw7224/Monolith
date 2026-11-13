@@ -731,24 +731,6 @@
 }
 
 /* ---------- Szybkie akcje i ActivityLog ---------- */
-.kok-section-title {
-  font: 600 var(--fs-xs) / 1 var(--font-mono);
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 var(--s-3);
-}
-
-.kok-quick-actions {
-  margin-top: var(--s-4);
-}
-
-.kok-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-}
-
 /* ---------- K1: zegar, oś czasu, karta tematu, pasek statusu ---------- */
 .kok-clock {
   font: 600 var(--fs-3xl) / 1 var(--font-mono);
@@ -845,10 +827,10 @@
   justify-content: space-between;
   gap: var(--s-4);
   padding: var(--s-2) var(--s-5);
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  border-top: 1px solid var(--shell-line);
+  background: var(--shell-bg);
   font: 400 var(--fs-xs) / 1 var(--font-mono);
-  color: var(--muted);
+  color: var(--shell-text);
 }
 
 .kok-statusbar b {

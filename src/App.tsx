@@ -16,6 +16,9 @@ import { CardRail } from "@/src/features/cards/CardRail";
 import { CommandPalette } from "@/src/features/cards/CommandPalette";
 import { CardPlaceholder } from "@/src/features/cards/CardPlaceholder";
 import { buildCardCommands } from "@/src/features/cards/cards";
+import { buildAppCommands } from "@/src/features/cards/appCommands";
+import { FeedbackModal } from "@/src/components/layout/FeedbackModal";
+import { useTheme } from "@/src/components/theme/ThemeProvider";
 import { ProjectsView } from "@/src/features/projects/ProjectsView";
 
 export default function App() {
@@ -34,7 +37,17 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
-  const cardCommands = useMemo(() => buildCardCommands(selectCard), [selectCard]);
+  const { toggleTheme } = useTheme();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const toggleLang = useCallback(() => setLang((l) => (l === "en" ? "pl" : "en")), []);
+  const openFeedback = useCallback(() => setFeedbackOpen(true), []);
+  const paletteCommands = useMemo(
+    () => [
+      ...buildCardCommands(selectCard),
+      ...buildAppCommands({ lang, toggleLang, toggleTheme, openFeedback }),
+    ],
+    [selectCard, lang, toggleLang, toggleTheme, openFeedback]
+  );
   useCardHotkeys({
     onSelectCard: selectCard,
     onOpenPalette: openPalette,
@@ -64,17 +77,7 @@ export default function App() {
       ) : placeholder ? (
         <CardPlaceholder cardId={placeholder} />
       ) : appMode === "home" ? (
-        <HomeView
-          apiFetch={apiFetch}
-          lang={lang}
-          t={t}
-          appMode={appMode}
-          setAppMode={setAppMode}
-          planningTab={planningTab}
-          setPlanningTab={setPlanningTab}
-          setLang={setLang}
-          onOpenProject={openProject}
-        />
+        <HomeView apiFetch={apiFetch} onOpenProject={openProject} />
       ) : (
         <PlanowanieView
           apiFetch={apiFetch}
@@ -84,7 +87,6 @@ export default function App() {
           setAppMode={setAppMode}
           planningTab={planningTab}
           setPlanningTab={setPlanningTab}
-          setLang={setLang}
         />
       )}
       <MobileNav
@@ -99,13 +101,20 @@ export default function App() {
         isOpen={moreDrawerOpen}
         onClose={() => setMoreDrawerOpen(false)}
         lang={lang}
+        onToggleLang={toggleLang}
+        onToggleTheme={toggleTheme}
+        onFeedback={() => {
+          setMoreDrawerOpen(false);
+          openFeedback();
+        }}
         onSelectTab={(tab) => {
           setPlanningTab(tab);
           setAppMode("planowanie");
           setMoreDrawerOpen(false);
         }}
       />
-      {paletteOpen && <CommandPalette commands={cardCommands} onClose={closePalette} />}
+      {paletteOpen && <CommandPalette commands={paletteCommands} onClose={closePalette} />}
+      {feedbackOpen && <FeedbackModal title={t.feedback} onClose={() => setFeedbackOpen(false)} />}
     </div>
   );
 }

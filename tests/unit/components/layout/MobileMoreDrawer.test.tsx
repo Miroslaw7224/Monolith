@@ -49,3 +49,31 @@ test("calls onSelectTab for the board", () => {
   fireEvent.click(screen.getByText("Tablica"));
   expect(onSelectTab).toHaveBeenCalledWith("board");
 });
+
+test("ustawienia (język, motyw, feedback) pojawiają się tylko, gdy podano akcje", () => {
+  const { rerender } = render(
+    <MobileMoreDrawer isOpen={true} onClose={vi.fn()} lang="pl" onSelectTab={vi.fn()} />
+  );
+  expect(screen.queryByRole("button", { name: "Feedback" })).toBeNull();
+
+  const onToggleLang = vi.fn();
+  const onToggleTheme = vi.fn();
+  const onFeedback = vi.fn();
+  rerender(
+    <MobileMoreDrawer
+      isOpen={true}
+      onClose={vi.fn()}
+      lang="pl"
+      onSelectTab={vi.fn()}
+      onToggleLang={onToggleLang}
+      onToggleTheme={onToggleTheme}
+      onFeedback={onFeedback}
+    />
+  );
+  fireEvent.click(screen.getByRole("button", { name: "EN" }));
+  fireEvent.click(screen.getByRole("button", { name: "Motyw" }));
+  fireEvent.click(screen.getByRole("button", { name: "Feedback" }));
+  expect(onToggleLang).toHaveBeenCalledTimes(1);
+  expect(onToggleTheme).toHaveBeenCalledTimes(1);
+  expect(onFeedback).toHaveBeenCalledTimes(1);
+});
