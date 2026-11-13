@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
-import { parseUploadFormFile } from "@/lib/http/uploadFormFile";
-import {
-  CreateResourceBodySchema,
-  UpdateResourceBodySchema,
-  toDocumentDto,
-  toResourceDto,
-} from "./schemas";
+import { CreateResourceBodySchema, UpdateResourceBodySchema, toResourceDto } from "./schemas";
 import * as services from "./services";
 
 type ResourceContext = { params: Promise<{ resourceId: string }> };
-type DocumentContext = { params: Promise<{ id: string }> };
 
 // ── zasoby ──────────────────────────────────────────────────────────────────────
 
@@ -82,50 +75,6 @@ export async function deleteResource(
   try {
     await services.deleteResource(resourceId);
     return new NextResponse(null, { status: 204 });
-  } catch (err) {
-    return handleServiceError(err);
-  }
-}
-
-// ── dokumenty i upload ──────────────────────────────────────────────────────────
-
-export async function listDocuments(): Promise<NextResponse> {
-  try {
-    const docs = await services.listDocuments();
-    return NextResponse.json(docs.map(toDocumentDto));
-  } catch (err) {
-    return handleServiceError(err);
-  }
-}
-
-export async function deleteDocument(
-  _request: NextRequest,
-  ctx: DocumentContext
-): Promise<NextResponse> {
-  const { id } = await ctx.params;
-  try {
-    await services.deleteDocument(id);
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return handleServiceError(err);
-  }
-}
-
-export async function uploadDocument(request: NextRequest): Promise<NextResponse> {
-  let formData: FormData;
-  try {
-    formData = await request.formData();
-  } catch {
-    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
-  }
-  const parsed = await parseUploadFormFile(formData);
-  if (parsed.ok === false) {
-    return parsed.response;
-  }
-  const { name, type, content } = parsed;
-  try {
-    const result = await services.ingestDocument({ name, content, type });
-    return NextResponse.json(result);
   } catch (err) {
     return handleServiceError(err);
   }
