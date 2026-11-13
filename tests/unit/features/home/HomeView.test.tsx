@@ -12,6 +12,7 @@ const EMPTY: CockpitDto = {
   nextMeeting: null,
   git: null,
   inbox: null,
+  windows: [],
   closing: { anchor: null, today: null },
   warnings: [],
 };
@@ -118,6 +119,29 @@ const FULL: CockpitDto = {
   },
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
   inbox: { open: 2 },
+  windows: [
+    {
+      startMinutes: 480,
+      endMinutes: 570,
+      energy: "deep",
+      title: "Stare okno",
+      projectName: "NEXUS",
+    },
+    {
+      startMinutes: 600,
+      endMinutes: 750,
+      energy: "deep",
+      title: "Napisać plan K5",
+      projectName: "NEXUS",
+    },
+    {
+      startMinutes: 840,
+      endMinutes: 930,
+      energy: "quick",
+      title: "Sprawdzić linki",
+      projectName: null,
+    },
+  ],
   closing: {
     anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
     today: null,
@@ -340,7 +364,7 @@ describe("K1: układ wg makiety", () => {
     expect(screen.queryByText(/Dzień dobry/)).toBeNull();
     expect(screen.getByLabelText("Aktualna godzina")).toHaveTextContent("09:48");
     expect(screen.getByLabelText("Aktualna godzina")).toHaveTextContent("tydz. 46");
-    expect(screen.getByText("1 spotkanie dziś")).toBeInTheDocument();
+    expect(screen.getByText("1 spotkanie dziś · 1 okno Deep Work")).toBeInTheDocument();
   });
 
   test("kafel następnego spotkania: godzina i „za N min”", async () => {
@@ -709,5 +733,37 @@ describe("K1: układ wg makiety", () => {
     expect(timeline.parentElement).toBe(history.parentElement);
     expect(queue.parentElement).toBe(inbox.parentElement);
     expect(timeline.parentElement).not.toBe(queue.parentElement);
+  });
+
+  test("okna Deep Work: propozycje na osi między wydarzeniami, miniona ukryta, licznik w nagłówku (K5)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const timeline = await screen.findByRole("region", { name: "Oś dnia" });
+    const slots = within(timeline).getAllByTestId("window-slot");
+    expect(slots).toHaveLength(2);
+    expect(slots[0]).toHaveTextContent("Okno 10:00–12:30");
+    expect(slots[0]).toHaveTextContent("proponowane");
+    expect(slots[0]).toHaveTextContent("deep");
+    expect(slots[0]).toHaveTextContent("Napisać plan K5");
+    expect(slots[0]).toHaveTextContent("NEXUS");
+    expect(slots[1]).toHaveTextContent("Okno 14:00–15:30");
+    expect(slots[1]).toHaveTextContent("quick");
+    expect(within(timeline).queryByText("Stare okno")).not.toBeInTheDocument();
+    // kolejność na osi: spotkanie 09:30, „teraz” 09:48, okno 10:00, praca 13:00, okno 14:00
+    const text = timeline.textContent ?? "";
+    const order = ["Spotkanie zespołu", "teraz", "Okno 10:00", "Praca głęboka", "Okno 14:00"].map(
+      (t) => text.indexOf(t)
+    );
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(screen.getByText(/1 okno Deep Work/)).toBeInTheDocument();
+  });
+
+  test("bez propozycji nie ma slotów ani licznika okien", async () => {
+    respond(EMPTY);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("zsynchronizowany");
+    expect(screen.queryByTestId("window-slot")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Deep Work/)).not.toBeInTheDocument();
   });
 });

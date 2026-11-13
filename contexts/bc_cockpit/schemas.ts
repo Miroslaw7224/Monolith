@@ -5,6 +5,7 @@ import type {
   Cockpit,
   CommitHistory,
   DayEvent,
+  DeepWindow,
   Pinned,
   QueueGroup,
   Topic,
@@ -30,6 +31,7 @@ export const ClosingInputSchema = looseObject({
 export type TopicDto = Topic;
 export type QueueGroupDto = QueueGroup;
 export type DayEventDto = DayEvent;
+export type DeepWindowDto = DeepWindow;
 export type CockpitDto = Cockpit;
 export type PinnedDto = Pinned;
 export type ClosingDto = Closing;
@@ -78,6 +80,13 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
     nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
     git: c.git ? { ...c.git } : null,
     inbox: c.inbox ? { open: c.inbox.open } : null,
+    windows: c.windows.map((w) => ({
+      startMinutes: w.startMinutes,
+      endMinutes: w.endMinutes,
+      energy: w.energy,
+      title: w.title,
+      projectName: w.projectName,
+    })),
     closing: {
       anchor: c.closing.anchor ? toClosingDto(c.closing.anchor) : null,
       today: c.closing.today ? toClosingDto(c.closing.today) : null,

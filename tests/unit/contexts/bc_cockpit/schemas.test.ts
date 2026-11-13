@@ -109,6 +109,9 @@ describe("mapery DTO", () => {
     },
     git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
     inbox: { open: 3 },
+    windows: [
+      { startMinutes: 540, endMinutes: 615, energy: "deep", title: "Porty", projectName: "NEXUS" },
+    ],
     closing: {
       anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
       today: null,
@@ -129,6 +132,7 @@ describe("mapery DTO", () => {
       "queue",
       "topics",
       "warnings",
+      "windows",
     ]);
   });
 

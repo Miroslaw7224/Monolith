@@ -112,6 +112,16 @@ export type CommitHistory = {
   days: CommitDay[];
 };
 
+/** Proponowane okno pracy w wolnej części dnia, przypisane do zadania z kolejki (bez zapisu). */
+export type DeepWindow = {
+  startMinutes: number;
+  endMinutes: number;
+  energy: Energy;
+  title: string;
+  /** Nazwa projektu zadania; `null` dla zadania ogólnego. */
+  projectName: string | null;
+};
+
 /** Liczba otwartych (niesegregowanych) wpisów `Inbox/inbox.md`. */
 export type InboxSummary = { open: number };
 
@@ -126,6 +136,8 @@ export type Cockpit = {
   git: GitSummary | null;
   /** `null`, gdy plik inboxu nie dał się odczytać (jest wtedy ostrzeżenie). */
   inbox: InboxSummary | null;
+  /** Do 3 proponowanych okien Deep Work / Quick Win w wolnych godzinach dnia. */
+  windows: DeepWindow[];
   /** `anchor`: najnowsze zamknięcie sprzed dziś („Zaczep z wczoraj”); `today`: dzisiejsze, jeśli jest. */
   closing: { anchor: Closing | null; today: Closing | null };
   warnings: string[];

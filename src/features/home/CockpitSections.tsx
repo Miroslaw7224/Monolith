@@ -3,12 +3,20 @@ import React, { useRef, useState } from "react";
 import type {
   CockpitDto,
   DayEventDto,
+  DeepWindowDto,
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
 import { InboxPanel } from "./InboxPanel";
 import { CommitHistory } from "./CommitHistory";
-import { hhmm, minutesUntil, projectsLabel, relativeDays, timelineRange } from "./cockpitFormat";
+import {
+  hhmm,
+  minutesUntil,
+  projectsLabel,
+  relativeDays,
+  timelineRange,
+  upcomingWindows,
+} from "./cockpitFormat";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -219,15 +227,54 @@ function NowMarker({ nowMinutes }: { nowMinutes: number }) {
   );
 }
 
-function Timeline({ events, now }: { events: DayEventDto[]; now: Date }) {
+function WindowSlot({ window: w }: { window: DeepWindowDto }) {
+  return (
+    <li className="kok-tl__item" data-testid="window-slot">
+      <span />
+      <span />
+      <div className="kok-tl__slot">
+        Okno{" "}
+        <b>
+          {hhmm(w.startMinutes)}–{hhmm(w.endMinutes)}
+        </b>{" "}
+        · proponowane: <span className={`kok-energy kok-energy--${w.energy}`}>{w.energy}</span>{" "}
+        {w.projectName ? `${w.title} · ${w.projectName}` : w.title}
+      </div>
+    </li>
+  );
+}
+
+function Timeline({
+  events,
+  windows,
+  now,
+}: {
+  events: DayEventDto[];
+  windows: DeepWindowDto[];
+  now: Date;
+}) {
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  type Entry =
+    | { start: number; key: string; event: DayEventDto }
+    | { start: number; key: string; window: DeepWindowDto };
+  const entries: Entry[] = [
+    ...events.map((event): Entry => ({ start: event.startMinutes, key: event.id, event })),
+    ...upcomingWindows(windows, nowMinutes).map(
+      (window): Entry => ({ start: window.startMinutes, key: `w${window.startMinutes}`, window })
+    ),
+  ].sort((a, b) => a.start - b.start);
   const items: React.ReactNode[] = [];
   let markerPlaced = false;
-  for (const event of events) {
-    if (!markerPlaced && event.startMinutes > nowMinutes) {
+  for (const entry of entries) {
+    if (!markerPlaced && entry.start > nowMinutes) {
       items.push(<NowMarker key="now" nowMinutes={nowMinutes} />);
       markerPlaced = true;
     }
+    if ("window" in entry) {
+      items.push(<WindowSlot key={entry.key} window={entry.window} />);
+      continue;
+    }
+    const { event } = entry;
     const current =
       event.startMinutes <= nowMinutes && nowMinutes < event.startMinutes + event.durationMinutes;
     items.push(<EventRow key={event.id} event={event} current={current} />);
@@ -355,7 +402,7 @@ export function CockpitSections({
             {data.events.length === 0 ? (
               <p className="kok-empty-msg">Brak wydarzeń na dziś</p>
             ) : (
-              <Timeline events={data.events} now={now} />
+              <Timeline events={data.events} windows={data.windows} now={now} />
             )}
           </section>
 

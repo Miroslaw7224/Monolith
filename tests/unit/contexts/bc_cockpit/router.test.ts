@@ -37,6 +37,7 @@ describe("GET /api/cockpit", () => {
       nextMeeting: null,
       git: null,
       inbox: null,
+      windows: [],
       closing: { anchor: null, today: null },
       warnings: ["x"],
     });
@@ -50,6 +51,7 @@ describe("GET /api/cockpit", () => {
       nextMeeting: null,
       git: null,
       inbox: null,
+      windows: [],
       closing: { anchor: null, today: null },
       warnings: ["x"],
     });

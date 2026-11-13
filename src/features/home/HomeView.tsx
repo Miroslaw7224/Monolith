@@ -8,7 +8,14 @@ import { ClosingAnchor } from "./ClosingAnchor";
 import { CockpitSections } from "./CockpitSections";
 import { PinPicker } from "./PinPicker";
 import { StatusBar } from "./StatusBar";
-import { formatLongDate, hhmm, meetingsLabel, weekNumber } from "./cockpitFormat";
+import {
+  formatLongDate,
+  hhmm,
+  meetingsLabel,
+  upcomingWindows,
+  weekNumber,
+  windowsLabel,
+} from "./cockpitFormat";
 
 interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -56,6 +63,10 @@ export default function HomeView({
   }, [loadCockpit]);
 
   const meetings = cockpit?.events.filter((e) => e.type === "meeting").length ?? null;
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const deepWindows = cockpit
+    ? upcomingWindows(cockpit.windows, nowMinutes).filter((w) => w.energy === "deep").length
+    : 0;
 
   return (
     <main className="flex-1 min-w-0 flex flex-col relative overflow-hidden pb-16 md:pb-0">
@@ -71,7 +82,11 @@ export default function HomeView({
           <div>
             <p className="kok-eyebrow">Alt+1 · Kokpit</p>
             <h1 className="kok-title">{formatLongDate(now)}</h1>
-            {meetings !== null ? <p className="kok-sub">{meetingsLabel(meetings)}</p> : null}
+            {meetings !== null ? (
+              <p className="kok-sub">
+                {[meetingsLabel(meetings), windowsLabel(deepWindows)].filter(Boolean).join(" · ")}
+              </p>
+            ) : null}
           </div>
           <div className="kok-head__right">
             <div className="kok-clock" aria-label="Aktualna godzina">

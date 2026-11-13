@@ -1094,3 +1094,18 @@
   align-self: flex-start;
   margin-top: var(--s-2);
 }
+
+/* ---------- K5: proponowane okna na osi czasu ---------- */
+.kok-tl__slot {
+  grid-column: 3;
+  padding: var(--s-2) var(--s-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  font: 400 var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--muted);
+}
+
+.kok-tl__slot b {
+  color: var(--text);
+  font-weight: 500;
+}

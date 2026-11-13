@@ -35,6 +35,7 @@ vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCa
 import {
   closeDay,
   extractEnergy,
+  planWindows,
   getCommitHistory,
   getCockpit,
   isPlausibleDate,
@@ -833,5 +834,114 @@ describe("energia deep/quick (K2)", () => {
         ["Faktura", "quick"],
       ])
     );
+  });
+});
+
+describe("okna Deep Work (K5)", () => {
+  const ev = (start: number, dur: number) => ({
+    id: `e${start}`,
+    title: "x",
+    startMinutes: start,
+    durationMinutes: dur,
+    type: "meeting" as const,
+    color: "#000",
+    link: null,
+  });
+  type Spec = [title: string, energy: "deep" | "quick" | null, projectName?: string | null];
+  const group = (...items: Spec[]) => [
+    {
+      projectId: "p",
+      name: "P",
+      owner: "personal" as const,
+      items: items.map(([title, energy, projectName = "P"]) => ({
+        kind: "now" as const,
+        title,
+        due: null,
+        projectName,
+        priority: null,
+        energy,
+      })),
+    },
+  ];
+
+  it("wolne okna między wydarzeniami dostają zadania: najpierw deep do okien ≥ 60 min, potem quick", () => {
+    // zajęte 08:30–09:00 i 10:30–11:00; wolne 09:00–10:30 (90) i 11:00–18:00 (przycięte do 150)
+    const out = planWindows(
+      [ev(510, 30), ev(630, 30)],
+      group(["Porty", "deep"], ["Linki", "quick"]),
+      480
+    );
+    expect(out).toEqual([
+      { startMinutes: 540, endMinutes: 630, energy: "deep", title: "Porty", projectName: "P" },
+      { startMinutes: 660, endMinutes: 810, energy: "quick", title: "Linki", projectName: "P" },
+    ]);
+  });
+
+  it("okno startuje nie wcześniej niż „teraz” (zaokrąglone w górę do 15 min)", () => {
+    // 09:38 → 09:45; do 10:30 zostaje 45 min, więc tylko quick
+    expect(planWindows([ev(630, 30)], group(["A", "quick"]), 9 * 60 + 38)).toEqual([
+      { startMinutes: 585, endMinutes: 630, energy: "quick", title: "A", projectName: "P" },
+    ]);
+  });
+
+  it("odcinki krótsze niż 45 min są pomijane; okno 45–59 min dostaje tylko quick", () => {
+    expect(planWindows([ev(480, 30), ev(540, 540)], group(["A", "quick"]), 0)).toEqual([]);
+    const only = planWindows([ev(480, 15), ev(540, 540)], group(["Deep", "deep"]), 0);
+    expect(only).toEqual([]);
+    const quick = planWindows(
+      [ev(480, 15), ev(540, 540)],
+      group(["Deep", "deep"], ["Szybkie", "quick"]),
+      0
+    );
+    expect(quick).toEqual([
+      { startMinutes: 495, endMinutes: 540, energy: "quick", title: "Szybkie", projectName: "P" },
+    ]);
+  });
+
+  it("maksymalnie 3 okna (najdłuższe wolne odcinki), w kolejności czasu", () => {
+    const events = [ev(540, 15), ev(660, 15), ev(780, 15), ev(900, 15)];
+    const tasks = group(["1", "deep"], ["2", "deep"], ["3", "deep"], ["4", "deep"], ["5", "deep"]);
+    const out = planWindows(events, tasks, 0);
+    expect(out).toHaveLength(3);
+    expect(out.map((w) => w.startMinutes)).toEqual(
+      [...out.map((w) => w.startMinutes)].sort((a, b) => a - b)
+    );
+  });
+
+  it("zachodzące na siebie wydarzenia są łączone; wydarzenia poza 08–18 nie zawężają dnia", () => {
+    const out = planWindows(
+      [ev(480, 120), ev(540, 120), ev(1200, 60), ev(300, 60)],
+      group(["A", "deep"]),
+      0
+    );
+    expect(out).toEqual([
+      { startMinutes: 660, endMinutes: 810, energy: "deep", title: "A", projectName: "P" },
+    ]);
+  });
+
+  it("bez zadań z energią nic nie proponuje; zadanie ogólne ma projectName null", () => {
+    expect(planWindows([], group(["Bez energii", null]), 0)).toEqual([]);
+    expect(planWindows([], [], 0)).toEqual([]);
+    const out = planWindows([], group(["Faktura", "quick", null]), 0);
+    expect(out[0].projectName).toBeNull();
+  });
+
+  it("getCockpit zwraca okna z wydarzeń dnia i kolejki", async () => {
+    mockListNowTasks.mockReturnValue({
+      tasks: [
+        {
+          projectId: "p",
+          projectName: "P",
+          owner: "personal",
+          priority: "high",
+          text: "Porty #deep",
+        },
+      ],
+      warnings: [],
+    });
+    const result = await getCockpit(new Date(2026, 10, 13, 8, 0));
+    expect(result.windows).toEqual([
+      { startMinutes: 480, endMinutes: 630, energy: "deep", title: "Porty", projectName: "P" },
+    ]);
   });
 });

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  upcomingWindows,
+  windowsLabel,
   commitsLabel,
   anchorLabel,
   formatLongDate,
@@ -113,5 +115,27 @@ describe("commitsLabel", () => {
     expect(commitsLabel(5)).toBe("5 commitów");
     expect(commitsLabel(12)).toBe("12 commitów");
     expect(commitsLabel(22)).toBe("22 commity");
+  });
+});
+
+describe("windowsLabel / upcomingWindows", () => {
+  it("odmienia okna Deep Work", () => {
+    expect(windowsLabel(0)).toBe("");
+    expect(windowsLabel(1)).toBe("1 okno Deep Work");
+    expect(windowsLabel(2)).toBe("2 okna Deep Work");
+    expect(windowsLabel(5)).toBe("5 okien Deep Work");
+  });
+
+  it("odrzuca okna, które już się skończyły", () => {
+    const w = (s: number, e: number) => ({
+      startMinutes: s,
+      endMinutes: e,
+      energy: "deep" as const,
+      title: "x",
+      projectName: null,
+    });
+    expect(
+      upcomingWindows([w(480, 570), w(570, 600), w(600, 700)], 600).map((x) => x.startMinutes)
+    ).toEqual([600]);
   });
 });

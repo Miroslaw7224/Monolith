@@ -27,14 +27,14 @@ poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu
 
 ## 2. Kalendarz (`src/features/calendar/CalendarView.tsx`)
 
-| Funkcja                            | Stan      | Gdzie / uwagi                                                 |
-| ---------------------------------- | --------- | ------------------------------------------------------------- |
-| Dodawanie wydarzenia               | JEST      | src/features/calendar/CalendarView.tsx, CalendarEventForm.tsx |
-| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx; jest tylko siatka 24 h jednego dnia         |
-| Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx; ogólne tagi i typ work/meeting              |
-| Planer slotów Deep Work            | BRAK      |                                                               |
-| Szczegóły z briefem i action items | BRAK      |                                                               |
-| Mini-kalendarz miesiąca            | BRAK      |                                                               |
+| Funkcja                            | Stan      | Gdzie / uwagi                                                          |
+| ---------------------------------- | --------- | ---------------------------------------------------------------------- |
+| Dodawanie wydarzenia               | JEST      | src/features/calendar/CalendarView.tsx, CalendarEventForm.tsx          |
+| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx; jest tylko siatka 24 h jednego dnia                  |
+| Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx; ogólne tagi i typ work/meeting                       |
+| Planer slotów Deep Work            | JEST      | planWindows (bc_cockpit/services), sloty na osi czasu (K5, 2026-11-13) |
+| Szczegóły z briefem i action items | BRAK      |                                                                        |
+| Mini-kalendarz miesiąca            | BRAK      |                                                                        |
 
 ## 3. Zadania (`src/features/tasks/TasksSection.tsx`)
 

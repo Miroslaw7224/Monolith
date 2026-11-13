@@ -78,6 +78,24 @@ export function projectsLabel(count: number): string {
   return `${count} ${few ? "projekty" : "projektów"}`;
 }
 
+/** „1 okno Deep Work” / „2 okna Deep Work” / „5 okien Deep Work”; 0 → pusty tekst. */
+export function windowsLabel(count: number): string {
+  if (count === 0) return "";
+  if (count === 1) return "1 okno Deep Work";
+  const last = count % 10;
+  const lastTwo = count % 100;
+  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
+  return `${count} ${few ? "okna" : "okien"} Deep Work`;
+}
+
+/** Propozycje okien, które jeszcze się nie skończyły (serwer liczył je w chwili wczytania Kokpitu). */
+export function upcomingWindows<T extends { endMinutes: number }>(
+  windows: T[],
+  nowMinutes: number
+): T[] {
+  return windows.filter((w) => w.endMinutes > nowMinutes);
+}
+
 /** Zakres osi czasu w pełnych godzinach: minimum 08–18, rozszerzany o wydarzenia. */
 export function timelineRange(events: { startMinutes: number; durationMinutes: number }[]): {
   from: number;

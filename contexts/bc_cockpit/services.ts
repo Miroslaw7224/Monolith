@@ -10,6 +10,7 @@ import {
   type Cockpit,
   type Confidence,
   type DayEvent,
+  type DeepWindow,
   type Energy,
   type GitSummary,
   type InboxSummary,
@@ -241,6 +242,62 @@ export function pickNextMeeting(events: DayEvent[], nowMinutes: number): NextMee
     : null;
 }
 
+// ── okna Deep Work ─────────────────────────────────────────────────────────────
+
+const DAY_START = 8 * 60;
+const DAY_END = 18 * 60;
+const MIN_WINDOW = 45;
+const DEEP_MIN_WINDOW = 60;
+const MAX_WINDOW = 150;
+const MAX_WINDOWS = 3;
+
+/**
+ * Do 3 proponowanych okien w wolnych godzinach 08–18 (od „teraz”, zaokrąglonego w górę do 15 min):
+ * wolny odcinek ≥ 45 min, okno do 150 min. Zadania z kolejki (kolejność jak w kolejce) wybierane
+ * wg energii: okno ≥ 60 min dostaje najpierw deep, potem quick; krótsze tylko quick. Czysta funkcja.
+ */
+export function planWindows(
+  events: DayEvent[],
+  queue: QueueGroup[],
+  nowMinutes: number
+): DeepWindow[] {
+  const busy = events
+    .map((e) => [e.startMinutes, e.startMinutes + e.durationMinutes] as const)
+    .sort((a, b) => a[0] - b[0]);
+  const gaps: { start: number; end: number }[] = [];
+  let cursor = Math.max(DAY_START, Math.ceil(nowMinutes / 15) * 15);
+  for (const [start, end] of busy) {
+    if (start > cursor) gaps.push({ start: cursor, end: Math.min(start, DAY_END) });
+    cursor = Math.max(cursor, end);
+  }
+  if (cursor < DAY_END) gaps.push({ start: cursor, end: DAY_END });
+
+  const chosen = gaps
+    .filter((g) => g.end - g.start >= MIN_WINDOW)
+    .sort((a, b) => b.end - b.start - (a.end - a.start))
+    .slice(0, MAX_WINDOWS)
+    .sort((a, b) => a.start - b.start);
+
+  const items = queue.flatMap((g) => g.items).filter((i) => i.energy !== null);
+  const deep = items.filter((i) => i.energy === "deep");
+  const quick = items.filter((i) => i.energy === "quick");
+
+  const windows: DeepWindow[] = [];
+  for (const gap of chosen) {
+    const long = gap.end - gap.start >= DEEP_MIN_WINDOW;
+    const item = (long ? (deep.shift() ?? quick.shift()) : quick.shift()) ?? null;
+    if (!item || item.energy === null) continue;
+    windows.push({
+      startMinutes: gap.start,
+      endMinutes: Math.min(gap.end, gap.start + MAX_WINDOW),
+      energy: item.energy,
+      title: item.title,
+      projectName: item.projectName,
+    });
+  }
+  return windows;
+}
+
 // ── git ────────────────────────────────────────────────────────────────────────
 
 function loadGit(today: Date, topics: Topic[], warnings: string[]): GitSummary | null {
@@ -300,7 +357,8 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const git = loadGit(today, topics, warnings);
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
-  return { date, topics, queue, events, nextMeeting, git, inbox, closing, warnings };
+  const windows = planWindows(events, queue, today.getHours() * 60 + today.getMinutes());
+  return { date, topics, queue, events, nextMeeting, git, inbox, windows, closing, warnings };
 }
 
 export async function setPinned(ids: string[]): Promise<Pinned> {
