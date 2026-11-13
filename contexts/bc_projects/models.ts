@@ -85,3 +85,31 @@ export type ProjectWithContent = Project & {
   stateVersion: VersionToken | null;
   devlog: DevlogEntry[];
 };
+
+// ── paczka kontekstu dla agenta (etap 1-4) ──────────────────────────────────────
+
+/** Dlaczego repozytorium projektu jest niedostępne; zgodne strukturalnie z powodami z `lib/git` (models nie importuje `lib/*`). */
+export type RepoUnavailableReason =
+  | "unsupported-path"
+  | "outside-home"
+  | "missing"
+  | "not-a-repo"
+  | "git-error";
+
+export type GitSnapshot = { status: string; log: string; diffStat: string };
+export type GitSnapshotResult =
+  | { ok: true; snapshot: GitSnapshot }
+  | { ok: false; reason: RepoUnavailableReason };
+
+export type RepoRulesResult =
+  | { ok: true; text: string }
+  | { ok: false; reason: RepoUnavailableReason | "no-file" | "unsafe-file" };
+
+export type IndexRuleSection = { heading: string; body: string };
+
+export type ContextPack = {
+  markdown: string;
+  approxTokens: number;
+  truncated: boolean;
+  warnings: string[];
+};

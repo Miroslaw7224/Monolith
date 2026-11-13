@@ -4,15 +4,21 @@ import {
   type BugEntry,
   type ChecklistSection,
   type DevlogEntry,
+  type GitSnapshotResult,
+  type IndexRuleSection,
   type ProjectIndex,
   type ProjectState,
   type ProjectType,
   type RegistryEntry,
+  type RepoRulesResult,
   type TaskOp,
   type TasksBoard,
   type VersionToken,
 } from "@/contexts/bc_projects/models";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
+import { snapshotRepo } from "@/lib/git/project-git";
+import { readRepoFile } from "@/lib/git/repo-file";
+import { resolveRepoPath } from "@/lib/git/repo-path";
 import { parseFrontmatter } from "@/lib/nexus/frontmatter";
 import { getVaultRoot } from "@/lib/nexus/vault-path";
 import {
@@ -256,4 +262,41 @@ export function writeProjectTasks(
     today: ctx.today,
   });
   return writeVaultFile(rel, next, { expected });
+}
+
+// ── źródła paczki kontekstu (etap 1-4) ──────────────────────────────────────────
+
+/** Git projektu tylko do odczytu; ścieżka z rejestru przechodzi `resolveRepoPath` (WSL, dom, bez symlinków). */
+export function readGitSnapshot(entry: RegistryEntry): GitSnapshotResult {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false, reason: repo.reason };
+  return snapshotRepo(repo.path);
+}
+
+/** `CLAUDE.md` z repozytorium projektu (zwykły plik, do 64 KB). */
+export function readRepoRules(entry: RegistryEntry): RepoRulesResult {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false, reason: repo.reason };
+  const file = readRepoFile(repo.path, "CLAUDE.md");
+  if (file.ok) return { ok: true, text: file.text };
+  return { ok: false, reason: file.reason === "missing" ? "no-file" : "unsafe-file" };
+}
+
+/** `Projects/<id>/ai-context.md` z vaulta; brak pliku albo pusta treść = `null`. */
+export function readAiContext(entry: RegistryEntry): string | null {
+  const file = readVaultFile(projectPath(entry.folder, "ai-context.md"));
+  const textBody = file?.text.trim() ?? "";
+  return textBody === "" ? null : textBody;
+}
+
+const INDEX_RULE_HEADINGS = ["Tech Stack", "Architektura", "Pułapki"];
+
+/** Sekcje `Tech Stack`, `Architektura`, `Pułapki` z `index.md` (w kolejności pliku, bez pustych). */
+export function readIndexRules(entry: RegistryEntry): IndexRuleSection[] {
+  const file = readVaultFile(projectPath(entry.folder, "index.md"));
+  if (file === null) return [];
+  const body = parseFrontmatter(file.text)?.body ?? file.text;
+  return parseSections(body)
+    .filter((s) => INDEX_RULE_HEADINGS.includes(s.heading) && s.body !== "")
+    .map((s) => ({ heading: s.heading, body: s.body }));
 }
