@@ -206,6 +206,14 @@
   margin: 2px 0 0;
 }
 
+.prj-card__owner {
+  margin-left: var(--s-2);
+  padding: 1px var(--s-2);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-sm);
+  color: var(--text);
+}
+
 .prj-links {
   display: flex;
   align-items: center;

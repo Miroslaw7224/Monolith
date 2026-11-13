@@ -166,6 +166,11 @@ describe("bc_projects schemas: type i DTO zapisu", () => {
     expect([...ProjectTypeSchema.options]).toEqual([...PROJECT_TYPES]);
   });
 
+  it("toSummaryDto przenosi owner", () => {
+    expect(toSummaryDto(base).owner).toBe("personal");
+    expect(toSummaryDto({ ...base, owner: "work" }).owner).toBe("work");
+  });
+
   it("toSummaryDto przenosi type", () => {
     expect(toSummaryDto({ ...base, type: "wlasny" }).type).toBe("wlasny");
     expect("type" in toSummaryDto(base)).toBe(false);

@@ -1,5 +1,7 @@
 export type Freshness = "fresh" | "stale" | "unknown";
 
+export type Owner = "personal" | "work";
+
 export type RegistryEntry = {
   id: string;
   name: string;
@@ -10,7 +12,7 @@ export type RegistryEntry = {
   localPath: string;
   deploy?: string;
   github?: string;
-  owner: "personal";
+  owner: Owner;
 };
 
 export type ProjectType = "etat" | "wlasny" | "biblioteka";

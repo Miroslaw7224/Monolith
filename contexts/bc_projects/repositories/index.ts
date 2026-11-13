@@ -6,6 +6,7 @@ import {
   type DevlogEntry,
   type GitSnapshotResult,
   type IndexRuleSection,
+  type Owner,
   type ProjectIndex,
   type ProjectState,
   type ProjectType,
@@ -52,6 +53,25 @@ function projectPath(folder: string, name: string): string {
 
 function isPlainMap(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * `owner` z rejestru. Brak, `null` i pusty tekst = `personal`; dokładnie `personal` / `work` (po `trim`) = ta wartość.
+ * Wszystko inne (inna pisownia, liczba, bool, lista, mapa) = `work` plus ostrzeżenie: przy ochronie prywatności
+ * literówka ma zawężać, nie rozluźniać. Wartości nietekstowe nie przechodzą przez `text()` (`String([work])` dałoby `work`).
+ */
+function parseOwner(raw: unknown, n: number, warnings: string[]): Owner {
+  if (raw === undefined || raw === null) return "personal";
+  if (typeof raw === "string") {
+    const value = raw.trim();
+    if (value === "") return "personal";
+    if (value === "personal" || value === "work") return value;
+  }
+  const shown = typeof raw === "object" ? "(nie tekst)" : String(raw).trim();
+  warnings.push(
+    `Projects/_registry.yaml: pozycja ${n}: nieznane owner "${shown}", traktuję jako work`
+  );
+  return "work";
 }
 
 export function readRegistry(): {
@@ -103,7 +123,7 @@ export function readRegistry(): {
       priority: text(raw.priority),
       folder,
       localPath: text(raw.local_path),
-      owner: "personal",
+      owner: parseOwner(raw.owner, n, warnings),
     };
 
     const deploy = text(raw.deploy);

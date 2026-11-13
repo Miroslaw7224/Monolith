@@ -17,6 +17,9 @@ export const REPO_REASON_TEXT: Record<RepoUnavailableReason, string> = {
   "git-error": "git zwrócił błąd",
 };
 
+/** Ostrzeżenie dla projektów etatu (`owner: work`); pierwsze na liście `warnings` paczki. Dotyczy człowieka, nie trafia do markdownu. */
+export const OWNER_WORK_WARNING = "Dane z firmy: sprawdź, gdzie wklejasz";
+
 export type PackRules = { source: "ai-context.md" | "CLAUDE.md" | "index.md"; text: string };
 
 export type ContextPackInput = {
