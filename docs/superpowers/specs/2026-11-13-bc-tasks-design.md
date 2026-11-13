@@ -60,3 +60,12 @@ Kolejność: najpierw testy przenoszone i nowe czerwone (brak modułu), potem ko
 - `reorder` na `tasks.md`: pokryty testem repozytorium na początku (patrz §5).
 - Przeniesienie UI zmienia wiele importów; błąd wychodzi w `tsc`/`build`, nie w testach jednostkowych, więc `build` jest obowiązkowy.
 - `calendarService` zależy od `getTasks`; przepięcie bez zmiany mocka zepsułoby `calendarService.test.ts`, stąd w §4 jawna zmiana mocka.
+
+## 8. Doprecyzowania z planu
+
+Plan (`docs/superpowers/plans/2026-11-13-bc-tasks.md`) doprecyzowuje spec bez zmiany zakresu:
+
+- `repositories` jest folderem (`repositories/{index,tasks,templates}.ts`, spec §4 „plik → folder"): `tests/unit/lib/nexus/repos-static.test.ts` wymaga, by repozytorium plikowe (`tasks`, importuje `vault-fs`) i YAML (`templates`, nie wolno mu importować `vault-fs`) były osobnymi plikami;
+- DTO nazywają się `TaskDto` i `TaskTemplateDto` (jak `UserTagDto`), a `models.ts` ma `Task` i `TaskTemplate`;
+- testy w kilku plikach z sufiksem (`repositories.tasks.test.ts`, `router.reorder.test.ts` itd., jak w `bc_projects`), zamiast jednego `router.test.ts`, bo trasy zadań i szablonów mają kolidujące nazwy `GET`/`POST`;
+- UI płasko w `src/features/tasks/`, testy UI w `tests/unit/features/tasks/`.
