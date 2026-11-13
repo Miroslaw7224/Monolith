@@ -40,6 +40,7 @@ import {
   freshness,
   getProject,
   isWorkProject,
+  listNowTasks,
   listProjects,
   saveState,
   setProjectType,
@@ -535,5 +536,64 @@ describe("bc_projects services: zadania projektu (tablica)", () => {
     await expect(
       applyTaskOp("zzz", { op: "add", column: "next", text: "x" }, null, NOW)
     ).rejects.toThrow(NotFoundError);
+  });
+});
+
+describe("listNowTasks", () => {
+  beforeEach(() => {
+    mockReadRegistry.mockReset();
+    mockReadProjectBoard.mockReset();
+  });
+
+  const board = (now: BoardTask[]): TasksBoard => ({ ...EMPTY_BOARD, now });
+
+  it("zbiera niezakończone zadania Teraz ze wszystkich projektów razem z nazwą i owner", () => {
+    mockReadRegistry.mockReturnValue({
+      entries: [
+        entry({ id: "nexus", name: "NEXUS" }),
+        entry({ id: "firma", name: "Firma", owner: "work" }),
+      ],
+      warnings: [],
+    });
+    mockReadProjectBoard.mockImplementation((e: RegistryEntry) =>
+      e.id === "nexus"
+        ? board([{ text: "Plan 2-1", done: false }])
+        : board([{ text: "Raport", done: false }])
+    );
+
+    const { tasks, warnings } = listNowTasks();
+
+    expect(tasks).toEqual([
+      { projectId: "nexus", projectName: "NEXUS", owner: "personal", text: "Plan 2-1" },
+      { projectId: "firma", projectName: "Firma", owner: "work", text: "Raport" },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it("pomija ukończone zadania", () => {
+    mockReadRegistry.mockReturnValue({ entries: [entry({ id: "a" })], warnings: [] });
+    mockReadProjectBoard.mockReturnValue(
+      board([
+        { text: "Zrobione", done: true, doneDate: "2026-11-12" },
+        { text: "Do zrobienia", done: false },
+      ])
+    );
+    expect(listNowTasks().tasks.map((t) => t.text)).toEqual(["Do zrobienia"]);
+  });
+
+  it("błąd odczytu tablicy jednego projektu to ostrzeżenie, reszta zostaje", () => {
+    mockReadRegistry.mockReturnValue({
+      entries: [entry({ id: "zly" }), entry({ id: "dobry" })],
+      warnings: ["rejestr: ostrzeżenie"],
+    });
+    mockReadProjectBoard.mockImplementation((e: RegistryEntry) => {
+      if (e.id === "zly") throw new Error("pęknięty tasks.md");
+      return board([{ text: "Ok", done: false }]);
+    });
+
+    const { tasks, warnings } = listNowTasks();
+
+    expect(tasks.map((t) => t.projectId)).toEqual(["dobry"]);
+    expect(warnings).toEqual(["rejestr: ostrzeżenie", "zly: pęknięty tasks.md"]);
   });
 });

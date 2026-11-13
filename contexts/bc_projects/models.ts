@@ -78,6 +78,9 @@ export type TaskOp =
   | ({ op: "remove" } & TaskRef)
   | ({ op: "move"; to: TaskColumn } & TaskRef);
 
+/** Niezakończone zadanie z kolumny „Teraz” jednego projektu (widok zbiorczy Kokpitu, etap 2-1). */
+export type NowTask = { projectId: string; projectName: string; owner: Owner; text: string };
+
 export type Project = RegistryEntry & ProjectIndex & { freshness: Freshness };
 export type ProjectWithContent = Project & {
   tasks: ChecklistSection[];

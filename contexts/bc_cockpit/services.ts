@@ -1,0 +1,203 @@
+import * as calendarServices from "@/contexts/bc_calendar/services";
+import * as projectsServices from "@/contexts/bc_projects/services";
+import * as tasksServices from "@/contexts/bc_tasks/services";
+import { DomainError, NotFoundError } from "@/lib/errors";
+import {
+  MAX_PINNED,
+  type Cockpit,
+  type DayEvent,
+  type Owner,
+  type Pinned,
+  type QueueGroup,
+  type QueueItem,
+  type Topic,
+} from "./models";
+import * as repositories from "./repositories";
+
+const GENERAL_NAME = "Ogólne";
+/** Terminy poza tym zakresem to najpewniej literówki (np. `0006-08-26`). */
+const MIN_YEAR = 2000;
+const MAX_YEAR = 2099;
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Dzień w strefie lokalnej serwera (`RRRR-MM-DD`); jedyne źródło „dziś” dla Kokpitu. */
+export function localDate(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** `RRRR-MM-DD`, istniejący dzień kalendarzowy, rok 2000–2099. */
+export function isPlausibleDate(value: string | null | undefined): value is string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? "");
+  if (!m) return false;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (year < MIN_YEAR || year > MAX_YEAR) return false;
+  const probe = new Date(Date.UTC(year, month - 1, day));
+  return probe.getUTCMonth() === month - 1 && probe.getUTCDate() === day;
+}
+
+const reason = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+// ── aktywne tematy ─────────────────────────────────────────────────────────────
+
+function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
+  const nextStep = p.state?.nextStep.trim() || null;
+  const blocker = p.state?.blocker.trim() || null;
+  // `state.md` bez treści (puste pola) nie przesłania „Gdzie skończyłem” z `index.md`.
+  const source: Topic["source"] =
+    nextStep || blocker ? "state" : p.whereIStopped ? "index" : "none";
+  return {
+    id: p.id,
+    name: p.name,
+    owner: p.owner,
+    freshness: p.freshness,
+    source,
+    nextStep: source === "state" ? nextStep : null,
+    blocker: source === "state" ? blocker : null,
+    whereIStopped: source === "index" ? p.whereIStopped : null,
+  };
+}
+
+function loadTopics(today: Date, warnings: string[]): Topic[] {
+  let ids: string[];
+  try {
+    ids = repositories.readPinned().ids;
+  } catch (err) {
+    warnings.push(`Przypięte projekty: ${reason(err)}`);
+    return [];
+  }
+  if (ids.length > MAX_PINNED) {
+    warnings.push(`Przypięto ${ids.length} projekty, pokazuję pierwsze ${MAX_PINNED}`);
+  }
+  const topics: Topic[] = [];
+  for (const id of ids.slice(0, MAX_PINNED)) {
+    try {
+      topics.push(toTopic(projectsServices.getProject(id, today)));
+    } catch (err) {
+      warnings.push(
+        err instanceof NotFoundError
+          ? `Przypięty projekt ${id} nie istnieje już w rejestrze`
+          : `Projekt ${id}: ${reason(err)}`
+      );
+    }
+  }
+  return topics;
+}
+
+// ── kolejka na dziś ────────────────────────────────────────────────────────────
+
+type QueueEntry = { projectId: string | null; name: string; owner: Owner; item: QueueItem };
+
+const KIND_RANK: Record<QueueItem["kind"], number> = { overdue: 0, today: 1, now: 2 };
+
+/** Sortuje (zaległe → dziś → now; w obrębie rodzaju po `due`), potem grupuje wg kolejności pierwszego wystąpienia. */
+function groupQueue(entries: QueueEntry[]): QueueGroup[] {
+  const sorted = [...entries].sort(
+    (a, b) =>
+      KIND_RANK[a.item.kind] - KIND_RANK[b.item.kind] ||
+      (a.item.due ?? "").localeCompare(b.item.due ?? "")
+  );
+  const groups = new Map<string, QueueGroup>();
+  for (const entry of sorted) {
+    const key = entry.projectId === null ? "general:" : `project:${entry.projectId}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = { projectId: entry.projectId, name: entry.name, owner: entry.owner, items: [] };
+      groups.set(key, group);
+    }
+    group.items.push(entry.item);
+  }
+  return [...groups.values()];
+}
+
+async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]> {
+  const entries: QueueEntry[] = [];
+
+  try {
+    const { tasks, warnings: nowWarnings } = projectsServices.listNowTasks();
+    warnings.push(...nowWarnings);
+    for (const t of tasks) {
+      entries.push({
+        projectId: t.projectId,
+        name: t.projectName,
+        owner: t.owner,
+        item: { kind: "now", title: t.text, due: null },
+      });
+    }
+  } catch (err) {
+    warnings.push(`Zadania projektów: ${reason(err)}`);
+  }
+
+  try {
+    for (const t of await tasksServices.getTasks()) {
+      if (t.status === "done" || !t.due_date) continue;
+      if (!isPlausibleDate(t.due_date)) {
+        warnings.push(`Zadanie "${t.title}": pominięto błędny termin ${t.due_date}`);
+        continue;
+      }
+      if (t.due_date > date) continue;
+      // Zadania ogólne nie mają pola `owner`: w 2-1 traktowane jako prywatne (spec D7).
+      entries.push({
+        projectId: null,
+        name: GENERAL_NAME,
+        owner: "personal",
+        item: { kind: t.due_date < date ? "overdue" : "today", title: t.title, due: t.due_date },
+      });
+    }
+  } catch (err) {
+    warnings.push(`Zadania ogólne: ${reason(err)}`);
+  }
+
+  return groupQueue(entries);
+}
+
+// ── dzisiejsze wydarzenia ──────────────────────────────────────────────────────
+
+async function loadEvents(date: string, warnings: string[]): Promise<DayEvent[]> {
+  try {
+    const entries = await calendarServices.getCalendarEvents({ startDate: date, endDate: date });
+    return entries.flatMap((e) =>
+      e.type === "task_deadline"
+        ? []
+        : [
+            {
+              id: e.id,
+              title: e.title,
+              startMinutes: e.start_minutes,
+              durationMinutes: e.duration_minutes,
+              type: e.type,
+              color: e.color,
+            },
+          ]
+    );
+  } catch (err) {
+    warnings.push(`Kalendarz: ${reason(err)}`);
+    return [];
+  }
+}
+
+// ── API serwisu ────────────────────────────────────────────────────────────────
+
+/** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
+export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
+  const date = localDate(today);
+  const warnings: string[] = [];
+  const topics = loadTopics(today, warnings);
+  const queue = await loadQueue(date, warnings);
+  const events = await loadEvents(date, warnings);
+  return { date, topics, queue, events, warnings };
+}
+
+export async function setPinned(ids: string[]): Promise<Pinned> {
+  if (ids.length > MAX_PINNED) {
+    throw new DomainError(`Maksymalnie ${MAX_PINNED} aktywne tematy`);
+  }
+  if (new Set(ids).size !== ids.length) throw new DomainError("Powtórzone id projektu");
+  const known = new Set(projectsServices.listProjects().projects.map((p) => p.id));
+  const unknown = ids.filter((id) => !known.has(id));
+  if (unknown.length > 0) throw new DomainError(`Nieznany projekt: ${unknown.join(", ")}`);
+  await repositories.writePinned(ids);
+  return { ids };
+}

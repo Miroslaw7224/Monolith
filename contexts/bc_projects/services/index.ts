@@ -2,6 +2,7 @@ import {
   NOW_LIMIT,
   type ContextPack,
   type Freshness,
+  type NowTask,
   type Project,
   type ProjectType,
   type ProjectWithContent,
@@ -136,6 +137,32 @@ export function listProjects(today: Date = new Date()): {
   }
 
   return { projects: sortProjects(projects), warnings };
+}
+
+/**
+ * Niezakończone zadania `[now::]` ze wszystkich projektów rejestru (bez limitu 3: ten dotyczy
+ * tablicy jednego projektu). Błąd jednego `tasks.md` to ostrzeżenie; błąd rejestru leci wyżej.
+ */
+export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
+  const { entries, warnings: registryWarnings } = readRegistry();
+  const warnings = [...registryWarnings];
+  const tasks: NowTask[] = [];
+  for (const entry of entries) {
+    try {
+      for (const task of readProjectBoard(entry).now) {
+        if (task.done) continue;
+        tasks.push({
+          projectId: entry.id,
+          projectName: entry.name,
+          owner: entry.owner,
+          text: task.text,
+        });
+      }
+    } catch (err) {
+      warnings.push(`${entry.id}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return { tasks, warnings };
 }
 
 function findEntry(id: string): RegistryEntry {
