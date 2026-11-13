@@ -1,4 +1,8 @@
-import type { BoardBox, BoardFrame, BoardTile } from "@/src/features/board/boardTypes";
+import type {
+  BoardFrameDto as BoardFrame,
+  BoardTileDto as BoardTile,
+} from "@/contexts/bc_board/schemas";
+import type { BoardBox } from "@/src/features/board/boardTypes";
 
 export function frameAt(box: BoardBox, frames: BoardFrame[]): string | null {
   const cx = box.x + box.w / 2;

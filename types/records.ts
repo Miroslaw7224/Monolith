@@ -18,6 +18,3 @@ export interface MindMapNode {
   collapsed: boolean;
   children: MindMapNode[];
 }
-
-/** Zapisany dokument tablicy (surowe, jeszcze nieprzetworzone przez parseBoard). */
-export type BoardDoc = { tiles: unknown; frames: unknown; edges: unknown };

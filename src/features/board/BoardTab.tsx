@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import type { Board } from "@/src/features/board/boardTypes";
-import { EMPTY_BOARD } from "@/src/features/board/boardTypes";
+import { EMPTY_BOARD, type BoardDto as Board } from "@/contexts/bc_board/schemas";
 import { updateTileText } from "@/src/features/board/boardActions";
 import { BoardCanvas, type BoardCanvasLabels } from "@/src/features/board/BoardCanvas";
 import { BoardList } from "@/src/features/board/BoardList";

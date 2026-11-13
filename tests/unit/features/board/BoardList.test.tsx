@@ -2,7 +2,7 @@ import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Board } from "@/src/features/board/boardTypes";
+import type { BoardDto as Board } from "@/contexts/bc_board/schemas";
 import { BoardList } from "@/src/features/board/BoardList";
 
 const board: Board = {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resizeFrameBoard } from "@/src/features/board/BoardCanvas";
-import type { Board } from "@/src/features/board/boardTypes";
+import type { BoardDto as Board } from "@/contexts/bc_board/schemas";
 
 describe("resizeFrameBoard", () => {
   it("resizes from the left without shifting member tile coordinates", () => {
