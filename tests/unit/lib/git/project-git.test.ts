@@ -1,0 +1,96 @@
+// @vitest-environment node
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { afterEach, describe, expect, it } from "vitest";
+import { runGit, snapshotRepo, type GitCommand } from "@/lib/git/project-git";
+import { useTempRepos } from "../../helpers/tempGit";
+
+const repos = useTempRepos();
+
+describe("snapshotRepo", () => {
+  it("czyste repo z jednym commitem", () => {
+    const r = repos.create();
+    r.write("a.txt", "a");
+    r.commit("init");
+    const res = snapshotRepo(r.dir);
+    expect(res.ok).toBe(true);
+    if (res.ok === false) return;
+    expect(res.snapshot.status).toBe("## main");
+    expect(res.snapshot.log).toMatch(/^[0-9a-f]{7,} init$/);
+    expect(res.snapshot.diffStat).toBe("");
+  });
+
+  it("zmodyfikowany plik widać w status i diff --stat", () => {
+    const r = repos.create();
+    r.write("a.txt", "a");
+    r.commit("init");
+    r.write("a.txt", "zmiana");
+    const res = snapshotRepo(r.dir);
+    if (res.ok === false) throw new Error("git-error");
+    expect(res.snapshot.status).toContain(" M a.txt");
+    expect(res.snapshot.diffStat).toContain("a.txt");
+  });
+
+  it("log zwraca dokładnie 5 ostatnich commitów", () => {
+    const r = repos.create();
+    for (let i = 1; i <= 7; i++) {
+      r.write("a.txt", String(i));
+      r.commit(`c${i}`);
+    }
+    const res = snapshotRepo(r.dir);
+    if (res.ok === false) throw new Error("git-error");
+    const lines = res.snapshot.log.split("\n");
+    expect(lines).toHaveLength(5);
+    expect(lines[0]).toMatch(/ c7$/);
+    expect(lines[4]).toMatch(/ c3$/);
+  });
+
+  it("repo bez commitów: ok, pusty log", () => {
+    const r = repos.create();
+    const res = snapshotRepo(r.dir);
+    if (res.ok === false) throw new Error("git-error");
+    expect(res.snapshot.status.startsWith("## No commits yet")).toBe(true);
+    expect(res.snapshot.log).toBe("");
+  });
+
+  it("katalog bez .git (nawet w repo nadrzędnym) to git-error", () => {
+    const r = repos.create();
+    r.write("a.txt", "a");
+    r.commit("init");
+    const sub = path.join(r.dir, "sub");
+    fs.mkdirSync(sub);
+    expect(snapshotRepo(sub)).toEqual({ ok: false, reason: "git-error" });
+  });
+});
+
+describe("runGit", () => {
+  it("polecenie spoza białej listy rzuca", () => {
+    const r = repos.create();
+    expect(() => runGit(r.dir, "push" as GitCommand)).toThrow(/spoza białej listy/);
+  });
+});
+
+describe("konfiguracja obcego repo nie wykonuje kodu", () => {
+  const cleanup: string[] = [];
+  afterEach(() => {
+    for (const d of cleanup.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+  });
+
+  it("core.fsmonitor jest wyłączony", () => {
+    const r = repos.create();
+    r.write("a.txt", "a");
+    r.commit("init");
+    const outDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-hook-")));
+    cleanup.push(outDir);
+    const marker = path.join(outDir, "marker");
+    const hook = path.join(outDir, "hook.sh");
+    fs.writeFileSync(hook, `#!/bin/sh\ntouch "${marker}"\n`, { mode: 0o755 });
+    execFileSync("git", ["config", "core.fsmonitor", hook], { cwd: r.dir });
+
+    snapshotRepo(r.dir);
+
+    expect(fs.existsSync(marker)).toBe(false);
+  });
+});
