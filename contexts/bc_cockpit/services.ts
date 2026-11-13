@@ -43,15 +43,19 @@ const reason = (err: unknown) => (err instanceof Error ? err.message : String(er
 // ── aktywne tematy ─────────────────────────────────────────────────────────────
 
 function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
-  const source: Topic["source"] = p.state ? "state" : p.whereIStopped ? "index" : "none";
+  const nextStep = p.state?.nextStep.trim() || null;
+  const blocker = p.state?.blocker.trim() || null;
+  // `state.md` bez treści (puste pola) nie przesłania „Gdzie skończyłem” z `index.md`.
+  const source: Topic["source"] =
+    nextStep || blocker ? "state" : p.whereIStopped ? "index" : "none";
   return {
     id: p.id,
     name: p.name,
     owner: p.owner,
     freshness: p.freshness,
     source,
-    nextStep: source === "state" ? p.state?.nextStep.trim() || null : null,
-    blocker: source === "state" ? p.state?.blocker.trim() || null : null,
+    nextStep: source === "state" ? nextStep : null,
+    blocker: source === "state" ? blocker : null,
     whereIStopped: source === "index" ? p.whereIStopped : null,
   };
 }

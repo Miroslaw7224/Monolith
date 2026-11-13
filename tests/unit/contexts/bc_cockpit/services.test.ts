@@ -127,6 +127,18 @@ describe("tematy", () => {
     });
   });
 
+  it("state.md z pustymi polami nie przesłania „Gdzie skończyłem” z index.md", async () => {
+    mockGetProject.mockReturnValue(
+      project({ state: state({ nextStep: "  ", blocker: "" }), whereIStopped: "Skończyłem na Z" })
+    );
+    expect((await getCockpit(TODAY)).topics[0]).toMatchObject({
+      source: "index",
+      whereIStopped: "Skończyłem na Z",
+      nextStep: null,
+      blocker: null,
+    });
+  });
+
   it("bez state.md i index.md: source none", async () => {
     mockGetProject.mockReturnValue(project());
     expect((await getCockpit(TODAY)).topics[0].source).toBe("none");
