@@ -40,6 +40,7 @@ const summaryProject: Project = {
 const detailProject: ProjectWithContent = {
   ...summaryProject,
   tasks: [],
+  board: { blockers: [], now: [], next: [], icebox: [], version: null },
   bugs: [],
   state: null,
   stateVersion: null,

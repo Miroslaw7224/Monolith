@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  BoardTask,
   BugEntry,
   ChecklistItem,
   ChecklistSection,
@@ -9,6 +10,7 @@ import type {
   ProjectState,
   ProjectType,
   ProjectWithContent,
+  TasksBoard,
 } from "./models";
 
 export type { ProjectType };
@@ -47,6 +49,21 @@ const httpUrl = z
 export const ProjectTypeSchema = z.enum(["etat", "wlasny", "biblioteka"]);
 export const ProjectTypeInputSchema = z.object({ type: ProjectTypeSchema });
 
+function toVersion(v: string): { size: number; hash: string } | null {
+  const m = VERSION_RE.exec(v);
+  return m ? { size: Number(m[1]), hash: m[2] } : null;
+}
+
+/** `"<size>:<hash>"` z GET albo `null` (plik ma nie istnieć). */
+const nullableVersion = z
+  .string()
+  .regex(VERSION_RE, "Zła wersja pliku")
+  .nullable()
+  .transform((v) => (v === null ? null : toVersion(v)));
+
+/** Wersja wymagana (plik istnieje); po regexie nigdy `null`. */
+const requiredVersion = z.string().regex(VERSION_RE, "Zła wersja pliku").transform(toVersion);
+
 /** Wejście `PUT /api/projects/[id]/state`. `version`: `null` (tworzenie) albo `"<size>:<hash>"` z GET. */
 export const StateInputSchema = z.object({
   branch: oneLine(200),
@@ -61,15 +78,7 @@ export const StateInputSchema = z.object({
     .optional()
     .transform((v) => (v === "" ? undefined : v))
     .refine((v) => v === undefined || isIsoDate(v), "Data w formacie RRRR-MM-DD"),
-  version: z
-    .string()
-    .regex(VERSION_RE, "Zła wersja pliku")
-    .nullable()
-    .transform((v) => {
-      if (v === null) return null;
-      const m = VERSION_RE.exec(v);
-      return m ? { size: Number(m[1]), hash: m[2] } : null;
-    }),
+  version: nullableVersion,
 });
 
 /** Wejście `POST /api/projects/[id]/devlog`. */
@@ -88,9 +97,78 @@ export const DevlogInputSchema = z.object({
     .refine((v) => !/^#{1,2}\s/m.test(v), "Linia nie może zaczynać się od # lub ##"),
 });
 
+/** Kolumny tablicy zadań; lista zgodna z `TASK_COLUMNS` w `models` (pilnuje test). */
+export const TaskColumnSchema = z.enum(["blockers", "now", "next", "icebox"]);
+
+const TRAILING_DONE_DATE_RE = /\s—\s\d{4}-\d{2}-\d{2}$/;
+
+/** Tekst nowego lub edytowanego zadania: jedna linia, bez znacznika Teraz i bez końcowej daty ukończenia. */
+const taskText = z
+  .string()
+  .trim()
+  .min(1)
+  .max(300)
+  .refine((v) => !/[\r\n]/.test(v), "Tylko jedna linia")
+  .refine((v) => !v.includes("[now::]"), "Tekst nie może zawierać [now::]")
+  .refine((v) => !TRAILING_DONE_DATE_RE.test(v), "Tekst nie może kończyć się datą ukończenia");
+
+/** Tekst istniejącego zadania (referencja do linii): bez reguł kanoniczności, bo plik bywa edytowany ręcznie. */
+const refText = z
+  .string()
+  .trim()
+  .min(1)
+  .max(1000)
+  .refine((v) => !/[\r\n]/.test(v), "Tylko jedna linia");
+
+const taskIndex = z.number().int().min(0).max(999);
+
+/**
+ * Wejście `POST /api/projects/[id]/tasks`. `add` przyjmuje `version: null` (plik ma nie istnieć),
+ * pozostałe operacje wymagają wersji `tasks.md` z GET (`board.version`).
+ */
+export const TaskOpInputSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("add"),
+    column: TaskColumnSchema,
+    text: taskText,
+    version: nullableVersion,
+  }),
+  z.object({
+    op: z.literal("toggle"),
+    column: TaskColumnSchema,
+    index: taskIndex,
+    text: refText,
+    version: requiredVersion,
+  }),
+  z.object({
+    op: z.literal("remove"),
+    column: TaskColumnSchema,
+    index: taskIndex,
+    text: refText,
+    version: requiredVersion,
+  }),
+  z.object({
+    op: z.literal("edit"),
+    column: TaskColumnSchema,
+    index: taskIndex,
+    text: refText,
+    newText: taskText,
+    version: requiredVersion,
+  }),
+  z.object({
+    op: z.literal("move"),
+    column: TaskColumnSchema,
+    index: taskIndex,
+    text: refText,
+    to: TaskColumnSchema,
+    version: requiredVersion,
+  }),
+]);
+
 /** Co wysyła UI (przed transformacjami). */
 export type StateInputDto = z.input<typeof StateInputSchema>;
 export type DevlogInputDto = z.input<typeof DevlogInputSchema>;
+export type TaskOpInputDto = z.input<typeof TaskOpInputSchema>;
 
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
 
@@ -98,6 +176,9 @@ export const DEVLOG_LIMIT = 50;
 
 export type ChecklistItemDto = ChecklistItem;
 export type ChecklistSectionDto = ChecklistSection;
+export type BoardTaskDto = BoardTask;
+/** Tablica zadań projektu; `version` to `"<size>:<hash>"` pliku `tasks.md` (`null`, gdy pliku nie ma). */
+export type TasksBoardDto = Omit<TasksBoard, "version"> & { version: string | null };
 export type BugEntryDto = BugEntry;
 export type FreshnessDto = Freshness;
 
@@ -130,6 +211,7 @@ export type ProjectSummaryDto = {
 
 export type ProjectDetailDto = ProjectSummaryDto & {
   tasks: ChecklistSectionDto[];
+  board: TasksBoardDto;
   bugs: BugEntryDto[];
   whereIStopped: string | null;
   state: ProjectStateDto | null;
@@ -174,6 +256,13 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
   return {
     ...toSummaryDto(p),
     tasks: p.tasks,
+    board: {
+      blockers: p.board.blockers,
+      now: p.board.now,
+      next: p.board.next,
+      icebox: p.board.icebox,
+      version: p.board.version ? `${p.board.version.size}:${p.board.version.hash}` : null,
+    },
     bugs: p.bugs,
     whereIStopped: p.whereIStopped,
     state: p.state ? toStateDto(p.state) : null,
