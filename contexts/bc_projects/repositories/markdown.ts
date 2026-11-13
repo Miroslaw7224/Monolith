@@ -3,7 +3,9 @@ import type {
   ChecklistItem,
   DevlogEntry,
   ProjectState,
+  ProjectType,
 } from "@/contexts/bc_projects/models";
+import { DomainError } from "@/lib/errors";
 import { formatFrontmatter, parseFrontmatter } from "@/lib/nexus/frontmatter";
 
 const SECTION_RE = /^## (.+?)\s*$/;
@@ -13,6 +15,8 @@ const PRIORITY_RE = /^\s*- \*\*Priorytet:\*\*\s*(.+?)\s*$/;
 const STATUS_RE = /^\s*- \*\*Status:\*\*\s*(.+?)\s*$/;
 const DEVLOG_HEADING_RE = /^(\d{4}-\d{2}-\d{2})\s+[—–-]\s+(.+)$/;
 const FIRST_SECTION_RE = /^## /m;
+const FRONTMATTER_BLOCK = /^---\n([\s\S]*?)\n---[ \t]*(?:\n|$)/;
+const TYPE_LINE = /^type:[ \t]*.*$/m;
 
 export function parseSections(markdown: string): { heading: string; body: string }[] {
   const lines = markdown.split(/\r?\n/);
@@ -188,4 +192,17 @@ export function prependDevlogEntry(
     return text.slice(0, first.index) + block + "\n" + text.slice(first.index);
   }
   return text.replace(/\s+$/, "") + "\n\n" + block;
+}
+
+/** Zmienia tylko linię `type:` w frontmatterze (klucz w kolumnie 0); treść i pozostałe pola bez zmian. */
+export function setFrontmatterType(text: string, type: ProjectType): string {
+  const m = FRONTMATTER_BLOCK.exec(text);
+  if (!m) {
+    throw new DomainError("index.md nie ma frontmattera: nie ustawiono type", 422);
+  }
+  const block = m[1];
+  const next = TYPE_LINE.test(block)
+    ? block.replace(TYPE_LINE, `type: ${type}`)
+    : `${block}\ntype: ${type}`;
+  return "---\n" + next + text.slice(4 + block.length);
 }

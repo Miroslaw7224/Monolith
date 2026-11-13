@@ -9,7 +9,9 @@ import {
   parseState,
   prependDevlogEntry,
   serializeState,
+  setFrontmatterType,
 } from "@/contexts/bc_projects/repositories/markdown";
+import { DomainError } from "@/lib/errors";
 
 describe("bc_projects markdown parsers", () => {
   it("sekcje w kolejności pliku", () => {
@@ -250,5 +252,53 @@ describe("bc_projects markdown: devlog.md", () => {
   it("round-trip prepend → parse", () => {
     const base = "# Devlog\n\n## 2026-11-12 — Stary\n\nS\n";
     expect(parseDevlog(prependDevlogEntry(base, ENTRY))[0]).toEqual(ENTRY);
+  });
+});
+
+describe("bc_projects markdown: setFrontmatterType", () => {
+  it("zamienia istniejącą linię type", () => {
+    expect(
+      setFrontmatterType("---\nname: A\ntype: etat\nstatus: active\n---\n\nTreść\n", "wlasny")
+    ).toBe("---\nname: A\ntype: wlasny\nstatus: active\n---\n\nTreść\n");
+  });
+
+  it("dopisuje type przed zamykającym ---, gdy klucza nie ma", () => {
+    expect(setFrontmatterType("---\nname: A\nstatus: active\n---\n\nTreść\n", "biblioteka")).toBe(
+      "---\nname: A\nstatus: active\ntype: biblioteka\n---\n\nTreść\n"
+    );
+  });
+
+  it("komentarze, cudzysłowy i listy w innych liniach zostają", () => {
+    expect(
+      setFrontmatterType(
+        '---\n# komentarz\nname: "A"\ntype: "etat"\ntags: [a, b]\n---\nx',
+        "wlasny"
+      )
+    ).toBe('---\n# komentarz\nname: "A"\ntype: wlasny\ntags: [a, b]\n---\nx');
+  });
+
+  it("wcięty klucz type nie jest ruszany; type dopisane na końcu bloku", () => {
+    expect(setFrontmatterType("---\nname: A\n  type: nested\n---\nx", "etat")).toBe(
+      "---\nname: A\n  type: nested\ntype: etat\n---\nx"
+    );
+  });
+
+  it("zamykający --- bez końcowego newline", () => {
+    expect(setFrontmatterType("---\nname: A\n---", "etat")).toBe("---\nname: A\ntype: etat\n---");
+  });
+
+  it("brak frontmattera: DomainError 422", () => {
+    let error: unknown;
+    try {
+      setFrontmatterType("Treść bez frontmattera", "etat");
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(DomainError);
+    expect((error as DomainError).statusCode).toBe(422);
+  });
+
+  it("pusty blok frontmattera: DomainError 422", () => {
+    expect(() => setFrontmatterType("---\n---\ntekst", "etat")).toThrow(DomainError);
   });
 });
