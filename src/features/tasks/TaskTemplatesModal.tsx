@@ -148,14 +148,14 @@ export function TaskTemplatesModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="zad-modal-overlay"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="task-templates-modal-title"
     >
       <div
-        className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+        className="zad-modal zad-modal--lg"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
@@ -164,162 +164,157 @@ export function TaskTemplatesModal({
           }
         }}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+        <div className="zad-modal__head">
           <div>
-            <h3 id="task-templates-modal-title" className="text-lg font-bold text-[var(--text)]">
+            <h3 id="task-templates-modal-title" className="zad-modal__title">
               {labels.modalTitle}
             </h3>
-            <p className="text-sm text-[var(--text2)] mt-0.5">{labels.subtitle}</p>
+            <p className="zad-modal__sub">{labels.subtitle}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text2)]"
+            className="zad-btn zad-btn--ghost zad-btn--sm"
             aria-label={labels.close}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="p-4 border-b border-[var(--border)] space-y-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              placeholder={labels.labelField}
-              aria-label={labels.labelField}
-              className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
-            />
-            <input
-              type="text"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void addTemplate()}
-              placeholder={labels.titleField}
-              aria-label={labels.titleField}
-              className="px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
-            />
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              value={newLink}
-              onChange={(e) => setNewLink(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void addTemplate()}
-              placeholder={labels.linkPlaceholder}
-              aria-label={labels.linkLabel}
-              className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] text-[var(--text)] text-sm focus:ring-2 focus:ring-[var(--accent)] outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => void addTemplate()}
-              disabled={saving || !newLabel.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50"
-            >
-              <Plus className="w-4 h-4" />
-              {labels.add}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          {loading ? (
-            <p className="text-sm text-[var(--text2)]">Loading…</p>
-          ) : templates.length === 0 ? (
-            <div className="p-6 border-2 border-dashed border-[var(--border)] rounded-2xl text-center text-[var(--text2)] text-sm">
-              {labels.noItems}
+        <div className="zad-modal__body zad-modal__body--templates">
+          <div className="zad-template-form">
+            <div className="zad-template-form__grid">
+              <input
+                type="text"
+                value={newLabel}
+                onChange={(e) => setNewLabel(e.target.value)}
+                placeholder={labels.labelField}
+                aria-label={labels.labelField}
+                className="zad-input"
+              />
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void addTemplate()}
+                placeholder={labels.titleField}
+                aria-label={labels.titleField}
+                className="zad-input"
+              />
             </div>
-          ) : (
-            <ul className="space-y-2">
-              {templates.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex flex-col gap-2 p-3 bg-[var(--bg)] border border-[var(--border)] rounded-xl"
-                >
-                  {editingId === item.id ? (
-                    <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          value={editLabel}
-                          onChange={(e) => setEditLabel(e.target.value)}
-                          className="px-3 py-2 bg-[var(--bg3)] border-none rounded-lg text-sm"
-                          placeholder={labels.labelField}
-                        />
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && void saveEdit(item.id)}
-                          className="px-3 py-2 bg-[var(--bg3)] border-none rounded-lg text-sm"
-                          placeholder={labels.titleField}
-                        />
-                      </div>
-                      <input
-                        type="url"
-                        value={editLink}
-                        onChange={(e) => setEditLink(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && void saveEdit(item.id)}
-                        className="w-full px-3 py-2 bg-[var(--bg3)] border-none rounded-lg text-sm"
-                        placeholder={labels.linkPlaceholder}
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          type="button"
-                          onClick={cancelEdit}
-                          className="px-3 py-1.5 text-sm text-[var(--text2)] hover:bg-[var(--bg3)] rounded-lg"
-                        >
-                          {labels.close}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void saveEdit(item.id)}
-                          disabled={saving || !editLabel.trim()}
-                          className="px-3 py-1.5 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg disabled:opacity-50"
-                        >
-                          <Pencil className="w-4 h-4 inline mr-1" />
-                          {(t.tasksDetailSave as string) ?? "Save"}
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm text-[var(--text)] truncate">
-                          {item.label}
+            <div className="zad-template-form__row">
+              <input
+                type="url"
+                value={newLink}
+                onChange={(e) => setNewLink(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void addTemplate()}
+                placeholder={labels.linkPlaceholder}
+                aria-label={labels.linkLabel}
+                className="zad-input zad-input--flex"
+              />
+              <button
+                type="button"
+                onClick={() => void addTemplate()}
+                disabled={saving || !newLabel.trim()}
+                className="zad-btn zad-btn--primary"
+              >
+                <Plus className="w-4 h-4" />
+                {labels.add}
+              </button>
+            </div>
+          </div>
+
+          <div className="zad-templates-list-container">
+            {loading ? (
+              <p className="zad-state zad-state--loading">Loading…</p>
+            ) : templates.length === 0 ? (
+              <div className="zad-empty-box">{labels.noItems}</div>
+            ) : (
+              <ul className="zad-templates-list">
+                {templates.map((item) => (
+                  <li key={item.id} className="zad-template-item">
+                    {editingId === item.id ? (
+                      <div className="zad-template-edit">
+                        <div className="zad-template-form__grid">
+                          <input
+                            type="text"
+                            value={editLabel}
+                            onChange={(e) => setEditLabel(e.target.value)}
+                            className="zad-input"
+                            placeholder={labels.labelField}
+                          />
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && void saveEdit(item.id)}
+                            className="zad-input"
+                            placeholder={labels.titleField}
+                          />
                         </div>
-                        <div className="text-sm text-[var(--text2)] truncate">{item.title}</div>
-                        {item.link ? (
-                          <div className="text-xs text-[var(--text3)] truncate mt-0.5">
-                            {item.link}
-                          </div>
-                        ) : null}
+                        <input
+                          type="url"
+                          value={editLink}
+                          onChange={(e) => setEditLink(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && void saveEdit(item.id)}
+                          className="zad-input"
+                          placeholder={labels.linkPlaceholder}
+                        />
+                        <div className="zad-template-edit__actions">
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="zad-btn zad-btn--ghost zad-btn--sm"
+                          >
+                            {labels.close}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void saveEdit(item.id)}
+                            disabled={saving || !editLabel.trim()}
+                            className="zad-btn zad-btn--primary zad-btn--sm"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            {(t.tasksDetailSave as string) ?? "Save"}
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => startEdit(item)}
-                        className="p-2 text-[var(--text2)] hover:bg-[var(--bg3)] rounded-lg"
-                        title="Edit"
-                        aria-label="Edit"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void deleteTemplate(item.id)}
-                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg"
-                        title="Delete"
-                        aria-label="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+                    ) : (
+                      <div className="zad-template-item__row">
+                        <div className="zad-template-item__info">
+                          <div className="zad-template-item__label">{item.label}</div>
+                          <div className="zad-template-item__title">{item.title}</div>
+                          {item.link ? (
+                            <div className="zad-template-item__link">{item.link}</div>
+                          ) : null}
+                        </div>
+                        <div className="zad-template-item__actions">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(item)}
+                            className="zad-btn zad-btn--ghost zad-btn--sm"
+                            title="Edit"
+                            aria-label="Edit"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void deleteTemplate(item.id)}
+                            className="zad-btn zad-btn--ghost zad-btn--sm zad-btn--danger"
+                            title="Delete"
+                            aria-label="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </div>

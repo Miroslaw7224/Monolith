@@ -56,11 +56,13 @@ export function TaskCard({
   return (
     <li
       className={[
-        "flex items-center gap-1.5 py-1.5 px-2 bg-[var(--surface)] border rounded-lg transition-colors",
-        isDragging ? "opacity-40 border-[var(--accent-border)]" : "border-[var(--border)]",
-        isDragOver ? "border-[var(--accent)] ring-1 ring-[var(--accent)]" : "",
-        isDone ? "opacity-90" : "",
-      ].join(" ")}
+        "zad-card",
+        isDragging ? "zad-card--dragging" : "",
+        isDragOver ? "zad-card--dragover" : "",
+        isDone ? "zad-card--done" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       onDragOver={(e) => {
         if (!draggable) return;
         e.preventDefault();
@@ -82,17 +84,20 @@ export function TaskCard({
         }}
         onDragEnd={onDragEnd}
         className={[
-          "flex-shrink-0 p-0.5 rounded touch-none",
-          draggable
-            ? "cursor-grab active:cursor-grabbing hover:bg-[var(--bg3)]"
-            : "opacity-30 cursor-not-allowed",
+          "zad-card__grip",
+          draggable ? "zad-card__grip--draggable" : "zad-card__grip--disabled",
         ].join(" ")}
         title={lang === "pl" ? "Przeciągnij" : "Drag"}
         aria-hidden={!draggable}
       >
-        <GripVertical className="w-3.5 h-3.5 text-[var(--text3)]" />
+        <GripVertical className="w-3.5 h-3.5" />
       </div>
-      <div className="flex-1 min-w-0">
+
+      <span className="zad-mark" aria-hidden="true">
+        {isDone ? "[x]" : "[ ]"}
+      </span>
+
+      <div className="zad-card__main">
         {editingId === task.id ? (
           <input
             type="text"
@@ -103,11 +108,11 @@ export function TaskCard({
               if (e.key === "Enter") onEditTitleCommit(task.id);
               if (e.key === "Escape") onEditTitleCancel();
             }}
-            className="w-full px-2 py-0.5 border border-[var(--border)] rounded text-sm bg-[var(--surface)] text-[var(--text)]"
+            className="zad-input zad-input--sm zad-card__edit-input"
             autoFocus
           />
         ) : (
-          <div className="min-w-0">
+          <div>
             <button
               type="button"
               onClick={() => onTitleAreaClick(task)}
@@ -115,29 +120,28 @@ export function TaskCard({
                 e.preventDefault();
                 onTitleAreaDoubleClick(task);
               }}
-              className={[
-                "w-full text-left text-sm font-medium flex items-center gap-2 min-w-0",
-                isDone ? "text-[var(--text3)]" : "text-[var(--text)]",
-              ].join(" ")}
+              className={["zad-card__title-btn", isDone ? "zad-card__title-btn--done" : ""].join(
+                " "
+              )}
             >
-              <span className={["truncate flex-1 min-w-0", isDone ? "line-through" : ""].join(" ")}>
+              <span className={["zad-title", isDone ? "zad-title--done" : ""].join(" ")}>
                 {task.title}
               </span>
-              {Boolean(task.link?.trim()) ? (
-                <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" aria-hidden />
-              ) : null}
+              {Boolean(task.link?.trim()) && (
+                <span className="zad-link-dot" title="Link" aria-hidden="true" />
+              )}
             </button>
-            <TaskDescriptionLink link={task.link} className="mt-0.5" />
+            <TaskDescriptionLink link={task.link} />
           </div>
         )}
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--text3)]">
+        <div className="zad-meta">
           {task.created_at && (
-            <span>
+            <span className="zad-date-created">
               {labels.startDateLabel}: {formatDate(task.created_at)}
             </span>
           )}
-          <label className="inline-flex items-center gap-1">
-            <span>{labels.deadlineLabel}:</span>
+          <label className="zad-due-label">
+            <span className="zad-due-prefix">{labels.deadlineLabel}:</span>
             <input
               type="date"
               value={task.due_date ?? ""}
@@ -145,15 +149,18 @@ export function TaskCard({
                 const v = e.target.value.trim();
                 onDueDateChange(task.id, v === "" ? null : v);
               }}
-              className="rounded border border-[var(--border)] bg-[var(--bg3)] px-1 py-0.5 text-[10px] text-[var(--text)]"
+              className="zad-due-input"
             />
           </label>
+          {task.priority != null && (
+            <span className={`zad-pri zad-pri--p${task.priority}`}>P{task.priority}</span>
+          )}
         </div>
       </div>
       <button
         type="button"
         onClick={() => onDelete(task.id)}
-        className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg flex-shrink-0"
+        className="zad-card__delete-btn"
         aria-label={lang === "pl" ? "Usuń" : "Delete"}
       >
         <Trash2 className="w-3.5 h-3.5" />
