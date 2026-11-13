@@ -448,6 +448,20 @@
   font: 500 var(--fs-xs) / 1.4 var(--font-mono);
 }
 
+/* Paczka kontekstu dla agenta (etap 1-4) */
+.prj-pack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-2);
+}
+
+.prj-pack__note {
+  margin: 0;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--text);
+}
+
 /* Devlog — wg .prj-devlog z makiety 04-projekty.html */
 .prj-devlog {
   list-style: none;

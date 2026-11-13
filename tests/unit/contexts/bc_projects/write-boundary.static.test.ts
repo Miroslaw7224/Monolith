@@ -75,7 +75,10 @@ describe("bc_projects: granica zapisu (prawdziwy kod)", () => {
 
   it("skanuje też pliki poza repositories/ (router.ts, services.ts)", () => {
     expect(files).toContain(`${CTX}/router.ts`);
-    expect(files).toContain(`${CTX}/services.ts`);
+    // `services` bywa plikiem albo folderem z `index.ts` (CLAUDE.md: plik urósł → folder).
+    expect(files.some((f) => f === `${CTX}/services.ts` || f === `${CTX}/services/index.ts`)).toBe(
+      true
+    );
   });
 
   it("zapis tylko w repositories/, nigdzie node:fs", () => {

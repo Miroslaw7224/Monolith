@@ -369,4 +369,54 @@ describe("useProjects: zapisy", () => {
     });
     await waitFor(() => expect(result.current.detail?.name).toBe("wersja 2"));
   });
+  it("loadContextPack: pobiera paczkę wybranego projektu", async () => {
+    const a = summary({ id: "a" });
+    const pack = { markdown: "# A", approxTokens: 1, truncated: false, warnings: [] };
+    const apiFetch = vi.fn(async (url: string) => {
+      if (url === "/api/projects") {
+        return new Response(JSON.stringify({ projects: [a], warnings: [] }), { status: 200 });
+      }
+      if (url === "/api/projects/a") {
+        return new Response(JSON.stringify(detail({ id: "a" })), { status: 200 });
+      }
+      if (url === "/api/projects/a/context-pack") {
+        return new Response(JSON.stringify(pack), { status: 200 });
+      }
+      return new Response("{}", { status: 404 });
+    });
+
+    const { result } = renderHook(() => useProjects(apiFetch));
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+
+    let outcome: Awaited<ReturnType<typeof result.current.loadContextPack>> | undefined;
+    await act(async () => {
+      outcome = await result.current.loadContextPack();
+    });
+
+    expect(outcome).toEqual({ ok: true, pack });
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a/context-pack");
+  });
+
+  it("loadContextPack: błąd serwera", async () => {
+    const a = summary({ id: "a" });
+    const apiFetch = vi.fn(async (url: string) => {
+      if (url === "/api/projects") {
+        return new Response(JSON.stringify({ projects: [a], warnings: [] }), { status: 200 });
+      }
+      if (url === "/api/projects/a") {
+        return new Response(JSON.stringify(detail({ id: "a" })), { status: 200 });
+      }
+      return new Response(JSON.stringify({ error: "Nie ma projektu o id a" }), { status: 404 });
+    });
+
+    const { result } = renderHook(() => useProjects(apiFetch));
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+
+    let outcome: Awaited<ReturnType<typeof result.current.loadContextPack>> | undefined;
+    await act(async () => {
+      outcome = await result.current.loadContextPack();
+    });
+
+    expect(outcome).toEqual({ ok: false, error: "Nie ma projektu o id a" });
+  });
 });

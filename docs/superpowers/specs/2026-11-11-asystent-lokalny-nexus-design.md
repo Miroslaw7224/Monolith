@@ -108,6 +108,8 @@ Wspólny szablon dla etatu i projektów własnych.
   4. sekcja „Teraz” z `tasks.md` i otwarte bugi z `bugs.md`,
   5. 2–3 ostatnie wpisy z `devlog.md`.
 
+  Zrealizowane w etapie 1-4 (spec `2026-11-13-etap-1-4-paczka-kontekstu-design.md`); szablony per rola i podgląd nadal odłożone.
+
   Git jest tylko odczytywany. Dla `owner: work` obowiązuje ostrzeżenie z sekcji 5. Później (koszt M): szablony per rola (review / implementacja / debug) z innym zestawem sekcji i podglądem przed skopiowaniem.
 
 - **Dziennik decyzji** (`devlog.md`): data, co ustalono i dlaczego.

@@ -11,6 +11,7 @@ const mockSaveState = vi.hoisted(() => vi.fn());
 const mockAddDevlogEntry = vi.hoisted(() => vi.fn());
 const mockSetProjectType = vi.hoisted(() => vi.fn());
 const mockApplyTaskOp = vi.hoisted(() => vi.fn());
+const mockBuildContextPack = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_projects/services", () => ({
   listProjects: mockListProjects,
@@ -19,6 +20,7 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   addDevlogEntry: mockAddDevlogEntry,
   setProjectType: mockSetProjectType,
   applyTaskOp: mockApplyTaskOp,
+  buildContextPack: mockBuildContextPack,
 }));
 
 import { GET as listGET } from "@/app/api/projects/route";
@@ -26,6 +28,7 @@ import { GET as detailGET, PATCH as detailPATCH } from "@/app/api/projects/[id]/
 import { PUT as statePUT } from "@/app/api/projects/[id]/state/route";
 import { POST as devlogPOST } from "@/app/api/projects/[id]/devlog/route";
 import { POST as tasksPOST } from "@/app/api/projects/[id]/tasks/route";
+import { GET as packGET } from "@/app/api/projects/[id]/context-pack/route";
 
 const summaryProject: Project = {
   id: "a",
@@ -327,5 +330,50 @@ describe("bc_projects router: zadania (POST tasks)", () => {
     const res = await post({ op: "add", column: "next", text: "x", version: null });
     expect(res.status).toBe(status);
     expect(await res.json()).toEqual({ error: err.message });
+  });
+});
+
+describe("bc_projects router: context-pack", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const req = (id: string) => new NextRequest(`http://localhost/api/projects/${id}/context-pack`);
+
+  it("200 z ContextPackDto", async () => {
+    mockBuildContextPack.mockReturnValue({
+      markdown: "# X",
+      approxTokens: 2,
+      truncated: false,
+      warnings: ["w"],
+      sekret: "nie wychodzi",
+    });
+    const res = await packGET(req("a"), { params: Promise.resolve({ id: "a" }) });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      markdown: "# X",
+      approxTokens: 2,
+      truncated: false,
+      warnings: ["w"],
+    });
+    expect(mockBuildContextPack).toHaveBeenCalledWith("a");
+  });
+
+  it("nieznany projekt: 404", async () => {
+    mockBuildContextPack.mockImplementation(() => {
+      throw new NotFoundError("Nie ma projektu o id zz");
+    });
+    const res = await packGET(req("zz"), { params: Promise.resolve({ id: "zz" }) });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "Nie ma projektu o id zz" });
+  });
+
+  it("konfiguracja vaulta: 500", async () => {
+    mockBuildContextPack.mockImplementation(() => {
+      throw new VaultConfigError("Brak NEXUS_VAULT_PATH");
+    });
+    const res = await packGET(req("a"), { params: Promise.resolve({ id: "a" }) });
+    expect(res.status).toBe(500);
+    expect((await res.json()).error).toContain("NEXUS_VAULT_PATH");
   });
 });

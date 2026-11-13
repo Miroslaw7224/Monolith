@@ -4,6 +4,7 @@ import type {
   BugEntry,
   ChecklistItem,
   ChecklistSection,
+  ContextPack,
   DevlogEntry,
   Freshness,
   Project,
@@ -271,5 +272,23 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
     state: p.state ? toStateDto(p.state) : null,
     stateVersion: p.stateVersion ? `${p.stateVersion.size}:${p.stateVersion.hash}` : null,
     devlog: p.devlog.slice(0, DEVLOG_LIMIT),
+  };
+}
+
+// ── paczka kontekstu dla agenta (etap 1-4) ──────────────────────────────────────
+
+export type ContextPackDto = {
+  markdown: string;
+  approxTokens: number;
+  truncated: boolean;
+  warnings: string[];
+};
+
+export function toContextPackDto(p: ContextPack): ContextPackDto {
+  return {
+    markdown: p.markdown,
+    approxTokens: p.approxTokens,
+    truncated: p.truncated,
+    warnings: p.warnings,
   };
 }

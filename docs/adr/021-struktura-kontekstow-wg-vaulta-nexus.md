@@ -47,6 +47,7 @@ Pominięte celowo (decyzja użytkownika 2026-11-12): elementy AI — `inngest_fu
 ### Infrastruktura wspólna
 
 - `lib/nexus/` — silnik plików vaulta (`vault-path`, `vault-fs`, `yaml-store`, `yaml-lists`, `frontmatter`, `markdown-edit`, `task-line`, `slug`); wspólne pomocniki repozytoriów: `record-helpers.ts`, `markdown-dir.ts`. Importowany tylko przez `repositories` kontekstów, inne pliki `lib/nexus/` i `lib/workGuard.ts` (reguła 5).
+- `lib/git/` — odczyt repozytoriów projektów (etap 1-4, paczka kontekstu): `repo-path.ts` (walidacja `local_path`: WSL, katalog domowy, bez symlinków), `project-git.ts` (git z białej listy, tylko odczyt), `repo-file.ts` (`CLAUDE.md`). `fs` i `child_process` żyją tu, nie w `repositories` (część C testu architektury); woła go tylko `repositories` kontekstu.
 - `lib/http/` — `apiError.ts`, `parseBody.ts`, `inferHttpStatus.ts`, `uploadFormFile.ts`, `localGuard.ts`.
 - `lib/schema/` — `looseObject.ts`; bezpieczny dla klienta, bo używają go `schemas.ts`.
 - `lib/errors.ts` — `DomainError`, `ConflictError`, `NotFoundError`.
