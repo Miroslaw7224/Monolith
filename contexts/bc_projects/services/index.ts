@@ -1,5 +1,6 @@
 import {
   NOW_LIMIT,
+  type ContextPack,
   type Freshness,
   type Project,
   type ProjectType,
@@ -10,17 +11,22 @@ import {
 } from "@/contexts/bc_projects/models";
 import {
   appendDevlogEntry,
+  readAiContext,
   readDevlog,
+  readGitSnapshot,
+  readIndexRules,
   readProjectBoard,
   readProjectContent,
   readProjectIndex,
   readProjectState,
   readRegistry,
+  readRepoRules,
   writeProjectState,
   writeProjectTasks,
   writeProjectType,
 } from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
+import { composeContextPack, REPO_REASON_TEXT, type PackRules } from "./context-pack";
 
 export const STALE_AFTER_DAYS = 14;
 
@@ -152,6 +158,51 @@ export function getProject(id: string, today: Date = new Date()): ProjectWithCon
     devlog,
     freshness: freshness(effectiveLastWorked(index.lastWorked, state?.updated), today),
   };
+}
+
+/** Pierwsze dostępne źródło zasad: `ai-context.md` → `CLAUDE.md` z repo → sekcje `index.md`. */
+function pickRules(entry: RegistryEntry, warnings: string[]): PackRules | null {
+  const aiContext = readAiContext(entry);
+  if (aiContext !== null) return { source: "ai-context.md", text: aiContext };
+
+  const repoRules = readRepoRules(entry);
+  if (repoRules.ok === false) {
+    if (repoRules.reason === "unsafe-file") {
+      warnings.push("CLAUDE.md pominięty (symlink, zbyt duży lub nie jest zwykłym plikiem)");
+    }
+  } else {
+    return { source: "CLAUDE.md", text: repoRules.text };
+  }
+
+  const sections = readIndexRules(entry);
+  if (sections.length === 0) return null;
+  return {
+    source: "index.md",
+    text: sections.map((s) => `### ${s.heading}\n\n${s.body}`).join("\n\n"),
+  };
+}
+
+/**
+ * Paczka kontekstu dla agenta (spec etapu 1-4): Markdown z zasadami, Save State, gitem, zadaniami,
+ * bugami i devlogiem w budżecie tokenów. Tylko odczyt; brak jednego źródła nie przerywa składania.
+ */
+export function buildContextPack(id: string, today: Date = new Date()): ContextPack {
+  const entry = findEntry(id);
+  const project = getProject(id, today);
+  const warnings: string[] = [];
+
+  const git = readGitSnapshot(entry);
+  if (git.ok === false) {
+    warnings.push(`Kod: repozytorium niedostępne (${REPO_REASON_TEXT[git.reason]})`);
+  }
+
+  return composeContextPack({
+    project,
+    lastWorked: effectiveLastWorked(project.lastWorked, project.state?.updated),
+    rules: pickRules(entry, warnings),
+    git,
+    warnings,
+  });
 }
 
 export type StateInput = {
