@@ -26,6 +26,8 @@ interface ActivityLogProps {
   activeSession?: ActiveSession | null;
   onStartSession?: () => void;
   onEndSession?: () => void;
+  /** Mały kafelek (Kokpit): węższe odstępy, lista nad wykresem. */
+  compact?: boolean;
 }
 
 export function ActivityLog({
@@ -36,6 +38,7 @@ export function ActivityLog({
   activeSession,
   onStartSession,
   onEndSession,
+  compact = false,
 }: ActivityLogProps) {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,8 +134,10 @@ export function ActivityLog({
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-      <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)]">
+    <div className={`flex flex-col overflow-hidden bg-[var(--bg)] ${compact ? "" : "flex-1"}`}>
+      <div
+        className={`border-b border-[var(--border)] bg-[var(--surface)] ${compact ? "p-4" : "p-6"}`}
+      >
         <h2 className="text-lg font-bold mb-4 text-[var(--text)]">{labels.title}</h2>
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
@@ -179,14 +184,22 @@ export function ActivityLog({
             ))}
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-6 flex gap-6 min-h-0">
+      <div
+        className={`overflow-auto flex min-h-0 ${
+          compact ? "p-4 gap-4 flex-col max-h-[420px]" : "flex-1 p-6 gap-6"
+        }`}
+      >
         {loading ? (
           <div className="text-[var(--text2)]">Loading…</div>
         ) : events.length === 0 ? (
           <p className="text-[var(--text3)] font-medium">{labels.noEntries}</p>
         ) : (
           <>
-            <ul className="flex-[2_2_0%] min-w-0 space-y-1.5 overflow-auto pr-2">
+            <ul
+              className={`min-w-0 space-y-1.5 overflow-auto pr-2 ${
+                compact ? "max-h-40 shrink-0" : "flex-[2_2_0%]"
+              }`}
+            >
               {events.map((ev) => {
                 const minutesInRange = eventMinutesInInclusiveRange(ev, startDate, endDate);
                 const partial = minutesInRange > 0 && minutesInRange !== ev.duration_minutes;
@@ -219,7 +232,9 @@ export function ActivityLog({
                 );
               })}
             </ul>
-            <div className="flex-[3_3_0%] min-w-0 flex flex-col self-start bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 activity-chart">
+            <div
+              className={`min-w-0 flex flex-col self-start bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 activity-chart ${compact ? "w-full" : "flex-[3_3_0%]"}`}
+            >
               {tagHours.length === 0 ? (
                 <p className="text-[var(--text3)] font-medium text-sm">{labels.noTags}</p>
               ) : (

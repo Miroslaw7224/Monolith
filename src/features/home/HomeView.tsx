@@ -204,6 +204,7 @@ export default function HomeView({
             activeSession={activeSession}
             onStartSession={() => setSessionModalOpen(true)}
             onEndSession={handleEndSession}
+            compact
           />
         </div>
 
