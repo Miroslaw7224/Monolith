@@ -243,6 +243,22 @@ describe("useProjects: zapisy", () => {
     expect(outcome).toEqual({ ok: false, error: "HTTP 500", conflict: false });
   });
 
+  it("400 z details: komunikat zawiera nazwy niepoprawnych pól", async () => {
+    const { result } = setup(() =>
+      json({ error: "Validation failed", details: { links: ["x"], branch: ["y"] } }, 400)
+    );
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.saveState(INPUT);
+    });
+    expect(outcome).toEqual({
+      ok: false,
+      error: "Validation failed: links, branch",
+      conflict: false,
+    });
+  });
+
   it("wyjątek sieci", async () => {
     const { result } = setup(() => {
       throw new Error("Failed to fetch");

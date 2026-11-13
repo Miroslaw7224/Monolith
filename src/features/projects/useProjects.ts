@@ -13,9 +13,15 @@ import type { MutationResult, ProjectActions } from "./mutation";
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
 async function readError(res: Response): Promise<string> {
-  const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
+  const body = (await res.json().catch(() => null)) as {
+    error?: unknown;
+    details?: unknown;
+  } | null;
   if (body && typeof body.error === "string" && body.error.length > 0) {
-    return body.error;
+    // 400 z `parseBody` niesie `details` (nazwy pól): bez nich użytkownik widziałby tylko „Validation failed”.
+    const fields =
+      body.details !== null && typeof body.details === "object" ? Object.keys(body.details) : [];
+    return fields.length > 0 ? `${body.error}: ${fields.join(", ")}` : body.error;
   }
   return `HTTP ${res.status}`;
 }
