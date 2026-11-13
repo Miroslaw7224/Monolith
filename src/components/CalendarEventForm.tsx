@@ -4,7 +4,7 @@ import {
   DURATION_OPTIONS,
   EVENT_TYPE_DEFAULT_DURATION,
   formatDuration,
-} from "./calendarConstants";
+} from "@/src/lib/calendarConstants";
 import { addCalendarDays } from "./calendar/calendarUtils";
 
 export interface CalendarEventFormData {

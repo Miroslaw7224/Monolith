@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef } from "react";
-import { CALENDAR_COLORS } from "./calendarConstants";
+import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
 
 export interface StartSessionPayload {
   title: string;

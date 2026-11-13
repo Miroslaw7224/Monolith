@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, ChevronLeft, ChevronRight, Trash2, Play, Square } from "lucide-react";
 import { CalendarEventForm, type CalendarEventFormData } from "./CalendarEventForm";
 import { StartSessionModal } from "./StartSessionModal";
-import { CALENDAR_COLORS } from "./calendarConstants";
+import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
 import {
   type CalendarEvent,
   MONTH_NAMES,
@@ -11,7 +11,7 @@ import {
 } from "./calendar/calendarUtils";
 import { CalendarDayColumn } from "./calendar/CalendarDayColumn";
 import { useCalendarData } from "./calendar/useCalendarData";
-import type { UserTag } from "./TagsSection";
+import type { UserTag } from "@/src/features/tags/TagsSection";
 import type { ActiveSession } from "@/src/lib/activeSession";
 
 export type { CalendarEvent } from "./calendar/calendarUtils";

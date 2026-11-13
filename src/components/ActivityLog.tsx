@@ -10,8 +10,8 @@ import {
   Cell,
 } from "recharts";
 import { Play, Square } from "lucide-react";
-import { formatDuration, CALENDAR_COLORS } from "./calendarConstants";
-import type { UserTag } from "./TagsSection";
+import { formatDuration, CALENDAR_COLORS } from "@/src/lib/calendarConstants";
+import type { UserTag } from "@/src/features/tags/TagsSection";
 import { eventMinutesInInclusiveRange } from "@/lib/calendarRange";
 import type { ActiveSession } from "@/src/lib/activeSession";
 import type { CalendarEvent } from "@/types/records";
