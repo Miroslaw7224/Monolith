@@ -154,8 +154,10 @@ function ToolbarButton({
       disabled={disabled}
       title={title}
       className={twMerge(
-        "p-2 rounded-lg transition-colors",
-        active ? "bg-[var(--accent)] text-white" : "hover:bg-[var(--bg3)] text-[var(--text)]",
+        "p-2 rounded-lg transition-colors note-editor-btn",
+        active
+          ? "bg-[var(--accent)] text-[var(--accent-ink,#ffffff)] note-editor-btn--active"
+          : "hover:bg-[var(--bg3)] text-[var(--text)]",
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
@@ -178,7 +180,7 @@ export function NoteEditorToolbar({
 }) {
   const rich = format !== "markdown";
   return (
-    <div className="flex flex-wrap items-center gap-1 p-2 border-b border-[var(--border)] bg-[var(--bg2)] flex-shrink-0">
+    <div className="flex flex-wrap items-center gap-1 p-2 border-b border-[var(--border)] bg-[var(--bg2)] flex-shrink-0 note-editor-toolbar">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive("bold")}
