@@ -37,7 +37,8 @@ WHO="${1:?Podaj pomocnika: agy lub cursor}"; PROMPT="${2:?Podaj prompt}"
 case "$WHO" in agy|cursor) ;; *) echo "Pomocnik musi być: agy | cursor" >&2; exit 1 ;; esac
 case "$ROLE" in review|advice|task) ;; *) echo "Rola musi być: review | advice | task" >&2; exit 1 ;; esac
 
-export HC_SOCKET="${HC_SOCKET:-$HOME/.local/state/herdr-core/default/default.sock}"
+# Gniazda core nie ustawiamy na sztywno: położenie zależy od XDG_RUNTIME_DIR i zmienia się po restarcie core.
+# hc sam znajduje właściwe (HC_TERMINAL_SOCKET w terminalu hc); HC_SOCKET z otoczenia nadal działa jako nadpisanie.
 command -v hc >/dev/null || { echo "Brak hc w PATH" >&2; exit 1; }
 
 # --- znajdź terminal pomocnika ---
@@ -87,8 +88,19 @@ case "$CLEAR_MODE" in
     elif [[ -n "$pct" && "$pct" -ge "$CLEAR_PCT" ]]; then do_clear=1; why="kontekst ${pct}%"
     fi ;;
 esac
+# agy: `hc send` opakowuje tekst w <hc from=...>, więc agy traktuje "/clear" i "/model" jako zwykłą wiadomość do LLM
+# (nic się nie zmienia, a model "potwierdza" zmianę z głowy). Komendy slash wpisujemy więc klawiszami (`hc keys`).
+keys_text() { # litery, cyfry, spacje i "/" jako osobne klawisze
+  local s="$1" i c; local -a out=()
+  for ((i = 0; i < ${#s}; i++)); do c="${s:i:1}"; [[ "$c" == " " ]] && out+=(space) || out+=("$c"); done
+  hc keys "$TARGET" "${out[@]}" >/dev/null
+}
 if [[ $do_clear -eq 1 ]]; then
-  hc send "$TARGET" "/clear" >/dev/null
+  if [[ "$WHO" == "agy" ]]; then
+    keys_text "/clear"; sleep 1; hc keys "$TARGET" enter >/dev/null
+  else
+    hc send "$TARGET" "/clear" >/dev/null
+  fi
   sleep 3
   echo "[ask-helper] /clear w $WHO ($why)" >&2
   count=0
@@ -97,6 +109,7 @@ echo $((count + 1)) > "$COUNT_FILE"
 
 # --- poziom modelu pomocnika (/model <id> tylko gdy pasek pokazuje inny) ---
 # auto: review -> deep, advice/task -> light. Modele można nadpisać zmiennymi środowiskowymi.
+# Dla agy liczy się *_TAG (małymi literami wpisywany w wyszukiwarkę pickera, np. Argon, Opus, Flash); *_LIGHT/*_DEEP to ID tylko dla cursora.
 AGY_LIGHT="${AGY_LIGHT:-gemini-3.8-flash-medium}";   AGY_LIGHT_TAG="${AGY_LIGHT_TAG:-Flash}"
 AGY_DEEP="${AGY_DEEP:-gemini-4-argon-medium}";       AGY_DEEP_TAG="${AGY_DEEP_TAG:-Argon}"
 CURSOR_LIGHT="${CURSOR_LIGHT:-composer-2.5}";        CURSOR_LIGHT_TAG="${CURSOR_LIGHT_TAG:-Composer}"
@@ -106,9 +119,17 @@ if [[ "$TIER" != "none" ]]; then
   key="$(tr a-z A-Z <<<"${WHO}_${TIER}")"; model_var="$key"; tag_var="${key}_TAG"
   model="${!model_var}"; tag="${!tag_var}"
   if ! hc read "$TARGET" 2>/dev/null | tail -n 6 | grep -q "$tag"; then
-    hc send "$TARGET" "/model $model" >/dev/null
+    if [[ "$WHO" == "agy" ]]; then
+      # picker /model: wyszukiwarka filtruje po nazwie, pierwsza pozycja jest zaznaczona; effort zostaje bez zmian
+      keys_text "/model"; sleep 1; hc keys "$TARGET" enter >/dev/null; sleep 1
+      keys_text "$(tr A-Z a-z <<<"$tag")"; sleep 1; hc keys "$TARGET" enter >/dev/null
+    else
+      hc send "$TARGET" "/model $model" >/dev/null
+    fi
     sleep 3
     echo "[ask-helper] /model $model w $WHO ($TIER)" >&2
+    hc read "$TARGET" 2>/dev/null | tail -n 6 | grep -q "$tag" \
+      || echo "[ask-helper] UWAGA: pasek $WHO nie pokazuje '$tag'; model mógł się nie zmienić" >&2
   fi
 fi
 
