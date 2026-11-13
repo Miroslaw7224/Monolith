@@ -6,6 +6,7 @@ import {
   ProjectTypeInputSchema,
   StateInputSchema,
   TaskOpInputSchema,
+  toContextPackDto,
   toDetailDto,
   toSummaryDto,
 } from "./schemas";
@@ -90,6 +91,18 @@ export async function postTasks(req: NextRequest, ctx: RouteContext): Promise<Ne
     const { version, ...op } = parsed.data;
     const project = await services.applyTaskOp(id, op, version ?? null);
     return NextResponse.json(toDetailDto(project));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function getContextPack(
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  try {
+    const { id } = await ctx.params;
+    return NextResponse.json(toContextPackDto(services.buildContextPack(id)));
   } catch (err) {
     return handleServiceError(err);
   }
