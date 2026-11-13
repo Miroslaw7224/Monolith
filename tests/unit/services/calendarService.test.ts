@@ -17,6 +17,9 @@ vi.mock("../../../lib/firestore-db.js", () => ({
   createCalendarEvent: (...args: unknown[]) => mockCreateCalendarEvent(...args),
   updateCalendarEvent: (...args: unknown[]) => mockUpdateCalendarEvent(...args),
   deleteCalendarEvent: (...args: unknown[]) => mockDeleteCalendarEvent(...args),
+}));
+
+vi.mock("@/contexts/bc_tasks/services", () => ({
   getTasks: (...args: unknown[]) => mockGetTasks(...args),
 }));
 

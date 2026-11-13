@@ -2,11 +2,11 @@ import React from "react";
 import { Plus, Search, Settings2 } from "lucide-react";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskTemplatesModal } from "./TaskTemplatesModal";
-import { TaskColumn } from "./tasks/TaskColumn";
-import { useTasksBoard } from "./tasks/useTasksBoard";
-import { TASK_STATUSES, tasksByStatus, type TaskStatus } from "./tasks/taskOrderUtils";
+import { TaskColumn } from "./TaskColumn";
+import { useTasksBoard } from "./useTasksBoard";
+import { TASK_STATUSES, tasksByStatus, type TaskStatus } from "./taskOrderUtils";
 
-export type { TaskRecord as Task } from "@/types/records";
+export type { TaskDto as Task } from "@/contexts/bc_tasks/schemas";
 
 type TranslationDict = Record<string, string | string[]>;
 

@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 import { AppSidebar, type AppSidebarTranslations } from "@/src/components/layout/AppSidebar";
 import { AppHeader } from "@/src/components/layout/AppHeader";
 import { CalendarView } from "@/src/components/CalendarView";
-import { TasksSection } from "@/src/components/TasksSection";
+import { TasksSection } from "@/src/features/tasks/TasksSection";
 import { TagsSection, type UserTag } from "@/src/features/tags/TagsSection";
 import { ResourceSection } from "@/src/components/ResourceSection";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";

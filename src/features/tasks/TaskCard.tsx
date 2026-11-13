@@ -1,6 +1,6 @@
 import React from "react";
 import { GripVertical, Trash2 } from "lucide-react";
-import type { Task } from "../TasksSection";
+import type { Task } from "./TasksSection";
 import { TaskDescriptionLink } from "./TaskDescriptionLink";
 
 interface TaskCardProps {

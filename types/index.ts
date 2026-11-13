@@ -4,8 +4,6 @@ export type {
   NoteResourceRecord,
   CalendarEventRecord,
   CalendarEvent,
-  TaskRecord,
-  TaskTemplateRecord,
   MindMap,
   MindMapNode,
 } from "./records";

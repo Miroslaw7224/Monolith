@@ -1,17 +1,18 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   getTaskTemplates,
   createTaskTemplate,
   updateTaskTemplate,
   deleteTaskTemplate,
-} from "../../../services/taskTemplateService.js";
+} from "@/contexts/bc_tasks/services";
 
 const mockGetTaskTemplates = vi.hoisted(() => vi.fn());
 const mockCreateTaskTemplate = vi.hoisted(() => vi.fn());
 const mockUpdateTaskTemplate = vi.hoisted(() => vi.fn());
 const mockDeleteTaskTemplate = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../lib/firestore-db.js", () => ({
+vi.mock("@/contexts/bc_tasks/repositories", () => ({
   getTaskTemplates: (...args: unknown[]) => mockGetTaskTemplates(...args),
   createTaskTemplate: (...args: unknown[]) => mockCreateTaskTemplate(...args),
   updateTaskTemplate: (...args: unknown[]) => mockUpdateTaskTemplate(...args),

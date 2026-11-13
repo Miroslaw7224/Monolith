@@ -1,15 +1,15 @@
 import { DomainError } from "@/lib/errors";
-import type { TaskRecord } from "@/types/records";
+import type { Task } from "../models";
 import {
   appendTaskLine,
   readTasks,
   removeTaskLine,
   stripGeneratedBy,
   updateTaskLines,
-} from "../markdown-edit";
-import type { TaskLine } from "../task-line";
-import { readVaultFile, updateVaultFile } from "../vault-fs";
-import { generateId, nowIso } from "../record-helpers";
+} from "@/lib/nexus/markdown-edit";
+import type { TaskLine } from "@/lib/nexus/task-line";
+import { readVaultFile, updateVaultFile } from "@/lib/nexus/vault-fs";
+import { generateId, nowIso } from "@/lib/nexus/record-helpers";
 
 const FILE = "Tasks/tasks.md";
 
@@ -33,7 +33,7 @@ async function edit(fn: (current: string | null) => string | null): Promise<void
   }
 }
 
-function toRecord(t: TaskLine): TaskRecord {
+function toRecord(t: TaskLine): Task {
   return {
     id: t.id,
     title: t.title,
@@ -54,7 +54,7 @@ function timeOf(iso: string | undefined): number {
 }
 
 /** `order` rosnąco (brak = 999999), potem `created_at` malejąco, potem `id` (T6). */
-function compare(a: TaskRecord, b: TaskRecord): number {
+function compare(a: Task, b: Task): number {
   const orderDiff = (a.order ?? 999999) - (b.order ?? 999999);
   if (orderDiff !== 0) return orderDiff;
   const createdDiff = timeOf(b.created_at) - timeOf(a.created_at);
@@ -62,7 +62,7 @@ function compare(a: TaskRecord, b: TaskRecord): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
-export async function getTasks(): Promise<TaskRecord[]> {
+export async function getTasks(): Promise<Task[]> {
   const text = readVaultFile(FILE)?.text ?? null;
   return readTasks(text).map(toRecord).sort(compare);
 }
@@ -71,10 +71,10 @@ export async function createTask(data: {
   title: string;
   link?: string;
   description?: string;
-  status?: TaskRecord["status"];
+  status?: Task["status"];
   due_date?: string | null;
   priority?: number | null;
-}): Promise<TaskRecord> {
+}): Promise<Task> {
   let created: TaskLine | undefined;
   await edit((current) => {
     const now = nowIso();
@@ -102,7 +102,7 @@ export async function updateTask(
     title: string;
     link: string;
     description: string;
-    status: TaskRecord["status"];
+    status: Task["status"];
     due_date: string | null;
     priority: number | null;
     order: number;

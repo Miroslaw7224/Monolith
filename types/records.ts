@@ -45,27 +45,6 @@ export type CalendarEvent = Omit<CalendarEventRecord, "type"> & {
   type: "work" | "meeting" | "task_deadline";
 };
 
-export type TaskRecord = {
-  id: string;
-  title: string;
-  link: string;
-  description: string;
-  status: "todo" | "in_progress" | "to_review" | "done";
-  due_date: string | null;
-  priority: number | null;
-  order?: number;
-  created_at?: string;
-  updated_at?: string;
-};
-
-export type TaskTemplateRecord = {
-  id: string;
-  label: string;
-  title: string;
-  link: string;
-  created_at?: string;
-};
-
 export interface MindMap {
   id: string;
   title: string;

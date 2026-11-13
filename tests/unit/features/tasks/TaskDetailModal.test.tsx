@@ -3,7 +3,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, afterEach, beforeEach } from "vitest";
 
-import { TaskDetailModal } from "@/src/components/TaskDetailModal";
+import { TaskDetailModal } from "@/src/features/tasks/TaskDetailModal";
 
 afterEach(() => cleanup());
 
