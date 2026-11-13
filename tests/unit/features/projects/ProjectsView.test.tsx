@@ -163,6 +163,23 @@ describe("ProjectsView", () => {
     });
   });
 
+  it("znacznik „Dane z firmy” tylko dla owner work", async () => {
+    const w = summary({ id: "w", owner: "work" });
+    const p = summary({ id: "p" });
+    const apiFetch = makeApiFetch([w, p], {
+      w: detail({ id: "w", owner: "work" }),
+      p: detail({ id: "p" }),
+    });
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByText("w", { selector: ".prj-item__name" });
+    await userEvent.click(itemButton("w"));
+    const workCard = await screen.findByRole("region", { name: "Teczka projektu w" });
+    expect(within(workCard).getByText("Dane z firmy")).toBeInTheDocument();
+    await userEvent.click(itemButton("p"));
+    const personalCard = await screen.findByRole("region", { name: "Teczka projektu p" });
+    expect(within(personalCard).queryByText("Dane z firmy")).not.toBeInTheDocument();
+  });
+
   it("wybrany element", async () => {
     const a = summary({ id: "a" });
     const b = summary({ id: "b" });

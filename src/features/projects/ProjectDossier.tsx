@@ -41,6 +41,9 @@ export function ProjectDossier(props: {
             <h2 className="prj-card__title">{project.name}</h2>
             <p className="prj-card__type">
               {project.status} · {project.priority}
+              {project.owner === "work" ? (
+                <span className="prj-card__owner">Dane z firmy</span>
+              ) : null}
             </p>
           </div>
           <ProjectContextPack key={project.id} onLoad={actions.loadContextPack} />
