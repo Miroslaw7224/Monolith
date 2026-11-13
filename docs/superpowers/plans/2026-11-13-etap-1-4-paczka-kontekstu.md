@@ -450,4 +450,11 @@ W `useProjects.test.tsx` dodaj `it("loadContextPack: pobiera paczkę wybranego p
 
 ## Odchylenia przy wykonaniu
 
-_(uzupełnia wykonawca w kroku 4 zadania 12)_
+- **Test spoza architektury zmieniony osobnym commitem (`5a4721e`).** Przeniesienie `services.ts` do `services/index.ts` łamało `tests/unit/contexts/bc_projects/write-boundary.static.test.ts`, który zakładał ścieżkę `contexts/bc_projects/services.ts`. Test akceptuje teraz plik albo folder (CLAUDE.md dopuszcza „plik urósł → folder”). Test architektury (`architecture.static.test.ts`) nie był zmieniany.
+- **`strict: false` w tsc.** Zawężanie unii po `if (x.ok)` nie działa; dwa miejsca (`readRepoRules`, `pickRules`) poprawione na `=== false` (commit `f1275c9` i w zadaniu 7).
+- **Review agy po zadaniach 2–6 (commit `1d7c73e`):** pusty `CLAUDE.md` = brak pliku (przycięty); `cutAtParagraph` tnie do `max` łącznie z sufiksem `…` i po akapicie tylko w drugiej połowie limitu (wcześniej krok redukcji mógł powiększyć paczkę o 2–3 znaki); nagłówek nie wypisuje błędnej daty przy świeżości `unknown`; symlink `.git` nie wystarcza; `status` 0 w `catch` `runGit` to błąd; `readRepoFile` przez `open(O_NOFOLLOW)` + `fstat`; dodane testy kroków redukcji 2–5 z osobna.
+- **Review agy całej gałęzi (commit `bfc71ef`):** plik `.git` (worktree) z `gitdir:` poza domem, w `/mnt/` albo nieistniejący jest odrzucany (poza specem, który dopuszczał plik `.git` bez walidacji celu); strażnik odmontowania w `ProjectContextPack` (spóźniona odpowiedź nie nadpisuje schowka po zmianie projektu). Świadomie pominięte: klucz komponentu zależny od wersji stanu (komunikat „Skopiowano” opisuje wcześniejszą akcję) i podwójne czytanie rejestru w `buildContextPack` (tanie odczyty).
+- **Fixtury testowe:** w testach kompozytora słowa „Pierwszy”/„Drugi” występowały też w tytułach bugów, a „xx” w tekście zasad; asercje przestawione na linie devlogu i unikalne ciągi.
+- **Spec:** dopisany fallback „Gdzie skończyłem (brak state.md)” (D5) i komunikat „… i N więcej linii” (zadanie 1).
+- **Pierwszy bieg bramki przez cursora** wystartował, gdy poprawki z review były jeszcze w toku, więc po nich uruchomiono bramkę ponownie (142 pliki, 1452 testy, tsc, lint, build: przeszło).
+- **Obserwacja z ręcznego testu (do decyzji, poza zakresem):** `CLAUDE.md` wklejony w „Zasady projektu” zachowuje własne nagłówki `#`/`##`, które mieszają się ze strukturą paczki. Możliwa poprawka: obniżenie poziomu nagłówków w sekcji zasad albo ogrodzenie cytatem.
