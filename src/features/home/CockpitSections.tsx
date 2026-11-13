@@ -17,7 +17,6 @@ import {
   minutesUntil,
   projectsLabel,
   relativeDays,
-  timelineRange,
   upcomingWindows,
 } from "./cockpitFormat";
 
@@ -408,7 +407,6 @@ export function CockpitSections({
     })
     .filter((g) => g.items.length > 0);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const range = timelineRange(data.events);
   const next = data.nextMeeting;
   const free = 3 - data.topics.length;
 
@@ -489,9 +487,7 @@ export function CockpitSections({
               <h3 className="kok-panel__title">
                 <b>Dziś</b> · oś czasu
               </h3>
-              <span className="kok-chip">
-                {String(range.from).padStart(2, "0")}–{String(range.to).padStart(2, "0")}
-              </span>
+              <span className="kok-chip">00–24</span>
             </div>
             {data.events.length === 0 ? (
               <p className="kok-empty-msg">Brak wydarzeń na dziś</p>

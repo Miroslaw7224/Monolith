@@ -435,7 +435,7 @@ describe("K1: układ wg makiety", () => {
     render(<HomeView {...defaultProps} />);
     await screen.findByText("Spotkanie zespołu");
     expect(screen.getByLabelText("Teraz 09:48")).toBeInTheDocument();
-    expect(screen.getByText("08–18")).toBeInTheDocument();
+    expect(screen.getByText("00–24")).toBeInTheDocument();
   });
 
   test("pasek statusu: vault zsynchronizowany albo liczba ostrzeżeń", async () => {

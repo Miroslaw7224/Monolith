@@ -113,17 +113,3 @@ export function upcomingWindows<T extends { endMinutes: number }>(
 ): T[] {
   return windows.filter((w) => w.endMinutes > nowMinutes);
 }
-
-/** Zakres osi czasu w pełnych godzinach: minimum 08–18, rozszerzany o wydarzenia. */
-export function timelineRange(events: { startMinutes: number; durationMinutes: number }[]): {
-  from: number;
-  to: number;
-} {
-  let from = 8;
-  let to = 18;
-  for (const e of events) {
-    from = Math.min(from, Math.floor(e.startMinutes / 60));
-    to = Math.max(to, Math.ceil((e.startMinutes + e.durationMinutes) / 60));
-  }
-  return { from, to: Math.min(to, 24) };
-}

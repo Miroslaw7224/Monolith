@@ -11,7 +11,6 @@ import {
   projectsLabel,
   minutesUntil,
   relativeDays,
-  timelineRange,
   weekNumber,
 } from "@/src/features/home/cockpitFormat";
 
@@ -70,20 +69,6 @@ describe("meetingsLabel", () => {
     expect(meetingsLabel(5)).toBe("5 spotkań dziś");
     expect(meetingsLabel(12)).toBe("12 spotkań dziś");
     expect(meetingsLabel(22)).toBe("22 spotkania dziś");
-  });
-});
-
-describe("timelineRange", () => {
-  it("domyślnie 08–18", () => {
-    expect(timelineRange([])).toEqual({ from: 8, to: 18 });
-    expect(timelineRange([{ startMinutes: 600, durationMinutes: 30 }])).toEqual({
-      from: 8,
-      to: 18,
-    });
-  });
-  it("rozszerza do pełnych godzin wokół wydarzeń", () => {
-    expect(timelineRange([{ startMinutes: 7 * 60 + 15, durationMinutes: 30 }]).from).toBe(7);
-    expect(timelineRange([{ startMinutes: 17 * 60, durationMinutes: 90 }]).to).toBe(19);
   });
 });
 
