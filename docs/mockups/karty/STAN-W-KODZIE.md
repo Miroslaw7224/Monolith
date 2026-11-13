@@ -11,18 +11,18 @@ poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu
 
 ## 1. Kokpit (`src/features/home/HomeView.tsx`)
 
-| Funkcja                         | Stan          | Gdzie / uwagi                                                                                                                   |
-| ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Kafle z liczbami dnia           | CZĘŚCIOWO     | CockpitSections.tsx (następne spotkanie, kolejka, aktywne tematy, commity dziś z git (K7), ostrzeżenia); brak inbox, deep/quick |
-| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx (zadania z terminem dziś); brak energii Deep/Quick i projektów                                                     |
-| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx (lista 48 h); brak osi czasu, linku do spotkania                                                                   |
-| Sesja pracy                     | CZĘŚCIOWO     | src/components/sessions/activeSession.ts (timer); to nie Save State                                                             |
-| Punkty skupienia z Save State   | JEST          | CockpitSections.tsx (K1, 2026-11-13): następny krok, branch, bloker, ostatnio + pewność, Kopiuj kontekst, Wejdź                 |
-| Brief i action items            | BRAK          |                                                                                                                                 |
-| Szybki inbox                    | BRAK          |                                                                                                                                 |
-| Rytuał zamknięcia dnia / zaczep | JEST          | ClosingAnchor.tsx, CloseDayDialog.tsx, Cockpit/closing.yaml (K6, 2026-11-13)                                                    |
-| Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                                          |
-| Ctrl+K i Alt+1…9                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka)                          |
+| Funkcja                         | Stan          | Gdzie / uwagi                                                                                                      |
+| ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Kafle z liczbami dnia           | CZĘŚCIOWO     | CockpitSections.tsx (następne spotkanie, kolejka, aktywne tematy, commity dziś z git (K7)); brak inbox, deep/quick |
+| Kolejka zadań na dziś           | CZĘŚCIOWO     | HomeView.tsx (zadania z terminem dziś); brak energii Deep/Quick i projektów                                        |
+| Spotkania dnia                  | CZĘŚCIOWO     | HomeView.tsx (lista 48 h); brak osi czasu, linku do spotkania                                                      |
+| Sesja pracy                     | CZĘŚCIOWO     | src/components/sessions/activeSession.ts (timer); to nie Save State                                                |
+| Punkty skupienia z Save State   | JEST          | CockpitSections.tsx (K1, 2026-11-13): następny krok, branch, bloker, ostatnio + pewność, Kopiuj kontekst, Wejdź    |
+| Brief i action items            | BRAK          |                                                                                                                    |
+| Szybki inbox                    | BRAK          |                                                                                                                    |
+| Rytuał zamknięcia dnia / zaczep | JEST          | ClosingAnchor.tsx, CloseDayDialog.tsx, Cockpit/closing.yaml (K6, 2026-11-13)                                       |
+| Przełącznik praca / życie       | POZA ZAKRESEM | decyzja 2026-11-11: etat nie na tym PC, praca i życie się nie mieszają                                             |
+| Ctrl+K i Alt+1…9                | JEST          | src/features/cards/ (pasek kart, skróty, paleta); gałąź feat/karty-szkielet; Alt+9 = Kodeks (zaślepka)             |
 
 ## 2. Kalendarz (`src/features/calendar/CalendarView.tsx`)
 

@@ -457,4 +457,15 @@ describe("K1: układ wg makiety", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
     expect(await within(dialog).findByText("Zły temat")).toBeInTheDocument();
   });
+
+  test("ostrzeżenia: brak kafla, lista na dole i licznik w pasku zostają", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const list = await screen.findByRole("list", { name: "Ostrzeżenia" });
+    expect(list).toHaveTextContent("pominięto błędny termin");
+    expect(screen.queryByText("stan spójny")).not.toBeInTheDocument();
+    const labels = [...document.querySelectorAll(".kok-tile__label")].map((n) => n.textContent);
+    expect(labels).not.toContain("Ostrzeżenia");
+    expect(screen.getByLabelText("Pasek statusu")).toHaveTextContent("1 ostrzeżeń");
+  });
 });

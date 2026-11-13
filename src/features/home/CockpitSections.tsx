@@ -274,13 +274,6 @@ export function CockpitSections({
             <span className="kok-tile__meta">{projectsLabel(data.git.projectsWithCommits)}</span>
           </div>
         ) : null}
-        <div className="kok-tile tile">
-          <span className="kok-tile__label">Ostrzeżenia</span>
-          <span className="kok-tile__value">{data.warnings.length}</span>
-          <span className="kok-tile__meta">
-            {data.warnings.length === 0 ? "stan spójny" : "wpisy wymagające uwagi"}
-          </span>
-        </div>
       </section>
 
       <div className="kok-grid">
