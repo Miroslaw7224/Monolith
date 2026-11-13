@@ -1,6 +1,6 @@
 # Format plików w vaulcie (tagi, szablony, zasoby, zadania, kalendarz, notatki, mapy myśli, tablica)
 
-Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, `lib/nexus/repos/`.
+Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, repozytoria w `contexts/*/repositories*`.
 
 | Plik                       | Klucz listy | Pola rekordu (kolejność)                                                                                      |
 | -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |

@@ -7,7 +7,7 @@ Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/
 
 ## Struktura kodu
 
-Nowy kod domeny leży w `contexts/bc_<nazwa>/` (ADR-021, spec `docs/superpowers/specs/2026-11-12-struktura-kontekstow-design.md`).
+Kod domeny leży w `contexts/bc_<nazwa>/` (ADR-021, spec `docs/superpowers/specs/2026-11-12-struktura-kontekstow-design.md`).
 Każdy kontekst ma te same pięć plików (plik urósł → folder o tej samej nazwie z `index.ts`):
 
 - `router.ts`: handlery HTTP (parsowanie przez `schemas`, wywołanie `services`, mapowanie model → DTO, `handleServiceError`);
@@ -18,9 +18,9 @@ Każdy kontekst ma te same pięć plików (plik urósł → folder o tej samej n
 
 Kierunek: `app/api/**/route.ts` (tylko re-eksport handlera) → `router` → `services` → `repositories` → `lib/nexus`.
 Infrastruktura wspólna: `lib/nexus/`, `lib/http/`, `lib/schema/`, `lib/errors.ts`. UI (`src/**`) importuje z kontekstu tylko `schemas`.
-Test `tests/unit/architecture.static.test.ts` pilnuje reguł 1–9; **zmiany testu i listy wyjątków (baseline) zawsze osobnym commitem,
-nigdy razem z kodem**, a pękający test naprawia się kodem, nie testem. Stary kod (`services/`, `lib/nexus/repos/`, `lib/validation/`)
-jest migrowany po jednej domenie na PR.
+Test `tests/unit/architecture.static.test.ts` pilnuje reguł 1–7 oraz warstwy plikowej (bez listy wyjątków); **zmiany testu zawsze osobnym commitem,
+nigdy razem z kodem**, a pękający test naprawia się kodem, nie testem. Starej warstwy (`services/`, `types/`, `lib/validation/`,
+`lib/nexus/repos/`, `lib/firestore-db.ts`) już nie ma; test pilnuje, żeby nie wróciła.
 
 ## Współpraca wielu agentów (herdr-core / `hc`)
 
