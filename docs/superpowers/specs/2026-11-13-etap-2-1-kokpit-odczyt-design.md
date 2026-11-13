@@ -27,7 +27,7 @@ Karta Kokpit (Alt+1) pokazuje jednym spojrzeniem: aktywne tematy (maks. 3, przyp
 
 **Nowy kontekst `contexts/bc_cockpit/`** (pięć plików):
 
-- `repositories.ts`: czyta i zapisuje `Vault/Cockpit/pinned.yaml` przez `lib/nexus/yaml-store` (nie importuje `vault-fs`, więc lista `VAULT_FS_IMPORTERS` w teście architektury nie zmienia się). Format zgodny z `yaml-lists` (lista map): `projects:` z elementami `- id: <id>`. Brak pliku = lista pusta. Zapis z kontrolą wersji jak istniejące zapisy (`expected`, konflikt = 409).
+- `repositories.ts`: czyta i zapisuje `Vault/Cockpit/pinned.yaml` przez `lib/nexus/yaml-store` (nie importuje `vault-fs`, więc lista `VAULT_FS_IMPORTERS` w teście architektury nie zmienia się). Format zgodny z `yaml-lists` (lista map): `projects:` z elementami `- id: <id>`. Brak pliku = lista pusta. Zapis przez `updateList` (`PUT` zastępuje całą listę): `yaml-store` przy zmianie zewnętrznej ponawia zapis na świeżej treści (maks. 3 razy), a po wyczerpaniu prób rzuca `ConflictError` (409); klient nie wysyła `expected` (to dotyczy tylko operacji indeksowych na `tasks.md`). Plik, który się nie parsuje, nie jest nadpisywany: `PUT` kończy się błędem z nazwą pliku, a poprawia go użytkownik ręcznie.
 - `models.ts`: `Pinned = { ids: string[] }`, typy wewnętrzne widoku.
 - `services.ts`: `getCockpit(today = new Date())` i `setPinned(ids)`; wołają wyłącznie `services` innych kontekstów:
   - `bc_projects`: `getProject(id, today)` dla każdego przypiętego (pole `nextStep`, `blocker`, „Gdzie skończyłem”, `freshness`, `owner`); **nowa** `listNowTasks()` (wszystkie niezakończone `[now::]` ze wszystkich projektów rejestru, z `projectId`, nazwą projektu i `owner`; nie obcina do 3, bo limit dotyczy UI tablicy);
