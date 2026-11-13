@@ -1,7 +1,7 @@
 # Etap 1-2: Save State, devlog i typ projektu (zapis) — projekt
 
 Data: 2026-11-13
-Status: zaakceptowany projekt (2026-11-13), czeka na przegląd użytkownika
+Status: wykonany (2026-11-13)
 Nadrzędne: `2026-11-11-asystent-lokalny-nexus-design.md` (§6.1 karta projektu, §7 etap 1), `2026-11-12-etap-1-1-karta-projektu-odczyt-design.md` (podetapy, `bc_projects` w trybie odczytu), `2026-11-12-struktura-kontekstow-design.md` (siatka kontekstu, reguły importów)
 
 ## 1. Cel i zakres
