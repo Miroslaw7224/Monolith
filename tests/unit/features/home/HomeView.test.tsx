@@ -214,6 +214,9 @@ function respond(cockpit: CockpitDto | "fail") {
     if (url.startsWith("/api/inbox/") && init?.method === "PATCH") {
       return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
     }
+    if (url.startsWith("/api/inbox/") && init?.method === "DELETE") {
+      return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
+    }
     if (url === "/api/cockpit/queue/complete" && init?.method === "POST") {
       return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
     }
@@ -740,6 +743,72 @@ describe("K1: układ wg makiety", () => {
       await within(panel).findByText(/Zapisano, ale nie udało się odświeżyć listy/)
     ).toBeInTheDocument();
     expect(input).toHaveValue("");
+  });
+
+  describe("modal wpisu inboxu: kasowanie", () => {
+    const inboxCalls = (method: string) =>
+      mockApiFetch.mock.calls.filter(
+        (c) => String(c[0]).startsWith("/api/inbox/") && c[1]?.method === method
+      );
+
+    test("klik w treść otwiera modal z pełnym wpisem; „Usuń” kasuje wpis (DELETE), zamyka modal i odświeża listę", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      fireEvent.click(await within(panel).findByRole("button", { name: "Artykuł o vitest" }));
+      const dialog = await screen.findByRole("dialog", { name: "Wpis z inboxu" });
+      expect(dialog).toHaveTextContent("Artykuł o vitest");
+      expect(dialog).toHaveTextContent("link");
+      const before = mockApiFetch.mock.calls.filter((c) => c[0] === "/api/inbox").length;
+      fireEvent.click(within(dialog).getByRole("button", { name: "Usuń" }));
+      await waitFor(() => expect(inboxCalls("DELETE")).toHaveLength(1));
+      expect(inboxCalls("DELETE")[0][0]).toBe("/api/inbox/a-0");
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "Wpis z inboxu" })).not.toBeInTheDocument()
+      );
+      await waitFor(() =>
+        expect(mockApiFetch.mock.calls.filter((c) => c[0] === "/api/inbox").length).toBeGreaterThan(
+          before
+        )
+      );
+    });
+
+    test("w modalu można też oznaczyć „Gotowe” (PATCH) albo zamknąć bez zmian", async () => {
+      respond(FULL);
+      render(<HomeView {...defaultProps} />);
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      fireEvent.click(await within(panel).findByRole("button", { name: "Artykuł o vitest" }));
+      let dialog = await screen.findByRole("dialog", { name: "Wpis z inboxu" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Zamknij" }));
+      expect(screen.queryByRole("dialog", { name: "Wpis z inboxu" })).not.toBeInTheDocument();
+      expect(inboxCalls("DELETE")).toHaveLength(0);
+      expect(inboxCalls("PATCH")).toHaveLength(0);
+
+      fireEvent.click(within(panel).getByRole("button", { name: "Artykuł o vitest" }));
+      dialog = await screen.findByRole("dialog", { name: "Wpis z inboxu" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Gotowe" }));
+      await waitFor(() => expect(inboxCalls("PATCH")).toHaveLength(1));
+    });
+
+    test("błąd usuwania (np. wpis zmieniony ręcznie) pokazuje komunikat w modalu i zostawia go otwartego", async () => {
+      respond(FULL);
+      const base = mockApiFetch.getMockImplementation()!;
+      mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+        String(url).startsWith("/api/inbox/") && init?.method === "DELETE"
+          ? Promise.resolve({
+              ok: false,
+              status: 404,
+              json: async () => ({ error: "Nie ma otwartego wpisu a-0" }),
+            })
+          : base(url, init)
+      );
+      render(<HomeView {...defaultProps} />);
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      fireEvent.click(await within(panel).findByRole("button", { name: "Artykuł o vitest" }));
+      const dialog = await screen.findByRole("dialog", { name: "Wpis z inboxu" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Usuń" }));
+      expect(await within(dialog).findByText("Nie ma otwartego wpisu a-0")).toBeInTheDocument();
+    });
   });
 
   test("Alt+I (focusInbox): fokus w polu zapisu i potwierdzenie", async () => {

@@ -1,6 +1,7 @@
 // src/features/home/InboxPanel.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { InboxDto } from "@/contexts/bc_inbox/schemas";
+import type { InboxDto, InboxItemDto } from "@/contexts/bc_inbox/schemas";
+import { InboxItemDialog } from "./InboxItemDialog";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -21,6 +22,7 @@ export function InboxPanel({
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState<InboxItemDto | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (): Promise<boolean> => {
@@ -111,7 +113,17 @@ export function InboxPanel({
         {inbox?.items.map((item, i) => (
           <li key={`${item.id}:${i}`} className="kok-inbox__item">
             <span className="kok-inbox__type">{item.type}</span>
-            <span className="kok-inbox__text">{item.text}</span>
+            <button
+              type="button"
+              className="kok-inbox__text kok-inbox__open"
+              title="Otwórz wpis"
+              onClick={() => {
+                setError(null);
+                setOpen(item);
+              }}
+            >
+              {item.text}
+            </button>
             <button
               type="button"
               className="kok-btn kok-btn--sm kok-btn--ghost"
@@ -125,6 +137,24 @@ export function InboxPanel({
           </li>
         ))}
       </ul>
+      {open ? (
+        <InboxItemDialog
+          item={open}
+          busy={busy}
+          error={error}
+          onClose={() => setOpen(null)}
+          onResolve={() =>
+            void call(`/api/inbox/${encodeURIComponent(open.id)}`, { method: "PATCH" }).then(
+              (ok) => ok && setOpen(null)
+            )
+          }
+          onDelete={() =>
+            void call(`/api/inbox/${encodeURIComponent(open.id)}`, { method: "DELETE" }).then(
+              (ok) => ok && setOpen(null)
+            )
+          }
+        />
+      ) : null}
     </section>
   );
 }

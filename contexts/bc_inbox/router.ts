@@ -37,3 +37,17 @@ export async function resolveItem(
     return handleServiceError(err);
   }
 }
+
+/** DELETE: trwale usuwa otwarty wpis z pliku inboxu. */
+export async function deleteItem(
+  _request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  const { id } = await ctx.params;
+  try {
+    await services.remove(id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}

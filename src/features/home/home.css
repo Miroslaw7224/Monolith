@@ -634,6 +634,15 @@
   background: transparent;
 }
 
+.kok-btn--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.kok-btn--danger:hover {
+  border-color: var(--danger);
+}
+
 .kok-btn--sm {
   height: 26px;
   padding: 0 var(--s-3);
@@ -1030,6 +1039,27 @@
 .kok-inbox__text {
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* treść wpisu jest przyciskiem otwierającym modal */
+.kok-inbox__open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kok-inbox__open:hover {
+  color: var(--accent);
+}
+
+.kok-inbox__full {
+  margin: 0 0 var(--s-3);
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 

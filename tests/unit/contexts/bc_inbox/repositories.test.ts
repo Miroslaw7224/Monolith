@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { appendItem, readOpenItems, resolveItem } from "@/contexts/bc_inbox/repositories";
+import {
+  appendItem,
+  readOpenItems,
+  removeItem,
+  resolveItem,
+} from "@/contexts/bc_inbox/repositories";
 import { useTempVault } from "../../helpers/tempVault";
 
 const REL = "Inbox/inbox.md";
@@ -99,5 +104,33 @@ describe("resolveItem", () => {
     const [first] = readOpenItems();
     await resolveItem(first.id);
     expect(vault.read(REL)).toBe("- [x] to samo\n- [ ] to samo\n");
+  });
+});
+
+describe("removeItem", () => {
+  it("usuwa tylko wskazaną linię; reszta pliku (nagłówek, zamknięte, akapity) bez zmian", async () => {
+    vault.write(
+      REL,
+      "# Inbox\n- [x] Stare [type:: myśl] [at:: t0]\n- [ ] A [type:: myśl] [at:: t1]\n\nakapit\n- [ ] B [type:: bug] [at:: t2]\n"
+    );
+    const [a] = readOpenItems();
+    expect(await removeItem(a.id)).toBe(true);
+    expect(vault.read(REL)).toBe(
+      "# Inbox\n- [x] Stare [type:: myśl] [at:: t0]\n\nakapit\n- [ ] B [type:: bug] [at:: t2]\n"
+    );
+    expect(readOpenItems().map((i) => i.text)).toEqual(["B"]);
+  });
+
+  it("z identycznych linii usuwa pierwszą otwartą", async () => {
+    vault.write(REL, "- [ ] to samo\n- [ ] to samo\n- [ ] inne\n");
+    await removeItem(readOpenItems()[0].id);
+    expect(vault.read(REL)).toBe("- [ ] to samo\n- [ ] inne\n");
+  });
+
+  it("nieznane id, zamknięty wpis i brak pliku to false, plik bez zmian", async () => {
+    expect(await removeItem("nie-ma")).toBe(false);
+    vault.write(REL, "- [x] zamknięty [type:: myśl] [at:: t]\n- [ ] A\n");
+    expect(await removeItem("nie-ma")).toBe(false);
+    expect(vault.read(REL)).toBe("- [x] zamknięty [type:: myśl] [at:: t]\n- [ ] A\n");
   });
 });

@@ -67,3 +67,19 @@ export async function resolveItem(id: string): Promise<boolean> {
   });
   return found;
 }
+
+/** Usuwa z pliku pierwszą otwartą linię o danym id (reszta pliku bez zmian); `false`, gdy jej nie ma. */
+export async function removeItem(id: string): Promise<boolean> {
+  let found = false;
+  await updateVaultFile(FILE, (current) => {
+    found = false;
+    if (current === null) return "";
+    const target = parseOpen(current).find((p) => p.item.id === id);
+    if (!target) return current;
+    found = true;
+    const lines = current.split("\n");
+    lines.splice(target.index, 1);
+    return lines.join("\n");
+  });
+  return found;
+}

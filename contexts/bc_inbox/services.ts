@@ -42,3 +42,8 @@ export async function resolve(id: string): Promise<void> {
   if (!(await repositories.resolveItem(id)))
     throw new NotFoundError(`Nie ma otwartego wpisu ${id}`);
 }
+
+/** Trwale usuwa otwarty wpis z `Inbox/inbox.md` (w odróżnieniu od `resolve`, który zostawia linię `[x]`). */
+export async function remove(id: string): Promise<void> {
+  if (!(await repositories.removeItem(id))) throw new NotFoundError(`Nie ma otwartego wpisu ${id}`);
+}

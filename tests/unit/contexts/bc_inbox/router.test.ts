@@ -6,13 +6,15 @@ import { DomainError, NotFoundError } from "@/lib/errors";
 const mockList = vi.hoisted(() => vi.fn());
 const mockAdd = vi.hoisted(() => vi.fn());
 const mockResolve = vi.hoisted(() => vi.fn());
+const mockRemove = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_inbox/services", () => ({
   listItems: mockList,
   addItem: mockAdd,
   resolve: mockResolve,
+  remove: mockRemove,
 }));
 
-import { createItem, listInbox, resolveItem } from "@/contexts/bc_inbox/router";
+import { createItem, deleteItem, listInbox, resolveItem } from "@/contexts/bc_inbox/router";
 
 const post = (body: unknown) =>
   new NextRequest("http://localhost/api/inbox", {
@@ -79,5 +81,22 @@ describe("PATCH /api/inbox/[id]", () => {
   it("404 dla nieznanego id", async () => {
     mockResolve.mockRejectedValue(new NotFoundError("Nie ma wpisu"));
     expect((await resolveItem(patch(), ctx("x"))).status).toBe(404);
+  });
+});
+
+describe("DELETE /api/inbox/[id]", () => {
+  const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
+  const del = () => new NextRequest("http://localhost/api/inbox/1", { method: "DELETE" });
+
+  it("200 po usunięciu wpisu", async () => {
+    mockRemove.mockResolvedValue(undefined);
+    const res = await deleteItem(del(), ctx("1"));
+    expect(res.status).toBe(200);
+    expect(mockRemove).toHaveBeenCalledWith("1");
+  });
+
+  it("404 dla nieznanego id", async () => {
+    mockRemove.mockRejectedValue(new NotFoundError("Nie ma wpisu"));
+    expect((await deleteItem(del(), ctx("x"))).status).toBe(404);
   });
 });

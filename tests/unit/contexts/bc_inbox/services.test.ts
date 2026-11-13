@@ -5,13 +5,22 @@ import { DomainError, NotFoundError } from "@/lib/errors";
 const mockRead = vi.hoisted(() => vi.fn());
 const mockAppend = vi.hoisted(() => vi.fn());
 const mockResolve = vi.hoisted(() => vi.fn());
+const mockRemove = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_inbox/repositories", () => ({
   readOpenItems: mockRead,
   appendItem: mockAppend,
   resolveItem: mockResolve,
+  removeItem: mockRemove,
 }));
 
-import { addItem, countOpen, detectType, listItems, resolve } from "@/contexts/bc_inbox/services";
+import {
+  addItem,
+  countOpen,
+  detectType,
+  listItems,
+  remove,
+  resolve,
+} from "@/contexts/bc_inbox/services";
 
 const NOW = new Date(2026, 10, 13, 21, 5);
 
@@ -81,5 +90,14 @@ describe("listItems / countOpen / resolve", () => {
     mockResolve.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     await expect(resolve("1")).resolves.toBeUndefined();
     await expect(resolve("x")).rejects.toBeInstanceOf(NotFoundError);
+  });
+});
+
+describe("remove", () => {
+  it("usuwa wpis albo rzuca NotFoundError", async () => {
+    mockRemove.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await expect(remove("1")).resolves.toBeUndefined();
+    expect(mockRemove).toHaveBeenCalledWith("1");
+    await expect(remove("x")).rejects.toBeInstanceOf(NotFoundError);
   });
 });

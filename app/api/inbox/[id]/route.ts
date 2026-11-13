@@ -1,3 +1,3 @@
-export { resolveItem as PATCH } from "@/contexts/bc_inbox/router";
+export { resolveItem as PATCH, deleteItem as DELETE } from "@/contexts/bc_inbox/router";
 
 export const dynamic = "force-dynamic";
