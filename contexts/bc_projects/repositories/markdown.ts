@@ -1,4 +1,5 @@
-import type { BugEntry, ChecklistItem } from "@/contexts/bc_projects/models";
+import type { BugEntry, ChecklistItem, ProjectState } from "@/contexts/bc_projects/models";
+import { formatFrontmatter, parseFrontmatter } from "@/lib/nexus/frontmatter";
 
 const SECTION_RE = /^## (.+?)\s*$/;
 const CHECKBOX_RE = /^\s*[-*] \[( |x|X)\] (.*)$/;
@@ -94,4 +95,63 @@ export function parseBugs(markdown: string): BugEntry[] {
   }
 
   return bugs;
+}
+
+function textOf(value: unknown): string {
+  return value === undefined || value === null ? "" : String(value).trim();
+}
+
+function optionalText(value: unknown): string | undefined {
+  const t = textOf(value);
+  return t === "" ? undefined : t;
+}
+
+/** `state.md`: frontmatter YAML + treść (notes). Brak frontmattera: cały tekst trafia do `notes`. */
+export function parseState(text: string, rel: string): ProjectState {
+  let meta: Record<string, unknown> = {};
+  let notes = text.trim();
+
+  if (text.startsWith("---")) {
+    const parsed = parseFrontmatter(text);
+    if (parsed === null) {
+      throw new Error(`${rel}: zepsuty frontmatter`);
+    }
+    meta = parsed.meta;
+    notes = parsed.body.trim();
+  }
+
+  const links = Array.isArray(meta.links)
+    ? meta.links
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim())
+        .filter((item) => item !== "")
+    : [];
+
+  return {
+    branch: textOf(meta.branch),
+    env: textOf(meta.env),
+    blocker: textOf(meta.blocker),
+    nextStep: textOf(meta.next_step),
+    links,
+    milestone: textOf(meta.milestone),
+    milestoneDue: optionalText(meta.milestone_due),
+    updated: optionalText(meta.updated),
+    notes,
+  };
+}
+
+export function serializeState(state: ProjectState): string {
+  return formatFrontmatter(
+    {
+      branch: state.branch,
+      env: state.env,
+      blocker: state.blocker,
+      next_step: state.nextStep,
+      links: state.links,
+      milestone: state.milestone,
+      milestone_due: state.milestoneDue || undefined,
+      updated: state.updated || undefined,
+    },
+    state.notes
+  );
 }

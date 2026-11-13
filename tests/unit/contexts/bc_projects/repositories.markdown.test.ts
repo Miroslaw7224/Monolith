@@ -1,9 +1,12 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import type { ProjectState } from "@/contexts/bc_projects/models";
 import {
   parseBugs,
   parseChecklist,
   parseSections,
+  parseState,
+  serializeState,
 } from "@/contexts/bc_projects/repositories/markdown";
 
 describe("bc_projects markdown parsers", () => {
@@ -92,5 +95,92 @@ describe("bc_projects markdown parsers", () => {
       { text: "A", done: false },
       { text: "B", done: true },
     ]);
+  });
+});
+
+describe("bc_projects markdown: state.md", () => {
+  const FULL =
+    "---\nbranch: main\nenv: local\nblocker: X\nnext_step: Y\nlinks:\n  - https://a\nmilestone: M\nmilestone_due: 2026-12-01\nupdated: 2026-11-13T09:15\n---\n\nnotatka\n";
+
+  it("pełny frontmatter", () => {
+    expect(parseState(FULL, "p/state.md")).toEqual({
+      branch: "main",
+      env: "local",
+      blocker: "X",
+      nextStep: "Y",
+      links: ["https://a"],
+      milestone: "M",
+      milestoneDue: "2026-12-01",
+      updated: "2026-11-13T09:15",
+      notes: "notatka",
+    });
+  });
+
+  it("links nie-tablica i brak pól", () => {
+    expect(parseState("---\nlinks: foo\n---\n", "p/state.md")).toEqual({
+      branch: "",
+      env: "",
+      blocker: "",
+      nextStep: "",
+      links: [],
+      milestone: "",
+      milestoneDue: undefined,
+      updated: undefined,
+      notes: "",
+    });
+  });
+
+  it("elementy links niebędące tekstem są pomijane", () => {
+    const state = parseState('---\nlinks: [1, "https://b", null]\n---\n', "p/state.md");
+    expect(state.links).toEqual(["https://b"]);
+  });
+
+  it("zepsuty YAML rzuca błąd z nazwą pliku", () => {
+    expect(() => parseState("---\nbranch: [\n---\n", "p/state.md")).toThrow(
+      /p\/state\.md: zepsuty frontmatter/
+    );
+  });
+
+  it("brak frontmattera: cały tekst jako notes", () => {
+    const state = parseState("luźny tekst", "p/state.md");
+    expect(state.notes).toBe("luźny tekst");
+    expect(state.branch).toBe("");
+    expect(state.links).toEqual([]);
+  });
+
+  it("pusty plik", () => {
+    const state = parseState("", "p/state.md");
+    expect(state.notes).toBe("");
+    expect(state.links).toEqual([]);
+  });
+
+  it("round-trip serializeState → parseState", () => {
+    const s: ProjectState = {
+      branch: "feat/x",
+      env: "Node 20",
+      blocker: "czeka na review",
+      nextStep: "napisać test",
+      links: ["https://a.example", "https://b.example/x?y=1"],
+      milestone: "Etap 1-2",
+      milestoneDue: "2026-12-01",
+      updated: "2026-11-13T09:15",
+      notes: "n",
+    };
+    expect(parseState(serializeState(s), "x")).toEqual(s);
+  });
+
+  it("serializeState pomija puste milestone_due i updated", () => {
+    const out = serializeState({
+      branch: "b",
+      env: "",
+      blocker: "",
+      nextStep: "",
+      links: [],
+      milestone: "",
+      notes: "",
+    });
+    expect(out).not.toContain("milestone_due");
+    expect(out).not.toContain("updated");
+    expect(out).toContain("links: []");
   });
 });
