@@ -1,19 +1,20 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { listNotes, createNote, updateNote, deleteNote } from "../../../services/noteService.js";
+import { listNotes, createNote, updateNote, deleteNote } from "@/contexts/bc_notes/services";
 
 const mockGetNotes = vi.hoisted(() => vi.fn());
 const mockCreateNote = vi.hoisted(() => vi.fn());
 const mockUpdateNote = vi.hoisted(() => vi.fn());
 const mockDeleteNote = vi.hoisted(() => vi.fn());
 
-vi.mock("../../../lib/firestore-db.js", () => ({
+vi.mock("@/contexts/bc_notes/repositories", () => ({
   getNotes: (...args: unknown[]) => mockGetNotes(...args),
   createNote: (...args: unknown[]) => mockCreateNote(...args),
   updateNote: (...args: unknown[]) => mockUpdateNote(...args),
   deleteNote: (...args: unknown[]) => mockDeleteNote(...args),
 }));
 
-describe("noteService", () => {
+describe("bc_notes services", () => {
   beforeEach(() => {
     mockGetNotes.mockReset();
     mockCreateNote.mockReset();

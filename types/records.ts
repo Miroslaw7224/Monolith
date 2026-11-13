@@ -6,14 +6,6 @@ export type DocumentRecord = {
   created_at?: string;
 };
 
-export type NoteRecord = {
-  id: string;
-  title: string;
-  content: string;
-  created_at?: string;
-  updated_at?: string;
-};
-
 export interface NoteResourceRecord {
   id: string;
   noteId?: string; // opcjonalne – zasoby są na poziomie użytkownika, nie notatki

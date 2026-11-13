@@ -8,8 +8,9 @@ const STORE = "lib/nexus/yaml-store.ts";
 const REPOS = [
   "lib/nexus/record-helpers.ts",
   "contexts/bc_tags/repositories.ts",
+  "contexts/bc_notes/repositories.ts",
   "contexts/bc_tasks/repositories/templates.ts",
-  ...["resources", "notes", "documents"].map((name) => `lib/nexus/repos/${name}.ts`),
+  ...["resources", "documents"].map((name) => `lib/nexus/repos/${name}.ts`),
 ];
 const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
 const FILE_REPOS = [
@@ -84,7 +85,7 @@ describe("0c-2 / 0c-3 static guards", () => {
   it("the barrel points every collection at lib/nexus/repos", () => {
     const barrel = read("lib/firestore-db.ts");
     expect(barrel).not.toMatch(/lib\/firestore\//);
-    for (const name of ["resources", "notes", "documents", "mindMaps", "board"]) {
+    for (const name of ["resources", "documents", "mindMaps", "board"]) {
       expect(barrel).toContain(`@/lib/nexus/repos/${name}`);
     }
   });

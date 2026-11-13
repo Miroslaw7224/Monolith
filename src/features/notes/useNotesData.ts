@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import type { NoteRecord } from "@/types/records";
+import type { NoteDto } from "@/contexts/bc_notes/schemas";
 
-export type Note = NoteRecord;
+export type Note = NoteDto;
 
 export interface UseNotesDataResult {
   notes: Note[];

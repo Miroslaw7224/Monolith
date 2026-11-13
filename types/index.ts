@@ -1,7 +1,1 @@
-export type {
-  DocumentRecord,
-  NoteRecord,
-  NoteResourceRecord,
-  MindMap,
-  MindMapNode,
-} from "./records";
+export type { DocumentRecord, NoteResourceRecord, MindMap, MindMapNode } from "./records";
