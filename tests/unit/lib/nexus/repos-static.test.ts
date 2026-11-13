@@ -56,7 +56,7 @@ describe("0c-2 / 0c-3 static guards", () => {
     expect(hits(/vault-fs/, REPOS)).toEqual([]);
   });
 
-  it("markdown-edit is pure text; only yaml-store and the two file repos import vault-fs", () => {
+  it("markdown-edit is pure text; within lib/nexus only yaml-store and markdown-dir import vault-fs", () => {
     expect(hits(/from\s+["'][^"']*vault-fs["']/, [PLAIN_TEXT])).toEqual([]);
     const importers: string[] = [];
     const walk = (dir: string) => {
