@@ -2,7 +2,8 @@
 /**
  * Test architektury: reguły importów 1–7 (ADR-021).
  * Część A sprawdza silnik reguł na sztucznych danych; część B skanuje prawdziwe repo
- * (bez listy wyjątków: każde naruszenie jest błędem).
+ * (bez listy wyjątków: każde naruszenie jest błędem). Część C pilnuje warstwy plikowej
+ * (dawny repos-static): bez firebase/fs/mutacji, zapis do vaulta tylko znanymi ścieżkami.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -462,8 +463,10 @@ function loadRepo() {
   return { files, edges, routeFiles };
 }
 
+const REPO = loadRepo();
+
 describe("repo", () => {
-  const { files, edges, routeFiles } = loadRepo();
+  const { files, edges, routeFiles } = REPO;
   const found = violations(edges, routeFiles);
 
   it("skanuje kod źródłowy", () => {
@@ -474,5 +477,99 @@ describe("repo", () => {
 
   it("brak naruszeń reguł 1–7", () => {
     expect(found).toEqual([]);
+  });
+});
+
+// ─── część C: warstwa plikowa (dawny repos-static) ───────────────────────────
+
+/** Warstwa I/O (`fs`, `process.env`) pilnowana osobno przez `tests/unit/lib/nexus/static.test.ts`. */
+const IO_LAYER = ["lib/nexus/vault-fs.ts", "lib/nexus/vault-path.ts"];
+/**
+ * Jedyne pliki z runtime'owym importem `vault-fs` (zapis do vaulta). Pozostałe repozytoria
+ * piszą przez `yaml-store` / `markdown-dir`. Nowy wpis = świadoma decyzja, osobny commit testu.
+ */
+const VAULT_FS_IMPORTERS = [
+  "contexts/bc_board/repositories",
+  "contexts/bc_calendar/repositories",
+  "contexts/bc_mind_maps/repositories",
+  "contexts/bc_projects/repositories",
+  "contexts/bc_tasks/repositories/tasks",
+  "lib/nexus/markdown-dir",
+  "lib/nexus/yaml-store",
+];
+// Pliki warstwy plikowej: pliki `lib/nexus/` poza I/O oraz repozytoria każdego kontekstu.
+const fileLayer = (files: string[]) =>
+  files.filter(
+    (f) =>
+      !IO_LAYER.includes(f) &&
+      (/^lib\/nexus\/[^/]+\.ts$/.test(f) || /^contexts\/[^/]+\/repositories(?:\.ts|\/)/.test(f))
+  );
+
+const lineOf = (text: string, index: number) => text.slice(0, index).split("\n").length;
+
+function hits(pattern: RegExp, rels: string[]): string[] {
+  const out: string[] = [];
+  const global = new RegExp(pattern.source, pattern.flags.replace("g", "") + "g");
+  for (const rel of rels) {
+    const text = fs.readFileSync(path.join(ROOT, rel), "utf8");
+    for (const m of text.matchAll(global))
+      out.push(`${rel}:${lineOf(text, m.index ?? 0)} (${m[0]})`);
+  }
+  return out;
+}
+
+describe("warstwa plikowa", () => {
+  const layer = fileLayer(REPO.files);
+
+  it("skanuje repozytoria i silnik plików", () => {
+    expect(layer.length).toBeGreaterThan(15);
+    for (const f of [
+      "lib/nexus/yaml-store.ts",
+      "lib/nexus/record-helpers.ts",
+      "contexts/bc_tags/repositories.ts",
+      "contexts/bc_tasks/repositories/tasks.ts",
+      "contexts/bc_resources/repositories/resources.ts",
+    ]) {
+      expect(layer).toContain(f);
+    }
+  });
+
+  it("nie ma firebase, bezpośredniego fs, process.env ani mutacji plików", () => {
+    expect(hits(/firebase/i, layer)).toEqual([]);
+    expect(
+      hits(/from\s+["'](?:node:)?fs(?:\/promises)?["']|require\(\s*["'](?:node:)?fs/, layer)
+    ).toEqual([]);
+    expect(hits(/process\.env/, layer)).toEqual([]);
+    expect(
+      hits(
+        /writeFileSync|renameSync|rmSync|mkdirSync|appendFileSync|unlinkSync|createWriteStream/,
+        layer
+      )
+    ).toEqual([]);
+  });
+
+  it("zapis do vaulta (vault-fs) tylko ze znanych plików", () => {
+    const importers = REPO.edges
+      .filter(
+        (edge) =>
+          edge.to === "lib/nexus/vault-fs" &&
+          !edge.typeOnly &&
+          (within(edge.from, "contexts") || within(edge.from, "lib/nexus"))
+      )
+      .map((edge) => edge.from);
+    expect([...new Set(importers)].sort()).toEqual(VAULT_FS_IMPORTERS);
+  });
+
+  it("stara warstwa nie istnieje", () => {
+    for (const gone of [
+      "services",
+      "types",
+      "lib/validation",
+      "lib/nexus/repos",
+      "lib/firestore",
+      "lib/firestore-db.ts",
+    ]) {
+      expect(fs.existsSync(path.join(ROOT, gone)), gone).toBe(false);
+    }
   });
 });
