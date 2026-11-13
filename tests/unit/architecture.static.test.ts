@@ -471,10 +471,7 @@ const ROOT = process.cwd();
 const SCAN = ["app", "contexts", "lib", "services", "src", "types"]; // + plik middleware.ts
 /** Znane wyjątki (spec struktury §6); lista może tylko maleć. Klucz = `from → to` bez numeru reguły. */
 const BASELINE: readonly string[] = [
-  "services/boardService → src/features/board/boardTypes",
-  "services/boardService → src/features/board/boardSchema",
   "services/mindMapService → src/features/mind-maps/mindMapTypes",
-  "app/api/board/route → src/features/board/boardSchema",
   "app/api/mind-maps/[id]/route → src/features/mind-maps/mindMapTypes",
 ];
 
