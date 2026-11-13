@@ -18,7 +18,7 @@ const FILE_REPOS = [
   "contexts/bc_tasks/repositories/tasks.ts",
   "contexts/bc_calendar/repositories/index.ts",
   "contexts/bc_board/repositories.ts",
-  "lib/nexus/repos/mindMaps.ts",
+  "contexts/bc_mind_maps/repositories.ts",
 ];
 const FILES = [STORE, PLAIN_TEXT, ...REPOS, ...FILE_REPOS];
 
@@ -56,7 +56,7 @@ describe("0c-2 / 0c-3 static guards", () => {
     expect(hits(/vault-fs/, REPOS)).toEqual([]);
   });
 
-  it("markdown-edit is pure text; only yaml-store and the two file repos import vault-fs", () => {
+  it("markdown-edit is pure text; within lib/nexus only yaml-store and markdown-dir import vault-fs", () => {
     expect(hits(/from\s+["'][^"']*vault-fs["']/, [PLAIN_TEXT])).toEqual([]);
     const importers: string[] = [];
     const walk = (dir: string) => {
@@ -69,20 +69,10 @@ describe("0c-2 / 0c-3 static guards", () => {
       }
     };
     walk("lib/nexus");
-    expect(importers.sort()).toEqual(
-      [STORE, "lib/nexus/markdown-dir.ts", "lib/nexus/repos/mindMaps.ts"].sort()
-    );
+    expect(importers.sort()).toEqual([STORE, "lib/nexus/markdown-dir.ts"].sort());
   });
 
   it("the old Firestore directory is gone", () => {
     expect(fs.existsSync(path.join(ROOT, "lib/firestore"))).toBe(false);
-  });
-
-  it("the barrel points every collection at lib/nexus/repos", () => {
-    const barrel = read("lib/firestore-db.ts");
-    expect(barrel).not.toMatch(/lib\/firestore\//);
-    for (const name of ["mindMaps"]) {
-      expect(barrel).toContain(`@/lib/nexus/repos/${name}`);
-    }
   });
 });

@@ -470,10 +470,7 @@ describe("reguły na danych testowych", () => {
 const ROOT = process.cwd();
 const SCAN = ["app", "contexts", "lib", "services", "src", "types"]; // + plik middleware.ts
 /** Znane wyjątki (spec struktury §6); lista może tylko maleć. Klucz = `from → to` bez numeru reguły. */
-const BASELINE: readonly string[] = [
-  "services/mindMapService → src/features/mind-maps/mindMapTypes",
-  "app/api/mind-maps/[id]/route → src/features/mind-maps/mindMapTypes",
-];
+const BASELINE: readonly string[] = [];
 
 function scanFiles(): string[] {
   const files: string[] = [];

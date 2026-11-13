@@ -1,6 +1,6 @@
 import { DomainError } from "@/lib/errors";
-import * as firestoreDb from "@/lib/firestore-db";
-import type { MindMap, MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
+import * as repositories from "./repositories";
+import type { MindMap, MindMapNode } from "./models";
 
 export async function createMindMap(title: string): Promise<MindMap> {
   const label = (title ?? "").trim() || "Nowa mapa";
@@ -11,17 +11,17 @@ export async function createMindMap(title: string): Promise<MindMap> {
     collapsed: false,
     children: [],
   };
-  return firestoreDb.createMindMap({ title: label, rootNode });
+  return repositories.createMindMap({ title: label, rootNode });
 }
 
 export async function getMindMaps(): Promise<MindMap[]> {
-  const list = await firestoreDb.getMindMaps();
+  const list = await repositories.getMindMaps();
   const time = (m: MindMap) => Date.parse(m.updatedAt ?? "") || 0;
   return [...list].sort((a, b) => time(b) - time(a));
 }
 
 export async function getMindMap(mapId: string): Promise<MindMap> {
-  const map = await firestoreDb.getMindMap(mapId);
+  const map = await repositories.getMindMap(mapId);
   if (!map) {
     throw new DomainError("Mind map not found", 404);
   }
@@ -39,10 +39,10 @@ export async function saveMindMap(
   if (data.rootNode !== undefined) patch.rootNode = data.rootNode;
   if (data.colWidths !== undefined) patch.colWidths = data.colWidths ?? {};
 
-  await firestoreDb.saveMindMap(mapId, patch);
+  await repositories.saveMindMap(mapId, patch);
 }
 
 export async function deleteMindMap(mapId: string): Promise<void> {
   await getMindMap(mapId);
-  await firestoreDb.deleteMindMap(mapId);
+  await repositories.deleteMindMap(mapId);
 }

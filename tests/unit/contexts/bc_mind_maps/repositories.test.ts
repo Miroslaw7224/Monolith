@@ -9,9 +9,9 @@ import {
   getMindMap,
   getMindMaps,
   saveMindMap,
-} from "@/lib/nexus/repos/mindMaps";
-import type { MindMapNode } from "@/types/records";
-import { useTempVault } from "./helpers";
+} from "@/contexts/bc_mind_maps/repositories";
+import type { MindMapNode } from "@/contexts/bc_mind_maps/models";
+import { useTempVault } from "../../lib/nexus/repos/helpers";
 
 const T1 = "2026-11-12T10:00:00.000Z";
 const T2 = "2026-11-12T11:00:00.000Z";

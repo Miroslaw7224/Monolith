@@ -1,6 +1,7 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
-import { DomainError } from "../../../lib/errors.js";
-import type { MindMap, MindMapNode } from "../../../types/records.js";
+import { DomainError } from "@/lib/errors";
+import type { MindMap, MindMapNode } from "@/contexts/bc_mind_maps/models";
 
 const repo = vi.hoisted(() => ({
   getMindMaps: vi.fn(),
@@ -10,7 +11,7 @@ const repo = vi.hoisted(() => ({
   deleteMindMap: vi.fn(),
 }));
 
-vi.mock("../../../lib/firestore-db.js", () => repo);
+vi.mock("@/contexts/bc_mind_maps/repositories", () => repo);
 
 import {
   createMindMap,
@@ -18,7 +19,7 @@ import {
   getMindMap,
   saveMindMap,
   deleteMindMap,
-} from "../../../services/mindMapService.js";
+} from "@/contexts/bc_mind_maps/services";
 
 const NOW = "2026-11-12T10:00:00.000Z";
 
