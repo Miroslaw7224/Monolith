@@ -1,4 +1,4 @@
-# Format plików w vaulcie (tagi, szablony, zasoby, zadania, kalendarz, notatki, dokumenty, mapy myśli, tablica)
+# Format plików w vaulcie (tagi, szablony, zasoby, zadania, kalendarz, notatki, mapy myśli, tablica)
 
 Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, `lib/nexus/repos/`.
 
@@ -69,10 +69,6 @@ Treść z **pogrubieniem** i listą:
 - Edytor notatek zapisuje Markdown: zostaje pogrubienie, kursywa, przekreślenie, nagłówki, listy, cytaty i kod. Kolor, krój i rozmiar czcionki, wyrównanie, podkreślenie, tabele, listy zadań i zakreślenie nie mają odpowiednika; oryginał HTML starych notatek jest w `Notes/.html/<id>.html` i **aplikacja go nie rusza** (także przy usuwaniu notatki).
 - Surowy HTML w treści jest w widoku notatki pokazywany jako tekst.
 - Odczyt: `created` malejąco; brak `title` daje nazwę pliku.
-
-## Dokumenty: `Documents/<slug>.md`
-
-Frontmatter (`id`, `name`, `type`, `created`), potem treść wgranego pliku jako tekst. Slug z `name` (`raport.txt` → `raport-txt.md`), reguły kolizji jak w notatkach. Dokumentów się nie edytuje, tylko dodaje i usuwa. Białe znaki na początku i końcu treści są obcinane.
 
 ## Mapy myśli: `MindMaps/<id>.json`
 

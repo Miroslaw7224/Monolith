@@ -73,7 +73,6 @@ Vault/
 ├ + Inbox/inbox.md                 szybki inbox
 ├ + Tasks/tasks.md, templates.yaml  zadania ogólne (bez projektu) i szablony (etap 0, O1)
 ├ + Board/board.json               tablica/płótno (etap 0)
-├ + Documents/<slug>.md            dokumenty wgrane w Zasobach (etap 0c)
 ├ + Courses/<slug>.md              kursy, postęp, akcje do projektów
 └ Knowledge/, focus.md             bez zmian
 ```
