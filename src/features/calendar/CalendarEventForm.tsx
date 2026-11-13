@@ -134,6 +134,11 @@ export function CalendarEventForm({
           placeholder="https://meet.google.com/…"
           className="kal-input"
         />
+        {/^https?:\/\/\S+$/i.test(link.trim()) ? (
+          <a href={link.trim()} target="_blank" rel="noopener noreferrer" className="kal-link-open">
+            Open meeting ↗
+          </a>
+        ) : null}
       </div>
       <div className="kal-form-group">
         <label className="kal-label">Event type</label>

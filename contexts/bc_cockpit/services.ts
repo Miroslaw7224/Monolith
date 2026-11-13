@@ -236,6 +236,7 @@ export function pickNextMeeting(events: DayEvent[], nowMinutes: number): NextMee
         title: upcoming.title,
         startMinutes: upcoming.startMinutes,
         durationMinutes: upcoming.durationMinutes,
+        link: upcoming.link,
       }
     : null;
 }

@@ -39,4 +39,22 @@ describe("CalendarEventForm: link do spotkania", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     expect(onSubmit.mock.calls[1][0].link).toBe("");
   });
+
+  test("pod polem jest klikalny odnośnik, gdy link jest poprawnym http(s)", () => {
+    render(
+      <CalendarEventForm
+        initial={{ date: "2026-11-18", title: "X", link: LINK }}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />
+    );
+    const open = screen.getByRole("link", { name: /Open meeting/ });
+    expect(open).toHaveAttribute("href", LINK);
+    expect(open).toHaveAttribute("target", "_blank");
+    expect(open).toHaveAttribute("rel", "noopener noreferrer");
+    fireEvent.change(screen.getByLabelText("Meeting link"), { target: { value: "to nie url" } });
+    expect(screen.queryByRole("link", { name: /Open meeting/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Meeting link"), { target: { value: "" } });
+    expect(screen.queryByRole("link", { name: /Open meeting/ })).not.toBeInTheDocument();
+  });
 });

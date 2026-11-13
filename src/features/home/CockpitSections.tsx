@@ -286,6 +286,17 @@ export function CockpitSections({
                 : `za ${minutesUntil(nowMinutes, next.startMinutes)} min · ${next.title}`
               : "brak spotkań dziś"}
           </span>
+          {next?.link ? (
+            <a
+              className="kok-btn kok-btn--sm kok-tile__join"
+              href={next.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Dołącz do spotkania: ${next.title}`}
+            >
+              Dołącz ↗
+            </a>
+          ) : null}
         </div>
         <div className="kok-tile tile">
           <span className="kok-tile__label">Kolejka zadań</span>
@@ -331,21 +342,25 @@ export function CockpitSections({
       </section>
 
       <div className="kok-grid">
-        <section className="kok-panel" aria-label="Oś dnia">
-          <div className="kok-panel__head">
-            <h3 className="kok-panel__title">
-              <b>Dziś</b> · oś czasu
-            </h3>
-            <span className="kok-chip">
-              {String(range.from).padStart(2, "0")}–{String(range.to).padStart(2, "0")}
-            </span>
-          </div>
-          {data.events.length === 0 ? (
-            <p className="kok-empty-msg">Brak wydarzeń na dziś</p>
-          ) : (
-            <Timeline events={data.events} now={now} />
-          )}
-        </section>
+        <div className="kok-col">
+          <section className="kok-panel" aria-label="Oś dnia">
+            <div className="kok-panel__head">
+              <h3 className="kok-panel__title">
+                <b>Dziś</b> · oś czasu
+              </h3>
+              <span className="kok-chip">
+                {String(range.from).padStart(2, "0")}–{String(range.to).padStart(2, "0")}
+              </span>
+            </div>
+            {data.events.length === 0 ? (
+              <p className="kok-empty-msg">Brak wydarzeń na dziś</p>
+            ) : (
+              <Timeline events={data.events} now={now} />
+            )}
+          </section>
+
+          <CommitHistory apiFetch={apiFetch} />
+        </div>
 
         <section className="kok-focus" aria-label="Aktywne tematy">
           <div className="kok-panel__head">
@@ -385,52 +400,52 @@ export function CockpitSections({
           ) : null}
         </section>
 
-        <section className="kok-panel kok-queue" aria-label="Kolejka na dziś">
-          <div className="kok-panel__head">
-            <h3 className="kok-panel__title">
-              <b>Kolejka</b> · dziś
-            </h3>
-            <div className="kok-panel__tools">
-              {hasEnergy
-                ? ENERGY_FILTERS.map((f) => (
-                    <button
-                      key={f.value}
-                      type="button"
-                      className="kok-chip kok-chip--btn"
-                      aria-pressed={energyFilter === f.value}
-                      onClick={() => setEnergyFilter(f.value)}
-                    >
-                      {f.label}
-                    </button>
-                  ))
-                : null}
-              <span className="kok-chip">{visibleCount} zadań</span>
+        <div className="kok-col">
+          <section className="kok-panel kok-queue" aria-label="Kolejka na dziś">
+            <div className="kok-panel__head">
+              <h3 className="kok-panel__title">
+                <b>Kolejka</b> · dziś
+              </h3>
+              <div className="kok-panel__tools">
+                {hasEnergy
+                  ? ENERGY_FILTERS.map((f) => (
+                      <button
+                        key={f.value}
+                        type="button"
+                        className="kok-chip kok-chip--btn"
+                        aria-pressed={energyFilter === f.value}
+                        onClick={() => setEnergyFilter(f.value)}
+                      >
+                        {f.label}
+                      </button>
+                    ))
+                  : null}
+                <span className="kok-chip">{visibleCount} zadań</span>
+              </div>
             </div>
-          </div>
-          {data.queue.length === 0 ? (
-            <p className="kok-empty-msg">Nic w kolejce</p>
-          ) : visibleCount === 0 ? (
-            <p className="kok-empty-msg">Brak zadań z tą energią</p>
-          ) : (
-            <div className="kok-queue">
-              {visibleQueue.map((group) => (
-                <QueueGroupCard key={group.projectId ?? "general"} group={group} />
-              ))}
-            </div>
-          )}
-        </section>
+            {data.queue.length === 0 ? (
+              <p className="kok-empty-msg">Nic w kolejce</p>
+            ) : visibleCount === 0 ? (
+              <p className="kok-empty-msg">Brak zadań z tą energią</p>
+            ) : (
+              <div className="kok-queue">
+                {visibleQueue.map((group) => (
+                  <QueueGroupCard key={group.projectId ?? "general"} group={group} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {data.inbox ? (
+            <InboxPanel
+              apiFetch={apiFetch}
+              onChanged={onInboxChanged}
+              focusRequest={focusInbox}
+              onFocused={onInboxFocused}
+            />
+          ) : null}
+        </div>
       </div>
-
-      {data.inbox ? (
-        <InboxPanel
-          apiFetch={apiFetch}
-          onChanged={onInboxChanged}
-          focusRequest={focusInbox}
-          onFocused={onInboxFocused}
-        />
-      ) : null}
-
-      <CommitHistory apiFetch={apiFetch} />
 
       {data.warnings.length > 0 ? (
         <ul className="kok-warnings" aria-label="Ostrzeżenia">

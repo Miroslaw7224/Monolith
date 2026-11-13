@@ -101,7 +101,12 @@ describe("mapery DTO", () => {
         link: "https://meet.google.com/abc-defg-hij",
       },
     ],
-    nextMeeting: { title: "Spotkanie", startMinutes: 570, durationMinutes: 30 },
+    nextMeeting: {
+      title: "Spotkanie",
+      startMinutes: 570,
+      durationMinutes: 30,
+      link: "https://meet.google.com/abc-defg-hij",
+    },
     git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
     inbox: { open: 3 },
     closing: {

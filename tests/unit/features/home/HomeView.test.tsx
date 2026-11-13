@@ -110,7 +110,12 @@ const FULL: CockpitDto = {
       link: null,
     },
   ],
-  nextMeeting: { title: "Spotkanie zespołu", startMinutes: 570, durationMinutes: 30 },
+  nextMeeting: {
+    title: "Spotkanie zespołu",
+    startMinutes: 570,
+    durationMinutes: 30,
+    link: "https://meet.google.com/gon-fztr-zrn",
+  },
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
   inbox: { open: 2 },
   closing: {
@@ -680,10 +685,29 @@ describe("K1: układ wg makiety", () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);
     await screen.findByText("Spotkanie zespołu");
+    // kafel „Następne spotkanie” i wiersz osi czasu; wydarzenie bez linku nie ma przycisku
     const links = screen.getAllByRole("link", { name: /Dołącz/ });
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveAttribute("href", "https://meet.google.com/gon-fztr-zrn");
-    expect(links[0]).toHaveAttribute("target", "_blank");
-    expect(links[0]).toHaveAttribute("rel", "noopener noreferrer");
+    expect(links).toHaveLength(2);
+    for (const a of links) {
+      expect(a).toHaveAttribute("href", "https://meet.google.com/gon-fztr-zrn");
+      expect(a).toHaveAttribute("target", "_blank");
+      expect(a).toHaveAttribute("rel", "noopener noreferrer");
+    }
+    const tile = screen
+      .getByText("Następne spotkanie", { selector: ".kok-tile__label" })
+      .closest(".kok-tile") as HTMLElement;
+    expect(within(tile).getByRole("link", { name: /Dołącz/ })).toBeInTheDocument();
+  });
+
+  test("układ: commity pod osią czasu, inbox pod kolejką (te same kolumny)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const timeline = await screen.findByRole("region", { name: "Oś dnia" });
+    const queue = screen.getByRole("region", { name: "Kolejka na dziś" });
+    const history = await screen.findByRole("region", { name: "Historia commitów" });
+    const inbox = await screen.findByRole("region", { name: "Inbox" });
+    expect(timeline.parentElement).toBe(history.parentElement);
+    expect(queue.parentElement).toBe(inbox.parentElement);
+    expect(timeline.parentElement).not.toBe(queue.parentElement);
   });
 });

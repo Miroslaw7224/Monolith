@@ -67,7 +67,13 @@ export type DayEvent = {
 };
 
 /** Najbliższe jeszcze nie rozpoczęte wydarzenie typu `meeting` z dzisiejszego dnia. */
-export type NextMeeting = { title: string; startMinutes: number; durationMinutes: number };
+export type NextMeeting = {
+  title: string;
+  startMinutes: number;
+  durationMinutes: number;
+  /** Adres spotkania online (http/https) albo `null`. */
+  link: string | null;
+};
 
 /** Git (tylko odczyt): commity dziś ze wszystkich projektów z dostępnym repo i gałąź pierwszego tematu. */
 export type GitSummary = {

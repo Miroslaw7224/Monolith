@@ -921,7 +921,7 @@
 
 /* ---------- K8: historia commitów ---------- */
 .kok-history {
-  margin-top: var(--s-4);
+  margin-top: 0;
 }
 
 .kok-history__bars {
@@ -966,7 +966,7 @@
 
 /* ---------- K3: Inbox ---------- */
 .kok-inbox {
-  margin-top: var(--s-4);
+  margin-top: 0;
 }
 
 .kok-capture {
@@ -1080,4 +1080,17 @@
 
 .kok-history__swatch--pr {
   background: color-mix(in srgb, var(--accent) 38%, var(--surface));
+}
+
+/* kolumny siatki: panele jednej kolumny jeden pod drugim */
+.kok-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.kok-tile__join {
+  align-self: flex-start;
+  margin-top: var(--s-2);
 }

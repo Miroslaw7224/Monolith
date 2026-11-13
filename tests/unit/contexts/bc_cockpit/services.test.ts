@@ -314,10 +314,16 @@ describe("następne spotkanie", () => {
         tags: [],
         color: "#1",
         type: "meeting",
+        link: "https://meet.google.com/abc-defg-hij",
       },
     ]);
     const result = await getCockpit(new Date(2026, 10, 13, 9, 48));
-    expect(result.nextMeeting).toEqual({ title: "A", startMinutes: 630, durationMinutes: 30 });
+    expect(result.nextMeeting).toEqual({
+      title: "A",
+      startMinutes: 630,
+      durationMinutes: 30,
+      link: "https://meet.google.com/abc-defg-hij",
+    });
   });
 });
 
