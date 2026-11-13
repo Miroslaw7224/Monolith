@@ -12,7 +12,7 @@ import {
 import { generateId } from "./record-helpers";
 
 /**
- * Katalog plików `.md` z frontmatterem (`Notes/`, `Documents/`): wyszukiwanie po `id`
+ * Katalog plików `.md` z frontmatterem (`Notes/`): wyszukiwanie po `id`
  * z frontmattera, slug nazwy pliku stały po utworzeniu.
  */
 export type MarkdownEntry = {

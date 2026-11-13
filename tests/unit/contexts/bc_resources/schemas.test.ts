@@ -3,7 +3,6 @@ import { describe, it, expect } from "vitest";
 import {
   CreateResourceBodySchema,
   UpdateResourceBodySchema,
-  toDocumentDto,
   toResourceDto,
 } from "@/contexts/bc_resources/schemas";
 
@@ -24,26 +23,6 @@ describe("toResourceDto", () => {
       title: "A",
       tags: ["x"],
       isFavorite: true,
-    });
-  });
-});
-
-describe("toDocumentDto", () => {
-  it("returns id, name, content, type, created_at", () => {
-    expect(
-      toDocumentDto({
-        id: "d1",
-        name: "n",
-        content: "c",
-        type: "t",
-        created_at: "2026-01-01T00:00:00.000Z",
-      })
-    ).toEqual({
-      id: "d1",
-      name: "n",
-      content: "c",
-      type: "t",
-      created_at: "2026-01-01T00:00:00.000Z",
     });
   });
 });

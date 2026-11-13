@@ -11,7 +11,6 @@ const REPOS = [
   "contexts/bc_notes/repositories.ts",
   "contexts/bc_tasks/repositories/templates.ts",
   "contexts/bc_resources/repositories/resources.ts",
-  "contexts/bc_resources/repositories/documents.ts",
 ];
 const PLAIN_TEXT = "lib/nexus/markdown-edit.ts";
 const FILE_REPOS = [

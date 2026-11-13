@@ -7,9 +7,6 @@ export const translations = {
   en: {
     title: "Monolith",
     subtitle: "Offline Nexus Core",
-    noDocs: "No documents yet",
-    proPlan: "PRO PLAN",
-    docsLimit: "50 documents limit",
     brainActive: "Monolith Active",
     searchPlaceholder: "Search Monolith...",
     feedback: "Feedback",
@@ -28,7 +25,6 @@ export const translations = {
     tabActivity: "My Work",
     tabTasks: "Tasks",
     tabTags: "Tags",
-    documentsLabel: "Documents",
     tagsTitle: "Tag list",
     tagsSubtitle:
       "Assign a default title to each tag. When you pick a tag in a calendar entry, the title will be filled in.",
@@ -256,9 +252,6 @@ export const translations = {
   pl: {
     title: "Monolith",
     subtitle: "Offline Nexus Core",
-    noDocs: "Brak dokumentów",
-    proPlan: "PLAN PRO",
-    docsLimit: "Limit 50 dokumentów",
     brainActive: "Monolith aktywny",
     searchPlaceholder: "Szukaj w Monolith...",
     feedback: "Feedback",
@@ -277,7 +270,6 @@ export const translations = {
     tabActivity: "Moja Praca",
     tabTasks: "Zadania",
     tabTags: "Tagi",
-    documentsLabel: "Dokumenty",
     tagsTitle: "Lista tagów",
     tagsSubtitle:
       "Przypisz do każdego tagu domyślny tytuł. Przy wyborze tagu we wpisie kalendarza tytuł zostanie uzupełniony.",

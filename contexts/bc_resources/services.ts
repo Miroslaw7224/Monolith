@@ -72,18 +72,3 @@ export async function searchResources(keywords: string[]): Promise<Resource[]> {
     return lowerKeywords.some((k) => desc.includes(k) || title.includes(k) || tagStr.includes(k));
   });
 }
-
-// ── dokumenty ───────────────────────────────────────────────────────────────────
-
-export async function listDocuments() {
-  return repositories.getDocuments();
-}
-
-export async function ingestDocument(data: { name: string; content: string; type: string }) {
-  const { id } = await repositories.createDocument(data);
-  return { id, name: data.name };
-}
-
-export async function deleteDocument(id: string) {
-  return repositories.deleteDocument(id);
-}

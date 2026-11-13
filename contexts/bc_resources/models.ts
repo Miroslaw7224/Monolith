@@ -11,12 +11,3 @@ export type Resource = {
   createdAt?: string; // ISO 8601
   updatedAt?: string; // ISO 8601
 };
-
-/** Wgrany dokument (`Documents/*.md`: frontmatter + treść). */
-export type UploadedDocument = {
-  id: string;
-  name: string;
-  content: string;
-  type: string;
-  created_at?: string;
-};

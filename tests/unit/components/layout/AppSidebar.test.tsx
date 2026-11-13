@@ -6,28 +6,35 @@ import { AppSidebar } from "@/src/components/layout/AppSidebar";
 const t = {
   title: "Monolith",
   subtitle: "Offline Nexus Core",
-  proPlan: "PRO",
-  docsLimit: "Limit dokumentów",
 };
 
 describe("AppSidebar", () => {
   beforeEach(() => cleanup());
 
-  it("renders title, panel content and the plan block", () => {
+  it("renders title and panel content", () => {
     render(
-      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} documentsCount={10} t={t}>
+      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} t={t}>
         <p>Panel content</p>
       </AppSidebar>
     );
 
     expect(screen.getByRole("heading", { name: "Monolith" })).toBeInTheDocument();
     expect(screen.getByText("Panel content")).toBeInTheDocument();
-    expect(screen.getByText("PRO")).toBeInTheDocument();
+  });
+
+  it("does not render a plan or document limit block", () => {
+    const { container } = render(
+      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} t={t}>
+        <span />
+      </AppSidebar>
+    );
+
+    expect(container.querySelector(".h-1\\.5")).toBeNull();
   });
 
   it("does not render a user card or a logout button", () => {
     render(
-      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} documentsCount={0} t={t}>
+      <AppSidebar isSidebarOpen lang="pl" setLang={vi.fn()} t={t}>
         <span />
       </AppSidebar>
     );

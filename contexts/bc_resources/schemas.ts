@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Resource, UploadedDocument } from "./models";
+import type { Resource } from "./models";
 
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
 
@@ -50,23 +50,5 @@ export function toResourceDto(resource: Resource): ResourceDto {
     isFavorite: resource.isFavorite,
     createdAt: resource.createdAt,
     updatedAt: resource.updatedAt,
-  };
-}
-
-export type DocumentDto = {
-  id: string;
-  name: string;
-  content: string;
-  type: string;
-  created_at?: string;
-};
-
-export function toDocumentDto(doc: UploadedDocument): DocumentDto {
-  return {
-    id: doc.id,
-    name: doc.name,
-    content: doc.content,
-    type: doc.type,
-    created_at: doc.created_at,
   };
 }

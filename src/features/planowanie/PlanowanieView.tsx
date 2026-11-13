@@ -182,8 +182,6 @@ export default function PlanowanieView({
   const sidebarT: AppSidebarTranslations = {
     title: t.title,
     subtitle: t.subtitle,
-    proPlan: t.proPlan,
-    docsLimit: t.docsLimit,
   };
 
   const sidebarContent = (
@@ -208,13 +206,7 @@ export default function PlanowanieView({
 
   return (
     <>
-      <AppSidebar
-        isSidebarOpen={isSidebarOpen}
-        lang={lang}
-        setLang={setLang}
-        documentsCount={0}
-        t={sidebarT}
-      >
+      <AppSidebar isSidebarOpen={isSidebarOpen} lang={lang} setLang={setLang} t={sidebarT}>
         {sidebarContent}
       </AppSidebar>
 
