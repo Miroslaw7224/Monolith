@@ -17,7 +17,7 @@ Każdy kontekst ma te same pięć plików (plik urósł → folder o tej samej n
 - `repositories.ts`: jedyny dostęp do vaulta (`lib/nexus`), mapowanie plik ↔ model.
 
 Kierunek: `app/api/**/route.ts` (tylko re-eksport handlera) → `router` → `services` → `repositories` → `lib/nexus`.
-Infrastruktura wspólna: `lib/nexus/`, `lib/http/`, `lib/schema/`, `lib/errors.ts`. UI (`src/**`) importuje z kontekstu tylko `schemas`.
+Infrastruktura wspólna: `lib/nexus/`, `lib/git/` (odczyt repozytoriów projektów: walidacja ścieżki, git z białej listy, `CLAUDE.md`; `fs` i `child_process` tylko tu, nie w `repositories`), `lib/http/`, `lib/schema/`, `lib/errors.ts`. UI (`src/**`) importuje z kontekstu tylko `schemas`.
 Test `tests/unit/architecture.static.test.ts` pilnuje reguł 1–7 oraz warstwy plikowej (bez listy wyjątków); **zmiany testu zawsze osobnym commitem,
 nigdy razem z kodem**, a pękający test naprawia się kodem, nie testem. Starej warstwy (`services/`, `types/`, `lib/validation/`,
 `lib/nexus/repos/`, `lib/firestore-db.ts`) już nie ma; test pilnuje, żeby nie wróciła.
