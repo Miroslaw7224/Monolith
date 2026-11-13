@@ -11,6 +11,7 @@ const EMPTY: CockpitDto = {
   events: [],
   nextMeeting: null,
   git: null,
+  inbox: null,
   closing: { anchor: null, today: null },
   warnings: [],
 };
@@ -98,6 +99,7 @@ const FULL: CockpitDto = {
   ],
   nextMeeting: { title: "Spotkanie zespołu", startMinutes: 570, durationMinutes: 30 },
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
+  inbox: { open: 2 },
   closing: {
     anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
     today: null,
@@ -124,6 +126,14 @@ const HISTORY = {
   ],
 };
 
+const INBOX = {
+  items: [
+    { id: "b-0", text: "Code Sensei: pusty stan listy", type: "bug", at: "2026-11-13T10:00" },
+    { id: "a-0", text: "Artykuł o vitest", type: "link", at: "2026-11-13T09:10" },
+  ],
+  open: 2,
+};
+
 const mockApiFetch = vi.fn();
 
 function respond(cockpit: CockpitDto | "fail") {
@@ -132,6 +142,15 @@ function respond(cockpit: CockpitDto | "fail") {
       return cockpit === "fail"
         ? Promise.resolve({ ok: false, status: 500, json: async () => ({ error: "boom" }) })
         : Promise.resolve({ ok: true, json: async () => cockpit });
+    }
+    if (url === "/api/inbox" && (init?.method ?? "GET") === "GET") {
+      return Promise.resolve({ ok: true, json: async () => INBOX });
+    }
+    if (url === "/api/inbox" && init?.method === "POST") {
+      return Promise.resolve({ ok: true, status: 201, json: async () => ({}) });
+    }
+    if (url.startsWith("/api/inbox/") && init?.method === "PATCH") {
+      return Promise.resolve({ ok: true, json: async () => ({ ok: true }) });
     }
     if (url.startsWith("/api/cockpit/commits")) {
       return Promise.resolve({ ok: true, json: async () => HISTORY });
@@ -529,5 +548,58 @@ describe("K1: układ wg makiety", () => {
     render(<HomeView {...defaultProps} />);
     expect(await screen.findByText("Commity dziś")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Historia commitów" })).not.toBeInTheDocument();
+  });
+
+  test("kafel Inbox: liczba otwartych; bez danych kafla nie ma (K3)", async () => {
+    respond(FULL);
+    const { unmount } = render(<HomeView {...defaultProps} />);
+    const tile = (await screen.findByText("Inbox", { selector: ".kok-tile__label" })).closest(
+      ".kok-tile"
+    ) as HTMLElement;
+    expect(tile).toHaveTextContent("2");
+    expect(tile).toHaveTextContent("do segregacji wieczorem");
+    unmount();
+    respond(EMPTY);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("zsynchronizowany");
+    expect(screen.queryByText("Inbox", { selector: ".kok-tile__label" })).not.toBeInTheDocument();
+  });
+
+  test("panel Inbox: lista z typami, dodanie wpisu (POST) i oznaczenie jako gotowe (PATCH)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const panel = await screen.findByRole("region", { name: "Inbox" });
+    expect(await within(panel).findByText("Artykuł o vitest")).toBeInTheDocument();
+    expect(within(panel).getByText("bug")).toBeInTheDocument();
+    expect(within(panel).getByText("link")).toBeInTheDocument();
+
+    const input = within(panel).getByLabelText("Szybki zapis");
+    const add = within(panel).getByRole("button", { name: "Dodaj" });
+    expect(add).toBeDisabled();
+    fireEvent.change(input, { target: { value: "  bug: coś nie działa " } });
+    fireEvent.click(add);
+    await waitFor(() => {
+      const post = mockApiFetch.mock.calls.find(
+        (c) => c[0] === "/api/inbox" && c[1]?.method === "POST"
+      );
+      expect(JSON.parse(post?.[1].body)).toEqual({ text: "bug: coś nie działa" });
+    });
+    await waitFor(() => expect(input).toHaveValue(""));
+
+    fireEvent.click(within(panel).getAllByRole("button", { name: "Gotowe" })[1]);
+    await waitFor(() =>
+      expect(
+        mockApiFetch.mock.calls.some((c) => c[0] === "/api/inbox/a-0" && c[1]?.method === "PATCH")
+      ).toBe(true)
+    );
+  });
+
+  test("Alt+I (focusInbox): fokus w polu zapisu i potwierdzenie", async () => {
+    respond(FULL);
+    const onInboxFocused = vi.fn();
+    render(<HomeView {...defaultProps} focusInbox onInboxFocused={onInboxFocused} />);
+    const input = await screen.findByLabelText("Szybki zapis");
+    await waitFor(() => expect(input).toHaveFocus());
+    expect(onInboxFocused).toHaveBeenCalled();
   });
 });

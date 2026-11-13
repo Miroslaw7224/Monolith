@@ -101,6 +101,7 @@ describe("mapery DTO", () => {
     ],
     nextMeeting: { title: "Spotkanie", startMinutes: 570, durationMinutes: 30 },
     git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
+    inbox: { open: 3 },
     closing: {
       anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
       today: null,
@@ -116,6 +117,7 @@ describe("mapery DTO", () => {
       "date",
       "events",
       "git",
+      "inbox",
       "nextMeeting",
       "queue",
       "topics",

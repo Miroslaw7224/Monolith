@@ -6,6 +6,7 @@ import type {
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
+import { InboxPanel } from "./InboxPanel";
 import { CommitHistory } from "./CommitHistory";
 import { hhmm, minutesUntil, projectsLabel, relativeDays, timelineRange } from "./cockpitFormat";
 
@@ -220,12 +221,18 @@ export function CockpitSections({
   apiFetch,
   onChangeActive,
   onOpenProject,
+  onInboxChanged,
+  focusInbox,
+  onInboxFocused,
 }: {
   data: CockpitDto;
   now: Date;
   apiFetch: ApiFetch;
   onChangeActive: () => void;
   onOpenProject: (id: string) => void;
+  onInboxChanged: () => void;
+  focusInbox?: boolean;
+  onInboxFocused?: () => void;
 }) {
   const totalQueueTasks = data.queue.reduce((acc, g) => acc + g.items.length, 0);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -268,6 +275,15 @@ export function CockpitSections({
                   : "dwa wolne miejsca"}
           </span>
         </div>
+        {data.inbox ? (
+          <div className="kok-tile tile">
+            <span className="kok-tile__label">Inbox</span>
+            <span className="kok-tile__value">{data.inbox.open}</span>
+            <span className="kok-tile__meta">
+              {data.inbox.open === 0 ? "pusto" : "do segregacji wieczorem"}
+            </span>
+          </div>
+        ) : null}
         {data.git ? (
           <div className="kok-tile tile">
             <span className="kok-tile__label">Commity dziś</span>
@@ -350,6 +366,15 @@ export function CockpitSections({
           )}
         </section>
       </div>
+
+      {data.inbox ? (
+        <InboxPanel
+          apiFetch={apiFetch}
+          onChanged={onInboxChanged}
+          focusRequest={focusInbox}
+          onFocused={onInboxFocused}
+        />
+      ) : null}
 
       <CommitHistory apiFetch={apiFetch} />
 

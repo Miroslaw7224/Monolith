@@ -1,0 +1,71 @@
+import { readVaultFile, updateVaultFile } from "@/lib/nexus/vault-fs";
+import { INBOX_TYPES, type InboxItem, type InboxType } from "./models";
+
+const FILE = "Inbox/inbox.md";
+const LINE = /^- \[( |x|X)\] (.*)$/;
+const FIELDS = /^(.*) \[type:: ([^\]]*)\] \[at:: ([^\]]*)\]$/;
+
+/** Prosty, deterministyczny skrót linii (id wpisu); nie służy bezpieczeństwu. */
+function hash(raw: string): string {
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) h = ((h << 5) + h + raw.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+type ParsedLine = { index: number; item: InboxItem };
+
+/** Otwarte linie z ich numerem w pliku; id = skrót + numer powtórzenia tej samej linii. */
+function parseOpen(text: string): ParsedLine[] {
+  const seen = new Map<string, number>();
+  const out: ParsedLine[] = [];
+  text.split("\n").forEach((raw, index) => {
+    const m = LINE.exec(raw);
+    if (!m || m[1] !== " ") return;
+    const n = seen.get(raw) ?? 0;
+    seen.set(raw, n + 1);
+    const f = FIELDS.exec(m[2]);
+    const type =
+      f && (INBOX_TYPES as readonly string[]).includes(f[2]) ? (f[2] as InboxType) : "myśl";
+    out.push({
+      index,
+      item: {
+        id: `${hash(raw)}-${n}`,
+        text: (f ? f[1] : m[2]).trim(),
+        type,
+        at: f && f[3].trim() !== "" ? f[3].trim() : null,
+      },
+    });
+  });
+  return out;
+}
+
+/** Otwarte wpisy w kolejności pliku; brak pliku to pusta lista. */
+export function readOpenItems(): InboxItem[] {
+  const file = readVaultFile(FILE);
+  return file ? parseOpen(file.text).map((p) => p.item) : [];
+}
+
+/** Dopisuje linię na końcu pliku; reszty treści nie zmienia. */
+export async function appendItem(item: Omit<InboxItem, "id">): Promise<void> {
+  const line = `- [ ] ${item.text} [type:: ${item.type}] [at:: ${item.at ?? ""}]`;
+  await updateVaultFile(FILE, (current) => {
+    const base = current ?? "";
+    return `${base === "" || base.endsWith("\n") ? base : `${base}\n`}${line}\n`;
+  });
+}
+
+/** Zmienia `[ ]` na `[x]` w linii o danym id; `false`, gdy nie ma otwartego wpisu o tym id. */
+export async function resolveItem(id: string): Promise<boolean> {
+  let found = false;
+  await updateVaultFile(FILE, (current) => {
+    found = false;
+    if (current === null) return "";
+    const target = parseOpen(current).find((p) => p.item.id === id);
+    if (!target) return current;
+    found = true;
+    const lines = current.split("\n");
+    lines[target.index] = lines[target.index].replace(/^- \[ \]/, "- [x]");
+    return lines.join("\n");
+  });
+  return found;
+}

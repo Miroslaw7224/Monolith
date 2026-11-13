@@ -36,6 +36,7 @@ describe("GET /api/cockpit", () => {
       events: [],
       nextMeeting: null,
       git: null,
+      inbox: null,
       closing: { anchor: null, today: null },
       warnings: ["x"],
     });
@@ -48,6 +49,7 @@ describe("GET /api/cockpit", () => {
       events: [],
       nextMeeting: null,
       git: null,
+      inbox: null,
       closing: { anchor: null, today: null },
       warnings: ["x"],
     });

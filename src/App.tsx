@@ -48,9 +48,16 @@ export default function App() {
     ],
     [selectCard, lang, toggleLang, toggleTheme, openFeedback]
   );
+  const [inboxFocus, setInboxFocus] = useState(false);
+  const captureInbox = useCallback(() => {
+    selectCard("kokpit");
+    setInboxFocus(true);
+  }, [selectCard]);
+  const clearInboxFocus = useCallback(() => setInboxFocus(false), []);
   useCardHotkeys({
     onSelectCard: selectCard,
     onOpenPalette: openPalette,
+    onCaptureInbox: captureInbox,
     disabled: paletteOpen,
   });
   const [moreDrawerOpen, setMoreDrawerOpen] = useState(false);
@@ -77,7 +84,12 @@ export default function App() {
       ) : placeholder ? (
         <CardPlaceholder cardId={placeholder} />
       ) : appMode === "home" ? (
-        <HomeView apiFetch={apiFetch} onOpenProject={openProject} />
+        <HomeView
+          apiFetch={apiFetch}
+          onOpenProject={openProject}
+          focusInbox={inboxFocus}
+          onInboxFocused={clearInboxFocus}
+        />
       ) : (
         <PlanowanieView
           apiFetch={apiFetch}

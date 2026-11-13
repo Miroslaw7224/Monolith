@@ -75,6 +75,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
     })),
     nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
     git: c.git ? { ...c.git } : null,
+    inbox: c.inbox ? { open: c.inbox.open } : null,
     closing: {
       anchor: c.closing.anchor ? toClosingDto(c.closing.anchor) : null,
       today: c.closing.today ? toClosingDto(c.closing.today) : null,

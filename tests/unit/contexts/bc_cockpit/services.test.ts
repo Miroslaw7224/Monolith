@@ -13,6 +13,7 @@ const mockGetTasks = vi.hoisted(() => vi.fn());
 const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
 const mockListGitActivity = vi.hoisted(() => vi.fn());
 const mockListGitHistory = vi.hoisted(() => vi.fn());
+const mockCountOpen = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
@@ -27,6 +28,7 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listGitActivity: mockListGitActivity,
   listGitHistory: mockListGitHistory,
 }));
+vi.mock("@/contexts/bc_inbox/services", () => ({ countOpen: mockCountOpen }));
 vi.mock("@/contexts/bc_tasks/services", () => ({ getTasks: mockGetTasks }));
 vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
 
@@ -81,6 +83,7 @@ beforeEach(() => {
   mockGetCalendarEvents.mockResolvedValue([]);
   mockListGitActivity.mockReturnValue([]);
   mockListGitHistory.mockReturnValue([]);
+  mockCountOpen.mockReturnValue(0);
   mockReadClosings.mockReturnValue([]);
   mockUpsertClosing.mockResolvedValue(undefined);
   mockListProjects.mockReturnValue({
@@ -727,5 +730,21 @@ describe("historia commitów (K8)", () => {
     await expect(getCommitHistory(0, TODAY)).rejects.toBeInstanceOf(DomainError);
     await expect(getCommitHistory(91, TODAY)).rejects.toBeInstanceOf(DomainError);
     await expect(getCommitHistory(2.5, TODAY)).rejects.toBeInstanceOf(DomainError);
+  });
+});
+
+describe("inbox (K3)", () => {
+  it("getCockpit zwraca liczbę otwartych wpisów inboxu", async () => {
+    mockCountOpen.mockReturnValue(5);
+    expect((await getCockpit(TODAY)).inbox).toEqual({ open: 5 });
+  });
+
+  it("błąd inboxu: ostrzeżenie i inbox === null, reszta działa", async () => {
+    mockCountOpen.mockImplementation(() => {
+      throw new Error("Nie można odczytać pliku Inbox/inbox.md: x");
+    });
+    const res = await getCockpit(TODAY);
+    expect(res.inbox).toBeNull();
+    expect(res.warnings).toEqual(["Inbox: Nie można odczytać pliku Inbox/inbox.md: x"]);
   });
 });

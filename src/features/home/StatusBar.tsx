@@ -32,7 +32,7 @@ export function StatusBar({ projectId, branch = null, warningsCount, now }: Stat
         </span>
       </div>
       <div className="kok-statusbar__right">
-        <span>Alt+1…9 karty · Ctrl+K polecenia</span>
+        <span>Alt+1…9 karty · Alt+I inbox · Ctrl+K polecenia</span>
         <b>{hhmm(now.getHours() * 60 + now.getMinutes())}</b>
       </div>
     </footer>

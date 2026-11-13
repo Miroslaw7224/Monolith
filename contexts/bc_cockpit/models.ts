@@ -96,6 +96,9 @@ export type CommitHistory = {
   days: CommitDay[];
 };
 
+/** Liczba otwartych (niesegregowanych) wpisów `Inbox/inbox.md`. */
+export type InboxSummary = { open: number };
+
 export type Cockpit = {
   /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
   date: string;
@@ -105,6 +108,8 @@ export type Cockpit = {
   nextMeeting: NextMeeting | null;
   /** `null`: żadne repozytorium nie jest dostępne (albo git zawiódł, wtedy jest też ostrzeżenie). */
   git: GitSummary | null;
+  /** `null`, gdy plik inboxu nie dał się odczytać (jest wtedy ostrzeżenie). */
+  inbox: InboxSummary | null;
   /** `anchor`: najnowsze zamknięcie sprzed dziś („Zaczep z wczoraj”); `today`: dzisiejsze, jeśli jest. */
   closing: { anchor: Closing | null; today: Closing | null };
   warnings: string[];

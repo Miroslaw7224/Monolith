@@ -1,4 +1,5 @@
 import * as calendarServices from "@/contexts/bc_calendar/services";
+import * as inboxServices from "@/contexts/bc_inbox/services";
 import * as projectsServices from "@/contexts/bc_projects/services";
 import * as tasksServices from "@/contexts/bc_tasks/services";
 import { DomainError, NotFoundError } from "@/lib/errors";
@@ -10,6 +11,7 @@ import {
   type Confidence,
   type DayEvent,
   type GitSummary,
+  type InboxSummary,
   type NextMeeting,
   type Owner,
   type Pinned,
@@ -235,6 +237,17 @@ function loadGit(today: Date, topics: Topic[], warnings: string[]): GitSummary |
   }
 }
 
+// ── inbox ──────────────────────────────────────────────────────────────────────
+
+function loadInbox(warnings: string[]): InboxSummary | null {
+  try {
+    return { open: inboxServices.countOpen() };
+  } catch (err) {
+    warnings.push(`Inbox: ${reason(err)}`);
+    return null;
+  }
+}
+
 // ── zamknięcie dnia ────────────────────────────────────────────────────────────
 
 export const MAX_CLOSING_TEXT = 300;
@@ -264,8 +277,9 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const events = await loadEvents(date, warnings);
   const nextMeeting = pickNextMeeting(events, today.getHours() * 60 + today.getMinutes());
   const git = loadGit(today, topics, warnings);
+  const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
-  return { date, topics, queue, events, nextMeeting, git, closing, warnings };
+  return { date, topics, queue, events, nextMeeting, git, inbox, closing, warnings };
 }
 
 export async function setPinned(ids: string[]): Promise<Pinned> {

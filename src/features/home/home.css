@@ -963,3 +963,48 @@
 .kok-history__bar.is-empty {
   background: var(--line);
 }
+
+/* ---------- K3: Inbox ---------- */
+.kok-inbox {
+  margin-top: var(--s-4);
+}
+
+.kok-capture {
+  display: flex;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.kok-inbox__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.kok-inbox__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--text);
+}
+
+.kok-inbox__type {
+  flex-shrink: 0;
+  min-width: 52px;
+  padding: 2px var(--s-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  text-align: center;
+  color: var(--muted);
+}
+
+.kok-inbox__text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
