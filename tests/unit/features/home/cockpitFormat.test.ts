@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  commitsLabel,
   anchorLabel,
   formatLongDate,
   hhmm,
@@ -101,5 +102,16 @@ describe("anchorLabel", () => {
     expect(anchorLabel("2026-11-10", today)).toBe("Zaczep sprzed 3 dni");
     expect(anchorLabel("2026-11-13", today)).toBe("Zaczep");
     expect(anchorLabel("jutro", today)).toBe("Zaczep");
+  });
+});
+
+describe("commitsLabel", () => {
+  it("odmienia liczbę commitów", () => {
+    expect(commitsLabel(0)).toBe("0 commitów");
+    expect(commitsLabel(1)).toBe("1 commit");
+    expect(commitsLabel(2)).toBe("2 commity");
+    expect(commitsLabel(5)).toBe("5 commitów");
+    expect(commitsLabel(12)).toBe("12 commitów");
+    expect(commitsLabel(22)).toBe("22 commity");
   });
 });

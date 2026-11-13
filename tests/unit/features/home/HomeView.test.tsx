@@ -105,6 +105,25 @@ const FULL: CockpitDto = {
   warnings: ['Zadanie "Stare": pominięto błędny termin 0006-08-26'],
 };
 
+const HISTORY = {
+  from: "2026-11-11",
+  to: "2026-11-13",
+  available: true,
+  total: 7,
+  days: [
+    { date: "2026-11-11", total: 0, projects: [] },
+    {
+      date: "2026-11-12",
+      total: 5,
+      projects: [
+        { projectId: "nexus", name: "NEXUS", count: 4 },
+        { projectId: "monolith", name: "Monolith", count: 1 },
+      ],
+    },
+    { date: "2026-11-13", total: 2, projects: [{ projectId: "nexus", name: "NEXUS", count: 2 }] },
+  ],
+};
+
 const mockApiFetch = vi.fn();
 
 function respond(cockpit: CockpitDto | "fail") {
@@ -113,6 +132,9 @@ function respond(cockpit: CockpitDto | "fail") {
       return cockpit === "fail"
         ? Promise.resolve({ ok: false, status: 500, json: async () => ({ error: "boom" }) })
         : Promise.resolve({ ok: true, json: async () => cockpit });
+    }
+    if (url.startsWith("/api/cockpit/commits")) {
+      return Promise.resolve({ ok: true, json: async () => HISTORY });
     }
     if (url === "/api/projects") {
       return Promise.resolve({
@@ -467,5 +489,45 @@ describe("K1: układ wg makiety", () => {
     const labels = [...document.querySelectorAll(".kok-tile__label")].map((n) => n.textContent);
     expect(labels).not.toContain("Ostrzeżenia");
     expect(screen.getByLabelText("Pasek statusu")).toHaveTextContent("1 ostrzeżeń");
+  });
+
+  test("historia commitów: słupki dzień po dniu z sumą i podziałem na projekty (K8)", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const panel = await screen.findByRole("region", { name: "Historia commitów" });
+    expect(panel).toHaveTextContent("7 commitów w 3 dni");
+    expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=14");
+    const bars = within(panel).getAllByRole("img");
+    expect(bars).toHaveLength(3);
+    expect(bars[0]).toHaveAccessibleName("11 listopada: brak commitów");
+    expect(bars[1]).toHaveAccessibleName("12 listopada: 5 commitów (NEXUS 4, Monolith 1)");
+    expect(bars[2]).toHaveAccessibleName("13 listopada: 2 commity (NEXUS 2)");
+  });
+
+  test("historia commitów: bez dostępnych repo panelu nie ma, błąd API nic nie psuje", async () => {
+    respond(FULL);
+    const base = mockApiFetch.getMockImplementation()!;
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url.startsWith("/api/cockpit/commits")
+        ? Promise.resolve({
+            ok: true,
+            json: async () => ({ ...HISTORY, available: false, total: 0, days: [] }),
+          })
+        : base(url, init)
+    );
+    const { unmount } = render(<HomeView {...defaultProps} />);
+    await screen.findByText("Commity dziś");
+    await waitFor(() => expect(mockApiFetch).toHaveBeenCalledWith("/api/cockpit/commits?days=14"));
+    expect(screen.queryByRole("region", { name: "Historia commitów" })).not.toBeInTheDocument();
+    unmount();
+
+    mockApiFetch.mockImplementation((url: string, init?: RequestInit) =>
+      url.startsWith("/api/cockpit/commits")
+        ? Promise.resolve({ ok: false, status: 500, json: async () => ({}) })
+        : base(url, init)
+    );
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByText("Commity dziś")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Historia commitów" })).not.toBeInTheDocument();
   });
 });

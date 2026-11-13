@@ -121,6 +121,9 @@ export type GitActivity = {
   commitsToday: number;
 };
 
+/** Commity projektu po dniach (`RRRR-MM-DD` → liczba); dni bez commitów pominięte. */
+export type GitHistory = { projectId: string; name: string; days: Record<string, number> };
+
 export type RepoRulesResult =
   | { ok: true; text: string }
   | { ok: false; reason: RepoUnavailableReason | "no-file" | "unsafe-file" };

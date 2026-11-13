@@ -5,6 +5,7 @@ import {
   ClosingInputSchema,
   PinnedInputSchema,
   toCockpitDto,
+  toCommitHistoryDto,
   toPinnedDto,
 } from "@/contexts/bc_cockpit/schemas";
 
@@ -124,5 +125,23 @@ describe("mapery DTO", () => {
 
   it("toPinnedDto", () => {
     expect(toPinnedDto({ ids: ["a"] })).toEqual({ ids: ["a"] });
+  });
+});
+
+describe("toCommitHistoryDto", () => {
+  it("zachowuje kształt i nie wpuszcza dodatkowych pól", () => {
+    const model = {
+      from: "2026-11-12",
+      to: "2026-11-13",
+      available: true,
+      total: 2,
+      days: [
+        { date: "2026-11-12", total: 0, projects: [] },
+        { date: "2026-11-13", total: 2, projects: [{ projectId: "a", name: "A", count: 2 }] },
+      ],
+    };
+    const dto = toCommitHistoryDto({ ...model, extra: 1 } as never);
+    expect(dto).toEqual(model);
+    expect(Object.keys(dto).sort()).toEqual(["available", "days", "from", "to", "total"]);
   });
 });

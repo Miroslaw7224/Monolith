@@ -12,6 +12,7 @@ const mockListProjects = vi.hoisted(() => vi.fn());
 const mockGetTasks = vi.hoisted(() => vi.fn());
 const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
 const mockListGitActivity = vi.hoisted(() => vi.fn());
+const mockListGitHistory = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
@@ -24,12 +25,14 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listNowTasks: mockListNowTasks,
   listProjects: mockListProjects,
   listGitActivity: mockListGitActivity,
+  listGitHistory: mockListGitHistory,
 }));
 vi.mock("@/contexts/bc_tasks/services", () => ({ getTasks: mockGetTasks }));
 vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
 
 import {
   closeDay,
+  getCommitHistory,
   getCockpit,
   isPlausibleDate,
   localDate,
@@ -77,6 +80,7 @@ beforeEach(() => {
   mockGetTasks.mockResolvedValue([]);
   mockGetCalendarEvents.mockResolvedValue([]);
   mockListGitActivity.mockReturnValue([]);
+  mockListGitHistory.mockReturnValue([]);
   mockReadClosings.mockReturnValue([]);
   mockUpsertClosing.mockResolvedValue(undefined);
   mockListProjects.mockReturnValue({
@@ -670,5 +674,58 @@ describe("zamknięcie dnia (K6)", () => {
     await expect(
       closeDay({ text: "a".repeat(301), projectId: null }, TODAY)
     ).rejects.toBeInstanceOf(DomainError);
+  });
+});
+
+describe("historia commitów (K8)", () => {
+  it("zakres to `days` dni kończących się dziś; dni bez commitów mają 0; sumy i projekty malejąco", async () => {
+    mockListGitHistory.mockReturnValue([
+      { projectId: "a", name: "A", days: { "2026-11-12": 2, "2026-11-13": 1 } },
+      { projectId: "b", name: "B", days: { "2026-11-12": 5 } },
+    ]);
+    const h = await getCommitHistory(3, TODAY);
+    expect(mockListGitHistory).toHaveBeenCalledWith("2026-11-11", "2026-11-13");
+    expect(h.from).toBe("2026-11-11");
+    expect(h.to).toBe("2026-11-13");
+    expect(h.total).toBe(8);
+    expect(h.days).toEqual([
+      { date: "2026-11-11", total: 0, projects: [] },
+      {
+        date: "2026-11-12",
+        total: 7,
+        projects: [
+          { projectId: "b", name: "B", count: 5 },
+          { projectId: "a", name: "A", count: 2 },
+        ],
+      },
+      { date: "2026-11-13", total: 1, projects: [{ projectId: "a", name: "A", count: 1 }] },
+    ]);
+  });
+
+  it("zakres przechodzi przez granicę miesiąca i roku", async () => {
+    await getCommitHistory(3, new Date(2027, 0, 1, 10));
+    expect(mockListGitHistory).toHaveBeenCalledWith("2026-12-30", "2027-01-01");
+  });
+
+  it("brak dostępnych repozytoriów: `available: false`, puste dni", async () => {
+    const h = await getCommitHistory(7, TODAY);
+    expect(h.available).toBe(false);
+    expect(h.days).toEqual([]);
+    expect(h.total).toBe(0);
+  });
+
+  it("dostępne repo bez commitów: `available: true` i dni z zerami", async () => {
+    mockListGitHistory.mockReturnValue([{ projectId: "a", name: "A", days: {} }]);
+    const h = await getCommitHistory(2, TODAY);
+    expect(h.available).toBe(true);
+    expect(h.days.map((d) => d.total)).toEqual([0, 0]);
+  });
+
+  it("ignoruje dni spoza zakresu; `days` poza 1–90 to DomainError", async () => {
+    mockListGitHistory.mockReturnValue([{ projectId: "a", name: "A", days: { "2020-01-01": 9 } }]);
+    expect((await getCommitHistory(2, TODAY)).total).toBe(0);
+    await expect(getCommitHistory(0, TODAY)).rejects.toBeInstanceOf(DomainError);
+    await expect(getCommitHistory(91, TODAY)).rejects.toBeInstanceOf(DomainError);
+    await expect(getCommitHistory(2.5, TODAY)).rejects.toBeInstanceOf(DomainError);
   });
 });

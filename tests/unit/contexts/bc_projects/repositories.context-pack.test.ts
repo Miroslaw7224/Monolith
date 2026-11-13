@@ -8,18 +8,21 @@ const mockSnapshot = vi.hoisted(() => vi.fn());
 const mockReadFile = vi.hoisted(() => vi.fn());
 const mockCommitsSince = vi.hoisted(() => vi.fn());
 const mockCurrentBranch = vi.hoisted(() => vi.fn());
+const mockCommitsByDay = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/git/repo-path", () => ({ resolveRepoPath: mockResolve }));
 vi.mock("@/lib/git/project-git", () => ({
   snapshotRepo: mockSnapshot,
   commitsSince: mockCommitsSince,
   currentBranch: mockCurrentBranch,
+  commitsByDay: mockCommitsByDay,
 }));
 vi.mock("@/lib/git/repo-file", () => ({ readRepoFile: mockReadFile }));
 
 import {
   readAiContext,
   readGitActivity,
+  readGitHistory,
   readGitSnapshot,
   readIndexRules,
   readRepoRules,
@@ -175,5 +178,26 @@ describe("readGitActivity", () => {
     mockCommitsSince.mockReturnValue({ ok: false });
     expect(readGitActivity(entry, "2026-11-13")).toEqual({ ok: false });
     expect(mockCurrentBranch).not.toHaveBeenCalled();
+  });
+});
+
+describe("readGitHistory", () => {
+  it("odmowa ścieżki albo błąd gita: ok:false", () => {
+    mockResolve.mockReturnValue({ ok: false, reason: "missing" });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+    expect(mockCommitsByDay).not.toHaveBeenCalled();
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsByDay.mockReturnValue({ ok: false });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+  });
+
+  it("ścieżka ok: liczby po dniach z gita", () => {
+    mockResolve.mockReturnValue({ ok: true, path: "/h/p" });
+    mockCommitsByDay.mockReturnValue({ ok: true, days: { "2026-11-12": 2 } });
+    expect(readGitHistory(entry, "2026-11-01", "2026-11-13")).toEqual({
+      ok: true,
+      days: { "2026-11-12": 2 },
+    });
+    expect(mockCommitsByDay).toHaveBeenCalledWith("/h/p", "2026-11-01", "2026-11-13");
   });
 });

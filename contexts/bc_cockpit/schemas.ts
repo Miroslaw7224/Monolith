@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { looseObject } from "@/lib/schema/looseObject";
-import type { Closing, Cockpit, DayEvent, Pinned, QueueGroup, Topic } from "./models";
+import type {
+  Closing,
+  Cockpit,
+  CommitHistory,
+  DayEvent,
+  Pinned,
+  QueueGroup,
+  Topic,
+} from "./models";
 
 // ── wejście ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +33,7 @@ export type DayEventDto = DayEvent;
 export type CockpitDto = Cockpit;
 export type PinnedDto = Pinned;
 export type ClosingDto = Closing;
+export type CommitHistoryDto = CommitHistory;
 
 export function toCockpitDto(c: Cockpit): CockpitDto {
   return {
@@ -76,6 +85,20 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
 
 export function toClosingDto(c: Closing): ClosingDto {
   return { date: c.date, text: c.text, projectId: c.projectId, commits: c.commits };
+}
+
+export function toCommitHistoryDto(h: CommitHistory): CommitHistoryDto {
+  return {
+    from: h.from,
+    to: h.to,
+    available: h.available,
+    total: h.total,
+    days: h.days.map((d) => ({
+      date: d.date,
+      total: d.total,
+      projects: d.projects.map((p) => ({ projectId: p.projectId, name: p.name, count: p.count })),
+    })),
+  };
 }
 
 export function toPinnedDto(p: Pinned): PinnedDto {

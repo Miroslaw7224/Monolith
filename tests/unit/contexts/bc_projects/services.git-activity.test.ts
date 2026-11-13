@@ -4,13 +4,15 @@ import type { RegistryEntry } from "@/contexts/bc_projects/models";
 
 const mockReadRegistry = vi.hoisted(() => vi.fn());
 const mockReadGitActivity = vi.hoisted(() => vi.fn());
+const mockReadGitHistory = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_projects/repositories", () => ({
   readRegistry: mockReadRegistry,
   readGitActivity: mockReadGitActivity,
+  readGitHistory: mockReadGitHistory,
 }));
 
-import { listGitActivity } from "@/contexts/bc_projects/services";
+import { listGitActivity, listGitHistory } from "@/contexts/bc_projects/services";
 
 const entry = (id: string): RegistryEntry => ({
   id,
@@ -58,5 +60,23 @@ describe("listGitActivity", () => {
       throw new Error("registry");
     });
     expect(() => listGitActivity(new Date(2026, 10, 3))).toThrow("registry");
+  });
+});
+
+describe("listGitHistory", () => {
+  it("zwraca dni z commitami projektów z dostępnym repo (id, nazwa), pomija resztę i błędy", () => {
+    mockReadGitHistory.mockImplementation((e: RegistryEntry) => {
+      if (e.id === "b") return { ok: false };
+      if (e.id === "c") throw new Error("boom");
+      return { ok: true, days: { "2026-11-12": 2 } };
+    });
+    expect(listGitHistory("2026-11-01", "2026-11-13")).toEqual([
+      { projectId: "a", name: "A", days: { "2026-11-12": 2 } },
+    ]);
+    expect(mockReadGitHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "a" }),
+      "2026-11-01",
+      "2026-11-13"
+    );
   });
 });

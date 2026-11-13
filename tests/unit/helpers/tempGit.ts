@@ -8,14 +8,20 @@ export type TempRepo = {
   /** Katalog repo (po `realpath`). */
   readonly dir: string;
   write(rel: string, text: string): void;
-  /** `git add -A && git commit` z lokalną tożsamością, bez podpisu gpg. */
-  commit(message: string): void;
+  /**
+   * `git add -A && git commit` z lokalną tożsamością, bez podpisu gpg. Z `day` (`RRRR-MM-DD`) commit dostaje datę autora i zatwierdzającego z tego dnia, 12:00 czasu lokalnego.
+   */
+  commit(message: string, day?: string): void;
 };
 
 const IDENTITY = ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"];
 
-function git(cwd: string, args: string[]): void {
-  execFileSync("git", [...IDENTITY, ...args], { cwd, stdio: "ignore" });
+function git(cwd: string, args: string[], env?: Record<string, string>): void {
+  execFileSync("git", [...IDENTITY, ...args], {
+    cwd,
+    stdio: "ignore",
+    env: env ? { ...process.env, ...env } : process.env,
+  });
 }
 
 /** Tymczasowe repozytoria git; sprzątane po każdym teście. */
@@ -38,9 +44,14 @@ export function useTempRepos(): { create(): TempRepo } {
           fs.mkdirSync(path.dirname(abs), { recursive: true });
           fs.writeFileSync(abs, text, "utf8");
         },
-        commit(message) {
+        commit(message, day) {
           git(dir, ["add", "-A"]);
-          git(dir, ["commit", "-q", "-m", message]);
+          const date = day ? `${day}T12:00:00` : undefined;
+          git(
+            dir,
+            ["commit", "-q", "-m", message],
+            date ? { GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } : undefined
+          );
         },
       };
     },

@@ -5,6 +5,7 @@ import { DomainError, NotFoundError } from "@/lib/errors";
 import {
   MAX_PINNED,
   type Closing,
+  type CommitHistory,
   type Cockpit,
   type Confidence,
   type DayEvent,
@@ -303,4 +304,40 @@ export async function closeDay(
   const closing: Closing = { date: localDate(today), text, projectId: input.projectId, commits };
   await repositories.upsertClosing(closing);
   return closing;
+}
+
+// ── historia commitów ──────────────────────────────────────────────────────────
+
+export const MAX_HISTORY_DAYS = 90;
+
+/** Commity z gita dzień po dniu za ostatnie `days` dni (łącznie z dziś), wszystkie projekty z dostępnym repo. */
+export async function getCommitHistory(
+  days: number,
+  today: Date = new Date()
+): Promise<CommitHistory> {
+  if (!Number.isInteger(days) || days < 1 || days > MAX_HISTORY_DAYS) {
+    throw new DomainError(`days musi być liczbą całkowitą 1–${MAX_HISTORY_DAYS}`);
+  }
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    dates.push(localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - i)));
+  }
+  const from = dates[0];
+  const to = dates[dates.length - 1];
+  const history = projectsServices.listGitHistory(from, to);
+  if (history.length === 0) return { from, to, available: false, total: 0, days: [] };
+  const result = dates.map((date) => {
+    const projects = history
+      .map((h) => ({ projectId: h.projectId, name: h.name, count: h.days[date] ?? 0 }))
+      .filter((p) => p.count > 0)
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "pl"));
+    return { date, total: projects.reduce((sum, p) => sum + p.count, 0), projects };
+  });
+  return {
+    from,
+    to,
+    available: true,
+    total: result.reduce((sum, d) => sum + d.total, 0),
+    days: result,
+  };
 }

@@ -79,6 +79,23 @@ export type Closing = {
   commits: number | null;
 };
 
+/** Commity jednego dnia: suma i podział na projekty (malejąco, tylko projekty z commitami). */
+export type CommitDay = {
+  date: string;
+  total: number;
+  projects: { projectId: string; name: string; count: number }[];
+};
+
+/** Historia commitów z gita (tylko odczyt), dzień po dniu, także dni bez commitów. */
+export type CommitHistory = {
+  from: string;
+  to: string;
+  /** `false`, gdy żadne repozytorium nie jest dostępne (wtedy `days` jest puste). */
+  available: boolean;
+  total: number;
+  days: CommitDay[];
+};
+
 export type Cockpit = {
   /** Dzień `RRRR-MM-DD` w strefie lokalnej serwera. */
   date: string;

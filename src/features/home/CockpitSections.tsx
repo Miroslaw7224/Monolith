@@ -6,6 +6,7 @@ import type {
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
+import { CommitHistory } from "./CommitHistory";
 import { hhmm, minutesUntil, projectsLabel, relativeDays, timelineRange } from "./cockpitFormat";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
@@ -349,6 +350,8 @@ export function CockpitSections({
           )}
         </section>
       </div>
+
+      <CommitHistory apiFetch={apiFetch} />
 
       {data.warnings.length > 0 ? (
         <ul className="kok-warnings" aria-label="Ostrzeżenia">

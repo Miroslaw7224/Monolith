@@ -3,6 +3,7 @@ import {
   type ContextPack,
   type Freshness,
   type GitActivity,
+  type GitHistory,
   type NowTask,
   type Project,
   type ProjectType,
@@ -16,6 +17,7 @@ import {
   readAiContext,
   readDevlog,
   readGitActivity,
+  readGitHistory,
   readGitSnapshot,
   readIndexRules,
   readProjectBoard,
@@ -186,6 +188,23 @@ export function listGitActivity(today: Date = new Date()): GitActivity[] {
           commitsToday: activity.commits,
         });
       }
+    } catch {
+      // jeden zepsuty projekt nie wyłącza pozostałych
+    }
+  }
+  return result;
+}
+
+/**
+ * Commity po dniach (`from`–`to` włącznie) projektów rejestru z dostępnym repozytorium.
+ * Niedostępne repo albo błąd jednego projektu go pomijają; błąd rejestru leci wyżej.
+ */
+export function listGitHistory(from: string, to: string): GitHistory[] {
+  const result: GitHistory[] = [];
+  for (const entry of readRegistry().entries) {
+    try {
+      const history = readGitHistory(entry, from, to);
+      if (history.ok) result.push({ projectId: entry.id, name: entry.name, days: history.days });
     } catch {
       // jeden zepsuty projekt nie wyłącza pozostałych
     }

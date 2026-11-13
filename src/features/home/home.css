@@ -918,3 +918,48 @@
   outline: none;
   border-color: var(--accent);
 }
+
+/* ---------- K8: historia commitów ---------- */
+.kok-history {
+  margin-top: var(--s-4);
+}
+
+.kok-history__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--s-2);
+  height: 120px;
+  padding-top: var(--s-2);
+}
+
+.kok-history__col {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 4px;
+  text-align: center;
+}
+
+.kok-history__value,
+.kok-history__day {
+  font: 400 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+  min-height: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kok-history__bar {
+  width: 100%;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
+  background: var(--accent);
+}
+
+.kok-history__bar.is-empty {
+  background: var(--line);
+}

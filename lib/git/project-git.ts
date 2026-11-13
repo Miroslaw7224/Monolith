@@ -78,6 +78,39 @@ export function commitsSince(
   return { ok: true, count: new Set(hashes).size };
 }
 
+/**
+ * Commity (bez merge'y, lokalne gałęzie, bez duplikatów) pogrupowane po dniu zatwierdzenia (czas
+ * lokalny) w zakresie `from`–`to` włącznie (`RRRR-MM-DD`). Dni bez commitów nie występują w wyniku.
+ */
+export function commitsByDay(
+  repoDir: string,
+  from: string,
+  to: string
+): { ok: true; days: Record<string, number> } | { ok: false } {
+  if (!DAY_RE.test(from)) throw new Error(`git: zła data (oczekiwano RRRR-MM-DD): ${from}`);
+  if (!DAY_RE.test(to)) throw new Error(`git: zła data (oczekiwano RRRR-MM-DD): ${to}`);
+  if (from > to) throw new Error(`git: zły zakres dat: ${from} > ${to}`);
+  const res = execGit(repoDir, [
+    "log",
+    "--branches",
+    "--no-merges",
+    "--date=format-local:%Y-%m-%d",
+    "--format=%H %cd",
+    `--since=${from}T00:00:00`,
+    `--until=${to}T23:59:59`,
+  ]);
+  if (res.status !== 0) return { ok: false };
+  const seen = new Set<string>();
+  const days: Record<string, number> = {};
+  for (const line of res.stdout.split("\n")) {
+    const [hash, day] = line.trim().split(" ");
+    if (!hash || !day || seen.has(hash)) continue;
+    seen.add(hash);
+    days[day] = (days[day] ?? 0) + 1;
+  }
+  return { ok: true, days };
+}
+
 /** Nazwa bieżącej gałęzi; `null` dla odłączonego HEAD, repo bez commitów i błędu gita. */
 export function currentBranch(repoDir: string): string | null {
   const res = execGit(repoDir, ["rev-parse", "--abbrev-ref", "HEAD"]);
