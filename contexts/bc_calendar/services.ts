@@ -25,6 +25,16 @@ function normalizeLink(link: string | undefined): string | undefined {
   return trimmed;
 }
 
+const MAX_BRIEF_LENGTH = 1000;
+
+/** Przycina; pusty = usunięcie briefu. */
+function normalizeBrief(brief: string | undefined): string | undefined {
+  if (brief === undefined) return undefined;
+  const trimmed = brief.trim();
+  if (trimmed.length > MAX_BRIEF_LENGTH) throw new DomainError("brief too long");
+  return trimmed;
+}
+
 const TASK_DEADLINE_START_MINUTES = 23 * 60 + 30; // 23:30 — a fixed end-of-day slot
 const TASK_DEADLINE_DURATION_MINUTES = 30;
 const TASK_DEADLINE_COLOR = "#6B7280";
@@ -74,9 +84,14 @@ export async function createCalendarEvent(data: {
   color: string;
   type?: "work" | "meeting";
   link?: string;
+  brief?: string;
 }) {
   assertDurationMultipleOf15(data.duration_minutes);
-  return repositories.createCalendarEvent({ ...data, link: normalizeLink(data.link) });
+  return repositories.createCalendarEvent({
+    ...data,
+    link: normalizeLink(data.link),
+    brief: normalizeBrief(data.brief),
+  });
 }
 
 export async function updateCalendarEvent(
@@ -90,10 +105,15 @@ export async function updateCalendarEvent(
     color: string;
     type: "work" | "meeting";
     link: string;
+    brief: string;
   }>
 ) {
   assertDurationMultipleOf15(data.duration_minutes);
-  return repositories.updateCalendarEvent(id, { ...data, link: normalizeLink(data.link) });
+  return repositories.updateCalendarEvent(id, {
+    ...data,
+    link: normalizeLink(data.link),
+    brief: normalizeBrief(data.brief),
+  });
 }
 
 export async function deleteCalendarEvent(id: string) {

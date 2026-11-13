@@ -18,6 +18,14 @@ export function weekNumber(date: Date): number {
   return 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 24 * 3600 * 1000));
 }
 
+/** Linie briefu jako punkty: bez pustych linii i bez wiodącego znacznika listy (`-`, `*`, `•`). */
+export function briefLines(brief: string | null): string[] {
+  return (brief ?? "")
+    .split("\n")
+    .map((line) => line.replace(/^\s*[-*•]\s+/, "").trim())
+    .filter((line) => line !== "");
+}
+
 /** Ile minut do startu; ujemne, gdy już minął. */
 export function minutesUntil(nowMinutes: number, startMinutes: number): number {
   return startMinutes - nowMinutes;

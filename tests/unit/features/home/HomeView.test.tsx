@@ -103,6 +103,7 @@ const FULL: CockpitDto = {
       type: "meeting",
       color: "#111",
       link: "https://meet.google.com/gon-fztr-zrn",
+      brief: null,
     },
     {
       id: "e2",
@@ -112,6 +113,7 @@ const FULL: CockpitDto = {
       type: "work",
       color: "#222",
       link: null,
+      brief: null,
     },
   ],
   nextMeeting: {
@@ -728,6 +730,35 @@ describe("K1: układ wg makiety", () => {
       .getByText("Następne spotkanie", { selector: ".kok-tile__label" })
       .closest(".kok-tile") as HTMLElement;
     expect(within(tile).getByRole("link", { name: /Dołącz/ })).toBeInTheDocument();
+  });
+
+  test("oś dnia: BRIEF jako lista punktów tylko przy wydarzeniach, które się nie skończyły (K4)", async () => {
+    const withBriefs: CockpitDto = {
+      ...FULL,
+      events: [
+        { ...FULL.events[0], id: "past", title: "Poranny sync", startMinutes: 480, brief: "Stary" },
+        {
+          ...FULL.events[0],
+          id: "next",
+          title: "Przegląd tygodnia",
+          startMinutes: 630,
+          brief: "- Wybrać focus\n\n• Decyzja o fiszkach\nGP-002",
+        },
+        { ...FULL.events[1], id: "nobrief", title: "Praca głęboka", startMinutes: 780 },
+      ],
+    };
+    respond(withBriefs);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("Przegląd tygodnia");
+    const blocks = screen.getAllByLabelText("Brief");
+    expect(blocks).toHaveLength(1);
+    const items = within(blocks[0]).getAllByRole("listitem");
+    expect(items.map((li) => li.textContent)).toEqual([
+      "Wybrać focus",
+      "Decyzja o fiszkach",
+      "GP-002",
+    ]);
+    expect(screen.queryByText("Stary")).not.toBeInTheDocument();
   });
 
   test("układ: commity pod osią czasu, inbox pod kolejką (te same kolumny)", async () => {

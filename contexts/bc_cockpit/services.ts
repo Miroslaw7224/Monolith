@@ -225,6 +225,7 @@ async function loadEvents(date: string, warnings: string[]): Promise<DayEvent[]>
               type: e.type,
               color: e.color,
               link: e.link ?? null,
+              brief: e.brief ?? null,
             },
           ]
     );

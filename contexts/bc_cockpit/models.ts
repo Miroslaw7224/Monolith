@@ -70,6 +70,8 @@ export type DayEvent = {
   color: string;
   /** Adres spotkania online (http/https) albo `null`. */
   link: string | null;
+  /** Notatka przed spotkaniem (wiele linii) albo `null`. */
+  brief: string | null;
 };
 
 /** Najbliższe jeszcze nie zakończone wydarzenie typu `meeting`: z dziś albo, gdy nie ma, z najbliższych 60 dni. */

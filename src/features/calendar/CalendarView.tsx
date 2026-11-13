@@ -320,6 +320,7 @@ export function CalendarView({
                       tags: editingEvent.tags,
                       type: editingEvent.type === "meeting" ? "meeting" : "work",
                       link: editingEvent.link ?? "",
+                      brief: editingEvent.brief ?? "",
                     }
                   : addDate
                     ? {

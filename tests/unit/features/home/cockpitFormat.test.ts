@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  briefLines,
   upcomingWindows,
   windowsLabel,
   commitsLabel,
@@ -137,5 +138,16 @@ describe("windowsLabel / upcomingWindows", () => {
     expect(
       upcomingWindows([w(480, 570), w(570, 600), w(600, 700)], 600).map((x) => x.startMinutes)
     ).toEqual([600]);
+  });
+});
+
+describe("briefLines", () => {
+  it("dzieli na punkty, zdejmuje znaczniki listy i puste linie", () => {
+    expect(briefLines("- A\n\n* B\n • C\n  D  ")).toEqual(["A", "B", "C", "D"]);
+  });
+  it("null i pusty tekst dają pustą listę; myślnik w środku zostaje", () => {
+    expect(briefLines(null)).toEqual([]);
+    expect(briefLines("  \n ")).toEqual([]);
+    expect(briefLines("GP-002 - README")).toEqual(["GP-002 - README"]);
   });
 });

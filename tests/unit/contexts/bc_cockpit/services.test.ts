@@ -293,6 +293,7 @@ describe("następne spotkanie", () => {
     type,
     color: "#000",
     link: null,
+    brief: null,
   });
   const events = [
     ev("work", 540, 60, "Praca"),
@@ -543,6 +544,7 @@ describe("oś dnia", () => {
         type: "meeting",
         color: "#111",
         link: "https://meet.google.com/abc-defg-hij",
+        brief: null,
       },
       {
         id: "e2",
@@ -552,8 +554,27 @@ describe("oś dnia", () => {
         type: "work",
         color: "#222",
         link: null,
+        brief: null,
       },
     ]);
+  });
+
+  it("przenosi brief wydarzenia (K4)", async () => {
+    mockGetCalendarEvents.mockResolvedValue([
+      {
+        id: "e1",
+        date: "2026-11-13",
+        start_minutes: 630,
+        duration_minutes: 30,
+        title: "Przegląd tygodnia",
+        tags: [],
+        color: "#111",
+        type: "meeting",
+        brief: "Wybrać focus\nDecyzja o fiszkach",
+      },
+    ]);
+    const { events } = await getCockpit(TODAY);
+    expect(events[0].brief).toBe("Wybrać focus\nDecyzja o fiszkach");
   });
 });
 
@@ -890,6 +911,7 @@ describe("okna Deep Work (K5)", () => {
     type: "meeting" as const,
     color: "#000",
     link: null,
+    brief: null,
   });
   type Spec = [title: string, energy: "deep" | "quick" | null, projectName?: string | null];
   const group = (...items: Spec[]) => [

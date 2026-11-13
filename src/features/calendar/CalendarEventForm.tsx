@@ -17,6 +17,8 @@ export interface CalendarEventFormData {
   type: "work" | "meeting";
   /** Adres spotkania online; pusty tekst usuwa istniejący link. */
   link: string;
+  /** Notatka przed spotkaniem (każda linia = punkt); pusty tekst usuwa istniejący brief. */
+  brief: string;
 }
 
 interface CalendarEventFormProps {
@@ -48,6 +50,7 @@ export function CalendarEventForm({
   const [durationMinutes, setDurationMinutes] = useState(initial?.duration_minutes ?? 60);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [link, setLink] = useState(initial?.link ?? "");
+  const [brief, setBrief] = useState(initial?.brief ?? "");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(initial?.tags ?? []);
   const [tagInputFocused, setTagInputFocused] = useState(false);
@@ -93,6 +96,7 @@ export function CalendarEventForm({
       color,
       type: eventType,
       link: link.trim(),
+      brief: brief.trim(),
     });
   };
 
@@ -139,6 +143,20 @@ export function CalendarEventForm({
             Open meeting ↗
           </a>
         ) : null}
+      </div>
+      <div className="kal-form-group">
+        <label className="kal-label" htmlFor="kal-brief">
+          Brief
+        </label>
+        <textarea
+          id="kal-brief"
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
+          placeholder="Co omówić — jedna linia = jeden punkt"
+          maxLength={1000}
+          rows={3}
+          className="kal-input"
+        />
       </div>
       <div className="kal-form-group">
         <label className="kal-label">Event type</label>

@@ -101,6 +101,7 @@ describe("mapery DTO", () => {
         type: "meeting",
         color: "#fff",
         link: "https://meet.google.com/abc-defg-hij",
+        brief: "Punkt 1\nPunkt 2",
       },
     ],
     nextMeeting: {

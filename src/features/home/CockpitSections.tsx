@@ -11,6 +11,7 @@ import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
 import {
+  briefLines,
   hhmm,
   meetingDayLabel,
   minutesUntil,
@@ -218,7 +219,18 @@ function QueueGroupCard({
   );
 }
 
-function EventRow({ event, current }: { event: DayEventDto; current: boolean }) {
+function EventRow({
+  event,
+  current,
+  nowMinutes,
+}: {
+  event: DayEventDto;
+  current: boolean;
+  nowMinutes: number;
+}) {
+  // brief tylko przy wydarzeniach, które się jeszcze nie skończyły (zakończone zostają zwarte)
+  const brief =
+    event.startMinutes + event.durationMinutes > nowMinutes ? briefLines(event.brief) : [];
   return (
     <li className={`kok-tl__item${current ? " kok-tl__item--current" : ""}`}>
       <span className="kok-tl__time">{hhmm(event.startMinutes)}</span>
@@ -240,6 +252,16 @@ function EventRow({ event, current }: { event: DayEventDto; current: boolean }) 
             </a>
           ) : null}
         </div>
+        {brief.length > 0 ? (
+          <div className="kok-brief" role="group" aria-label="Brief">
+            <div className="kok-brief__label">Brief</div>
+            <ul>
+              {brief.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </li>
   );
@@ -304,7 +326,7 @@ function Timeline({
     const { event } = entry;
     const current =
       event.startMinutes <= nowMinutes && nowMinutes < event.startMinutes + event.durationMinutes;
-    items.push(<EventRow key={event.id} event={event} current={current} />);
+    items.push(<EventRow key={event.id} event={event} current={current} nowMinutes={nowMinutes} />);
   }
   if (!markerPlaced) items.push(<NowMarker key="now" nowMinutes={nowMinutes} />);
   return <ol className="kok-tl">{items}</ol>;

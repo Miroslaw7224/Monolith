@@ -58,3 +58,37 @@ describe("CalendarEventForm: link do spotkania", () => {
     expect(screen.queryByRole("link", { name: /Open meeting/ })).not.toBeInTheDocument();
   });
 });
+
+describe("CalendarEventForm: brief spotkania", () => {
+  test("pole jest wypełnione z initial i trafia do onSubmit", () => {
+    const onSubmit = vi.fn();
+    render(
+      <CalendarEventForm
+        initial={{ date: "2026-11-18", title: "Sync", type: "meeting", brief: "Punkt 1\nPunkt 2" }}
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+      />
+    );
+    expect(screen.getByLabelText("Brief")).toHaveValue("Punkt 1\nPunkt 2");
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(onSubmit.mock.calls[0][0].brief).toBe("Punkt 1\nPunkt 2");
+  });
+
+  test("brief jest przycinany, a wyczyszczony wysyła pusty tekst (usunięcie)", () => {
+    const onSubmit = vi.fn();
+    render(
+      <CalendarEventForm
+        initial={{ date: "2026-11-18", title: "Sync", brief: "x" }}
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+      />
+    );
+    const field = screen.getByLabelText("Brief");
+    fireEvent.change(field, { target: { value: "  Punkt\n " } });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(onSubmit.mock.calls[0][0].brief).toBe("Punkt");
+    fireEvent.change(field, { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(onSubmit.mock.calls[1][0].brief).toBe("");
+  });
+});
