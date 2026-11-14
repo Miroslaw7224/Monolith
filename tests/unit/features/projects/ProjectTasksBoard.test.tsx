@@ -62,6 +62,9 @@ function makeApi(
       return onPost ? onPost(body) : json(initial);
     }
     if (url === "/api/projects/a") return json(initial);
+    if (url === "/api/projects/a/context-pack") {
+      return json({ markdown: "# P", approxTokens: 100, truncated: false, warnings: [] });
+    }
     return new Response("{}", { status: 404 });
   });
 }
@@ -122,7 +125,7 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     render(<ProjectsView apiFetch={api} />);
     const input = await screen.findByLabelText("Dodaj zadanie: Następne");
     await user.type(input, "Nowe");
-    await user.click(within(column("Następne")).getByRole("button", { name: "Dodaj" }));
+    await user.click(within(column("Następne")).getByRole("button", { name: "Dodaj zadanie" }));
     expect(posts(api)).toEqual([{ op: "add", column: "next", text: "Nowe", version: V }]);
     await waitFor(() => expect(screen.getByLabelText("Dodaj zadanie: Następne")).toHaveValue(""));
   });
@@ -132,7 +135,7 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     const api = makeApi(detail(board({ now: [], next: [], icebox: [], version: null })));
     render(<ProjectsView apiFetch={api} />);
     await user.type(await screen.findByLabelText("Dodaj zadanie: Icebox"), "Coś");
-    await user.click(within(column("Icebox")).getByRole("button", { name: "Dodaj" }));
+    await user.click(within(column("Icebox")).getByRole("button", { name: "Dodaj zadanie" }));
     expect(posts(api)).toEqual([{ op: "add", column: "icebox", text: "Coś", version: null }]);
   });
 
@@ -141,7 +144,7 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     const api = makeApi(detail(board()));
     render(<ProjectsView apiFetch={api} />);
     await screen.findByLabelText("Dodaj zadanie: Następne");
-    await user.click(within(column("Następne")).getByRole("button", { name: "Dodaj" }));
+    await user.click(within(column("Następne")).getByRole("button", { name: "Dodaj zadanie" }));
     expect(posts(api)).toEqual([]);
   });
 
@@ -159,7 +162,7 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     );
     render(<ProjectsView apiFetch={api} />);
     expect(await screen.findByLabelText("Dodaj zadanie: Teraz")).toBeDisabled();
-    expect(within(column("Teraz")).getByRole("button", { name: "Dodaj" })).toBeDisabled();
+    expect(within(column("Teraz")).getByRole("button", { name: "Dodaj zadanie" })).toBeDisabled();
     dragTo("Trzecie", "Teraz");
     expect(await screen.findByRole("alert")).toHaveTextContent(/Limit 3/);
     expect(posts(api)).toEqual([]);

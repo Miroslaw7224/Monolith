@@ -25,19 +25,141 @@
   --fs-xs: 11px;
   --fs-sm: 13px;
   --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
   --fs-2xl: 34px;
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
   --s-4: 16px;
+  --s-5: 24px;
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 16px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
   color: var(--text);
-  background: var(--bg);
-  min-height: 100%;
+  background: var(--pattern), var(--bg);
   padding: var(--s-4);
+}
+
+/* Karta jest bezpośrednim dzieckiem rzędu flex w App: bez tego szerokość zależała od treści
+   (projekt z krótkimi liniami w „Gdzie skończyłem” dawał wąską kolumnę i pustą prawą stronę),
+   a wysokość ponad ekran nie przewijała się. */
+.prj {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* Nagłówek widoku (makieta: .view-head) */
+.prj-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--s-4);
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.prj-eyebrow {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent-text);
+  margin: 0 0 var(--s-2);
+}
+
+.prj-heading {
+  font: 700 var(--fs-2xl) / 1.1 var(--font-display);
+  letter-spacing: -0.5px;
+  color: var(--text);
+  margin: 0;
+}
+
+.prj-sub {
+  font: 400 var(--fs-sm) / 1.4 var(--font-body);
+  color: var(--muted);
+  margin: var(--s-2) 0 0;
+}
+
+.prj-head__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+/* Kafle statystyk rejestru (makieta: .tiles.prj-tiles) */
+.prj-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+
+.prj-tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.prj-tile::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.prj-tile--accent {
+  border-color: var(--accent);
+  box-shadow: 0 0 22px -8px var(--glow);
+}
+
+.prj-tile--accent::after {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+.prj-tile__label {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.prj-tile__value {
+  font: 600 var(--fs-2xl) / 1.1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.prj-tile--accent .prj-tile__value {
+  color: var(--accent-text);
+}
+
+.prj-tile__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.prj-tile__meta--danger {
+  color: var(--danger);
 }
 
 .prj-layout {
@@ -55,6 +177,57 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
+}
+
+.prj-registry__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+}
+
+.prj-registry__title {
+  margin: 0;
+  font: 700 var(--fs-sm) / 1.2 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.prj-registry__title b {
+  color: var(--text);
+}
+
+.prj-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font: 600 10px / 1 var(--font-mono);
+  color: var(--muted);
+  letter-spacing: 0.4px;
+}
+
+.prj-search {
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 var(--s-3);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font: 400 var(--fs-sm) / 1 var(--font-body);
+  outline: none;
+}
+
+.prj-search:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .prj-warnings {
@@ -87,6 +260,7 @@
 
 .prj-item {
   width: 100%;
+  box-sizing: border-box;
   text-align: left;
   background: var(--surface-2);
   border: 1px solid var(--line);
@@ -95,11 +269,32 @@
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
-  cursor: pointer;
   color: inherit;
   transition:
     border-color 0.15s var(--ease),
     background 0.15s var(--ease);
+}
+
+/* Cały obszar karty klika się jak przycisk wyboru; „Uśpij” i „Wznów” są osobnymi przyciskami pod spodem. */
+.prj-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.prj-item__main:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
 }
 
 .prj-item:hover {
@@ -164,9 +359,57 @@
   color: var(--muted);
 }
 
+.prj-badge--firm {
+  border-color: var(--prj-firm);
+  color: var(--prj-firm);
+  font-weight: 700;
+}
+
+.prj-item__alert,
+.prj-item__sleep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-2);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--prj-stale) 12%, transparent);
+  border: 1px dashed var(--prj-stale);
+  font: 500 var(--fs-xs) / 1.35 var(--font-mono);
+  color: var(--text);
+}
+
+/* Uśpiony projekt: spokojny szary zamiast czerwieni. */
+.prj-item--paused {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--muted) 6%, var(--surface-2));
+}
+
+.prj-item--paused .prj-item__name {
+  color: var(--muted);
+}
+
+.prj-item__sleep {
+  border-radius: var(--r-sm);
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: 500 var(--fs-xs) / 1.35 var(--font-mono);
+}
+
+.prj-btn--sm {
+  flex: 0 0 auto;
+  padding: var(--s-1) var(--s-2);
+  font-size: 10px;
+}
+
 .prj-item__conf {
   font-weight: 600;
   color: var(--text);
+}
+
+.prj-dossier-slot {
+  min-width: 0;
 }
 
 .prj-main {
@@ -219,6 +462,7 @@
   align-items: center;
   gap: var(--s-2);
   flex-wrap: wrap;
+  margin-top: var(--s-3);
 }
 
 .prj-link {
@@ -242,20 +486,16 @@
 
 .prj-section-title {
   font: 700 var(--fs-sm) / 1.2 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 1px;
   margin: 0 0 var(--s-3);
-  color: var(--text);
+  color: var(--muted);
 }
 
 .prj-where {
   margin: 0;
   font: 500 var(--fs-sm) / 1.45 var(--font-mono);
   color: var(--text);
-}
-
-.prj-tasks {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
 }
 
 .prj-task-section__title {
@@ -310,6 +550,11 @@
   .prj-layout {
     grid-template-columns: 1fr;
   }
+
+  .prj-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* Save State (tryb odczytu i formularz) — wg .prj-savestate / .prj-statebox z makiety 04-projekty.html */
@@ -352,6 +597,11 @@
   color: var(--accent-text);
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.prj-statebox__next::before {
+  content: "→ ";
+  color: var(--muted);
 }
 
 .prj-statebox__meta {
@@ -566,8 +816,11 @@
 /* Tablica zadań projektu (etap 1-3) */
 .prj-board {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* Trzy równe kolumny jak w makiecie; Blokery to osobny wąski pas u góry. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--s-3);
+  /* Kolumny mają własną wysokość: długi Icebox nie rozciąga pustych Blokerów. */
+  align-items: start;
 }
 
 .prj-board__alert {
@@ -581,7 +834,7 @@
   min-width: 0;
   padding: var(--s-2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   background: var(--surface-2);
 }
 
@@ -674,4 +927,372 @@
 .prj-btn--danger {
   border-color: color-mix(in srgb, var(--prj-stale) 65%, var(--line));
   color: var(--prj-stale);
+}
+
+/* Lista zadań kolumny: widać około trzech zadań, reszta w suwaku (wg makiety). */
+.prj-board__col .prj-task-list {
+  max-height: 272px;
+  overflow-y: auto;
+  padding-right: var(--s-1);
+  scrollbar-width: thin;
+}
+
+.prj-board__item {
+  flex: 0 0 auto;
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.prj-board__item:last-child {
+  border-bottom: 0;
+}
+
+/* Akcje zadania mniejsze, żeby trzy zadania mieściły się bez przewijania. */
+.prj-board__actions .prj-btn {
+  padding: 3px var(--s-2);
+  font-size: 10px;
+}
+
+/* Pole „Nowe zadanie” było bez ramki i tła (znikało na ciemnej kolumnie). */
+.prj-board__add input,
+.prj-board__edit input {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+}
+
+.prj-board__add input:focus-visible,
+.prj-board__edit input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.prj-board__add {
+  margin-top: var(--s-1);
+}
+
+.prj-board__add .prj-btn {
+  flex: 1 1 100%;
+}
+
+/* Devlog: widać około trzech wpisów, reszta w suwaku. */
+.prj-devlog {
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: var(--s-1);
+  scrollbar-width: thin;
+}
+
+/* Save State bez state.md: akapit „Gdzie skończyłem” z przewijaniem, żeby nie zalewał karty. */
+.prj-savestate .prj-where {
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* Przycisk kopiowania paczki w nagłówku karty */
+.prj-pack-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s-2);
+  max-width: 420px;
+}
+
+/* Karta „Paczka kontekstu” (makieta 04: .prj-pack) */
+.prj-pack-card {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft, var(--accent)) 6%, var(--surface));
+}
+
+.prj-pack-card__sub {
+  margin: 0;
+  font: 400 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-pack-card__budget {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font: 700 var(--fs-sm) / 1.2 var(--font-mono);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.prj-pack-card__budget small {
+  font: 500 var(--fs-xs) / 1.2 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-progress {
+  height: 6px;
+  margin-bottom: var(--s-3);
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.prj-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.prj-pack-card__sections {
+  list-style: none;
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--s-2);
+}
+
+.prj-section-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.prj-section-chip__name {
+  font: 600 var(--fs-xs) / 1.3 var(--font-body);
+  color: var(--text);
+}
+
+.prj-section-chip__tok {
+  font: 500 10px / 1 var(--font-mono);
+  color: var(--accent-text);
+}
+
+.prj-pack-card__preview {
+  margin: var(--s-3) 0 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font: 400 var(--fs-xs) / 1.5 var(--font-mono);
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Okno „Nowy projekt” */
+.prj-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-4);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.prj-modal__panel {
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.prj-modal__panel .prj-field select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+}
+
+.prj-modal__hint {
+  margin: 0;
+  font: 400 var(--fs-xs) / 1.45 var(--font-mono);
+  color: var(--muted);
+}
+
+/* Tablica zadań wg makiety 04: nagłówek kolumny z kropką i licznikiem, zadania jako karty. */
+.prj-board__col--blockers {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .prj-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.prj-column__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px dashed var(--line);
+}
+
+.prj-column__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0;
+  font: 700 var(--fs-sm) / 1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text);
+}
+
+.prj-column__count {
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.prj-dot--now {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--glow);
+}
+
+.prj-dot--next {
+  background: var(--warn);
+}
+
+.prj-dot--blockers {
+  background: var(--danger);
+}
+
+.prj-board__col .prj-task-list {
+  gap: var(--s-2);
+}
+
+/* Karta zadania */
+.prj-board__item {
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+
+.prj-board__item:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.prj-board__col--now .prj-board__item {
+  border-left: 3px solid var(--accent);
+}
+
+.prj-board__col--blockers .prj-board__item {
+  border-left: 3px solid var(--danger);
+}
+
+.prj-board__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  min-height: 20px;
+}
+
+.prj-board__foot .prj-board__date {
+  color: var(--accent-text);
+}
+
+.prj-board__item--done .prj-board__date {
+  color: var(--muted);
+}
+
+.prj-board__foot .prj-board__actions {
+  flex-wrap: nowrap;
+}
+
+/* Pole dodawania w jednym rzędzie z przyciskiem (węższe kolumny zawijają przycisk pod pole). */
+.prj-board__add {
+  flex-wrap: wrap;
+}
+
+.prj-board__add input {
+  flex: 1 1 140px;
+}
+
+.prj-board__add .prj-btn {
+  flex: 0 0 auto;
+}
+
+/* Blokery: pas na całą szerokość, zadania w rzędzie */
+.prj-board__col--blockers .prj-task-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: none;
+  overflow: visible;
+}
+
+@media (max-width: 900px) {
+  .prj-board__col--blockers .prj-task-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Linki projektu: puste miejsca Repo / Dev / Docs i formularz edycji */
+.prj-link--empty,
+.prj-link--edit {
+  cursor: pointer;
+  color: var(--muted);
+  border-style: dashed;
+  font-family: var(--font-mono);
+}
+
+.prj-link--empty:hover,
+.prj-link--edit:hover {
+  color: var(--accent-text);
+}
+
+.prj-links-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.prj-links-form__field {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-links-form__field input {
+  font: 400 var(--fs-sm) / 1.2 var(--font-mono);
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-2);
+}
+
+.prj-links-form__actions {
+  display: flex;
+  gap: var(--s-2);
 }

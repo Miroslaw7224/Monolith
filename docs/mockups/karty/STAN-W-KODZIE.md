@@ -61,30 +61,33 @@ dziennik decyzji (`devlog.md`, tylko dopisywanie na górze), `type` projektu (zm
 `PUT /api/projects/[id]/state`, `POST …/devlog`, `PATCH /api/projects/[id]`; świeżość liczona z nowszej z dat
 `last_worked` i `state.updated`. Bez `state.md` karta pokazuje dotychczasowy akapit „Gdzie skończyłem”.
 
-| Funkcja                                  | Stan      | Gdzie / uwagi                                                   |
-| ---------------------------------------- | --------- | --------------------------------------------------------------- |
-| Rejestr i teczka (odczyt)                | JEST      | ProjectsView, ProjectList, ProjectDossier; bc_projects          |
-| Wykrywanie porzuconych (freshness stale) | JEST      | services.ts + odznaka `prj-item--stale`                         |
-| Kafle statystyk                          | BRAK      | względem makiety `04-projekty.html`                             |
-| Owner                                    | BRAK      | względem makiety                                                |
-| Kamień milowy                            | CZĘŚCIOWO | nazwa i termin w `state.md`, bez paska procentowego (świadomie) |
-| Save State (odczyt i zapis)              | JEST      | ProjectSaveState; `state.md` przez bc_projects                  |
-| Devlog (dopisywanie)                     | JEST      | ProjectDevlog; `devlog.md`, bez edycji i usuwania               |
-| Typ projektu                             | JEST      | select w metryczce; linia `type:` w `index.md`                  |
-| Teraz/Następne/Icebox (edycja)           | BRAK      | podetap 1-3                                                     |
-| Paczka kontekstu, etykieta „Firma”       | BRAK      | późniejsze podetapy                                             |
+| Funkcja                                  | Stan      | Gdzie / uwagi                                                      |
+| ---------------------------------------- | --------- | ------------------------------------------------------------------ |
+| Rejestr i teczka (odczyt)                | JEST      | ProjectsView, ProjectList, ProjectDossier; bc_projects             |
+| Wykrywanie porzuconych (freshness stale) | JEST      | services.ts + odznaka `prj-item--stale`                            |
+| Kafle statystyk                          | JEST      | projectTiles.ts + ProjectsView (aktywne, bugi, stale, paczka)      |
+| Owner                                    | BRAK      | względem makiety                                                   |
+| Kamień milowy                            | CZĘŚCIOWO | nazwa i termin w `state.md`, bez paska procentowego (świadomie)    |
+| Save State (odczyt i zapis)              | JEST      | ProjectSaveState; `state.md` przez bc_projects                     |
+| Devlog (dopisywanie)                     | JEST      | ProjectDevlog; `devlog.md`, bez edycji i usuwania                  |
+| Typ projektu                             | JEST      | select w metryczce; linia `type:` w `index.md`                     |
+| Teraz/Następne/Icebox (edycja)           | BRAK      | podetap 1-3                                                        |
+| Paczka kontekstu (karta, kafel, podgląd) | JEST      | ProjectContextPack, useContextPack, packSections; budżet 4 000 tok |
+| Uśpij / Wznów projekt                    | JEST      | PATCH `{status}`: `paused` ↔ `active` w `_registry.yaml`           |
+| Nowy projekt                             | JEST      | NewProjectDialog, POST `/api/projects`: rejestr + index/tasks/bugs |
 
 ## 5. Notatki (`src/features/notes/`, `src/components/note-editor/NoteEditor.tsx`)
 
-| Funkcja                                      | Stan      | Gdzie / uwagi                                      |
-| -------------------------------------------- | --------- | -------------------------------------------------- |
-| Edytor notatki                               | JEST      | NoteEditor.tsx                                     |
-| Lista notatek                                | CZĘŚCIOWO | NotesPanel.tsx; płaska, bez folderów               |
-| Podgląd                                      | CZĘŚCIOWO | NotesPanel.tsx; HTML (prose), nie Markdown         |
-| Tagi notatek                                 | BRAK      | rekord notatki nie ma tagów (mają je tylko zasoby) |
-| [[wiki]], backlinks, frontmatter, zakreślacz | BRAK      |                                                    |
-| Wyszukiwarka notatek                         | BRAK      | pole w AppHeader.tsx bez logiki                    |
-| Wyszukiwarka decyzji (devlogi)               | BRAK      |                                                    |
+| Funkcja                         | Stan      | Gdzie / uwagi                                                                                          |
+| ------------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| Edytor notatki                  | JEST      | NoteEditor.tsx; frontmatter `---` jest poza edytorem (noteMeta.ts: split/join)                         |
+| Lista notatek                   | CZĘŚCIOWO | NotesPanel.tsx; jedna grupa `Notes/`, filtr po tytule i treści; bez prawdziwych folderów               |
+| Podgląd                         | JEST      | NotesPanel.tsx; Markdown, blok frontmatter, zakładki Podgląd / Edycja / Split, Zapisz (Ctrl+S)         |
+| Kafle statystyk                 | CZĘŚCIOWO | noteMeta.ts `computeNoteTiles`: notatki, dodane dziś, Inbox (useInboxOpen); „Decyzje” = atrapa „—”     |
+| Tagi notatek                    | CZĘŚCIOWO | tylko z frontmattera `tagi:`/`tags:` w treści (chipy filtrują listę); rekord notatki nie ma pola tagów |
+| Metadane pliku (prawa kolumna)  | CZĘŚCIOWO | utworzono, rozmiar, słowa, tagi; bez „Zmieniono” (DTO nie niesie `updated_at`)                         |
+| [[wiki]], backlinks, zakreślacz | BRAK      | karta „Linki zwrotne” pokazuje stan „wkrótce”                                                          |
+| Wyszukiwarka decyzji (devlogi)  | BRAK      | karta „Baza decyzji” (pole nieaktywne) czeka na agregację devlogów wszystkich projektów                |
 
 ## 6. Płótno
 

@@ -3,14 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   DevlogInputDto,
+  NewProjectInputDto,
   ProjectDetailDto,
+  ProjectStatusChangeDto,
   ProjectSummaryDto,
+  ProjectLinksInputDto,
   ProjectType,
   StateInputDto,
   TaskOpInputDto,
 } from "@/contexts/bc_projects/schemas";
 import type { ContextPackDto } from "@/contexts/bc_projects/schemas";
-import type { ContextPackResult, MutationResult, ProjectActions } from "./mutation";
+import type {
+  ContextPackResult,
+  CreateProjectResult,
+  MutationResult,
+  ProjectActions,
+} from "./mutation";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -40,7 +48,9 @@ export function useProjects(
   select: (id: string) => void;
   detail: ProjectDetailDto | null;
   detailError: string | null;
-} & ProjectActions {
+} & ProjectActions & {
+    createProject: (input: NewProjectInputDto) => Promise<CreateProjectResult>;
+  } {
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectSummaryDto[]>([]);
@@ -65,10 +75,14 @@ export function useProjects(
     setReloadKey((k) => k + 1);
   }, []);
 
-  /** Zapis dla wybranego projektu; odpowiedź (pełne szczegóły) zastępuje `detail`, o ile projekt dalej jest wybrany. */
-  const mutate = useCallback(
-    async (method: string, suffix: string, body: unknown): Promise<MutationResult> => {
-      const id = selectedIdRef.current;
+  /** Zapis dla projektu `id`; odpowiedź (pełne szczegóły) zastępuje `detail`, o ile projekt dalej jest wybrany. */
+  const mutateProject = useCallback(
+    async (
+      id: string | null,
+      method: string,
+      suffix: string,
+      body: unknown
+    ): Promise<MutationResult> => {
       if (id === null) return { ok: false, error: "Nie wybrano projektu", conflict: false };
       try {
         const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}${suffix}`, {
@@ -86,6 +100,7 @@ export function useProjects(
             p.id === updated.id
               ? {
                   ...p,
+                  status: updated.status,
                   freshness: updated.freshness,
                   ...(updated.type !== undefined ? { type: updated.type } : {}),
                 }
@@ -104,13 +119,51 @@ export function useProjects(
     [apiFetch]
   );
 
+  /** Zapis dla wybranego projektu. */
+  const mutate = useCallback(
+    (method: string, suffix: string, body: unknown) =>
+      mutateProject(selectedIdRef.current, method, suffix, body),
+    [mutateProject]
+  );
+
   const saveState = useCallback((input: StateInputDto) => mutate("PUT", "/state", input), [mutate]);
   const addDevlogEntry = useCallback(
     (input: DevlogInputDto) => mutate("POST", "/devlog", input),
     [mutate]
   );
   const setType = useCallback((type: ProjectType) => mutate("PATCH", "", { type }), [mutate]);
+  const setLinks = useCallback(
+    (links: ProjectLinksInputDto) => mutate("PATCH", "", { links }),
+    [mutate]
+  );
   const tasksOp = useCallback((input: TaskOpInputDto) => mutate("POST", "/tasks", input), [mutate]);
+
+  const setProjectStatus = useCallback(
+    (id: string, status: ProjectStatusChangeDto) => mutateProject(id, "PATCH", "", { status }),
+    [mutateProject]
+  );
+
+  /** Zakłada projekt w rejestrze (POST), dopisuje go na górę listy i wybiera. */
+  const createProject = useCallback(
+    async (input: NewProjectInputDto): Promise<CreateProjectResult> => {
+      try {
+        const res = await apiFetch("/api/projects", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        if (!res.ok) return { ok: false, error: await readError(res) };
+        const created = (await res.json()) as ProjectDetailDto;
+        setProjects((list) => [created, ...list.filter((p) => p.id !== created.id)]);
+        selectedIdRef.current = created.id;
+        setSelectedId(created.id);
+        return { ok: true, id: created.id };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+    [apiFetch]
+  );
 
   /** Odczyt, nie zapis: poza `mutate`, nie zmienia `detail`. */
   const loadContextPack = useCallback(async (): Promise<ContextPackResult> => {
@@ -213,6 +266,9 @@ export function useProjects(
     saveState,
     addDevlogEntry,
     setType,
+    setLinks,
+    setProjectStatus,
+    createProject,
     tasksOp,
     loadContextPack,
     reloadDetail,

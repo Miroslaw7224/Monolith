@@ -2,6 +2,9 @@ import {
   NOW_LIMIT,
   type ContextPack,
   type Freshness,
+  type NewProjectInput,
+  type ProjectLinksInput,
+  type ProjectStatusChange,
   type GitActivity,
   type GitHistory,
   type NowTask,
@@ -15,6 +18,7 @@ import {
 } from "@/contexts/bc_projects/models";
 import {
   appendDevlogEntry,
+  createProjectFiles,
   readAiContext,
   readDevlog,
   readGitActivity,
@@ -28,6 +32,8 @@ import {
   readRegistry,
   readRepoRules,
   writeProjectState,
+  writeRegistryLinks,
+  writeRegistryStatus,
   writeProjectTasks,
   writeProjectType,
 } from "@/contexts/bc_projects/repositories";
@@ -420,6 +426,69 @@ export async function setProjectType(
 ): Promise<ProjectWithContent> {
   const entry = findEntry(id);
   await writeProjectType(entry, type);
+  return getProject(id, today);
+}
+
+/** Ustawia `status` w rejestrze (`active` ↔ `paused`); reszta pliku rejestru bez zmian. */
+export async function setProjectStatus(
+  id: string,
+  status: ProjectStatusChange,
+  today: Date = new Date()
+): Promise<ProjectWithContent> {
+  const entry = findEntry(id);
+  await writeRegistryStatus(entry, status);
+  return getProject(id, today);
+}
+
+/** Ustawia linki projektu (`github`, `deploy`, `docs`) w rejestrze; pusty napis usuwa link. */
+export async function setProjectLinks(
+  id: string,
+  links: ProjectLinksInput,
+  today: Date = new Date()
+): Promise<ProjectWithContent> {
+  const entry = findEntry(id);
+  await writeRegistryLinks(entry, links);
+  return getProject(id, today);
+}
+
+const POLISH_ASCII: Record<string, string> = { ł: "l", Ł: "l" };
+
+/** `id` projektu z nazwy: małe litery ASCII, cyfry i `-`; `null`, gdy nic nie zostaje. */
+export function slugifyProjectName(name: string): string | null {
+  const slug = name
+    .replace(/[łŁ]/g, (c) => POLISH_ASCII[c])
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+  return slug === "" ? null : slug;
+}
+
+/**
+ * Nowy projekt w rejestrze: `status: active`, `folder: Projects/<id>/`, szkielet `index.md`, `tasks.md`, `bugs.md`.
+ * `id` z nazwy; zajęte `id` to 409. Kodu projektu nie dotykamy (`localPath` tylko trafia do rejestru).
+ */
+export async function createProject(
+  input: NewProjectInput,
+  today: Date = new Date()
+): Promise<ProjectWithContent> {
+  const id = slugifyProjectName(input.name);
+  if (id === null) throw new DomainError("Nazwa projektu musi zawierać litery lub cyfry", 422);
+  await createProjectFiles(
+    {
+      id,
+      name: input.name,
+      status: "active",
+      priority: input.priority,
+      folder: `Projects/${id}/`,
+      localPath: input.localPath,
+      ...(input.github ? { github: input.github } : {}),
+    },
+    { ...(input.type ? { type: input.type } : {}), today: localDate(today) }
+  );
   return getProject(id, today);
 }
 

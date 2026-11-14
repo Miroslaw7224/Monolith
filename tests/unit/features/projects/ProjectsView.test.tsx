@@ -37,6 +37,16 @@ function detail(
   };
 }
 
+function packResponse(): Response {
+  const pack = {
+    markdown: "# P\n\n## Save State\n\nx",
+    approxTokens: 3850,
+    truncated: false,
+    warnings: [],
+  };
+  return new Response(JSON.stringify(pack), { status: 200 });
+}
+
 function listResponse(projects: ProjectSummaryDto[], warnings: string[] = []): Response {
   return new Response(JSON.stringify({ projects, warnings }), { status: 200 });
 }
@@ -48,6 +58,7 @@ function makeApiFetch(
 ) {
   return vi.fn(async (url: string) => {
     if (url === "/api/projects") return listResponse(projects, warnings);
+    if (url.endsWith("/context-pack")) return packResponse();
     const prefix = "/api/projects/";
     if (url.startsWith(prefix)) {
       const id = decodeURIComponent(url.slice(prefix.length));
@@ -99,7 +110,7 @@ describe("ProjectsView", () => {
     });
     const items = screen.getAllByRole("listitem");
     expect(items.at(-1)).toHaveTextContent("c");
-    expect(within(items.at(-1)!).getByRole("button")).toHaveClass("prj-item--done");
+    expect(itemButton("c")).toHaveClass("prj-item--done");
   });
 
   it("bugi", async () => {
@@ -127,10 +138,10 @@ describe("ProjectsView", () => {
       a: detail({ id: "a", github: "javascript:alert(1)", deploy: "https://example.com" }),
     });
     render(<ProjectsView apiFetch={apiFetch} />);
-    const deploy = await screen.findByRole("link", { name: "deploy" });
+    const deploy = await screen.findByRole("link", { name: "Dev: example.com" });
     expect(deploy).toHaveAttribute("href", "https://example.com");
-    expect(screen.queryByRole("link", { name: /github/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/github: javascript:alert\(1\)/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Repo/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Repo: javascript:alert(1)")).toBeInTheDocument();
   });
 
   it("same zamknięte bugi: licznik bez pustej listy", async () => {
@@ -172,12 +183,33 @@ describe("ProjectsView", () => {
     });
     render(<ProjectsView apiFetch={apiFetch} />);
     await screen.findByText("w", { selector: ".prj-item__name" });
-    await userEvent.click(itemButton("w"));
+    await userEvent.click(itemMain("w"));
     const workCard = await screen.findByRole("region", { name: "Teczka projektu w" });
     expect(within(workCard).getByText("Dane z firmy")).toBeInTheDocument();
-    await userEvent.click(itemButton("p"));
+    await userEvent.click(itemMain("p"));
     const personalCard = await screen.findByRole("region", { name: "Teczka projektu p" });
     expect(within(personalCard).queryByText("Dane z firmy")).not.toBeInTheDocument();
+  });
+
+  it("kafle statystyk, filtr rejestru, chip Firma i alert przy stale", async () => {
+    const a = summary({ id: "alfa", freshness: "stale" });
+    const b = summary({ id: "beta", owner: "work" });
+    const apiFetch = makeApiFetch([a, b], {
+      alfa: detail({ id: "alfa", freshness: "stale" }),
+      beta: detail({ id: "beta", owner: "work" }),
+    });
+    render(<ProjectsView apiFetch={apiFetch} />);
+    const tiles = await screen.findByRole("region", { name: "Statystyki projektów" });
+    expect(within(tiles).getByText("Aktywne projekty")).toBeInTheDocument();
+    expect(within(tiles).getByText("Wymaga decyzji (>14 dni)")).toBeInTheDocument();
+    expect(screen.getByText("Firma")).toBeInTheDocument();
+    expect(screen.getByText(/Brak zmian od ponad 14 dni/)).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText("Filtruj projekty"), "bet");
+    expect(screen.queryByText("alfa", { selector: ".prj-item__name" })).not.toBeInTheDocument();
+    expect(screen.getByText("beta", { selector: ".prj-item__name" })).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Filtruj projekty"), "zzz");
+    expect(screen.getByText("Brak projektów pasujących do filtra")).toBeInTheDocument();
   });
 
   it("wybrany element", async () => {
@@ -193,9 +225,14 @@ describe("ProjectsView", () => {
 
 function itemButton(id: string): HTMLElement {
   const name = screen.getByText(id, { selector: ".prj-item__name" });
-  const button = name.closest("button");
-  if (!button) throw new Error(`brak przycisku dla ${id}`);
-  return button;
+  const item = name.closest(".prj-item");
+  if (!item) throw new Error(`brak karty dla ${id}`);
+  return item as HTMLElement;
+}
+
+/** Przycisk wyboru wewnątrz karty projektu (kliknięcie karty `div` niczego nie wybiera). */
+function itemMain(id: string): HTMLElement {
+  return within(itemButton(id)).getByRole("button", { name: new RegExp(id) });
 }
 
 /** apiFetch z zapisem: trzyma bieżące szczegóły projektu `a` i odpowiada na PUT/POST/PATCH. */
@@ -204,6 +241,7 @@ function makeRwApiFetch(initial: ProjectDetailDto, patchResponse?: Response) {
   const fetchFn = vi.fn(async (url: string, options?: RequestInit) => {
     const method = options?.method ?? "GET";
     if (url === "/api/projects") return listResponse([summary({ id: "a" })]);
+    if (url.endsWith("/context-pack")) return packResponse();
     if (url === "/api/projects/a" && method === "GET") {
       return new Response(JSON.stringify(current), { status: 200 });
     }
@@ -271,7 +309,10 @@ describe("ProjectsView: Save State, devlog, typ", () => {
     expect(await screen.findByText("feat/x")).toBeInTheDocument();
     expect(screen.getByText(/Kamień milowy: M/)).toBeInTheDocument();
     expect(screen.getByText(/do 2026-12-01/)).toBeInTheDocument();
-    expect(screen.queryByRole("progressbar")).toBeNull();
+    // jedyny pasek to budżet paczki kontekstu, kamień milowy nie ma paska procentowego
+    for (const bar of screen.queryAllByRole("progressbar")) {
+      expect(bar).toHaveAccessibleName("Budżet paczki kontekstu");
+    }
     expect(screen.getByText("javascript:x")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "javascript:x" })).toBeNull();
   });
@@ -332,5 +373,126 @@ describe("ProjectsView: Save State, devlog, typ", () => {
     render(<ProjectsView apiFetch={apiFetch} />);
     const column = await screen.findByRole("region", { name: "Kolumna Blokery" });
     expect(within(column).getByText("Brak")).toBeInTheDocument();
+  });
+});
+
+describe("ProjectsView: uśpienie i nowy projekt", () => {
+  function makeStatusApi() {
+    const stale = summary({ id: "a", freshness: "stale" });
+    const calls: { url: string; method: string; body: unknown }[] = [];
+    const fetchFn = vi.fn(async (url: string, options?: RequestInit) => {
+      const method = options?.method ?? "GET";
+      if (method !== "GET") {
+        calls.push({ url, method, body: JSON.parse(String(options?.body)) });
+      }
+      if (url === "/api/projects" && method === "GET") return listResponse([stale]);
+      if (url === "/api/projects" && method === "POST") {
+        return new Response(
+          JSON.stringify(detail({ id: "nowy", name: "Nowy", lastWorked: "2026-11-14" })),
+          { status: 201 }
+        );
+      }
+      if (url.endsWith("/context-pack")) return packResponse();
+      if (url === "/api/projects/a" && method === "PATCH") {
+        return new Response(
+          JSON.stringify(detail({ id: "a", status: "paused", freshness: "stale" }))
+        );
+      }
+      if (url === "/api/projects/a")
+        return new Response(JSON.stringify(detail({ id: "a", freshness: "stale" })));
+      if (url === "/api/projects/nowy")
+        return new Response(JSON.stringify(detail({ id: "nowy", name: "Nowy" })));
+      return new Response("{}", { status: 404 });
+    });
+    return { fetchFn, calls };
+  }
+
+  it("„Uśpij” w alercie: PATCH {status: paused}, projekt przestaje wymagać decyzji", async () => {
+    const { fetchFn, calls } = makeStatusApi();
+    render(<ProjectsView apiFetch={fetchFn} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Uśpij projekt a" }));
+
+    await waitFor(() => {
+      expect(calls).toEqual([
+        { url: "/api/projects/a", method: "PATCH", body: { status: "paused" } },
+      ]);
+    });
+    expect(await screen.findByRole("button", { name: "Wznów projekt a" })).toBeInTheDocument();
+    expect(screen.queryByText(/Brak zmian od ponad 14 dni/)).not.toBeInTheDocument();
+    expect(itemButton("a")).toHaveClass("prj-item--paused");
+    expect(itemButton("a")).not.toHaveClass("prj-item--stale");
+    const tiles = screen.getByRole("region", { name: "Statystyki projektów" });
+    expect(within(tiles).getByText("wszystko świeże")).toBeInTheDocument();
+  });
+
+  it("przycisk „Uśpij projekt” w teczce wysyła ten sam PATCH", async () => {
+    const { fetchFn, calls } = makeStatusApi();
+    render(<ProjectsView apiFetch={fetchFn} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Uśpij projekt" }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0].body).toEqual({ status: "paused" });
+    expect(await screen.findByRole("button", { name: "Wznów projekt" })).toBeInTheDocument();
+  });
+
+  it("„+ Nowy projekt”: formularz, POST i wybór nowego projektu", async () => {
+    const { fetchFn, calls } = makeStatusApi();
+    render(<ProjectsView apiFetch={fetchFn} />);
+    await userEvent.click(await screen.findByRole("button", { name: "+ Nowy projekt" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Nowy projekt" });
+    const create = within(dialog).getByRole("button", { name: "Utwórz projekt" });
+    expect(create).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText("Nazwa"), "Nowy");
+    await userEvent.type(within(dialog).getByLabelText(/Ścieżka lokalna/), "~/projects/nowy");
+    await userEvent.selectOptions(within(dialog).getByLabelText("Typ"), "wlasny");
+    await userEvent.click(create);
+
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0]).toEqual({
+      url: "/api/projects",
+      method: "POST",
+      body: { name: "Nowy", priority: "medium", localPath: "~/projects/nowy", type: "wlasny" },
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByRole("region", { name: "Teczka projektu Nowy" })).toBeInTheDocument();
+  });
+
+  it("„+ Nowy projekt”: błąd serwera w oknie, okno zostaje; Esc zamyka", async () => {
+    const fetchFn = vi.fn(async (url: string, options?: RequestInit) => {
+      if (url === "/api/projects" && options?.method === "POST") {
+        return new Response(JSON.stringify({ error: "Projekt nowy już jest w rejestrze" }), {
+          status: 409,
+        });
+      }
+      if (url === "/api/projects") return listResponse([summary({ id: "a" })]);
+      if (url.endsWith("/context-pack")) return packResponse();
+      return new Response(JSON.stringify(detail({ id: "a" })));
+    });
+    render(<ProjectsView apiFetch={fetchFn} />);
+    await userEvent.click(await screen.findByRole("button", { name: "+ Nowy projekt" }));
+    await userEvent.type(screen.getByLabelText("Nazwa"), "Nowy");
+    await userEvent.click(screen.getByRole("button", { name: "Utwórz projekt" }));
+
+    expect(await screen.findByText("Projekt nowy już jest w rejestrze")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("kafel „Paczka kontekstu” pokazuje tokeny wybranego projektu", async () => {
+    const { fetchFn } = makeStatusApi();
+    render(<ProjectsView apiFetch={fetchFn} />);
+    const tiles = await screen.findByRole("region", { name: "Statystyki projektów" });
+    expect(await within(tiles).findByText("3 850 tok")).toBeInTheDocument();
+    expect(within(tiles).getByText("Paczka kontekstu")).toBeInTheDocument();
+    expect(within(tiles).getByText("96% budżetu 4 000 tokenów")).toBeInTheDocument();
+  });
+
+  it("projekt bez state.md: karta Save State z „Gdzie skończyłem” i przycisk utworzenia", async () => {
+    const { fetchFn } = makeStatusApi();
+    render(<ProjectsView apiFetch={fetchFn} />);
+    expect(await screen.findByText("Save State")).toBeInTheDocument();
+    expect(screen.getByText("brak state.md")).toBeInTheDocument();
+    expect(screen.getByText("Gdzie skończyłem (z index.md)")).toBeInTheDocument();
   });
 });

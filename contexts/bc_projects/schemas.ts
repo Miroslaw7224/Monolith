@@ -51,6 +51,40 @@ const httpUrl = z
 export const ProjectTypeSchema = z.enum(["etat", "wlasny", "biblioteka"]);
 export const ProjectTypeInputSchema = z.object({ type: ProjectTypeSchema });
 
+/** Status ustawiany z aplikacji; lista zgodna z `PROJECT_STATUS_CHANGES` w `models` (pilnuje test). */
+export const ProjectStatusSchema = z.enum(["active", "paused"]);
+export const ProjectStatusInputSchema = z.object({ status: ProjectStatusSchema });
+
+/** Priorytet nowego projektu; lista zgodna z `PROJECT_PRIORITIES` w `models` (pilnuje test). */
+export const ProjectPrioritySchema = z.enum(["high", "medium", "low"]);
+
+/** Linki projektu: Repo (`github`, tylko http(s)), Dev (`deploy`) i Docs (`docs`) mogą być też zwykłym tekstem (`localhost:5000`, `docs/v2.md`). Pusty napis usuwa link. */
+export const ProjectLinksInputSchema = z.object({
+  links: z
+    .object({
+      github: httpUrl.or(z.literal("")).optional(),
+      deploy: oneLine(300).optional(),
+      docs: oneLine(300).optional(),
+    })
+    .refine((v) => Object.keys(v).length > 0, "Podaj przynajmniej jeden link"),
+});
+
+/** Wejście `PATCH /api/projects/[id]`: zmiana typu, statusu albo linków (jedno z trzech). */
+export const ProjectPatchInputSchema = z.union([
+  ProjectTypeInputSchema,
+  ProjectStatusInputSchema,
+  ProjectLinksInputSchema,
+]);
+
+/** Wejście `POST /api/projects` (formularz „Nowy projekt”). `id` wylicza serwer z nazwy. */
+export const NewProjectInputSchema = z.object({
+  name: oneLine(80).refine((v) => v.length > 0, "Podaj nazwę"),
+  priority: ProjectPrioritySchema,
+  type: ProjectTypeSchema.optional(),
+  localPath: oneLine(300),
+  github: httpUrl.optional(),
+});
+
 function toVersion(v: string): { size: number; hash: string } | null {
   const m = VERSION_RE.exec(v);
   return m ? { size: Number(m[1]), hash: m[2] } : null;
@@ -174,6 +208,9 @@ export const TaskOpInputSchema = z.discriminatedUnion("op", [
 export type StateInputDto = z.input<typeof StateInputSchema>;
 export type DevlogInputDto = z.input<typeof DevlogInputSchema>;
 export type TaskOpInputDto = z.input<typeof TaskOpInputSchema>;
+export type ProjectStatusChangeDto = z.infer<typeof ProjectStatusSchema>;
+export type ProjectLinksInputDto = z.infer<typeof ProjectLinksInputSchema>["links"];
+export type NewProjectInputDto = z.input<typeof NewProjectInputSchema>;
 
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
 
@@ -207,6 +244,7 @@ export type ProjectSummaryDto = {
   localPath: string;
   deploy?: string;
   github?: string;
+  docs?: string;
   owner: Owner;
   lastWorked?: string;
   stateConfidence?: string;
@@ -251,6 +289,7 @@ export function toSummaryDto(p: Project): ProjectSummaryDto {
   };
   if (p.deploy !== undefined) dto.deploy = p.deploy;
   if (p.github !== undefined) dto.github = p.github;
+  if (p.docs !== undefined) dto.docs = p.docs;
   if (p.lastWorked !== undefined) dto.lastWorked = p.lastWorked;
   if (p.stateConfidence !== undefined) dto.stateConfidence = p.stateConfidence;
   if (p.type !== undefined) dto.type = p.type;
@@ -277,6 +316,9 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
 }
 
 // ── paczka kontekstu dla agenta (etap 1-4) ──────────────────────────────────────
+
+/** Budżet paczki kontekstu w tokenach; wartość zgodna z `PACK_BUDGET_TOKENS` w serwisie (pilnuje test). */
+export const PACK_BUDGET_TOKENS = 4000;
 
 export type ContextPackDto = {
   markdown: string;

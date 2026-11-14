@@ -1,6 +1,8 @@
 import YAML from "yaml";
 import {
+  PROJECT_LINK_KEYS,
   PROJECT_TYPES,
+  type ProjectLinksInput,
   type BugEntry,
   type ChecklistSection,
   type DevlogEntry,
@@ -41,6 +43,7 @@ import {
   parseSections,
   parseState,
   prependDevlogEntry,
+  renderNewProjectFiles,
   serializeState,
   setFrontmatterType,
 } from "./markdown";
@@ -136,6 +139,8 @@ export function readRegistry(): {
     if (deploy) entry.deploy = deploy;
     const github = text(raw.github);
     if (github) entry.github = github;
+    const docs = text(raw.docs);
+    if (docs) entry.docs = docs;
 
     entries.push(entry);
   });
@@ -254,6 +259,95 @@ export async function writeProjectType(entry: RegistryEntry, type: ProjectType):
     if (current === null) throw new NotFoundError(`Brak pliku ${rel}`);
     return setFrontmatterType(current, type);
   });
+}
+
+/** Pozycja `projects` w dokumencie rejestru po `id`; błąd, gdy rejestru lub pozycji nie ma. */
+function findRegistryItem(doc: YAML.Document, id: string): YAML.YAMLMap {
+  const projects = doc.get("projects");
+  if (!YAML.isSeq(projects)) throw new DomainError(MISSING_PROJECTS_LIST, 422);
+  for (const item of projects.items) {
+    if (YAML.isMap(item) && text(item.get("id")) === id) return item;
+  }
+  throw new NotFoundError(`Brak projektu ${id} w ${REGISTRY}`);
+}
+
+/** Bez zawijania długich linii (`deploy:` itp.): zapis ma zmienić tylko to, co zmieniamy. */
+const YAML_OUT = { lineWidth: 0 } as const;
+
+/**
+ * Zmienia tylko `status` jednej pozycji w `Projects/_registry.yaml` (komentarze i reszta pliku bez zmian).
+ * Rejestr jest wspólnym plikiem NEXUS, a nie `Projects/<id>/`, więc nie przechodzi przez `assertWritable`.
+ */
+export async function writeRegistryStatus(entry: RegistryEntry, status: string): Promise<void> {
+  await updateVaultFile(REGISTRY, (current) => {
+    if (current === null) throw new NotFoundError(`Brak pliku ${REGISTRY}`);
+    const doc = YAML.parseDocument(current);
+    findRegistryItem(doc, entry.id).set("status", status);
+    return doc.toString(YAML_OUT);
+  });
+}
+
+/**
+ * Ustawia `github` / `deploy` / `docs` jednej pozycji rejestru (pusty napis usuwa klucz); reszta pliku bez zmian.
+ * Jak `writeRegistryStatus`: rejestr jest wspólnym plikiem NEXUS, więc nie przechodzi przez `assertWritable`.
+ */
+export async function writeRegistryLinks(
+  entry: RegistryEntry,
+  links: ProjectLinksInput
+): Promise<void> {
+  await updateVaultFile(REGISTRY, (current) => {
+    if (current === null) throw new NotFoundError(`Brak pliku ${REGISTRY}`);
+    const doc = YAML.parseDocument(current);
+    const item = findRegistryItem(doc, entry.id);
+    for (const key of PROJECT_LINK_KEYS) {
+      const value = links[key];
+      if (value === undefined) continue;
+      if (value === "") item.delete(key);
+      else item.set(key, value);
+    }
+    return doc.toString(YAML_OUT);
+  });
+}
+
+/** Wejście do `createProjectFiles`: wpis rejestru bez `owner` (nowy projekt jest zawsze `personal`). */
+export type NewProject = Omit<RegistryEntry, "owner">;
+
+/**
+ * Tworzy projekt: dopisuje wpis na końcu rejestru (duplikat `id` to `ConflictError`), potem zakłada
+ * `Projects/<id>/` z podanymi plikami. Pliki są nowe: istniejący plik to `ConflictError`, bez nadpisania.
+ */
+export async function createProjectFiles(
+  project: NewProject,
+  opts: { type?: ProjectType; today: string }
+): Promise<void> {
+  const entry: RegistryEntry = { ...project, owner: "personal" };
+  const files = renderNewProjectFiles(project, opts);
+  for (const file of files) assertWritable(entry, projectPath(entry.folder, file.name));
+  await updateVaultFile(REGISTRY, (current) => {
+    if (current === null) throw new NotFoundError(`Brak pliku ${REGISTRY}`);
+    const doc = YAML.parseDocument(current);
+    const projects = doc.get("projects");
+    if (!YAML.isSeq(projects)) throw new DomainError(MISSING_PROJECTS_LIST, 422);
+    const taken = projects.items.some(
+      (item) => YAML.isMap(item) && text(item.get("id")) === project.id
+    );
+    if (taken) throw new ConflictError(`Projekt ${project.id} już jest w rejestrze`);
+    const node = doc.createNode({
+      id: project.id,
+      name: project.name,
+      status: project.status,
+      priority: project.priority,
+      folder: project.folder,
+      ...(project.localPath ? { local_path: project.localPath } : {}),
+      ...(project.github ? { github: project.github } : {}),
+    });
+    node.spaceBefore = true;
+    projects.add(node);
+    return doc.toString(YAML_OUT);
+  });
+  for (const file of files) {
+    writeVaultFile(projectPath(entry.folder, file.name), file.text, { expected: null });
+  }
 }
 
 function sameVersion(a: VersionToken | null, b: VersionToken | null): boolean {

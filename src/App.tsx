@@ -8,6 +8,7 @@ import { translations } from "@/src/translations";
 import { apiFetch } from "@/src/lib/apiFetch";
 import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
 import HomeView from "@/src/features/home/HomeView";
+import { ShellStatusBar } from "@/src/features/home/ShellStatusBar";
 import { MobileNav } from "@/src/components/layout/MobileNav";
 import { MobileMoreDrawer } from "@/src/components/layout/MobileMoreDrawer";
 import { useCardNavigation } from "@/src/features/cards/useCardNavigation";
@@ -79,11 +80,7 @@ export default function App() {
       data-card={activeCard}
     >
       <CardRail activeCard={activeCard} onSelect={selectCard} onOpenPalette={openPalette} />
-      {projectsOpen ? (
-        <ProjectsView apiFetch={apiFetch} initialProjectId={projectToOpen} />
-      ) : placeholder ? (
-        <CardPlaceholder cardId={placeholder} />
-      ) : appMode === "home" ? (
+      {!projectsOpen && !placeholder && appMode === "home" ? (
         <HomeView
           apiFetch={apiFetch}
           onOpenProject={openProject}
@@ -92,15 +89,24 @@ export default function App() {
           onInboxFocused={clearInboxFocus}
         />
       ) : (
-        <PlanowanieView
-          apiFetch={apiFetch}
-          lang={lang}
-          t={t}
-          appMode={appMode}
-          setAppMode={setAppMode}
-          planningTab={planningTab}
-          setPlanningTab={setPlanningTab}
-        />
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden pb-16 md:pb-0">
+          {projectsOpen ? (
+            <ProjectsView apiFetch={apiFetch} initialProjectId={projectToOpen} />
+          ) : placeholder ? (
+            <CardPlaceholder cardId={placeholder} />
+          ) : (
+            <PlanowanieView
+              apiFetch={apiFetch}
+              lang={lang}
+              t={t}
+              appMode={appMode}
+              setAppMode={setAppMode}
+              planningTab={planningTab}
+              setPlanningTab={setPlanningTab}
+            />
+          )}
+          <ShellStatusBar apiFetch={apiFetch} refreshKey={activeCard} />
+        </div>
       )}
       <MobileNav
         appMode={appMode}

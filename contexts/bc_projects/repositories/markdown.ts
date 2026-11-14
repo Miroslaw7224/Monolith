@@ -257,3 +257,53 @@ export function setFrontmatterType(text: string, type: ProjectType): string {
   }
   return result;
 }
+
+/**
+ * Pliki nowego projektu (`index.md`, `tasks.md`, `bugs.md`): ta sama konwencja co w vaulcie NEXUS
+ * (frontmatter, linia nawigacji `[[id/…]]`, sekcje tablicy zadań z placeholderami `_Brak…_`).
+ * Frontmatter przez `formatFrontmatter`, żeby nazwa z `:` albo `#` nie zepsuła pliku.
+ */
+export function renderNewProjectFiles(
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    priority: string;
+    localPath: string;
+    github?: string;
+  },
+  opts: { type?: ProjectType; today: string }
+): { name: string; text: string }[] {
+  const meta = {
+    name: project.name,
+    status: project.status,
+    priority: project.priority,
+    ...(project.github ? { github: project.github } : {}),
+    ...(project.localPath ? { local_path: project.localPath } : {}),
+    last_worked: opts.today,
+    state_confidence: "unknown",
+    ...(opts.type ? { type: opts.type } : {}),
+  };
+  const nav = (...others: [string, string][]) =>
+    `> ${others.map(([file, label]) => `[[${project.id}/${file}|${label}]]`).join(" | ")}`;
+  const index = formatFrontmatter(
+    meta,
+    `${nav([project.id, project.name], ["tasks", "Tasks"], ["bugs", "Bugs"])}\n\n` +
+      `## O projekcie\n\n_Do uzupełnienia._`
+  );
+  const tasks =
+    `# Tasks — ${project.name}\n` +
+    `${nav([project.id, project.name], ["index", "Info"], ["bugs", "Bugs"])}\n\n` +
+    `## Blokery\n\n_Brak aktywnych blokerów_\n\n` +
+    `## Next\n\n_Brak zadań w toku (następny krok do ustalenia)_\n\n` +
+    `## Backlog\n\n_Brak zadań w backlogu_\n`;
+  const bugs =
+    `# Bugs — ${project.name}\n` +
+    `${nav([project.id, project.name], ["index", "Info"], ["tasks", "Tasks"])}\n\n` +
+    `Brak znanych bugów.\n`;
+  return [
+    { name: "index.md", text: index },
+    { name: "tasks.md", text: tasks },
+    { name: "bugs.md", text: bugs },
+  ];
+}

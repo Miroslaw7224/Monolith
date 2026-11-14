@@ -34,7 +34,12 @@ export function ProjectDevlog(props: {
 
   return (
     <article className="prj-card">
-      <h3 className="prj-section-title">Dziennik decyzji</h3>
+      <div className="prj-card__head">
+        <h3 className="prj-section-title">Devlog · ostatnie decyzje</h3>
+        <span className="prj-statebox__meta">
+          {entries.length} {entries.length === 1 ? "wpis" : "wpisów"}
+        </span>
+      </div>
       {entries.length === 0 ? (
         <p className="prj-state">Brak wpisów</p>
       ) : (

@@ -13,6 +13,7 @@ import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
 import { useNotesData, type Note } from "@/src/features/notes/useNotesData";
+import { useInboxOpen } from "@/src/features/notes/useInboxOpen";
 import type { PlanningTab } from "./planningTab";
 import { CardSubTabs } from "@/src/features/cards/CardSubTabs";
 import { cardForView, subtabsForCard } from "@/src/features/cards/cards";
@@ -59,6 +60,7 @@ export default function PlanowanieView({
   const [noteEditMode, setNoteEditMode] = useState(false);
 
   const { notes, fetchNotes } = useNotesData(apiFetch);
+  const inboxOpen = useInboxOpen(apiFetch, planningTab === "notes");
 
   useEffect(() => {
     setActiveSessionState(getActiveSession());
@@ -189,7 +191,7 @@ export default function PlanowanieView({
   }));
 
   return (
-    <main className="flex-1 min-w-0 flex flex-col relative pb-16 md:pb-0">
+    <main className="flex-1 min-w-0 min-h-0 flex flex-col relative">
       {cardSubtabs.length >= 2 && (
         <CardSubTabs tabs={subtabItems} active={planningTab} onSelect={setPlanningTab} />
       )}
@@ -259,6 +261,7 @@ export default function PlanowanieView({
             saveNote={t.saveNote}
             noteEdit={t.noteEdit}
             deleteNote={t.deleteNote}
+            inboxOpen={inboxOpen}
           />
         ) : planningTab === "resources" ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
