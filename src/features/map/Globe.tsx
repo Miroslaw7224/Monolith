@@ -30,6 +30,16 @@ import {
   type Vec3,
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
+import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
+
+/** Liczba iskier płynących po łukach: w spoczynku i po zaznaczeniu (wtedy tylko po podświetlonych). */
+const SPARKS_IDLE = 70;
+const SPARKS_SELECTED = 36;
+/** Długość ogona iskry (ułamek łuku) i liczba segmentów ogona. */
+const SPARK_TAIL = 0.14;
+const SPARK_TAIL_SEGMENTS = 4;
+
+type SparkEdge = { edge: MapEdgeDto; color: string };
 
 /** Prędkość auto-obrotu: ok. 0,12 rad/s, pełny obrót w ~52 s. */
 const AUTO_SPEED = 0.12;
@@ -184,6 +194,23 @@ export function Globe({
     let hoverHl: SelectionHighlight | null = null;
     let hoverKey = "";
 
+    // Iskry: pula krawędzi zależy od tego, czy coś jest zaznaczone (wtedy lecą tylko po podświetlonych).
+    const sparks: Spark<SparkEdge>[] = [];
+    let sparkPool: SparkEdge[] = [];
+    let sparkPoolSrc: unknown = null;
+    const refreshSparkPool = () => {
+      const { highlight: sel, baseByClass: byClass, edgeMaps: maps } = dataRef.current;
+      const hl = hoverHl ?? sel;
+      const src = hl.clusterId !== null ? hl.edges : byClass;
+      if (src === sparkPoolSrc) return;
+      sparkPoolSrc = src;
+      const grouped = hl.clusterId !== null ? groupEdges(hl.edges, maps) : byClass;
+      sparkPool = EDGE_CLASSES.flatMap((c) =>
+        (grouped.get(c.id) ?? []).map((edge) => ({ edge, color: c.color }))
+      );
+      retargetSparks(sparks, sparkPool, Math.random);
+    };
+
     const draw = () => {
       const {
         geo: g,
@@ -289,6 +316,45 @@ export function Globe({
       }
       ctx.globalAlpha = 1;
 
+      // 4. Iskry płynące po łukach (jak sygnały między neuronami); przy ograniczeniu ruchu ich nie ma.
+      if (!reduced.current) {
+        const sparkScale = Math.sqrt(zoom);
+        ctx.lineCap = "round";
+        for (const s of sparks) {
+          const raw = arcFor(s.edge.edge);
+          if (!raw) continue;
+          const fade = Math.sin(Math.PI * s.t);
+          const head = pj(pointAlong(raw, s.t));
+          const side = head.z >= 0 ? 1 : 0.3;
+          ctx.strokeStyle = s.edge.color;
+          ctx.fillStyle = s.edge.color;
+          let prev = head;
+          for (let k = 1; k <= SPARK_TAIL_SEGMENTS; k += 1) {
+            const tk = s.t - (SPARK_TAIL * k) / SPARK_TAIL_SEGMENTS;
+            if (tk < 0) break;
+            const q = pj(pointAlong(raw, tk));
+            ctx.globalAlpha = fade * side * 0.7 * (1 - (k - 1) / SPARK_TAIL_SEGMENTS);
+            ctx.lineWidth = 2 * head.scale * sparkScale * (1 - (k - 1) / (SPARK_TAIL_SEGMENTS + 1));
+            ctx.beginPath();
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.stroke();
+            prev = q;
+          }
+          const r = 2 * head.scale * sparkScale;
+          ctx.globalAlpha = fade * side * 0.25;
+          ctx.beginPath();
+          ctx.arc(head.x, head.y, r * 2.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = fade * side;
+          ctx.beginPath();
+          ctx.arc(head.x, head.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.lineCap = "butt";
+        ctx.globalAlpha = 1;
+      }
+
       // 5. Punkty-notatki (od tyłu do przodu).
       const cluster = new Map(cls.map((c) => [c.id, c]));
       const items = nds
@@ -391,6 +457,16 @@ export function Globe({
       } else if (!hover.current && !pausedRef.current && !drag.current) {
         view.current.yaw += dt * AUTO_SPEED;
       }
+      refreshSparkPool();
+      const selecting = (hoverHl ?? dataRef.current.highlight).clusterId !== null;
+      stepSparks(
+        sparks,
+        dt,
+        sparkPool,
+        selecting ? SPARKS_SELECTED : SPARKS_IDLE,
+        selecting ? 1.6 : 1,
+        Math.random
+      );
       draw();
       raf = requestAnimationFrame(loop);
     };
