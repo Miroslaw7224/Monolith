@@ -72,6 +72,20 @@ describe("primaryCategory", () => {
 describe("readMapSources", () => {
   const vault = setupTempVault();
 
+  it("pomija pliki robocze projektu (tasks, devlog, changelog), zostawia resztę i podkatalogi", () => {
+    vault.write("Projects/nexus/index.md", "i");
+    vault.write("Projects/nexus/nexus.md", "n");
+    vault.write("Projects/nexus/tasks.md", "- [[nexus/index|Info]]");
+    vault.write("Projects/nexus/devlog.md", "d");
+    vault.write("Projects/nexus/changelog.md", "c");
+    vault.write("Projects/nexus/sub/tasks.md", "zostaje");
+    expect(readMapSources().notes.map((n) => n.path)).toEqual([
+      "Projects/nexus/index",
+      "Projects/nexus/nexus",
+      "Projects/nexus/sub/tasks",
+    ]);
+  });
+
   it("czyta notatki trzech obszarów; pomija _*, attachments/, Work/ i pliki bez katalogu projektu", () => {
     vault.write("tech-stack-wspolny.md", TECH_STACK);
     vault.write(
