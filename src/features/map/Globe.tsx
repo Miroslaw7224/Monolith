@@ -29,6 +29,7 @@ import {
   type Vec3,
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
+import { axonPulse, coreAlphas, dustPosition, makeDust, withAlpha } from "./core";
 import { approach, breathScale, idPhase, slowPulse } from "./motion";
 import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
@@ -42,6 +43,8 @@ const SPARK_TAIL_SEGMENTS = 4;
 
 type SparkEdge = { edge: MapEdgeDto; color: string };
 
+/** Liczba ziaren pyłu dryfującego we wnętrzu kuli. */
+const DUST_COUNT = 60;
 /** Węzły wyższe niż to dostają „łodygę” do powierzchni kuli. */
 const STEM_MIN_HEIGHT = 0.025;
 const edgePhases = new WeakMap<MapEdgeDto, number>();
@@ -226,6 +229,8 @@ export function Globe({
     let hoverHl: SelectionHighlight | null = null;
     let hoverKey = "";
 
+    const dust = makeDust(DUST_COUNT);
+
     // Miękkie podświetlenie: każde zaznaczenie/najechanie to warstwa, która płynnie rośnie lub gaśnie.
     const layers: HlLayer[] = [];
     let lastHlTime = performance.now();
@@ -293,15 +298,69 @@ export function Globe({
 
       // 1. Dysk kuli (z delikatnym pulsem tła i krawędzi).
       const pulse = live ? slowPulse(now) : 0.5;
+      const alphas = coreAlphas(pulse);
       ctx.beginPath();
       ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
-      ctx.globalAlpha = 0.3 + 0.1 * pulse;
-      ctx.fillStyle = pal.surface;
+      const body = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, R);
+      body.addColorStop(0, withAlpha(pal.surface, alphas.edge * 0.5, FALLBACK.surface));
+      body.addColorStop(1, withAlpha(pal.surface, alphas.edge, FALLBACK.surface));
+      ctx.fillStyle = body;
       ctx.fill();
+      // Świecące jądro w środku (gaśnie ku brzegowi).
+      const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, R * 0.6);
+      glow.addColorStop(0, withAlpha(pal.accent, alphas.core, FALLBACK.accent));
+      glow.addColorStop(1, withAlpha(pal.accent, 0, FALLBACK.accent));
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, R * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
       ctx.globalAlpha = 0.75 + 0.25 * pulse;
       ctx.strokeStyle = pal.line;
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // 1b. Aksony: cienkie włókna od jądra do skupisk, z sygnałem biegnącym ku skupisku.
+      const core = pj({ x: 0, y: 0, z: 0 });
+      ctx.lineWidth = 1;
+      for (const c of cls) {
+        const pl = g.placement[c.id];
+        if (!pl || c.soon) continue;
+        const tip = pj(pl.center);
+        let lit = 0;
+        for (const l of layers) if (l.hl.clusterId === c.id) lit = Math.max(lit, l.amt);
+        const base = (0.1 + 0.3 * lit) * (1 - 0.5 * selectAmt * (1 - lit));
+        const side = tip.z >= 0 ? 1 : 0.45;
+        ctx.strokeStyle = groupColor(c.group);
+        ctx.fillStyle = groupColor(c.group);
+        ctx.globalAlpha = base * side;
+        ctx.beginPath();
+        ctx.moveTo(core.x, core.y);
+        ctx.lineTo(tip.x, tip.y);
+        ctx.stroke();
+        if (live) {
+          const t = axonPulse(now, c.id);
+          const q = pj({ x: pl.center.x * t, y: pl.center.y * t, z: pl.center.z * t });
+          ctx.globalAlpha = Math.sin(Math.PI * t) * (0.35 + 0.5 * lit) * side;
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, 1.8 * q.scale * Math.sqrt(zoom), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 1c. Pył dryfujący we wnętrzu kuli.
+      if (live) {
+        ctx.fillStyle = pal.text;
+        for (const d of dust) {
+          const q = pj(dustPosition(d, now));
+          ctx.globalAlpha = (q.z >= 0 ? 0.5 : 0.2) * (1 - 0.55 * selectAmt);
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, 1.1 * q.scale * Math.sqrt(zoom), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
       ctx.globalAlpha = 1;
 
       // 2. Pola skupisk nie są rysowane; tylko przerywany obrys placeholdera (Skille).
