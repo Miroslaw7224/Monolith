@@ -263,6 +263,38 @@ export function listVaultFiles(relDir: string, opts?: VaultFsOptions): string[] 
 }
 
 /**
+ * Ścieżki (względem korzenia vaulta, separator `/`) wszystkich plików `.md` pod `relDir`, rekurencyjnie,
+ * posortowane. Pomija dowiązania (pliki i katalogi) oraz każdy katalog `Work` na dowolnej głębokości,
+ * więc nie rzuca `WorkAreaBlockedError` dla poddrzew. Brak katalogu daje []. `relDir` przechodzi przez
+ * resolveInsideVault.
+ */
+export function listVaultFilesRecursive(relDir: string, opts?: VaultFsOptions): string[] {
+  const abs = resolveInsideVault(rootOf(opts), relDir, opts);
+  const base = relDir.replace(/\\/g, "/").replace(/\/+$/, "");
+  const out: string[] = [];
+  const walk = (dirAbs: string, dirRel: string): void => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dirAbs, { withFileTypes: true });
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT" || code === "ENOTDIR") return;
+      throw err;
+    }
+    for (const entry of entries) {
+      const rel = `${dirRel}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (!isWorkSegment(entry.name)) walk(path.join(dirAbs, entry.name), rel);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
+        out.push(rel);
+      }
+    }
+  };
+  walk(abs, base);
+  return out.sort();
+}
+
+/**
  * Usuwa plik, jeśli jego wersja jest taka jak `expected` (z ostatniego odczytu).
  * Zwraca false, gdy pliku nie ma; inna wersja daje ConflictError (plik zostaje).
  */
