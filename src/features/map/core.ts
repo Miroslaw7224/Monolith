@@ -2,7 +2,7 @@ import type { Vec3 } from "./globeMath";
 import { idPhase } from "./motion";
 
 /** Największa alfa świecącego jądra: wyżej tylne łuki przestają być czytelne. */
-export const CORE_MAX_ALPHA = 0.25;
+export const CORE_MAX_ALPHA = 0.4;
 /** Zakres promieni (w promieniach kuli), w którym dryfuje pył. */
 export const DUST_MIN_RADIUS = 0.2;
 export const DUST_MAX_RADIUS = 0.75;

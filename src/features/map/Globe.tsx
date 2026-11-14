@@ -44,7 +44,7 @@ const SPARK_TAIL_SEGMENTS = 4;
 type SparkEdge = { edge: MapEdgeDto; color: string };
 
 /** Liczba ziaren pyłu dryfującego we wnętrzu kuli. */
-const DUST_COUNT = 60;
+const DUST_COUNT = 110;
 /** Wewnętrzna siatka: promień (w promieniach kuli); 3 równoleżniki, 4 południki, 48 odcinków. */
 const INNER_RADIUS = 0.4;
 /** Węzły wyższe niż to dostają „łodygę” do powierzchni kuli. */
@@ -310,12 +310,12 @@ export function Globe({
       ctx.fillStyle = body;
       ctx.fill();
       // Świecące jądro w środku (gaśnie ku brzegowi).
-      const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, R * 0.6);
+      const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, R * 0.85);
       glow.addColorStop(0, withAlpha(pal.accent, alphas.core, FALLBACK.accent));
       glow.addColorStop(1, withAlpha(pal.accent, 0, FALLBACK.accent));
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(w / 2, h / 2, R * 0.6, 0, Math.PI * 2);
+      ctx.arc(w / 2, h / 2, R * 0.85, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
       ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
@@ -342,14 +342,14 @@ export function Globe({
 
       // 1b. Aksony: cienkie włókna od jądra do skupisk, z sygnałem biegnącym ku skupisku.
       const core = pj({ x: 0, y: 0, z: 0 });
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.6;
       for (const c of cls) {
         const pl = g.placement[c.id];
         if (!pl || c.soon) continue;
         const tip = pj(pl.center);
         let lit = 0;
         for (const l of layers) if (l.hl.clusterId === c.id) lit = Math.max(lit, l.amt);
-        const base = (0.1 + 0.3 * lit) * (1 - 0.5 * selectAmt * (1 - lit));
+        const base = (0.22 + 0.4 * lit) * (1 - 0.5 * selectAmt * (1 - lit));
         const side = tip.z >= 0 ? 1 : 0.45;
         ctx.strokeStyle = groupColor(c.group);
         ctx.fillStyle = groupColor(c.group);
@@ -361,9 +361,9 @@ export function Globe({
         if (live) {
           const t = axonPulse(now, c.id);
           const q = pj({ x: pl.center.x * t, y: pl.center.y * t, z: pl.center.z * t });
-          ctx.globalAlpha = Math.sin(Math.PI * t) * (0.35 + 0.5 * lit) * side;
+          ctx.globalAlpha = Math.sin(Math.PI * t) * (0.6 + 0.4 * lit) * side;
           ctx.beginPath();
-          ctx.arc(q.x, q.y, 1.8 * q.scale * Math.sqrt(zoom), 0, Math.PI * 2);
+          ctx.arc(q.x, q.y, 3 * q.scale * Math.sqrt(zoom), 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -373,9 +373,9 @@ export function Globe({
         ctx.fillStyle = pal.text;
         for (const d of dust) {
           const q = pj(dustPosition(d, now));
-          ctx.globalAlpha = (q.z >= 0 ? 0.5 : 0.2) * (1 - 0.55 * selectAmt);
+          ctx.globalAlpha = (q.z >= 0 ? 0.75 : 0.3) * (1 - 0.55 * selectAmt);
           ctx.beginPath();
-          ctx.arc(q.x, q.y, 1.1 * q.scale * Math.sqrt(zoom), 0, Math.PI * 2);
+          ctx.arc(q.x, q.y, 1.9 * q.scale * Math.sqrt(zoom), 0, Math.PI * 2);
           ctx.fill();
         }
       }
