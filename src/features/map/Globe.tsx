@@ -7,7 +7,7 @@ import type {
   MapEdgeDto,
   MapNodeDto,
 } from "@/contexts/bc_map/schemas";
-import { EDGE_CLASSES, buildEdgeMaps, groupEdges } from "./edgeColors";
+import { EDGE_CLASSES, buildEdgeMaps, groupEdges, type EdgeMaps } from "./edgeColors";
 import { GlobeControls } from "./GlobeControls";
 import {
   POINT_LABEL_ZOOM,
@@ -30,6 +30,7 @@ import {
   type Vec3,
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
+import { approach, breathScale, slowPulse } from "./motion";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
 
 /** Liczba iskier płynących po łukach: w spoczynku i po zaznaczeniu (wtedy tylko po podświetlonych). */
@@ -40,6 +41,11 @@ const SPARK_TAIL = 0.14;
 const SPARK_TAIL_SEGMENTS = 4;
 
 type SparkEdge = { edge: MapEdgeDto; color: string };
+
+/** Tempo (1/s) miękkiego włączania i wygaszania podświetlenia; ok. 0,25 s na przejście. */
+const HL_RATE = 10;
+/** Warstwa podświetlenia: zaznaczenie z postępem 0..1 (przejście między zaznaczeniami to płynna zamiana warstw). */
+type HlLayer = { hl: SelectionHighlight; amt: number; lit: ReturnType<typeof groupEdges> };
 
 /** Prędkość auto-obrotu: ok. 0,12 rad/s, pełny obrót w ~52 s. */
 const AUTO_SPEED = 0.12;
@@ -194,6 +200,21 @@ export function Globe({
     let hoverHl: SelectionHighlight | null = null;
     let hoverKey = "";
 
+    // Miękkie podświetlenie: każde zaznaczenie/najechanie to warstwa, która płynnie rośnie lub gaśnie.
+    const layers: HlLayer[] = [];
+    let lastHlTime = performance.now();
+    const advanceLayers = (now: number, want: SelectionHighlight | null, maps: EdgeMaps) => {
+      const dt = reduced.current ? 1 : Math.min(0.1, Math.max(0, (now - lastHlTime) / 1000));
+      lastHlTime = now;
+      if (want && !layers.some((l) => l.hl === want)) {
+        layers.push({ hl: want, amt: 0, lit: groupEdges(want.edges, maps) });
+      }
+      for (const l of layers) l.amt = approach(l.amt, l.hl === want ? 1 : 0, dt, HL_RATE);
+      for (let i = layers.length - 1; i >= 0; i -= 1) {
+        if (layers[i].hl !== want && layers[i].amt <= 0) layers.splice(i, 1);
+      }
+    };
+
     // Iskry: pula krawędzi zależy od tego, czy coś jest zaznaczone (wtedy lecą tylko po podświetlonych).
     const sparks: Spark<SparkEdge>[] = [];
     let sparkPool: SparkEdge[] = [];
@@ -235,18 +256,26 @@ export function Globe({
       const zoom = zoomRef.current;
       const R = fitRadius(w, h) * zoom;
       const pj = (p: Vec3) => project(rotate(p, yaw, pitch), w, h, zoom);
-      const selecting = hl.clusterId !== null;
+      const now = performance.now();
+      advanceLayers(now, hl.clusterId !== null ? hl : null, maps);
+      const selectAmt = Math.min(
+        1,
+        layers.reduce((sum, l) => sum + l.amt, 0)
+      );
+      const live = !reduced.current;
 
-      // 1. Dysk kuli.
+      // 1. Dysk kuli (z delikatnym pulsem tła i krawędzi).
+      const pulse = live ? slowPulse(now) : 0.5;
       ctx.beginPath();
       ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = 0.3 + 0.1 * pulse;
       ctx.fillStyle = pal.surface;
       ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = 0.75 + 0.25 * pulse;
       ctx.strokeStyle = pal.line;
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.globalAlpha = 1;
 
       // 2. Pola skupisk nie są rysowane; tylko przerywany obrys placeholdera (Skille).
       for (const c of cls) {
@@ -305,13 +334,14 @@ export function Globe({
       // Kolor wg klasy połączenia; podświetlone mają ten sam kolor, ale pełniejszy i grubszy.
       for (const cls of EDGE_CLASSES) {
         const list = byClass.get(cls.id);
-        if (list) strokeArcs(list, cls.color, 1, selecting ? 0.1 : 0.38, selecting ? 0.03 : 0.1);
+        if (list) {
+          strokeArcs(list, cls.color, 1, 0.38 - 0.28 * selectAmt, 0.1 - 0.07 * selectAmt);
+        }
       }
-      if (selecting) {
-        const lit = groupEdges(hl.edges, maps);
+      for (const layer of layers) {
         for (const cls of EDGE_CLASSES) {
-          const list = lit.get(cls.id);
-          if (list) strokeArcs(list, cls.color, 1.8, 0.95, 0.3);
+          const list = layer.lit.get(cls.id);
+          if (list) strokeArcs(list, cls.color, 1.8, 0.95 * layer.amt, 0.3 * layer.amt);
         }
       }
       ctx.globalAlpha = 1;
@@ -374,9 +404,13 @@ export function Globe({
       for (const { n, pr } of items) {
         const isActive = hl.noteId === n.id;
         const isSel = sel.noteId === n.id;
-        const dim = selecting && n.cluster !== hl.clusterId && !hl.lit.has(n.id);
-        const r = (isActive || isSel ? 4.5 : 2.2) * pr.scale * pointScale;
-        ctx.globalAlpha = (pr.z >= 0 ? 1 : 0.25) * (dim ? 0.5 : 1);
+        let dimMul = 1;
+        for (const l of layers) {
+          if (n.cluster !== l.hl.clusterId && !l.hl.lit.has(n.id)) dimMul *= 1 - 0.5 * l.amt;
+        }
+        const breath = live ? breathScale(now, n.id) : 1;
+        const r = (isActive || isSel ? 4.5 : 2.2) * pr.scale * pointScale * breath;
+        ctx.globalAlpha = (pr.z >= 0 ? 1 : 0.25) * dimMul;
         ctx.fillStyle = groupColor(cluster.get(n.cluster)?.group ?? "knowledge");
         ctx.beginPath();
         ctx.arc(pr.x, pr.y, r, 0, Math.PI * 2);
