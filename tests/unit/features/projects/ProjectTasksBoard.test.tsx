@@ -298,3 +298,112 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
 async function findColumn(name: string): Promise<HTMLElement> {
   return screen.findByRole("region", { name: `Kolumna ${name}` });
 }
+
+const mixedBoard = () =>
+  board({
+    now: [{ text: "Teraz1", done: false }],
+    next: [
+      { text: "N-otwarte", done: false },
+      { text: "N-gotowe", done: true, doneDate: "2026-11-12" },
+      { text: "N-za-gotowym", done: false },
+    ],
+    icebox: [{ text: "I-gotowe", done: true, doneDate: "2026-11-01" }],
+  });
+
+describe("ProjectTasksBoard: filtr otwarte / ukończone", () => {
+  const renderMixed = async (onPost?: Parameters<typeof makeApi>[1]) => {
+    const api = makeApi(detail(mixedBoard()), onPost);
+    render(<ProjectsView apiFetch={api} />);
+    await findColumn("Następne");
+    return api;
+  };
+  const pick = (name: string) => userEvent.setup().click(screen.getByRole("button", { name }));
+
+  it("„Otwarte” ukrywa ukończone, „Ukończone” ukrywa otwarte, „Wszystkie” pokazuje oba", async () => {
+    await renderMixed();
+    const next = () => within(column("Następne"));
+    expect(next().getByText("N-gotowe")).toBeInTheDocument();
+    await pick("Otwarte");
+    expect(next().queryByText("N-gotowe")).not.toBeInTheDocument();
+    expect(next().getByText("N-otwarte")).toBeInTheDocument();
+    expect(next().getByText("N-za-gotowym")).toBeInTheDocument();
+    await pick("Ukończone");
+    expect(next().getByText("N-gotowe")).toBeInTheDocument();
+    expect(next().queryByText("N-otwarte")).not.toBeInTheDocument();
+    await pick("Wszystkie");
+    expect(next().getByText("N-otwarte")).toBeInTheDocument();
+    expect(next().getByText("N-gotowe")).toBeInTheDocument();
+  });
+
+  it("pusta kolumna w widoku filtrowanym: „Brak otwartych” / „Brak ukończonych”", async () => {
+    await renderMixed();
+    await pick("Otwarte");
+    expect(within(column("Icebox")).getByText("Brak otwartych")).toBeInTheDocument();
+    await pick("Ukończone");
+    expect(within(column("Teraz")).getByText("Brak ukończonych")).toBeInTheDocument();
+    expect(within(column("Blokery")).getByText("Brak ukończonych")).toBeInTheDocument();
+  });
+
+  it("licznik kolumny pokazuje widoczne zadania, a n/NOW_LIMIT w Teraz zostaje z pełnych danych", async () => {
+    await renderMixed();
+    expect(within(column("Następne")).getByText("3 zadania")).toBeInTheDocument();
+    await pick("Otwarte");
+    expect(within(column("Następne")).getByText("2 zadania")).toBeInTheDocument();
+    await pick("Ukończone");
+    expect(within(column("Następne")).getByText("1 zadanie")).toBeInTheDocument();
+    expect(within(column("Teraz")).getByText("1/3")).toBeInTheDocument();
+  });
+
+  it("„Ukończone” ukrywa formularze dodawania, pozostałe filtry je zostawiają", async () => {
+    await renderMixed();
+    await pick("Otwarte");
+    expect(screen.getByLabelText("Dodaj zadanie: Następne")).toBeInTheDocument();
+    await pick("Ukończone");
+    expect(screen.queryByLabelText("Dodaj zadanie: Następne")).not.toBeInTheDocument();
+  });
+
+  it("pod filtrem „Otwarte” toggle, edit, remove i move wysyłają ORYGINALNY indeks", async () => {
+    const user = userEvent.setup();
+    const api = await renderMixed();
+    await user.click(screen.getByRole("button", { name: "Otwarte" }));
+
+    await user.click(within(column("Następne")).getByRole("checkbox", { name: "N-za-gotowym" }));
+    await user.click(screen.getByRole("button", { name: "Edytuj: N-za-gotowym" }));
+    const input = screen.getByLabelText("Edytuj zadanie");
+    await user.clear(input);
+    await user.type(input, "Nowy");
+    await user.click(screen.getByRole("button", { name: "Zapisz" }));
+    await user.click(screen.getByRole("button", { name: "Usuń: N-za-gotowym" }));
+    await user.click(screen.getByRole("button", { name: "Potwierdź usunięcie: N-za-gotowym" }));
+    // Przeciąganie jest zablokowane, dopóki trwa mutacja (`busy`): czekamy, aż uchwyt znów jest aktywny.
+    await waitFor(() => expect(handle("N-za-gotowym")).toHaveAttribute("draggable", "true"));
+    dragTo("N-za-gotowym", "Icebox");
+
+    await waitFor(() => expect(posts(api)).toHaveLength(4));
+    expect(posts(api)).toEqual([
+      { op: "toggle", column: "next", index: 2, text: "N-za-gotowym", version: V },
+      { op: "edit", column: "next", index: 2, text: "N-za-gotowym", newText: "Nowy", version: V },
+      { op: "remove", column: "next", index: 2, text: "N-za-gotowym", version: V },
+      { op: "move", column: "next", index: 2, text: "N-za-gotowym", to: "icebox", version: V },
+    ]);
+  });
+
+  it("zmiana filtra zamyka otwartą edycję i potwierdzenie usunięcia", async () => {
+    const user = userEvent.setup();
+    await renderMixed();
+    await user.click(screen.getByRole("button", { name: "Edytuj: N-otwarte" }));
+    expect(screen.getByLabelText("Edytuj zadanie")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Otwarte" }));
+    expect(screen.queryByLabelText("Edytuj zadanie")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Usuń: N-otwarte" }));
+    expect(
+      screen.getByRole("button", { name: "Potwierdź usunięcie: N-otwarte" })
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Wszystkie" }));
+    expect(
+      screen.queryByRole("button", { name: "Potwierdź usunięcie: N-otwarte" })
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Usuń: N-otwarte" })).toBeInTheDocument();
+  });
+});

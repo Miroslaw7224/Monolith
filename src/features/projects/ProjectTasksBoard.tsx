@@ -19,6 +19,23 @@ const COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "icebox", label: "Icebox" },
 ];
 
+type Filter = "all" | "open" | "done";
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Wszystkie" },
+  { key: "open", label: "Otwarte" },
+  { key: "done", label: "Ukończone" },
+];
+
+const EMPTY_TEXT: Record<Filter, string> = {
+  all: "Brak",
+  open: "Brak otwartych",
+  done: "Brak ukończonych",
+};
+
+const matchesFilter = (filter: Filter, task: BoardTaskDto) =>
+  filter === "all" || (filter === "done") === task.done;
+
 type TaskPos = { column: ColumnKey; index: number };
 
 const CONFLICT_MESSAGE = "Plik zadań zmienił się; odświeżono tablicę. Spróbuj ponownie.";
@@ -57,6 +74,15 @@ export function ProjectTasksBoard(props: {
     next: "",
     icebox: "",
   });
+
+  const [filter, setFilter] = useState<Filter>("all");
+
+  /** Zmiana filtra zamyka edycję i potwierdzenie usunięcia (trzymane po pozycji). */
+  const changeFilter = (next: Filter) => {
+    setFilter(next);
+    setEditing(null);
+    setConfirming(null);
+  };
 
   const nowFull = board.now.length >= NOW_LIMIT;
 
@@ -268,8 +294,27 @@ export function ProjectTasksBoard(props: {
           {error}
         </p>
       ) : null}
+      <div className="prj-board__toolbar">
+        <div className="prj-board__filter" role="group" aria-label="Filtr zadań">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={filter === key ? "prj-btn prj-btn--primary" : "prj-btn"}
+              aria-pressed={filter === key}
+              onClick={() => changeFilter(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       {COLUMNS.map(({ key, label }) => {
         const tasks = board[key];
+        // Indeksy zostają oryginalne (z pełnej kolumny): filtr tylko ukrywa wiersze.
+        const visible = tasks
+          .map((task, index) => ({ task, index }))
+          .filter(({ task }) => matchesFilter(filter, task));
         const addDisabled = busy || (key === "now" && nowFull);
         return (
           <section
@@ -308,24 +353,28 @@ export function ProjectTasksBoard(props: {
                 ) : null}
               </h4>
               {key !== "now" ? (
-                <span className="prj-column__count">{countLabel(key, tasks.length)}</span>
+                <span className="prj-column__count">{countLabel(key, visible.length)}</span>
               ) : null}
             </div>
-            {tasks.length === 0 ? <p className="prj-task-empty">Brak</p> : null}
-            <ul className="prj-task-list">{tasks.map((t, i) => renderTask(key, t, i))}</ul>
-            <form className="prj-board__add" onSubmit={(e) => submitAdd(e, key)}>
-              <input
-                aria-label={`Dodaj zadanie: ${label}`}
-                placeholder="Nowe zadanie…"
-                value={drafts[key]}
-                maxLength={300}
-                disabled={addDisabled}
-                onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
-              />
-              <button type="submit" className="prj-btn" disabled={addDisabled}>
-                Dodaj zadanie
-              </button>
-            </form>
+            {visible.length === 0 ? <p className="prj-task-empty">{EMPTY_TEXT[filter]}</p> : null}
+            <ul className="prj-task-list">
+              {visible.map(({ task, index }) => renderTask(key, task, index))}
+            </ul>
+            {filter === "done" ? null : (
+              <form className="prj-board__add" onSubmit={(e) => submitAdd(e, key)}>
+                <input
+                  aria-label={`Dodaj zadanie: ${label}`}
+                  placeholder="Nowe zadanie…"
+                  value={drafts[key]}
+                  maxLength={300}
+                  disabled={addDisabled}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
+                />
+                <button type="submit" className="prj-btn" disabled={addDisabled}>
+                  Dodaj zadanie
+                </button>
+              </form>
+            )}
           </section>
         );
       })}
