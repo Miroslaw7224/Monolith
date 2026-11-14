@@ -16,6 +16,7 @@ import type {
 } from "./models";
 
 export type { Owner, ProjectType };
+export { archiveDateOf, isArchivable, localIsoDate } from "@/lib/schema/archive-date";
 
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
 
@@ -204,6 +205,16 @@ export const TaskOpInputSchema = z.discriminatedUnion("op", [
   }),
 ]);
 
+/** Progi archiwizacji: UI oferuje 3, 5, 7 dni (domyślnie 7); serwer przyjmuje 1–30 (agent może użyć innego). */
+export const ARCHIVE_DAYS_OPTIONS = [3, 5, 7] as const;
+export const ARCHIVE_DEFAULT_DAYS = 7;
+
+/** Wejście `POST /api/projects/[id]/tasks/archive`. `version`: wersja `tasks.md` z GET (`board.version`). */
+export const ArchiveDoneInputSchema = z.object({
+  version: nullableVersion,
+  olderThanDays: z.number().int().min(1).max(30),
+});
+
 /** Co wysyła UI (przed transformacjami). */
 export type StateInputDto = z.input<typeof StateInputSchema>;
 export type DevlogInputDto = z.input<typeof DevlogInputSchema>;
@@ -211,6 +222,7 @@ export type TaskOpInputDto = z.input<typeof TaskOpInputSchema>;
 export type ProjectStatusChangeDto = z.infer<typeof ProjectStatusSchema>;
 export type ProjectLinksInputDto = z.infer<typeof ProjectLinksInputSchema>["links"];
 export type NewProjectInputDto = z.input<typeof NewProjectInputSchema>;
+export type ArchiveDoneInputDto = z.input<typeof ArchiveDoneInputSchema>;
 
 // ── wyjście (DTO) ──────────────────────────────────────────────────────────────
 
@@ -313,6 +325,13 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
     stateVersion: p.stateVersion ? `${p.stateVersion.size}:${p.stateVersion.hash}` : null,
     devlog: p.devlog.slice(0, DEVLOG_LIMIT),
   };
+}
+
+/** Odpowiedź archiwizacji: szczegóły projektu jak z `postTasks` plus liczba przeniesionych zadań. */
+export type ArchiveDoneResultDto = ProjectDetailDto & { archived: number };
+
+export function toArchiveDto(p: ProjectWithContent, archived: number): ArchiveDoneResultDto {
+  return { ...toDetailDto(p), archived };
 }
 
 // ── paczka kontekstu dla agenta (etap 1-4) ──────────────────────────────────────
