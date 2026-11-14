@@ -1,5 +1,12 @@
-import type { BoardTask, TaskColumn, TaskOp, TasksBoard } from "@/contexts/bc_projects/models";
+import type {
+  ArchivedBlock,
+  BoardTask,
+  TaskColumn,
+  TaskOp,
+  TasksBoard,
+} from "@/contexts/bc_projects/models";
 import { ConflictError } from "@/lib/errors";
+import { archiveDateOf, isArchivable } from "@/lib/schema/archive-date";
 
 /**
  * Edytor tekstowy `Projects/<id>/tasks.md` dla tablicy zadań (etap 1-3).
@@ -301,4 +308,25 @@ function insertBlock(text: string, kind: SectionKind, block: string[]): string {
       : [...body.slice(0, lastNonBlank + 1), "", ...block, ...(tail.length === 0 ? [""] : tail)];
   scan.lines.splice(section.heading + 1, section.end - section.heading - 1, ...newBody);
   return scan.lines.join("\n");
+}
+
+/**
+ * Wycina z `tasks.md` ukończone zadania do archiwizacji (`isArchivable`) ze wszystkich znanych sekcji.
+ * Zwraca tekst bez nich (reszta bajt w bajt) i wycięte bloki w kolejności pliku; gdy nic się nie
+ * kwalifikuje (albo pliku nie ma), tekst wraca bez zmian.
+ */
+export function extractArchivable(
+  text: string | null,
+  today: string,
+  olderThanDays: number
+): { text: string | null; blocks: ArchivedBlock[] } {
+  const scan = scanTasks(text);
+  const picked = scan.tasks.filter((t) => isArchivable(t, today, olderThanDays));
+  if (text === null || picked.length === 0) return { text, blocks: [] };
+  const blocks = picked.map((t) => ({
+    date: archiveDateOf(t),
+    lines: scan.lines.slice(t.start, t.end),
+  }));
+  for (const t of [...picked].reverse()) scan.lines.splice(t.start, t.end - t.start);
+  return { text: scan.lines.join("\n"), blocks };
 }

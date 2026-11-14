@@ -1,11 +1,15 @@
 // @vitest-environment node
+import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   applyTaskOp,
+  extractArchivable,
   readBoardText,
+  scanTasks,
   type TaskFileContext,
 } from "@/contexts/bc_projects/repositories/tasks-file";
 import { ConflictError } from "@/lib/errors";
+import { archiveDateOf } from "@/lib/schema/archive-date";
 
 const CTX: TaskFileContext = { projectName: "Demo", today: "2026-11-13" };
 const PIERWSZE = "**Pierwsze** zadanie z `kodem`";
@@ -517,5 +521,76 @@ describe("tasks-file: otwarte przed ukończonymi", () => {
         ["- [ ] F", "- [x] E — 2026-10-01"]
       )
     );
+  });
+});
+
+const ARCH = `# Tasks — Demo
+
+## Blokery
+
+- [x] Blok stary — 2026-11-01
+
+## Next
+
+- [ ] Otwarte
+- [x] Stare — 2026-11-10
+  - podpunkt
+- [x] Świeże — 2026-11-11
+- [x] Dopisek — 2026-11-09; sprawdzone ręcznie
+- [x] Bez daty
+
+Proza.
+
+## Backlog
+
+- [x] Backlog stary — 2026-10-01
+- [ ] Backlog otwarte
+`;
+
+describe("tasks-file: extractArchivable", () => {
+  it("N = 3, dziś 2026-11-14: ukończone starsze i bez daty ze wszystkich sekcji; reszta bajt w bajt", () => {
+    const { text, blocks } = extractArchivable(ARCH, "2026-11-14", 3);
+    expect(blocks).toEqual([
+      { date: "2026-11-01", lines: ["- [x] Blok stary — 2026-11-01"] },
+      { date: "2026-11-10", lines: ["- [x] Stare — 2026-11-10", "  - podpunkt"] },
+      { date: "2026-11-09", lines: ["- [x] Dopisek — 2026-11-09; sprawdzone ręcznie"] },
+      { date: null, lines: ["- [x] Bez daty"] },
+      { date: "2026-10-01", lines: ["- [x] Backlog stary — 2026-10-01"] },
+    ]);
+    expect(text).toBe(
+      "# Tasks — Demo\n\n## Blokery\n\n\n## Next\n\n- [ ] Otwarte\n- [x] Świeże — 2026-11-11\n\nProza.\n\n## Backlog\n\n- [ ] Backlog otwarte\n"
+    );
+  });
+
+  it("N = 7: zostają Stare (wiek 4) i Dopisek (wiek 5)", () => {
+    const { text, blocks } = extractArchivable(ARCH, "2026-11-14", 7);
+    expect(blocks.map((b) => b.lines[0])).toEqual([
+      "- [x] Blok stary — 2026-11-01",
+      "- [x] Bez daty",
+      "- [x] Backlog stary — 2026-10-01",
+    ]);
+    expect(text).toContain("- [x] Stare — 2026-11-10\n  - podpunkt\n");
+    expect(text).toContain("- [x] Dopisek — 2026-11-09; sprawdzone ręcznie\n");
+  });
+
+  it("otwarte nigdy; brak kwalifikujących się: tekst bez zmian i pusta lista", () => {
+    const open = "## Next\n\n- [ ] A\n- [x] B — 2026-11-13\n";
+    expect(extractArchivable(open, "2026-11-14", 3)).toEqual({ text: open, blocks: [] });
+  });
+
+  it("brak pliku (null): null i pusta lista", () => {
+    expect(extractArchivable(null, "2026-11-14", 3)).toEqual({ text: null, blocks: [] });
+  });
+
+  it("kopia monolith/tasks.md: ukończone z dopiskiem po dacie nie są „bez daty”", () => {
+    const real = fs.readFileSync(
+      new URL("./fixtures/monolith-tasks.fixture.txt", import.meta.url),
+      "utf8"
+    );
+    const withNote = scanTasks(real).tasks.filter(
+      (t) => t.done && t.doneDate === undefined && /\s—\s\d{4}-\d{2}-\d{2}[ ;:,.)]/.test(t.text)
+    );
+    expect(withNote.length).toBeGreaterThan(0);
+    for (const t of withNote) expect(archiveDateOf(t)).not.toBeNull();
   });
 });
