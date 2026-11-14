@@ -21,8 +21,10 @@ beforeEach(() => {
 describe("GET /api/map/graph", () => {
   it("zwraca graf jako DTO", async () => {
     mockGetGraph.mockReturnValue({
-      nodes: [{ id: "nexus", kind: "project", label: "NEXUS", owner: "personal" }],
+      clusters: [],
+      nodes: [{ id: "Knowledge/a", label: "A", cluster: "knowledge:x", links: 0 }],
       edges: [],
+      clusterEdges: [],
       tiles: { neurons: { total: 1, knowledge: 0, ai2030: 0, projects: 1 }, dependencies: 0 },
       warnings: [],
     });
@@ -30,6 +32,7 @@ describe("GET /api/map/graph", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.nodes).toHaveLength(1);
+    expect(body.clusters).toEqual([]);
     expect(body.tiles.blockers).toBeNull();
   });
 

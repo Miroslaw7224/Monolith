@@ -3,25 +3,41 @@ import type { Agent, MapGraph } from "./models";
 
 const count = z.number().int().nonnegative();
 
-export const MapNodeDtoSchema = z.object({
+export const MapClusterDtoSchema = z.object({
   id: z.string(),
-  kind: z.enum(["project", "continent"]),
   label: z.string(),
-  size: count.optional(),
+  group: z.enum(["projects", "knowledge", "ai2030", "skills"]),
+  size: count,
+  projectId: z.string().optional(),
   owner: z.enum(["personal", "work"]).optional(),
   soon: z.boolean().optional(),
+});
+
+export const MapNodeDtoSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  cluster: z.string(),
+  links: count,
 });
 
 export const MapEdgeDtoSchema = z.object({
   from: z.string(),
   to: z.string(),
   weight: z.number().int().positive(),
-  type: z.literal("shared"),
+  type: z.enum(["link", "project"]),
+});
+
+export const MapClusterEdgeDtoSchema = z.object({
+  from: z.string(),
+  to: z.string(),
+  weight: z.number().int().positive(),
 });
 
 export const MapGraphDtoSchema = z.object({
+  clusters: z.array(MapClusterDtoSchema),
   nodes: z.array(MapNodeDtoSchema),
   edges: z.array(MapEdgeDtoSchema),
+  clusterEdges: z.array(MapClusterEdgeDtoSchema),
   tiles: z.object({
     neurons: z.object({ total: count, knowledge: count, ai2030: count, projects: count }),
     dependencies: count,
@@ -45,23 +61,33 @@ export const MapAgentsDtoSchema = z.object({
   available: z.boolean(),
 });
 
+export type MapClusterDto = z.infer<typeof MapClusterDtoSchema>;
 export type MapNodeDto = z.infer<typeof MapNodeDtoSchema>;
 export type MapEdgeDto = z.infer<typeof MapEdgeDtoSchema>;
+export type MapClusterEdgeDto = z.infer<typeof MapClusterEdgeDtoSchema>;
 export type MapGraphDto = z.infer<typeof MapGraphDtoSchema>;
 export type AgentDto = z.infer<typeof AgentDtoSchema>;
 export type MapAgentsDto = z.infer<typeof MapAgentsDtoSchema>;
 
 export function toGraphDto(graph: MapGraph): MapGraphDto {
   return {
+    clusters: graph.clusters.map((c) => ({
+      id: c.id,
+      label: c.label,
+      group: c.group,
+      size: c.size,
+      ...(c.projectId !== undefined ? { projectId: c.projectId } : {}),
+      ...(c.owner !== undefined ? { owner: c.owner } : {}),
+      ...(c.soon ? { soon: true } : {}),
+    })),
     nodes: graph.nodes.map((n) => ({
       id: n.id,
-      kind: n.kind,
       label: n.label,
-      ...(n.size !== undefined ? { size: n.size } : {}),
-      ...(n.owner !== undefined ? { owner: n.owner } : {}),
-      ...(n.soon ? { soon: true } : {}),
+      cluster: n.cluster,
+      links: n.links,
     })),
     edges: graph.edges.map((e) => ({ from: e.from, to: e.to, weight: e.weight, type: e.type })),
+    clusterEdges: graph.clusterEdges.map((e) => ({ from: e.from, to: e.to, weight: e.weight })),
     tiles: {
       neurons: { ...graph.tiles.neurons },
       dependencies: graph.tiles.dependencies,
