@@ -7,6 +7,7 @@ import {
   formatClock,
   getOverlapCounts,
   parseYmd,
+  weekScrollTop,
 } from "./calendarUtils";
 import { eventModifier } from "./calendarEventStyle";
 import type { ActiveSession } from "@/src/components/sessions/activeSession";
@@ -45,11 +46,14 @@ export function CalendarWeekGrid({
   onAdd,
 }: CalendarWeekGridProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Pozycja startowa liczona raz, przy pierwszym renderze: kolejne tyknięcia zegara nie mogą
+  // odsuwać przewiniętego widoku.
+  const initialScrollTop = useRef(weekScrollTop(nowMinutes, dates.includes(todayStr)));
 
-  // Przy wejściu przewiń do okolic 07:00 (praca w różnych godzinach, ale nie od północy).
+  // Przy wejściu przewiń do okolic aktualnej godziny (tydzień z dzisiaj) albo 07:00 (inny tydzień).
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = 7 * 52;
+    if (el) el.scrollTop = initialScrollTop.current;
   }, []);
 
   return (
