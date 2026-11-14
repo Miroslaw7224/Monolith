@@ -52,3 +52,35 @@ export function rimFactor(theta: number, now: number): number {
     0.008 * Math.sin(5 * theta + now * 0.0017)
   );
 }
+
+/** Losowy dryf auto-obrotu: prędkości kątowe (rad/s) wokół osi pionowej (yaw) i poziomej (pitch). */
+export type Spin = { yaw: number; pitch: number };
+export const SPIN_YAW_MIN = 0.06;
+export const SPIN_YAW_MAX = 0.16;
+/** Największa prędkość pochylania; mała, żeby widok się nie przewracał. */
+export const SPIN_PITCH_MAX = 0.05;
+/** Auto-obrót nie pochyla kuli bardziej niż to (rad); ręczne przeciąganie ma własny, większy limit. */
+export const AUTO_PITCH_LIMIT = 0.6;
+/** Jak długo trzyma się wylosowany kierunek (ms). */
+export const SPIN_HOLD_MIN_MS = 7000;
+export const SPIN_HOLD_MAX_MS = 14000;
+
+/** Losuje nowy kierunek: obrót w lewo lub w prawo (losowe tempo) i lekkie pochylenie w górę lub w dół. */
+export function pickSpin(rand: () => number): Spin {
+  const sign = rand() < 0.5 ? -1 : 1;
+  const yaw = sign * (SPIN_YAW_MIN + rand() * (SPIN_YAW_MAX - SPIN_YAW_MIN));
+  const pitch = (rand() * 2 - 1) * SPIN_PITCH_MAX;
+  return { yaw, pitch };
+}
+
+/** Czas (ms) do kolejnego losowania kierunku. */
+export function spinHoldMs(rand: () => number): number {
+  return SPIN_HOLD_MIN_MS + rand() * (SPIN_HOLD_MAX_MS - SPIN_HOLD_MIN_MS);
+}
+
+/** Zawraca pochylanie, gdy kula jest już poza AUTO_PITCH_LIMIT i dalej od środka; reszta bez zmian. */
+export function spinPitchGuard(pitch: number, spin: Spin): Spin {
+  const outward =
+    (pitch > AUTO_PITCH_LIMIT && spin.pitch > 0) || (pitch < -AUTO_PITCH_LIMIT && spin.pitch < 0);
+  return outward ? { yaw: spin.yaw, pitch: -spin.pitch } : spin;
+}

@@ -3,12 +3,21 @@ import {
   BREATH_AMP,
   GLOBE_BREATH_AMP,
   RIM_MAX_WOBBLE,
+  AUTO_PITCH_LIMIT,
+  SPIN_HOLD_MAX_MS,
+  SPIN_HOLD_MIN_MS,
+  SPIN_PITCH_MAX,
+  SPIN_YAW_MAX,
+  SPIN_YAW_MIN,
   approach,
   breathScale,
   globeBreath,
   idPhase,
   rimFactor,
+  pickSpin,
   slowPulse,
+  spinHoldMs,
+  spinPitchGuard,
 } from "@/src/features/map/motion";
 
 describe("idPhase", () => {
@@ -91,5 +100,44 @@ describe("globeBreath / rimFactor", () => {
     const at = (t: number) => [0, 1, 2, 3, 4, 5].map((a) => rimFactor(a, t).toFixed(5));
     expect(new Set(at(500)).size).toBeGreaterThan(1);
     expect(at(500)).not.toEqual(at(4000));
+  });
+});
+
+/** Deterministyczne „losowanie” z listy wartości (cyklicznie). */
+const seq = (...vals: number[]) => {
+  let i = 0;
+  return () => vals[i++ % vals.length];
+};
+
+describe("pickSpin / spinHoldMs / spinPitchGuard", () => {
+  it("pickSpin: obrót wokół osi pionowej w obie strony, tempo w granicach, pochylenie ograniczone", () => {
+    const left = pickSpin(seq(0, 0, 0.5));
+    const right = pickSpin(seq(0.99, 1, 0.5));
+    expect(left.yaw).toBeLessThan(0);
+    expect(right.yaw).toBeGreaterThan(0);
+    for (const sp of [left, right, pickSpin(seq(0.3, 0.7, 0)), pickSpin(seq(0.7, 0.2, 1))]) {
+      expect(Math.abs(sp.yaw)).toBeGreaterThanOrEqual(SPIN_YAW_MIN - 1e-9);
+      expect(Math.abs(sp.yaw)).toBeLessThanOrEqual(SPIN_YAW_MAX + 1e-9);
+      expect(Math.abs(sp.pitch)).toBeLessThanOrEqual(SPIN_PITCH_MAX + 1e-9);
+    }
+  });
+  it("pickSpin: losowania dają różne kierunki (nie zawsze ten sam)", () => {
+    let n = 0;
+    const rand = () => ((n = (n * 7 + 3) % 11), n / 11);
+    const signs = new Set(Array.from({ length: 30 }, () => Math.sign(pickSpin(rand).yaw)));
+    expect(signs.size).toBe(2);
+  });
+  it("spinHoldMs mieści się w [SPIN_HOLD_MIN_MS, SPIN_HOLD_MAX_MS]", () => {
+    expect(spinHoldMs(() => 0)).toBe(SPIN_HOLD_MIN_MS);
+    expect(spinHoldMs(() => 1)).toBe(SPIN_HOLD_MAX_MS);
+  });
+  it("spinPitchGuard zawraca pochylenie, gdy ucieka poza AUTO_PITCH_LIMIT, i nie rusza reszty", () => {
+    expect(spinPitchGuard(AUTO_PITCH_LIMIT + 0.1, { yaw: 0.1, pitch: 0.03 })).toEqual({
+      yaw: 0.1,
+      pitch: -0.03,
+    });
+    expect(spinPitchGuard(-AUTO_PITCH_LIMIT - 0.1, { yaw: 0.1, pitch: -0.03 }).pitch).toBe(0.03);
+    expect(spinPitchGuard(AUTO_PITCH_LIMIT + 0.1, { yaw: 0.1, pitch: -0.03 }).pitch).toBe(-0.03);
+    expect(spinPitchGuard(0.1, { yaw: 0.1, pitch: 0.03 }).pitch).toBe(0.03);
   });
 });

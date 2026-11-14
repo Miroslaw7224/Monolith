@@ -38,7 +38,18 @@ import {
   makeDust,
   withAlpha,
 } from "./core";
-import { approach, breathScale, globeBreath, idPhase, rimFactor, slowPulse } from "./motion";
+import {
+  approach,
+  breathScale,
+  globeBreath,
+  idPhase,
+  pickSpin,
+  rimFactor,
+  slowPulse,
+  spinHoldMs,
+  spinPitchGuard,
+  type Spin,
+} from "./motion";
 import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
 
@@ -180,6 +191,11 @@ export function Globe({
 
   const view = useRef({ yaw: 0.4, pitch: -0.25 });
   const target = useRef<{ yaw: number; pitch: number } | null>(null);
+  const spin = useRef<{ cur: Spin; target: Spin; nextAt: number }>({
+    cur: { yaw: AUTO_SPEED, pitch: 0 },
+    target: { yaw: AUTO_SPEED, pitch: 0 },
+    nextAt: 0,
+  });
   const zoomRef = useRef(1);
   const zoomTarget = useRef(1);
   const [zoomLabel, setZoomLabel] = useState(1);
@@ -632,7 +648,17 @@ export function Globe({
         view.current.pitch += dp * 0.14;
         if (Math.abs(dy) < 0.002 && Math.abs(dp) < 0.002) target.current = null;
       } else if (!hover.current && !pausedRef.current && !drag.current) {
-        view.current.yaw += dt * AUTO_SPEED;
+        // Losowy dryf: co kilka sekund nowy kierunek (lewo/prawo, lekkie pochylenie), płynnie.
+        const sp = spin.current;
+        if (now >= sp.nextAt) {
+          sp.target = pickSpin(Math.random);
+          sp.nextAt = now + spinHoldMs(Math.random);
+        }
+        sp.target = spinPitchGuard(view.current.pitch, sp.target);
+        sp.cur.yaw = approach(sp.cur.yaw, sp.target.yaw, dt, 0.6);
+        sp.cur.pitch = approach(sp.cur.pitch, sp.target.pitch, dt, 0.6);
+        view.current.yaw += dt * sp.cur.yaw;
+        view.current.pitch += dt * sp.cur.pitch;
       }
       refreshSparkPool();
       const selecting = (hoverHl ?? dataRef.current.highlight).clusterId !== null;
