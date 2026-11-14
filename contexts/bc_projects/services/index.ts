@@ -35,6 +35,7 @@ import {
   writeRegistryLinks,
   writeRegistryStatus,
   writeProjectTasks,
+  archiveDoneTasks,
   writeProjectType,
 } from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
@@ -536,4 +537,23 @@ export async function applyTaskOp(
 
   writeProjectTasks(entry, op, version, { today: localDate(now) });
   return getProject(id, now);
+}
+
+/**
+ * Archiwizuje ukończone zadania starsze niż `olderThanDays` do `Projects/<id>/changelog.md`
+ * (kroki i błędy: `archiveDoneTasks`). Dzień odniesienia to dzień serwera z `now`.
+ * Zwraca świeży stan projektu i liczbę przeniesionych zadań (0 = nic się nie zmieniło).
+ */
+export async function archiveDone(
+  id: string,
+  version: VersionToken | null,
+  olderThanDays: number,
+  now: Date = new Date()
+): Promise<{ project: ProjectWithContent; archived: number }> {
+  const entry = findEntry(id);
+  const result = await archiveDoneTasks(entry, version, {
+    today: localDate(now),
+    olderThanDays,
+  });
+  return { project: getProject(id, now), archived: result.archived };
 }
