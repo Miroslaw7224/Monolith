@@ -4,6 +4,7 @@ import type { Task } from "./TasksSection";
 import type { TaskStatus } from "./taskOrderUtils";
 import { getVisibleColumnTasks } from "./taskOrderUtils";
 import { TaskCard } from "./TaskCard";
+import type { TaskEnergy } from "./taskEnergyUtils";
 
 interface TaskColumnProps {
   status: TaskStatus;
@@ -36,6 +37,9 @@ interface TaskColumnProps {
   onEditTitleCommit: (taskId: string) => void;
   onEditTitleCancel: () => void;
   onDueDateChange: (taskId: string, due: string | null) => void;
+  onToggleEnergy: (taskId: string, energy: TaskEnergy) => void;
+  onToggleUrgent: (taskId: string) => void;
+  now: Date;
   onDelete: (taskId: string) => void;
 }
 
@@ -65,6 +69,9 @@ export function TaskColumn({
   onEditTitleCommit,
   onEditTitleCancel,
   onDueDateChange,
+  onToggleEnergy,
+  onToggleUrgent,
+  now,
   onDelete,
 }: TaskColumnProps) {
   const [expanded, setExpanded] = useState(false);
@@ -119,6 +126,9 @@ export function TaskColumn({
             onEditTitleCommit={onEditTitleCommit}
             onEditTitleCancel={onEditTitleCancel}
             onDueDateChange={onDueDateChange}
+            onToggleEnergy={onToggleEnergy}
+            onToggleUrgent={onToggleUrgent}
+            now={now}
             onDelete={onDelete}
           />
         ))}

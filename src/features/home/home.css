@@ -1255,3 +1255,28 @@
 .kok-preview dd {
   margin: 0;
 }
+
+/* Pilne: zadania z priorytetem 1, na samej górze Kokpitu */
+.kok-urgent {
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--danger) 55%, var(--line));
+  border-left: 3px solid var(--danger);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  margin-bottom: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.kok-urgent__title {
+  margin: 0;
+  font: 600 var(--fs-xs) / 1.2 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+}
+
+.kok-urgent__title b {
+  color: var(--danger);
+}

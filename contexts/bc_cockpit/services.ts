@@ -123,6 +123,9 @@ export function extractEnergy(raw: string): { energy: Energy | null; title: stri
   return { energy, title: energy === null ? raw : title };
 }
 
+/** Priorytet zadania ogólnego oznaczający „Pilne” (ten sam co przycisk w karcie Zadania). */
+const URGENT_TASK_PRIORITY = 1;
+
 type QueueEntry = { projectId: string | null; name: string; owner: Owner; item: QueueItem };
 
 const KIND_RANK: Record<QueueItem["kind"], number> = {
@@ -190,7 +193,8 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
 
   try {
     for (const t of await tasksServices.getTasks()) {
-      if (t.status === "done") continue;
+      // w kolejce tylko „do zrobienia” i „w toku”; „do sprawdzenia” (wysłane komuś) i „zrobione” nie wracają do kokpitu
+      if (t.status === "done" || t.status === "to_review") continue;
       if (t.due_date && !isPlausibleDate(t.due_date)) {
         warnings.push(`Zadanie "${t.title}": pominięto błędny termin ${t.due_date}`);
         continue;
@@ -213,6 +217,7 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
           projectName: null,
           priority: null,
           energy: extractEnergy(t.title).energy,
+          ...(t.priority === URGENT_TASK_PRIORITY ? { urgent: true } : {}),
           source: { type: "task", taskId: t.id },
         },
       });

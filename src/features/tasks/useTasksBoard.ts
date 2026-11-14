@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import type { Task } from "./TasksSection";
 import type { TaskTemplate } from "./TaskTemplatesModal";
 import { matchTaskSearch, normalizeTaskFields } from "./taskInputUtils";
+import { URGENT_PRIORITY } from "./taskPriorityUtils";
+import { toggleTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
 import { computeTaskOrderAfterDrop, type TaskStatus } from "./taskOrderUtils";
 
 export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => Promise<Response>) {
@@ -9,6 +11,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
   const [loading, setLoading] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskLink, setNewTaskLink] = useState("");
+  const [newTaskUrgent, setNewTaskUrgent] = useState(false);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
@@ -151,7 +154,12 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
       const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, link, description: "" }),
+        body: JSON.stringify({
+          title,
+          link,
+          description: "",
+          ...(newTaskUrgent ? { priority: URGENT_PRIORITY } : {}),
+        }),
       });
       const task = await res.json();
       const { link: normalizedLink, description: normalizedDescription } =
@@ -162,6 +170,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
       ]);
       setNewTaskTitle("");
       setNewTaskLink("");
+      setNewTaskUrgent(false);
       setSelectedTemplateId("");
     } catch (err) {
       console.error("Add task failed", err);
@@ -212,6 +221,38 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
       setEditTitle("");
     } catch (err) {
       console.error("Update task failed", err);
+    }
+  };
+
+  const toggleEnergy = async (id: string, energy: TaskEnergy) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const title = toggleTaskEnergy(task.title, energy);
+    try {
+      await apiFetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, title } : t)));
+    } catch (err) {
+      console.error("Update task energy failed", err);
+    }
+  };
+
+  const toggleUrgent = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const priority = task.priority === URGENT_PRIORITY ? null : URGENT_PRIORITY;
+    try {
+      await apiFetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority }),
+      });
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, priority } : t)));
+    } catch (err) {
+      console.error("Update task priority failed", err);
     }
   };
 
@@ -314,6 +355,8 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     setNewTaskTitle,
     newTaskLink,
     setNewTaskLink,
+    newTaskUrgent,
+    setNewTaskUrgent,
     templates,
     selectedTemplateId,
     templatesModalOpen,
@@ -342,6 +385,8 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     handleNewTaskTitleKeyDown,
     handleNewTaskLinkKeyDown,
     updateTitle,
+    toggleEnergy,
+    toggleUrgent,
     deleteTask,
     isSearching,
     filteredTasks,

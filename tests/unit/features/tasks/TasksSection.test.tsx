@@ -1,13 +1,16 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, expect, test, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { TasksSection } from "@/src/features/tasks/TasksSection";
 import { translations } from "@/src/translations";
 
 const apiFetch = vi.fn();
 const t = translations.pl;
 
+afterEach(cleanup);
+
 beforeEach(() => {
+  apiFetch.mockReset();
   apiFetch.mockImplementation(async (url: string) => {
     if (url === "/api/tasks") {
       return {
@@ -50,5 +53,56 @@ test("places each task in the column for its status", async () => {
   expect(done.parentElement).not.toHaveTextContent("Alpha");
   await waitFor(() => {
     expect(apiFetch).toHaveBeenCalledWith("/api/tasks");
+  });
+});
+
+test("przycisk „Pilne” na karcie ustawia i zdejmuje priorytet 1", async () => {
+  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  await screen.findByText("Alpha");
+
+  const column = screen.getByRole("heading", { name: /Do zrobienia/ }).parentElement!;
+  const urgentBtn = within(column).getByRole("button", { name: "Pilne" });
+  expect(urgentBtn).toHaveAttribute("aria-pressed", "false");
+  fireEvent.click(urgentBtn);
+
+  await waitFor(() => {
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/api/tasks/a",
+      expect.objectContaining({ method: "PUT", body: JSON.stringify({ priority: 1 }) })
+    );
+  });
+  await waitFor(() => {
+    expect(within(column).getByRole("button", { name: "Pilne" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+  });
+
+  fireEvent.click(within(column).getByRole("button", { name: "Pilne" }));
+  await waitFor(() => {
+    expect(apiFetch).toHaveBeenCalledWith(
+      "/api/tasks/a",
+      expect.objectContaining({ method: "PUT", body: JSON.stringify({ priority: null }) })
+    );
+  });
+});
+
+test("„Pilne” w pasku dodawania tworzy zadanie z priorytetem 1", async () => {
+  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  await screen.findByText("Alpha");
+
+  fireEvent.change(screen.getByLabelText(t.tasksDetailTitleFieldLabel as string), {
+    target: { value: "Nowe" },
+  });
+  const barUrgent = document.querySelector<HTMLButtonElement>(".zad-cli .zad-urgent-btn")!;
+  fireEvent.click(barUrgent);
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(t.tasksAdd as string) }));
+
+  await waitFor(() => {
+    const call = apiFetch.mock.calls.find(
+      ([url, opts]) => url === "/api/tasks" && opts?.method === "POST"
+    );
+    expect(call).toBeTruthy();
+    expect(JSON.parse(call![1].body)).toMatchObject({ title: "Nowe", priority: 1 });
   });
 });

@@ -1,9 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Plus, Search, Settings2 } from "lucide-react";
 import "./tasks.css";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskTemplatesModal } from "./TaskTemplatesModal";
 import { TaskColumn } from "./TaskColumn";
+import { TaskTiles } from "./TaskTiles";
+import { computeTaskTiles, getTaskDueState } from "./taskStatsUtils";
+import { getTaskEnergy, toggleTaskEnergy } from "./taskEnergyUtils";
 import { useTasksBoard } from "./useTasksBoard";
 import { TASK_STATUSES, tasksByStatus, type TaskStatus } from "./taskOrderUtils";
 
@@ -25,6 +28,8 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     setNewTaskTitle,
     newTaskLink,
     setNewTaskLink,
+    newTaskUrgent,
+    setNewTaskUrgent,
     templates,
     selectedTemplateId,
     templatesModalOpen,
@@ -53,6 +58,8 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     handleNewTaskTitleKeyDown,
     handleNewTaskLinkKeyDown,
     updateTitle,
+    toggleEnergy,
+    toggleUrgent,
     deleteTask,
     isSearching,
     filteredTasks,
@@ -69,6 +76,8 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US");
   };
+
+  const pl = lang === "pl";
 
   const labels = {
     titlePlaceholder: (t.tasksNewTitlePlaceholder as string) ?? "Task name…",
@@ -103,6 +112,15 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
       ((t.tasksShowMore as string) ?? "Show {count} more").replace("{count}", String(count)),
     showLess: (t.tasksShowLess as string) ?? "Show less",
   };
+
+  const [dueOnly, setDueOnly] = useState(false);
+  const tilesNow = useMemo(() => new Date(), [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
+  const tilesData = useMemo(() => computeTaskTiles(tasks, tilesNow), [tasks, tilesNow]);
+
+  const boardTasks = useMemo(
+    () => (dueOnly ? filteredTasks.filter((x) => getTaskDueState(x, tilesNow)) : filteredTasks),
+    [dueOnly, filteredTasks, tilesNow]
+  );
 
   const dateSubtitle = useMemo(() => {
     const activeCount = tasks.filter((x) => x.status !== "done").length;
@@ -140,6 +158,14 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
           </button>
         </div>
       </header>
+
+      <TaskTiles
+        data={tilesData}
+        lang={lang}
+        now={tilesNow}
+        dueOnly={dueOnly}
+        onToggleDueOnly={() => setDueOnly((v) => !v)}
+      />
 
       <div className="zad-toolbar">
         <div className="zad-cli">
@@ -196,6 +222,28 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
           />
 
           <div className="zad-cli__meta">
+            <button
+              type="button"
+              className="zad-urgent-btn"
+              aria-pressed={newTaskUrgent}
+              title={pl ? "Pilne: do zrobienia od ręki" : "Urgent: do right away"}
+              onClick={() => setNewTaskUrgent(!newTaskUrgent)}
+            >
+              {pl ? "Pilne" : "Urgent"}
+            </button>
+            <span className="zad-energy zad-energy--bar" role="group" aria-label="Energia">
+              {(["deep", "quick"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`zad-energy__btn zad-energy__btn--${value}`}
+                  aria-pressed={getTaskEnergy(newTaskTitle) === value}
+                  onClick={() => setNewTaskTitle(toggleTaskEnergy(newTaskTitle, value))}
+                >
+                  {value === "deep" ? "Deep" : "Quick"}
+                </button>
+              ))}
+            </span>
             <kbd className="zad-kbd">Enter</kbd>
             <button
               type="button"
@@ -226,7 +274,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
           <p className="zad-state zad-state--loading">Loading…</p>
         ) : tasks.length === 0 ? (
           <p className="zad-state">{labels.noTasks}</p>
-        ) : filteredTasks.length === 0 ? (
+        ) : boardTasks.length === 0 ? (
           <p className="zad-state">{labels.noSearchResults}</p>
         ) : (
           <div className="zad-board">
@@ -235,13 +283,13 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
                 key={status}
                 status={status}
                 title={columnLabels[status]}
-                tasks={tasksByStatus(filteredTasks, status)}
+                tasks={tasksByStatus(boardTasks, status)}
                 lang={lang}
-                collapseEnabled={!isSearching}
+                collapseEnabled={!isSearching && !dueOnly}
                 isDragOverColumn={dragOverColumn === status && dragOverTaskId === null}
                 dragTaskId={dragTaskId}
                 dragOverTaskId={dragOverTaskId}
-                draggable={canDrag}
+                draggable={canDrag && !dueOnly}
                 editingId={editingId}
                 editTitle={editTitle}
                 labels={cardLabels}
@@ -267,6 +315,9 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
                   setEditTitle("");
                 }}
                 onDueDateChange={updateDueDate}
+                onToggleEnergy={toggleEnergy}
+                onToggleUrgent={toggleUrgent}
+                now={tilesNow}
                 onDelete={deleteTask}
               />
             ))}

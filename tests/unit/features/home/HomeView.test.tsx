@@ -1041,6 +1041,56 @@ describe("K1: układ wg makiety", () => {
     expect(within(queue).getByText("bez terminu")).toBeInTheDocument();
   });
 
+  test("pilne zadania są na samej górze Kokpitu, przed kafelkami, i nie dublują się w kolejce", async () => {
+    respond({
+      ...FULL,
+      queue: [
+        {
+          projectId: null,
+          name: "Ogólne",
+          owner: "personal",
+          items: [
+            {
+              kind: "today",
+              title: "Zwykłe zadanie",
+              due: "2026-11-13",
+              projectName: null,
+              priority: null,
+              energy: null,
+              source: { type: "task", taskId: "t-zwykle" },
+            },
+            {
+              kind: "undated",
+              title: "Zadzwonić do banku",
+              due: null,
+              projectName: null,
+              priority: null,
+              energy: null,
+              urgent: true,
+              source: { type: "task", taskId: "t-pilne" },
+            },
+          ],
+        },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const urgent = await screen.findByRole("region", { name: "Pilne" });
+    expect(within(urgent).getByText("Zadzwonić do banku")).toBeInTheDocument();
+    const tiles = screen.getByRole("region", { name: "Liczby dnia" });
+    expect(urgent.compareDocumentPosition(tiles) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const queue = screen.getByRole("region", { name: "Kolejka na dziś" });
+    expect(within(queue).getByText("Zwykłe zadanie")).toBeInTheDocument();
+    expect(within(queue).queryByText("Zadzwonić do banku")).not.toBeInTheDocument();
+  });
+
+  test("brak pilnych zadań: sekcji „Pilne” nie ma", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByRole("region", { name: "Kolejka na dziś" });
+    expect(screen.queryByRole("region", { name: "Pilne" })).not.toBeInTheDocument();
+  });
+
   test("kolejka: gdy zadań jest więcej niż 8, widać pierwsze 8 (najbliższe daty), reszta pod przyciskiem", async () => {
     const items = Array.from({ length: 11 }, (_, i) => ({
       kind: "overdue" as const,

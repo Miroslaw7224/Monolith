@@ -415,7 +415,7 @@
 
 .zad-column {
   min-width: 0;
-  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   padding: var(--s-3);
@@ -488,23 +488,21 @@
 }
 
 .zad-dot--todo {
+  background: var(--muted);
+}
+
+/* akcent z poświatą tylko dla kolumny „w toku” (jak „Teraz” w makiecie) */
+.zad-dot--in_progress {
   background: var(--accent);
   box-shadow: 0 0 8px var(--glow);
 }
 
-.zad-dot--in_progress {
-  background: var(--warn);
-  box-shadow: 0 0 8px rgba(255, 216, 77, 0.4);
-}
-
 .zad-dot--to_review {
-  background: #3d95ff;
-  box-shadow: 0 0 8px rgba(61, 149, 255, 0.4);
+  background: var(--warn);
 }
 
 .zad-dot--done {
-  background: #5ee08a;
-  box-shadow: 0 0 8px rgba(94, 224, 138, 0.4);
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
 }
 
 /* ---------- Karty zadań (.zad-card / .zad-item) ---------- */
@@ -568,7 +566,8 @@
 
 .zad-mark {
   font: 600 var(--fs-xs) / 1.3 var(--font-mono);
-  color: var(--accent-text);
+  color: var(--muted);
+  transition: color 0.15s var(--ease);
   background: transparent;
   border: 0;
   padding: 0;
@@ -577,7 +576,12 @@
   margin-top: 2px;
 }
 
-.zad-card--done .zad-mark {
+.zad-card:hover .zad-mark {
+  color: var(--accent-text);
+}
+
+.zad-card--done .zad-mark,
+.zad-card--done:hover .zad-mark {
   color: var(--muted);
 }
 
@@ -629,7 +633,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #3d95ff;
+  background: var(--muted);
   flex-shrink: 0;
 }
 
@@ -639,7 +643,7 @@
   gap: 4px;
   margin-top: 3px;
   font: 400 var(--fs-xs) / 1.2 var(--font-mono);
-  color: #6aaeff;
+  color: color-mix(in srgb, var(--text) 70%, var(--muted));
   text-decoration: none;
   max-width: 100%;
   overflow: hidden;
@@ -648,6 +652,7 @@
 }
 
 .zad-desc-link:hover {
+  color: var(--accent-text);
   text-decoration: underline;
 }
 
@@ -1034,7 +1039,7 @@
 
 .zad-template-item__link {
   font: 400 11px / 1.2 var(--font-mono);
-  color: #6aaeff;
+  color: color-mix(in srgb, var(--text) 70%, var(--muted));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1067,4 +1072,246 @@
   text-align: center;
   font: 400 var(--fs-sm) / 1.4 var(--font-mono);
   color: var(--muted);
+}
+
+/* ---------- Kafle liczb (.zad-tiles), wg .kal-tiles z Kalendarza ---------- */
+.zad-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+  flex-shrink: 0;
+}
+
+.zad-tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.zad-tile::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.zad-tile--accent {
+  border-color: var(--accent);
+  box-shadow: 0 0 22px -8px var(--glow);
+}
+
+.zad-tile--accent::after {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+.zad-tile__label {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.zad-tile__value {
+  font: 600 var(--fs-2xl) / 1.1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.zad-tile--accent .zad-tile__value {
+  color: var(--accent-text);
+}
+
+.zad-tile__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.zad-tile__meta--danger {
+  color: var(--danger);
+}
+
+/* ---------- Przyciski energii Deep / Quick (.zad-energy) ---------- */
+.zad-energy {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.zad-energy__btn {
+  font: 600 10px / 1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 3px 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    color 0.15s var(--ease),
+    background 0.15s var(--ease),
+    border-color 0.15s var(--ease);
+}
+
+.zad-energy__btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--line) 70%, var(--text) 30%);
+}
+
+/* Deep: wypełniony akcentem; Quick: obrys (jak .energy--deep / .energy--quick w makiecie) */
+.zad-energy__btn--deep[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.zad-energy__btn--quick[aria-pressed="true"] {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+/* na karcie nieaktywne przyciski widać dopiero po najechaniu, aktywny zawsze */
+.zad-card .zad-energy__btn[aria-pressed="false"] {
+  display: none;
+}
+
+.zad-card:hover .zad-energy__btn[aria-pressed="false"],
+.zad-card:focus-within .zad-energy__btn[aria-pressed="false"] {
+  display: inline-block;
+}
+
+.zad-card__titlerow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1) var(--s-2);
+  min-width: 0;
+}
+
+.zad-card__titlerow .zad-card__title-btn {
+  flex: 1 1 110px;
+  width: auto;
+}
+
+.zad-card__titlerow .zad-energy {
+  flex-shrink: 0;
+}
+
+/* ---------- Zadania zaległe i na dziś ---------- */
+.zad-card--overdue {
+  border-left: 3px solid var(--danger);
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface));
+}
+
+.zad-card--today {
+  border-left: 3px solid var(--warn);
+}
+
+.zad-due-flag {
+  font: 600 10px / 1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 5px;
+  border-radius: var(--r-sm);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.zad-due-flag--overdue {
+  color: var(--danger);
+}
+
+.zad-due-flag--today {
+  color: var(--warn);
+}
+
+.zad-card--overdue .zad-due-input {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+  color: var(--danger);
+}
+
+/* kafel „Terminy” jako przełącznik filtra */
+.zad-tile--button {
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s var(--ease),
+    background 0.15s var(--ease);
+}
+
+.zad-tile--button:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.zad-tile--button:disabled {
+  cursor: default;
+}
+
+.zad-tile--pressed {
+  border-color: var(--accent);
+  box-shadow: 0 0 22px -8px var(--glow);
+}
+
+/* ---------- Szybki priorytet „Pilne” (P1, od ręki) ---------- */
+.zad-urgent-btn {
+  font: 700 10px / 1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 3px 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition:
+    color 0.15s var(--ease),
+    background 0.15s var(--ease),
+    border-color 0.15s var(--ease);
+}
+
+.zad-urgent-btn:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+}
+
+.zad-urgent-btn[aria-pressed="true"] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--bg);
+}
+
+.zad-card .zad-urgent-btn[aria-pressed="false"] {
+  display: none;
+}
+
+.zad-card:hover .zad-urgent-btn[aria-pressed="false"],
+.zad-card:focus-within .zad-urgent-btn[aria-pressed="false"] {
+  display: inline-block;
+}
+
+.zad-card--urgent {
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+}
+
+.zad-card--urgent .zad-title {
+  font-weight: 700;
 }
