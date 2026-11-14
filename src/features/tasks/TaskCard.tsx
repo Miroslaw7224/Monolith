@@ -2,6 +2,9 @@ import React from "react";
 import { GripVertical, Trash2 } from "lucide-react";
 import type { Task } from "./TasksSection";
 import { TaskDescriptionLink } from "./TaskDescriptionLink";
+import { URGENT_PRIORITY } from "./taskPriorityUtils";
+import { getTaskDueState } from "./taskStatsUtils";
+import { getTaskEnergy, setTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
 
 interface TaskCardProps {
   task: Task;
@@ -27,6 +30,9 @@ interface TaskCardProps {
   onEditTitleCommit: (taskId: string) => void;
   onEditTitleCancel: () => void;
   onDueDateChange: (taskId: string, due: string | null) => void;
+  onToggleEnergy: (taskId: string, energy: TaskEnergy) => void;
+  onToggleUrgent: (taskId: string) => void;
+  now: Date;
   onDelete: (taskId: string) => void;
 }
 
@@ -51,8 +57,14 @@ export function TaskCard({
   onEditTitleCommit,
   onEditTitleCancel,
   onDueDateChange,
+  onToggleEnergy,
+  onToggleUrgent,
+  now,
   onDelete,
 }: TaskCardProps) {
+  const isUrgent = task.priority === URGENT_PRIORITY;
+  const dueState = getTaskDueState(task, now);
+  const energy = getTaskEnergy(task.title);
   return (
     <li
       className={[
@@ -60,6 +72,8 @@ export function TaskCard({
         isDragging ? "zad-card--dragging" : "",
         isDragOver ? "zad-card--dragover" : "",
         isDone ? "zad-card--done" : "",
+        dueState ? `zad-card--${dueState}` : "",
+        isUrgent && !isDone ? "zad-card--urgent" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -113,24 +127,48 @@ export function TaskCard({
           />
         ) : (
           <div>
-            <button
-              type="button"
-              onClick={() => onTitleAreaClick(task)}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                onTitleAreaDoubleClick(task);
-              }}
-              className={["zad-card__title-btn", isDone ? "zad-card__title-btn--done" : ""].join(
-                " "
-              )}
-            >
-              <span className={["zad-title", isDone ? "zad-title--done" : ""].join(" ")}>
-                {task.title}
+            <div className="zad-card__titlerow">
+              <button
+                type="button"
+                onClick={() => onTitleAreaClick(task)}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  onTitleAreaDoubleClick(task);
+                }}
+                className={["zad-card__title-btn", isDone ? "zad-card__title-btn--done" : ""].join(
+                  " "
+                )}
+              >
+                <span className={["zad-title", isDone ? "zad-title--done" : ""].join(" ")}>
+                  {setTaskEnergy(task.title, null)}
+                </span>
+                {Boolean(task.link?.trim()) && (
+                  <span className="zad-link-dot" title="Link" aria-hidden="true" />
+                )}
+              </button>
+              <button
+                type="button"
+                className="zad-urgent-btn"
+                aria-pressed={isUrgent}
+                title={lang === "pl" ? "Pilne: do zrobienia od ręki" : "Urgent: do right away"}
+                onClick={() => onToggleUrgent(task.id)}
+              >
+                {lang === "pl" ? "Pilne" : "Urgent"}
+              </button>
+              <span className="zad-energy" role="group" aria-label="Energia">
+                {(["deep", "quick"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`zad-energy__btn zad-energy__btn--${value}`}
+                    aria-pressed={energy === value}
+                    onClick={() => onToggleEnergy(task.id, value)}
+                  >
+                    {value === "deep" ? "Deep" : "Quick"}
+                  </button>
+                ))}
               </span>
-              {Boolean(task.link?.trim()) && (
-                <span className="zad-link-dot" title="Link" aria-hidden="true" />
-              )}
-            </button>
+            </div>
             <TaskDescriptionLink link={task.link} />
           </div>
         )}
@@ -151,8 +189,19 @@ export function TaskCard({
               }}
               className="zad-due-input"
             />
+            {dueState && (
+              <span className={`zad-due-flag zad-due-flag--${dueState}`}>
+                {dueState === "overdue"
+                  ? lang === "pl"
+                    ? "po terminie"
+                    : "overdue"
+                  : lang === "pl"
+                    ? "dziś"
+                    : "today"}
+              </span>
+            )}
           </label>
-          {task.priority != null && (
+          {task.priority != null && task.priority !== URGENT_PRIORITY && (
             <span className={`zad-pri zad-pri--p${task.priority}`}>P{task.priority}</span>
           )}
         </div>
