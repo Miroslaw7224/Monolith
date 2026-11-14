@@ -189,7 +189,7 @@ export default function PlanowanieView({
   }));
 
   return (
-    <main className="flex-1 min-w-0 flex flex-col relative pb-16 md:pb-0">
+    <main className="flex-1 min-w-0 min-h-0 flex flex-col relative">
       {cardSubtabs.length >= 2 && (
         <CardSubTabs tabs={subtabItems} active={planningTab} onSelect={setPlanningTab} />
       )}
