@@ -316,6 +316,8 @@ const CHANGELOG_MONTH_RE = /^\d{4}-\d{2}$/;
 const NO_DATE_HEADING = "Bez daty";
 const BLOCK_START_RE = /^- \[( |x|X)\] (.*)$/;
 const BLOCK_CONTINUATION_RE = /^[ \t]+\S/;
+/** Końcowe „ — RRRR-MM-DD”: data ukończenia ma pierwszeństwo (jak w parserze `tasks.md`). */
+const TRAILING_DATE_RE = /\s—\s(\d{4}-\d{2}-\d{2})\s*$/;
 
 type ChangelogSection = { key: string; heading: number; end: number };
 type ChangelogBlock = { start: number; end: number; date: string | null };
@@ -345,7 +347,11 @@ function changelogBlocks(lines: string[], section: ChangelogSection): ChangelogB
     if (!match) continue;
     let end = i + 1;
     while (end < section.end && BLOCK_CONTINUATION_RE.test(lines[end])) end += 1;
-    blocks.push({ start: i, end, date: archiveDateOf({ text: match[2] }) });
+    const trailing = TRAILING_DATE_RE.exec(match[2])?.[1];
+    const date = archiveDateOf(
+      trailing === undefined ? { text: match[2] } : { text: match[2], doneDate: trailing }
+    );
+    blocks.push({ start: i, end, date });
     i = end - 1;
   }
   return blocks;

@@ -516,6 +516,15 @@ describe("ProjectTasksBoard: archiwizacja ukończonych", () => {
     );
   });
 
+  it("inna mutacja zamyka otwarte potwierdzenie archiwizacji", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsView apiFetch={makeApi(detail(archBoard()))} />);
+    await user.click(await screen.findByRole("button", BTN(1)));
+    expect(screen.getByText(/Przenieść/)).toBeInTheDocument();
+    await user.click(within(column("Następne")).getByRole("checkbox", { name: "Otwarte" }));
+    await waitFor(() => expect(screen.queryByText(/Przenieść/)).not.toBeInTheDocument());
+  });
+
   it("M nie zmienia się po przełączeniu filtra (liczony z pełnej tablicy)", async () => {
     const user = userEvent.setup();
     render(<ProjectsView apiFetch={makeApi(detail(archBoard()))} />);

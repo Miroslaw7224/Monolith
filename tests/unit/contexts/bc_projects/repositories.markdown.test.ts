@@ -460,6 +460,13 @@ describe("mergeChangelog", () => {
     );
   });
 
+  it("data istniejącego bloku: końcowa data ukończenia ma pierwszeństwo przed wcześniejszą w treści", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] A wspomina — 2026-01-05 coś — 2026-11-14\n- [x] D — 2026-11-10\n`;
+    expect(mergeChangelog(existing, [block("2026-11-12", "C")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] A wspomina — 2026-01-05 coś — 2026-11-14\n- [x] C — 2026-11-12\n- [x] D — 2026-11-10\n`
+    );
+  });
+
   it("proza poza nagłówkami i w sekcjach zostaje bajt w bajt", () => {
     const existing = `${HEAD}Notatka ręczna.\n\n## 2026-11\n\n- [x] A — 2026-11-13\n\nProza w sekcji.\n`;
     expect(mergeChangelog(existing, [block("2026-11-14", "B")], "Demo")).toBe(

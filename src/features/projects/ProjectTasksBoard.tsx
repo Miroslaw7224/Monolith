@@ -108,6 +108,8 @@ export function ProjectTasksBoard(props: {
     setBusy(true);
     setError(null);
     setNotice(null);
+    // Każda mutacja zamyka otwarte potwierdzenie archiwizacji (M/K mogą się zmienić).
+    setConfirmingArchive(false);
     const result = await call();
     setBusy(false);
     // Indeksy zadań zmieniają się po każdej udanej mutacji, więc otwarta edycja i potwierdzenie
