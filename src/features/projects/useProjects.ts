@@ -93,7 +93,7 @@ export function useProjects(
         if (!res.ok) {
           return { ok: false, error: await readError(res), conflict: res.status === 409 };
         }
-        const updated = (await res.json()) as ProjectDetailDto;
+        const updated = (await res.json()) as ProjectDetailDto & { archived?: number };
         if (selectedIdRef.current === id) setDetail(updated);
         setProjects((list) =>
           list.map((p) =>
@@ -107,7 +107,9 @@ export function useProjects(
               : p
           )
         );
-        return { ok: true };
+        return typeof updated.archived === "number"
+          ? { ok: true, archived: updated.archived }
+          : { ok: true };
       } catch (err) {
         return {
           ok: false,
@@ -137,6 +139,11 @@ export function useProjects(
     [mutate]
   );
   const tasksOp = useCallback((input: TaskOpInputDto) => mutate("POST", "/tasks", input), [mutate]);
+  const archiveDone = useCallback(
+    (version: string | null, olderThanDays: number) =>
+      mutate("POST", "/tasks/archive", { version, olderThanDays }),
+    [mutate]
+  );
 
   const setProjectStatus = useCallback(
     (id: string, status: ProjectStatusChangeDto) => mutateProject(id, "PATCH", "", { status }),
@@ -270,6 +277,7 @@ export function useProjects(
     setProjectStatus,
     createProject,
     tasksOp,
+    archiveDone,
     loadContextPack,
     reloadDetail,
   };

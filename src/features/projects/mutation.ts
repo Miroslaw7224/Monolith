@@ -9,8 +9,13 @@ import type {
   TaskOpInputDto,
 } from "@/contexts/bc_projects/schemas";
 
-/** Wynik zapisu z karty Projekty (Save State, devlog, typ); wspólny dla komponentów i `useProjects`. */
-export type MutationResult = { ok: true } | { ok: false; error: string; conflict: boolean };
+/**
+ * Wynik zapisu z karty Projekty (Save State, devlog, typ); wspólny dla komponentów i `useProjects`.
+ * `archived`: liczba przeniesionych zadań (tylko odpowiedź archiwizacji).
+ */
+export type MutationResult =
+  | { ok: true; archived?: number }
+  | { ok: false; error: string; conflict: boolean };
 
 /** Wynik pobrania paczki kontekstu (odczyt, nie zapis). */
 export type ContextPackResult = { ok: true; pack: ContextPackDto } | { ok: false; error: string };
@@ -24,6 +29,8 @@ export type ProjectActions = {
   setLinks: (links: ProjectLinksInputDto) => Promise<MutationResult>;
   /** Operacja na zadaniu tablicy (dodaj, odhacz, edytuj, usuń, przenieś); odpowiedź to pełne szczegóły projektu. */
   tasksOp: (input: TaskOpInputDto) => Promise<MutationResult>;
+  /** Archiwizacja ukończonych zadań starszych niż N dni do `changelog.md` (`version`: `board.version`). */
+  archiveDone: (version: string | null, olderThanDays: number) => Promise<MutationResult>;
   /** Uśpienie / wznowienie projektu po `id` (może to być projekt, który nie jest wybrany). */
   setProjectStatus: (id: string, status: ProjectStatusChangeDto) => Promise<MutationResult>;
   /** Składa na serwerze paczkę kontekstu dla agenta (GET, bez zapisu). */

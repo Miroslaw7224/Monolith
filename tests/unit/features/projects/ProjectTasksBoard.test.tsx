@@ -1,7 +1,7 @@
 import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectDetailDto, TasksBoardDto } from "@/contexts/bc_projects/schemas";
 import { ProjectsView } from "@/src/features/projects/ProjectsView";
 
@@ -56,6 +56,10 @@ function makeApi(
         projects: [{ id, name, status, priority, localPath, owner, freshness }],
         warnings: [],
       });
+    }
+    if (url === "/api/projects/a/tasks/archive" && options?.method === "POST") {
+      const body = JSON.parse(String(options.body));
+      return onPost ? onPost(body) : json({ ...initial, archived: 0 });
     }
     if (url === "/api/projects/a/tasks" && options?.method === "POST") {
       const body = JSON.parse(String(options.body));
@@ -405,5 +409,118 @@ describe("ProjectTasksBoard: filtr otwarte / ukończone", () => {
       screen.queryByRole("button", { name: "Potwierdź usunięcie: N-otwarte" })
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Usuń: N-otwarte" })).toBeInTheDocument();
+  });
+});
+
+describe("ProjectTasksBoard: archiwizacja ukończonych", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 14, 12, 0));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  // Dziś 2026-11-14. N = 7: M = 1 (tylko „Bez daty”); N = 3: M = 2 (Stare 11-10 i „Bez daty”), K = 1.
+  const archBoard = () =>
+    board({
+      now: [],
+      next: [
+        { text: "Otwarte", done: false },
+        { text: "Stare", done: true, doneDate: "2026-11-10" },
+        { text: "Świeże", done: true, doneDate: "2026-11-12" },
+      ],
+      icebox: [{ text: "Bez daty", done: true }],
+    });
+  const onlyDated = () =>
+    board({
+      now: [],
+      icebox: [],
+      next: [{ text: "Stare", done: true, doneDate: "2026-11-10" }],
+    });
+  const BTN = (m: number) => ({ name: `Archiwizuj ukończone (${m})` });
+  const setDays = (user: ReturnType<typeof userEvent.setup>, value: string) =>
+    user.selectOptions(screen.getByLabelText("Archiwizuj starsze niż"), value);
+
+  it("przycisk ukryty przy M = 0 (same otwarte)", async () => {
+    render(
+      <ProjectsView
+        apiFetch={makeApi(detail(board({ icebox: [], next: [{ text: "A", done: false }] })))}
+      />
+    );
+    await findColumn("Następne");
+    expect(screen.queryByRole("button", { name: /Archiwizuj ukończone/ })).not.toBeInTheDocument();
+  });
+
+  it("M zmienia się z progiem; przy M = 0 przycisk wraca po zmianie progu", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsView apiFetch={makeApi(detail(archBoard()))} />);
+    expect(await screen.findByRole("button", BTN(1))).toBeInTheDocument();
+    await setDays(user, "3");
+    expect(screen.getByRole("button", BTN(2))).toBeInTheDocument();
+
+    cleanup();
+    render(<ProjectsView apiFetch={makeApi(detail(onlyDated()))} />);
+    await findColumn("Następne");
+    expect(screen.queryByRole("button", { name: /Archiwizuj ukończone/ })).not.toBeInTheDocument();
+    await setDays(userEvent.setup(), "3");
+    expect(screen.getByRole("button", BTN(1))).toBeInTheDocument();
+  });
+
+  it("potwierdzenie: „(w tym K bez daty)” tylko gdy K > 0", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsView apiFetch={makeApi(detail(archBoard()))} />);
+    await user.click(await screen.findByRole("button", BTN(1)));
+    expect(
+      screen.getByText("Przenieść 1 zadań do changelog.md (w tym 1 bez daty)?")
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Anuluj archiwizację" }));
+    expect(screen.queryByText(/Przenieść/)).not.toBeInTheDocument();
+
+    cleanup();
+    render(<ProjectsView apiFetch={makeApi(detail(onlyDated()))} />);
+    await findColumn("Następne");
+    const user2 = userEvent.setup();
+    await setDays(user2, "3");
+    await user2.click(screen.getByRole("button", BTN(1)));
+    expect(screen.getByText("Przenieść 1 zadań do changelog.md?")).toBeInTheDocument();
+  });
+
+  it("potwierdzenie → POST /tasks/archive z wersją i progiem; komunikat z archived z odpowiedzi", async () => {
+    const user = userEvent.setup();
+    const after = board({ now: [], icebox: [], next: [{ text: "Otwarte", done: false }] });
+    const api = makeApi(detail(archBoard()), () => json({ ...detail(after), archived: 2 }));
+    render(<ProjectsView apiFetch={api} />);
+    await findColumn("Następne");
+    await setDays(user, "3");
+    await user.click(screen.getByRole("button", BTN(2)));
+    await user.click(screen.getByRole("button", { name: "Potwierdź archiwizację" }));
+    expect(posts(api)).toEqual([{ version: V, olderThanDays: 3 }]);
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Przeniesiono 2 zadań do changelog.md"
+    );
+    expect(screen.queryByRole("button", { name: /Archiwizuj ukończone/ })).not.toBeInTheDocument();
+  });
+
+  it("konflikt 409: komunikat i ponowne pobranie szczegółów", async () => {
+    const user = userEvent.setup();
+    const api = makeApi(detail(archBoard()), () =>
+      json({ error: "Plik zadań zmienił się w międzyczasie" }, 409)
+    );
+    render(<ProjectsView apiFetch={api} />);
+    await user.click(await screen.findByRole("button", BTN(1)));
+    await user.click(screen.getByRole("button", { name: "Potwierdź archiwizację" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/zmienił się|odświeżono/i);
+    await waitFor(() =>
+      expect(
+        api.mock.calls.filter((c) => c[0] === "/api/projects/a").length
+      ).toBeGreaterThanOrEqual(2)
+    );
+  });
+
+  it("M nie zmienia się po przełączeniu filtra (liczony z pełnej tablicy)", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsView apiFetch={makeApi(detail(archBoard()))} />);
+    await screen.findByRole("button", BTN(1));
+    await user.click(screen.getByRole("button", { name: "Otwarte" }));
+    expect(screen.getByRole("button", BTN(1))).toBeInTheDocument();
   });
 });
