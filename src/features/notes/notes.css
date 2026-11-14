@@ -1093,3 +1093,34 @@
   pointer-events: none;
   height: 0;
 }
+
+/* ── Baza wiedzy NEXUS (tylko odczyt) ───────────────────────────────────────── */
+.not-nexus {
+  margin-top: var(--s-4);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.not-nexus .not-folder__name {
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.not-wikilink {
+  color: var(--accent);
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+.not-wikilink--missing {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: help;
+  opacity: 0.7;
+}
