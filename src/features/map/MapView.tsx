@@ -126,9 +126,8 @@ export function MapView({
           <ul className="map-legend" aria-label="Legenda">
             <li className="map-legend-item">
               <span className="map-legend-line map-legend-line--shared" />
-              łuk: powiązania między skupiskami (grubość = liczba)
+              linia: link między notatkami (po najechaniu lub kliknięciu jaśniejsza)
             </li>
-            <li className="map-legend-item">klik w skupisko lub punkt pokazuje jego linki</li>
             <li className="map-legend-item">Skille: wkrótce, bez powiązań</li>
           </ul>
           <MapNodeList

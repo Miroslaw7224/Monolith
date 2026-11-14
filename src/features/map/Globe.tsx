@@ -24,10 +24,11 @@ import {
   stepZoom,
   wrapAngle,
   type ClusterPlacement,
+  type Projected,
   type ProjectedNode,
   type Vec3,
 } from "./globeMath";
-import { selectionHighlight, type MapSelection } from "./selection";
+import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
 
 /** Prędkość auto-obrotu: ok. 0,12 rad/s, pełny obrót w ~52 s. */
 const AUTO_SPEED = 0.12;
@@ -147,7 +148,7 @@ export function Globe({
   const drawRef = useRef<() => void>(() => {});
   const pausedRef = useRef(paused);
   const onSelectRef = useRef(onSelect);
-  const dataRef = useRef({ geo, highlight, clusters, nodes, clusterEdges });
+  const dataRef = useRef({ geo, highlight, clusters, nodes, edges });
 
   /** Zmiana zoomu (przyciski, kółko, klawisze, szczypanie); przy „ogranicz ruch” bez wygładzania. */
   const applyZoom = useCallback((next: number, immediate = false) => {
@@ -161,11 +162,11 @@ export function Globe({
   }, []);
 
   useEffect(() => {
-    dataRef.current = { geo, highlight, clusters, nodes, clusterEdges };
+    dataRef.current = { geo, highlight, clusters, nodes, edges };
     pausedRef.current = paused;
     onSelectRef.current = onSelect;
     drawRef.current();
-  }, [geo, highlight, clusters, nodes, clusterEdges, paused, onSelect]);
+  }, [geo, highlight, clusters, nodes, edges, paused, onSelect]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -176,14 +177,19 @@ export function Globe({
     const groupColor = (g: MapClusterDto["group"]): string =>
       g === "knowledge" ? pal.ok : g === "skills" ? pal.muted : pal.accent;
 
+    /** Najechanie (hover) ma pierwszeństwo przed zaznaczeniem; `null` = brak najechania. */
+    let hoverHl: SelectionHighlight | null = null;
+    let hoverKey = "";
+
     const draw = () => {
       const {
         geo: g,
-        highlight: hl,
+        highlight: sel,
         clusters: cls,
         nodes: nds,
-        clusterEdges: ces,
+        edges: allEdges,
       } = dataRef.current;
+      const hl = hoverHl ?? sel;
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -211,73 +217,62 @@ export function Globe({
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // 2. Płaty skupisk.
+      // 2. Pola skupisk nie są rysowane; tylko przerywany obrys placeholdera (Skille).
       for (const c of cls) {
-        const pl = g.placement[c.id];
         const outline = g.outlines[c.id];
-        if (!pl || !outline) continue;
-        const front = pj(pl.center).z >= 0;
-        const active = hl.clusterId === c.id;
-        const color = groupColor(c.group);
+        const pl = g.placement[c.id];
+        if (!c.soon || !outline || !pl) continue;
         ctx.beginPath();
         outline.map(pj).forEach((q, i) => (i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y)));
         ctx.closePath();
-        if (c.soon) {
-          ctx.setLineDash([4, 4]);
-          ctx.globalAlpha = front ? 0.7 : 0.2;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          ctx.setLineDash([]);
-        } else {
-          ctx.globalAlpha = (front ? 0.07 : 0.02) * (active ? 2 : 1);
-          ctx.fillStyle = color;
-          ctx.fill();
-          ctx.globalAlpha = (active ? 0.9 : 0.28) * (front ? 1 : 0.3);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = active ? 2 : 1;
-          ctx.stroke();
-        }
+        ctx.setLineDash([4, 4]);
+        ctx.globalAlpha = pj(pl.center).z >= 0 ? 0.7 : 0.2;
+        ctx.strokeStyle = pal.muted;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
       ctx.globalAlpha = 1;
 
-      // 3. Łuki zagregowane między skupiskami.
-      for (const e of ces) {
-        const a = g.placement[e.from];
-        const b = g.placement[e.to];
-        if (!a || !b) continue;
-        const pts = arcPoints(a.center, b.center, 28).map(pj);
-        const related = selecting && (e.from === hl.clusterId || e.to === hl.clusterId);
-        const dim = selecting && !related;
-        ctx.strokeStyle = related ? pal.accent : pal.muted;
-        ctx.lineWidth = 1 + Math.min(5, Math.log2(1 + e.weight));
-        for (let i = 1; i < pts.length; i += 1) {
-          const front = (pts[i - 1].z + pts[i].z) / 2 >= 0;
-          ctx.globalAlpha = (dim ? 0.2 : 0.55) * (front ? 1 : 0.25);
-          ctx.beginPath();
-          ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
-          ctx.lineTo(pts[i].x, pts[i].y);
-          ctx.stroke();
-        }
-      }
-
-      // 4. Łuki notatkowe (tylko przy zaznaczeniu).
-      ctx.strokeStyle = pal.accent;
-      ctx.lineWidth = 1;
-      for (const e of hl.edges) {
+      // 3. Wszystkie połączenia naraz (przygaszone), potem jaśniejsze dla najechania lub zaznaczenia.
+      const arcFor = (e: MapEdgeDto): Vec3[] | null => {
         const from = g.notePos[e.from];
         const to = e.type === "link" ? g.notePos[e.to] : g.placement[e.to]?.center;
-        if (!from || !to) continue;
-        const pts = arcPoints(from, to, 8).map(pj);
-        for (let i = 1; i < pts.length; i += 1) {
-          const front = (pts[i - 1].z + pts[i].z) / 2 >= 0;
-          ctx.globalAlpha = 0.45 * (front ? 1 : 0.25);
+        return from && to ? arcPoints(from, to, 6) : null;
+      };
+      const strokeArcs = (
+        list: MapEdgeDto[],
+        color: string,
+        width: number,
+        frontAlpha: number,
+        backAlpha: number
+      ) => {
+        const front: Projected[][] = [];
+        const back: Projected[][] = [];
+        for (const e of list) {
+          const raw = arcFor(e);
+          if (!raw) continue;
+          const pts = raw.map(pj);
+          (pts[Math.floor(pts.length / 2)].z >= 0 ? front : back).push(pts);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        for (const [group, alpha] of [
+          [back, backAlpha],
+          [front, frontAlpha],
+        ] as const) {
+          if (group.length === 0) continue;
+          ctx.globalAlpha = alpha;
           ctx.beginPath();
-          ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
-          ctx.lineTo(pts[i].x, pts[i].y);
+          for (const pts of group) {
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i].x, pts[i].y);
+          }
           ctx.stroke();
         }
-      }
+      };
+      strokeArcs(allEdges, pal.accent, 1, selecting ? 0.1 : 0.3, selecting ? 0.03 : 0.08);
+      if (selecting) strokeArcs(hl.edges, pal.text, 1.5, 0.85, 0.25);
       ctx.globalAlpha = 1;
 
       // 5. Punkty-notatki (od tyłu do przodu).
@@ -297,9 +292,10 @@ export function Globe({
         r: 3.5 * pr.scale * pointScale,
       }));
       for (const { n, pr } of items) {
-        const isSel = hl.noteId === n.id;
+        const isActive = hl.noteId === n.id;
+        const isSel = sel.noteId === n.id;
         const dim = selecting && n.cluster !== hl.clusterId && !hl.lit.has(n.id);
-        const r = (isSel ? 4.5 : 2.2) * pr.scale * pointScale;
+        const r = (isActive || isSel ? 4.5 : 2.2) * pr.scale * pointScale;
         ctx.globalAlpha = (pr.z >= 0 ? 1 : 0.25) * (dim ? 0.5 : 1);
         ctx.fillStyle = groupColor(cluster.get(n.cluster)?.group ?? "knowledge");
         ctx.beginPath();
@@ -398,6 +394,14 @@ export function Globe({
       const rect = canvas.getBoundingClientRect();
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
+    const setHover = (next: MapSelection | null) => {
+      const key = next ? `${next.kind}:${next.id}` : "";
+      if (key === hoverKey) return;
+      hoverKey = key;
+      const { nodes: nds, edges: es } = dataRef.current;
+      hoverHl = next ? selectionHighlight(next, nds, es) : null;
+      draw();
+    };
     const pick = (x: number, y: number): MapSelection | null => {
       const note = hitTest(projectedNotes.current, x, y);
       if (note) return { kind: "note", id: note };
@@ -437,7 +441,9 @@ export function Globe({
         return;
       }
       const { x, y } = local(e);
-      canvas.style.cursor = pick(x, y) ? "pointer" : "grab";
+      const over = pick(x, y);
+      canvas.style.cursor = over ? "pointer" : "grab";
+      setHover(over);
     };
     const onUp = (e: PointerEvent) => {
       const d = drag.current;
@@ -466,6 +472,7 @@ export function Globe({
     };
     const onLeave = () => {
       hover.current = false;
+      setHover(null);
     };
     canvas.addEventListener("pointerdown", onDown);
     canvas.addEventListener("pointermove", onMove);

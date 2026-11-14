@@ -21,11 +21,14 @@ export const POINT_LABEL_ZOOM = 2.5;
 export const PATCH_BASE = 0.1;
 export const PATCH_PER_SQRT = 0.045;
 export const PATCH_GAP = 0.04;
+/** Docelowa część powierzchni kuli zajmowana przez płaty (pola nie są rysowane, ale rozkładają punkty). */
+export const PATCH_COVERAGE = 0.65;
+const PATCH_MAX = 1.3;
 /** Minimalny promień trafienia punktu (px), żeby mały punkt dało się kliknąć. */
 export const MIN_HIT_RADIUS = 5;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-const ITER_MAIN = 120;
-const ITER_FINAL = 60;
+const ITER_MAIN = 200;
+const ITER_FINAL = 200;
 const ATTRACT = 0.004;
 const GROUP_ORDER = { projects: 0, knowledge: 1, ai2030: 2, skills: 3 } as const;
 /** Węzły na tylnej półkuli poniżej tego `z` nie reagują na klik. */
@@ -108,6 +111,27 @@ export function layoutPoints(center: Vec3, radius: number, count: number): Vec3[
   );
 }
 
+/** Pole czapy sferycznej o promieniu kątowym `r` (rad², kula ma 4π). */
+const capArea = (r: number): number => 2 * Math.PI * (1 - Math.cos(r));
+
+/**
+ * Skaluje promienie płatów tak, żeby razem zajmowały `PATCH_COVERAGE` powierzchni kuli (wspólny
+ * mnożnik, bisekcja; nigdy nie zmniejsza względem wzoru). Dzięki temu punkty rozkładają się po całym globie.
+ */
+function scaledRadii(raw: number[]): number[] {
+  const target = PATCH_COVERAGE * 4 * Math.PI;
+  const total = (k: number) => raw.reduce((sum, r) => sum + capArea(Math.min(PATCH_MAX, r * k)), 0);
+  if (total(1) >= target) return raw;
+  let lo = 1;
+  let hi = 8;
+  for (let i = 0; i < 50; i += 1) {
+    const mid = (lo + hi) / 2;
+    if (total(mid) < target) lo = mid;
+    else hi = mid;
+  }
+  return raw.map((r) => Math.min(PATCH_MAX, r * hi));
+}
+
 /** Styczna w `from` skierowana od (`away`) albo ku (`!away`) punktowi `other`. */
 function tangentToward(from: Vec3, other: Vec3, away: boolean, fallbackSign: number): Vec3 {
   const diff = away
@@ -137,7 +161,7 @@ export function layoutClusters(
     .map(({ c }) => c);
   const n = ordered.length;
   if (n === 0) return {};
-  const radius = ordered.map(patchRadius);
+  const radius = scaledRadii(ordered.map(patchRadius));
   const indexOf = new Map(ordered.map((c, i) => [c.id, i]));
   const centers: Vec3[] = ordered.map((_, i) =>
     fromLonLat(i * GOLDEN_ANGLE, Math.asin(1 - (2 * (i + 0.5)) / n))

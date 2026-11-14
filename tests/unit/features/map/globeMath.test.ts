@@ -9,6 +9,7 @@ import {
   isClick,
   layoutClusters,
   layoutPoints,
+  PATCH_COVERAGE,
   patchRadius,
   project,
   rotate,
@@ -49,12 +50,23 @@ describe("layoutClusters", () => {
       JSON.stringify(layoutClusters(realistic(), edges))
     );
   });
-  it("środki leżą na sferze jednostkowej, promienie wg wzoru", () => {
-    const lay = layoutClusters(realistic(), edges);
+  it("środki leżą na sferze jednostkowej, promienie proporcjonalne do wzoru", () => {
+    const input = realistic();
+    const lay = layoutClusters(input, edges);
     for (const { center } of Object.values(lay)) expect(len(center)).toBeCloseTo(1, 9);
-    expect(lay.p0.radius).toBeCloseTo(0.1 + 0.045 * 2, 9);
-    expect(lay.k0.radius).toBeCloseTo(0.1 + 0.045 * Math.sqrt(55), 9);
-    expect(lay.skille.radius).toBeCloseTo(0.1, 9);
+    const byId = Object.fromEntries(input.map((c) => [c.id, c]));
+    const ratio = (id: string) => lay[id].radius / patchRadius(byId[id]);
+    expect(ratio("p0")).toBeGreaterThan(1);
+    expect(ratio("k0")).toBeCloseTo(ratio("p0"), 9);
+    expect(ratio("skille")).toBeCloseTo(ratio("p0"), 9);
+  });
+  it("płaty pokrywają ustalony ułamek kuli (punkty są rozłożone po całym globie)", () => {
+    const lay = layoutClusters(realistic(), edges);
+    const area = Object.values(lay).reduce(
+      (sum, { radius }) => sum + 2 * Math.PI * (1 - Math.cos(radius)),
+      0
+    );
+    expect(area / (4 * Math.PI)).toBeCloseTo(PATCH_COVERAGE, 3);
   });
   it("płaty 21 skupisk się nie nakładają", () => {
     const lay = layoutClusters(realistic(), edges);

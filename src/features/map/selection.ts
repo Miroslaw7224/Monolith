@@ -25,8 +25,8 @@ export function noteNeighbors(
   return out.sort((a, b) => b.weight - a.weight || cmp(a.label, b.label) || cmp(a.id, b.id));
 }
 
-/** Najwyżej tyle łuków notatkowych rysujemy dla zaznaczenia, żeby klatka zostawała tania. */
-export const MAX_NOTE_ARCS = 400;
+/** Górna granica podświetlanych łuków (wszystkie łuki i tak są rysowane przygaszone). */
+export const MAX_NOTE_ARCS = 2000;
 
 export type SelectionHighlight = {
   clusterId: string | null;
