@@ -29,7 +29,15 @@ import {
   type Vec3,
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
-import { axonPulse, coreAlphas, dustPosition, innerSphere, makeDust, withAlpha } from "./core";
+import {
+  axonPulse,
+  coreAlphas,
+  coreStops,
+  dustPosition,
+  innerSphere,
+  makeDust,
+  withAlpha,
+} from "./core";
 import { approach, breathScale, globeBreath, idPhase, rimFactor, slowPulse } from "./motion";
 import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
@@ -326,8 +334,7 @@ export function Globe({
       ctx.fill();
       // Świecące jądro w środku (gaśnie ku brzegowi).
       const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, R * 0.85);
-      glow.addColorStop(0, withAlpha(pal.accent, alphas.core, FALLBACK.accent));
-      glow.addColorStop(1, withAlpha(pal.accent, 0, FALLBACK.accent));
+      for (const st of coreStops(alphas.core)) glow.addColorStop(st.offset, st.color);
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(w / 2, h / 2, R * 0.85, 0, Math.PI * 2);

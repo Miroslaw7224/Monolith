@@ -5,6 +5,7 @@ import {
   DUST_MIN_RADIUS,
   axonPulse,
   coreAlphas,
+  coreStops,
   dustPosition,
   innerSphere,
   makeDust,
@@ -40,6 +41,23 @@ describe("coreAlphas", () => {
   });
   it("puls zmienia jasność jądra", () => {
     expect(coreAlphas(1).core).toBeGreaterThan(coreAlphas(0).core);
+  });
+});
+
+describe("coreStops", () => {
+  it("jądro jest ciepłe (czerwień przeważa nad niebieskim), gaśnie do zera na brzegu, a środek jest najjaśniejszy", () => {
+    const st = coreStops(0.4);
+    const rgba = (c: string) => c.match(/[\d.]+/g)!.map(Number);
+    expect(st[0].offset).toBe(0);
+    expect(st[st.length - 1].offset).toBe(1);
+    expect(rgba(st[st.length - 1].color)[3]).toBe(0);
+    for (const s of st) {
+      const [r, , b] = rgba(s.color);
+      expect(r).toBeGreaterThan(b);
+    }
+    const alphas = st.map((s) => rgba(s.color)[3]);
+    expect(alphas[0]).toBeCloseTo(0.4);
+    expect(alphas).toEqual([...alphas].sort((x, y) => y - x));
   });
 });
 

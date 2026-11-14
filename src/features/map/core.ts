@@ -34,6 +34,20 @@ export function coreAlphas(pulse: number): { core: number; edge: number } {
   return { core: CORE_MAX_ALPHA * (0.7 + 0.3 * p), edge: 0.34 + 0.08 * p };
 }
 
+/** Kolory jądra jak lawa: biało-żółty żar w środku, pomarańcz, głęboka czerwień ku brzegowi. */
+export const LAVA = { hot: "#fff0a8", mid: "#ff8a1f", deep: "#d0300a" } as const;
+
+/** Przystanki gradientu jądra dla alfy `core` (0..CORE_MAX_ALPHA); na brzegu jądra alfa spada do 0. */
+export function coreStops(core: number): { offset: number; color: string }[] {
+  const a = clamp01(core);
+  return [
+    { offset: 0, color: withAlpha(LAVA.hot, a) },
+    { offset: 0.3, color: withAlpha(LAVA.mid, a * 0.85) },
+    { offset: 0.65, color: withAlpha(LAVA.deep, a * 0.45) },
+    { offset: 1, color: withAlpha(LAVA.deep, 0) },
+  ];
+}
+
 export type Dust = { dir: Vec3; radius: number; phase: number; spin: number };
 
 /** Deterministyczny generator (mulberry32), żeby pył wyglądał tak samo po każdym odświeżeniu. */
