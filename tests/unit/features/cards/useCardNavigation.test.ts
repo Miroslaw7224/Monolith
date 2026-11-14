@@ -25,12 +25,22 @@ describe("useCardNavigation", () => {
 
   test("karta bez kodu ustawia zaślepkę, kolejna karta ją zdejmuje", () => {
     const { result } = renderHook(() => useCardNavigation());
-    act(() => result.current.selectCard("mapa"));
-    expect(result.current.placeholder).toBe("mapa");
-    expect(result.current.activeCard).toBe("mapa");
+    act(() => result.current.selectCard("kodeks"));
+    expect(result.current.placeholder).toBe("kodeks");
+    expect(result.current.activeCard).toBe("kodeks");
     act(() => result.current.selectCard("kokpit"));
     expect(result.current.placeholder).toBeNull();
     expect(result.current.appMode).toBe("home");
+  });
+
+  test("karta Mapa ustawia mapOpen, nie zaślepkę; kolejna karta zdejmuje mapOpen", () => {
+    const { result } = renderHook(() => useCardNavigation());
+    act(() => result.current.selectCard("mapa"));
+    expect(result.current.mapOpen).toBe(true);
+    expect(result.current.placeholder).toBeNull();
+    expect(result.current.activeCard).toBe("mapa");
+    act(() => result.current.selectCard("kokpit"));
+    expect(result.current.mapOpen).toBe(false);
   });
 
   test("setter starego widoku zdejmuje zaślepkę", () => {

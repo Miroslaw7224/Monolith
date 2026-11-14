@@ -26,8 +26,8 @@ describe("CARDS", () => {
     ]);
   });
 
-  test("mapa i kodeks to zaślepki", () => {
-    expect(getCard("mapa").target).toEqual({ kind: "placeholder", stage: "etap 4" });
+  test("mapa ma własny widok, kodeks to zaślepka", () => {
+    expect(getCard("mapa").target).toEqual({ kind: "map" });
     expect(getCard("kodeks").target).toEqual({ kind: "placeholder", stage: "po etapie 0c" });
   });
 
