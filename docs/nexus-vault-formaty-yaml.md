@@ -37,9 +37,58 @@ Frontmatter (po pierwszym zapisie aplikacji bez `generated_by`), nagłówek `# Z
 
 ## Kalendarz: `Calendar/RRRR-MM.yaml`
 
-Jeden plik na miesiąc **daty początku** wydarzenia. Klucz listy `events`, pola rekordu: `id`, `date` (`RRRR-MM-DD`), `start_minutes`, `duration_minutes` (wielokrotność 15), `title`, `tags` (lista), `color`, `type` (`work` lub `meeting`), `created`, `updated` (opcjonalne, ustawiane przy edycji).
+Jeden plik na miesiąc **daty początku** wydarzenia. Struktura: `version: 1`, lista pod kluczem `events`. Przykład (prawdziwy rekord):
 
-- Wydarzenie przechodzące przez północ lub granicę miesiąca jest jednym rekordem w pliku miesiąca początku. Aplikacja czyta wszystkie pliki miesięcy; pliki o innych nazwach są ignorowane.
+```yaml
+version: 1
+events:
+  - id: VAWXDPL63fvELI75LKT4
+    date: "2026-11-18"
+    start_minutes: 1200
+    duration_minutes: 60
+    title: Career Guide
+    tags:
+      - Career Guide
+    color: "#00802b"
+    type: meeting
+    created: "2026-11-13T20:27:15.954Z"
+    link: https://meet.google.com/gon-fztr-zrn
+    updated: "2026-11-13T20:40:04.823Z"
+```
+
+| Pole               | Wymagane | Znaczenie                                                                                                                    |
+| ------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | tak      | 20 znaków alfanumerycznych, unikalne w całym katalogu `Calendar/` (nie tylko w pliku)                                        |
+| `date`             | tak      | `"RRRR-MM-DD"` **w cudzysłowie**, data lokalna użytkownika (bez przesunięcia UTC)                                            |
+| `start_minutes`    | tak      | minuty od północy czasu lokalnego, liczba: 09:00 = `540`, 19:00 = `1140`, 20:00 = `1200`                                     |
+| `duration_minutes` | tak      | minuty, **wielokrotność 15** (inaczej API odrzuca; ręczny zapis to omija, więc pilnuj sam)                                   |
+| `title`            | tak      | tekst; brak = pusty                                                                                                          |
+| `tags`             | tak      | lista tekstów (może być `[]`); to nazwy, nie id tagów z `Resources/tags.yaml`                                                |
+| `color`            | tak      | `"#RRGGBB"`; domyślnie `"#3B82F6"`                                                                                           |
+| `type`             | tak      | `work` albo `meeting`; każda inna wartość jest czytana jako `work`                                                           |
+| `created`          | tak      | ISO 8601 UTC (`2026-11-13T20:27:15.954Z`)                                                                                    |
+| `updated`          | nie      | ISO 8601 UTC; ustawiane przy edycji, rozstrzyga duplikaty `id`                                                               |
+| `link`             | nie      | adres spotkania, tylko `http(s)://…` bez spacji, do 500 znaków; inne schematy (np. `javascript:`) są przy odczycie odrzucane |
+| `brief`            | nie      | notatka przed spotkaniem, do 1000 znaków, wiele linii, każda linia = punkt                                                   |
+
+Pola opcjonalne (`link`, `brief`, `updated`) są pomijane, gdy brak wartości (nigdy `null`, nigdy pusty tekst).
+
+### Jak dodawać wydarzenia (agent)
+
+Zapisuj **przez API** działającej aplikacji (`http://127.0.0.1:3100`), nie ręczną edycją YAML: API generuje `id`, ustawia `created`, wybiera plik miesiąca, waliduje `link`/`brief`/15 minut i zapisuje atomowo.
+
+- `GET /api/calendar/events?startDate=RRRR-MM-DD&endDate=RRRR-MM-DD`: lista, razem z wirtualnymi `task_deadline` (`id` = `task:<id zadania>`, 23:30, 30 min, `#6B7280`; **nie są w pliku** i nie da się ich edytować przez kalendarz).
+- `POST /api/calendar/events`: ciało JSON `{date, start_minutes, duration_minutes, title, tags, color, type, link?, brief?}`; wymagane tylko `date` i `duration_minutes`, reszta ma wartości domyślne (`start_minutes` 0, `tags` `[]`, `color` `#3B82F6`, `type` `work`). Odpowiedź: zapisane wydarzenie.
+- `PUT /api/calendar/events/<id>`: częściowa zmiana (tylko podane pola). `link` albo `brief` równe `""` usuwa pole. Zmiana `date` na inny miesiąc przenosi rekord do pliku tego miesiąca. Odpowiedź: `{"success": true}`.
+- `DELETE /api/calendar/events/<id>`: usuwa. Odpowiedź: `{"success": true}`.
+- Każdy `POST`/`PUT`/`DELETE` z `curl` wymaga nagłówka `X-Nexus-Client: 1` (strażnik `lib/http/localGuard.ts`, inaczej 403). Ciało podawaj przez heredoc `<<'JSON'`, jak w skillu `segreguj-inbox`.
+- Błędy: 400 zła data, `duration_minutes` niebędące wielokrotnością 15, zły `link`, za długi `brief`; 404 brak wydarzenia przy `PUT`; 409 plik zmienił się w trakcie zapisu.
+- Przed dodaniem pokaż użytkownikowi, co zapiszesz (data, godzina, czas, tytuł), i dopiero po zgodzie wołaj `POST`.
+
+### Zasady odczytu i zapisu
+
+- Wydarzenie przechodzące przez północ lub granicę miesiąca jest jednym rekordem w pliku miesiąca początku. Aplikacja czyta wszystkie pliki miesięcy (`RRRR-MM.yaml`); pliki o innych nazwach są ignorowane.
+- Ten sam `id` w dwóch miesiącach: wygrywa rekord z późniejszym `updated` (brak = `created`), przy remisie późniejszy plik.
 - Zmiana `date` na inny miesiąc przenosi rekord do pliku tego miesiąca.
 - Zasady zapisu jak w pozostałych plikach YAML (nieznane klucze rekordu przeżywają, komentarze giną, uszkodzony plik nie jest nadpisywany).
 - Terminy zadań (`due`) nie są zapisywane w kalendarzu: aplikacja dolicza je w locie.
