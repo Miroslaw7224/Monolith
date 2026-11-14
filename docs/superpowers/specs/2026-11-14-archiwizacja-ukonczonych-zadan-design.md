@@ -1,7 +1,7 @@
 # Archiwizacja ukończonych zadań projektu i kolejność „otwarte przed ukończonymi” — projekt
 
 Data: 2026-11-14
-Status: po review (agy, cursor); do planu implementacji
+Status: zaimplementowany (plan `2026-11-14-archiwizacja-zadan.md`); odstępstwa od pierwotnego projektu opisane w „Aktualizacji po implementacji” na końcu
 Powiązane: `2026-11-12-struktura-kontekstow-design.md` (siatka plików, reguły), etap 1-3 tablicy zadań (`contexts/bc_projects/repositories/tasks-file.ts`), `2026-11-11-asystent-lokalny-nexus-design.md` (paczka kontekstu)
 
 ## 1. Cel
@@ -12,7 +12,7 @@ Odhaczone zadania w `Projects/<id>/tasks.md` tylko się kumulują: w `monolith/t
 2. **Archiwizacja:** akcja „Archiwizuj ukończone” przenosi ukończone zadania starsze niż N dni (N wybiera użytkownik: 3, 5 albo 7) do `Projects/<id>/changelog.md`.
 3. **Filtr widoku:** przełącznik „Wszystkie / Otwarte / Ukończone” nad tablicą zadań projektu (tylko UI, bez zmian w plikach).
 
-**Wymóg nadrzędny:** archiwum nie może rozbudowywać kontekstu agenta. `changelog.md` nie jest czytany przez żaden istniejący czytnik kontekstu agenta (parser tablicy, paczka kontekstu, `readProjectContent`); panel Notatki go wyklucza, a Mapa skanuje go jak pozostałe pliki projektu (§4.4).
+**Wymóg nadrzędny:** archiwum nie może rozbudowywać kontekstu agenta. `changelog.md` nie jest czytany przez żaden istniejący czytnik kontekstu agenta (parser tablicy, paczka kontekstu, `readProjectContent`); panel Notatki go wyklucza, a Mapa pomija go razem z `tasks.md` i `devlog.md` (§4.4, decyzja użytkownika).
 
 ## 2. Zakres
 
@@ -94,7 +94,7 @@ Paczka kontekstu (`services/context-pack.ts`) bierze z tablicy wyłącznie otwar
 Dwa inne czytniki skanują cały `Projects/<id>/` i bez zmiany pokazałyby changelog:
 
 - **Notatki** (`bc_nexus_docs`): `changelog.md` trafia do `PROJECT_EXCLUDED_FILES` (`bc_nexus_docs/models.ts`), jak `tasks.md` i `devlog.md`; test w `bc_nexus_docs`.
-- **Mapa** (`bc_map/repositories.ts`): skanuje wszystkie pliki `.md` projektu, także `tasks.md` i `devlog.md`, więc changelog byłby kolejną notatką-węzłem. Zmian nie robimy (spójnie z tymi plikami; to nie jest kontekst agenta); wpisujemy do decyzji odłożonych razem z Mapą.
+- **Mapa** (`bc_map/repositories.ts`): skanowała wszystkie pliki `.md` projektu, więc changelog byłby kolejnym węzłem. Decyzja użytkownika (2026-11-14): pliki robocze `tasks.md`, `devlog.md` i `changelog.md` (bezpośrednio w `Projects/<id>/`) nie są potrzebne w grafie, więc Mapa je pomija (stała `PROJECT_WORK_FILES`; `bc_map` nie importuje stałej z `bc_nexus_docs`, reguła R2). Skutek: znikają węzły tych plików i krawędzie z ich wikilinków, więc zmieniają się liczniki linków `index`/`bugs`.
 
 ## 5. Struktura kodu (`contexts/bc_projects/`)
 
@@ -155,3 +155,11 @@ Jeden PR: (1) kolejność w `tasks-file.ts` z testami; (2) `archiveDateOf`/`isAr
 - **Data w środku linii:** reguła `archiveDateOf` (§4.1) zgaduje datę ukończenia z pierwszego `— RRRR-MM-DD`; linia z inną datą wcześniej w tekście dostanie złą. Akceptowane (zgodne z konwencją zapisu w vaulcie), a pierwsza archiwizacja na `monolith` jest sprawdzana ręcznie (§8).
 - **Wymieszane stare pliki:** reguła kolejności nie naprawia ich naraz; archiwizacja i dotykanie zadań robią to stopniowo (świadomie, §2).
 - **Zmiana zachowania `toggle`:** odhaczenie przesuwa linię w pliku (do tej pory zostawała); testy kolejności to pokrywają, a `completeNowTask` z Kokpitu (`services/index.ts:209`) idzie tą samą ścieżką.
+
+## 10. Aktualizacja po implementacji (2026-11-14)
+
+- **Miejsce funkcji dat:** `archiveDateOf`, `isArchivable` (oraz `daysBetween`, `isIsoDay`, `localIsoDate`) leżą w `lib/schema/archive-date.ts`, nie w `schemas.ts` (§4.1, §5). Test architektury zabrania importu `schemas` z `repositories` (`LAYER_ALLOWED`), a funkcje woła i repozytorium, i UI. `schemas.ts` je re-eksportuje, więc UI nadal importuje je tylko ze `schemas`.
+- **Mapa:** `bc_map/repositories.ts` pomija `tasks.md`, `devlog.md`, `changelog.md` (§4.4); zmiana poza `bc_projects`, w osobnym commicie.
+- **Data istniejącego bloku w changelogu:** przy wstawianiu nowego bloku data istniejących linii liczona jest jak w parserze `tasks.md`: końcowe `— RRRR-MM-DD` ma pierwszeństwo przed wcześniejszą datą w treści.
+- **Potwierdzenie archiwizacji** zamyka się przy każdej mutacji tablicy (zmieniają się M i K).
+- **Fixture:** kopia prawdziwego `monolith/tasks.md` leży jako `tests/unit/contexts/bc_projects/fixtures/monolith-tasks.fixture.txt` (rozszerzenie `.txt`, żeby prettier jej nie przeformatował).
