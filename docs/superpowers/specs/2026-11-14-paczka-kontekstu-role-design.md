@@ -63,7 +63,7 @@ Nieznana rola w zapytaniu: 400 (`{ error: "Nieznana rola paczki" }`), bez wywoł
 
 ## 8. Commity i weryfikacja
 
-Implementacja w **jednym commicie** (spec i plan w osobnych commitach dokumentów). Po zmianie: `npx vitest run`, `npx tsc --noEmit`, `npm run lint`, `npm run build` przez `cursor`; review diffa przez `agy`.
+Implementacja w **pięciu commitach**, po jednym na zadanie planu (typ i schemat roli, profile w kompozytorze, serwis i trasa, UI, dokumentacja); spec i plan w osobnych commitach dokumentów. Po każdym commicie testy dotknięte zmianą i `tsc` są zielone. Po zmianie: `npx vitest run`, `npx tsc --noEmit`, `npm run lint`, `npm run build` przez `cursor`; review diffa przez `agy`.
 
 ## 9. Ryzyka
 
