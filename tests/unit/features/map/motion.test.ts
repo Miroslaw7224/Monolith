@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { BREATH_AMP, approach, breathScale, idPhase, slowPulse } from "@/src/features/map/motion";
+import {
+  BREATH_AMP,
+  GLOBE_BREATH_AMP,
+  RIM_MAX_WOBBLE,
+  approach,
+  breathScale,
+  globeBreath,
+  idPhase,
+  rimFactor,
+  slowPulse,
+} from "@/src/features/map/motion";
 
 describe("idPhase", () => {
   it("jest stały dla tego samego id i leży w [0, 2π)", () => {
@@ -56,5 +66,30 @@ describe("approach", () => {
     expect(approach(0, 1, 5, 10)).toBe(1);
     expect(approach(0.998, 1, 0.001, 10)).toBe(1);
     expect(approach(1, 0, 5, 10)).toBe(0);
+  });
+});
+
+describe("globeBreath / rimFactor", () => {
+  it("globeBreath mieści się w 1 ± GLOBE_BREATH_AMP i się zmienia", () => {
+    const vals: number[] = [];
+    for (let t = 0; t < 12000; t += 200) vals.push(globeBreath(t));
+    expect(Math.min(...vals)).toBeGreaterThanOrEqual(1 - GLOBE_BREATH_AMP - 1e-9);
+    expect(Math.max(...vals)).toBeLessThanOrEqual(1 + GLOBE_BREATH_AMP + 1e-9);
+    expect(Math.max(...vals) - Math.min(...vals)).toBeGreaterThan(GLOBE_BREATH_AMP);
+  });
+  it("rimFactor jest okresowy po kącie i ograniczony", () => {
+    for (const t of [0, 1234, 9000]) {
+      for (let a = 0; a < 2 * Math.PI; a += 0.3) {
+        const f = rimFactor(a, t);
+        expect(f).toBeGreaterThan(1 - RIM_MAX_WOBBLE - 1e-9);
+        expect(f).toBeLessThan(1 + RIM_MAX_WOBBLE + 1e-9);
+        expect(rimFactor(a + 2 * Math.PI, t)).toBeCloseTo(f);
+      }
+    }
+  });
+  it("brzeg nie jest idealnym okręgiem i faluje w czasie", () => {
+    const at = (t: number) => [0, 1, 2, 3, 4, 5].map((a) => rimFactor(a, t).toFixed(5));
+    expect(new Set(at(500)).size).toBeGreaterThan(1);
+    expect(at(500)).not.toEqual(at(4000));
   });
 });

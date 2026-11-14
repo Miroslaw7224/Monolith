@@ -30,7 +30,7 @@ import {
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
 import { axonPulse, coreAlphas, dustPosition, innerSphere, makeDust, withAlpha } from "./core";
-import { approach, breathScale, idPhase, slowPulse } from "./motion";
+import { approach, breathScale, globeBreath, idPhase, rimFactor, slowPulse } from "./motion";
 import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
 
@@ -289,8 +289,10 @@ export function Globe({
       ctx.clearRect(0, 0, w, h);
       const { yaw, pitch } = view.current;
       const zoom = zoomRef.current;
-      const R = fitRadius(w, h) * zoom;
-      const pj = (p: Vec3) => project(rotate(p, yaw, pitch), w, h, zoom);
+      // Oddech całej kuli: wszystko (węzły, łuki, hit-test) skaluje się razem.
+      const bz = reduced.current ? 1 : globeBreath(performance.now());
+      const R = fitRadius(w, h) * zoom * bz;
+      const pj = (p: Vec3) => project(rotate(p, yaw, pitch), w, h, zoom * bz);
       const now = performance.now();
       advanceLayers(now, hl.clusterId !== null ? hl : null, maps);
       const selectAmt = Math.min(
@@ -302,8 +304,21 @@ export function Globe({
       // 1. Dysk kuli (z delikatnym pulsem tła i krawędzi).
       const pulse = live ? slowPulse(now) : 0.5;
       const alphas = coreAlphas(pulse);
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
+      // Brzeg kuli jest elastyczny: promień lekko faluje po obwodzie.
+      const rimPath = () => {
+        ctx.beginPath();
+        const steps = 96;
+        for (let i = 0; i <= steps; i += 1) {
+          const th = (i / steps) * Math.PI * 2;
+          const rr = live ? R * rimFactor(th, now) : R;
+          const x = w / 2 + rr * Math.cos(th);
+          const y = h / 2 + rr * Math.sin(th);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+      };
+      rimPath();
       const body = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, R);
       body.addColorStop(0, withAlpha(pal.surface, alphas.edge * 0.5, FALLBACK.surface));
       body.addColorStop(1, withAlpha(pal.surface, alphas.edge, FALLBACK.surface));
@@ -317,8 +332,7 @@ export function Globe({
       ctx.beginPath();
       ctx.arc(w / 2, h / 2, R * 0.85, 0, Math.PI * 2);
       ctx.fill();
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
+      rimPath();
       ctx.globalAlpha = 0.75 + 0.25 * pulse;
       ctx.strokeStyle = pal.line;
       ctx.lineWidth = 1;
