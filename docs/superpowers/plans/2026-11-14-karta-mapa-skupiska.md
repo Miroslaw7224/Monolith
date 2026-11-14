@@ -915,6 +915,16 @@ git commit -m "feat(mapa): globus ze skupiskami, łukami zagregowanymi, zoomem i
 
 ---
 
+### Zadanie 6a: wnętrze i ruch kuli (zrealizowane po zadaniu 6, poza pierwotnym planem)
+
+**Pliki:** `src/features/map/core.ts` (nowy), `src/features/map/motion.ts`, `src/features/map/Globe.tsx`, testy `core.test.ts` i `motion.test.ts`. Opis i stałe: spec §5a. Commity: `766ed39` (jądro, aksony, pył), `659392e` (siatka r = 0,4), `b8a75ca`, `343b7e8` (oddech kuli i brzeg), `a74f10a` (amplitudy ±2% / 3,2%), potem kolor jądra jak lawa (`coreStops`).
+
+- [x] Jądro, aksony, pył, siatka wewnętrzna, oddech kuli, elastyczny brzeg, jądro w kolorach lawy.
+- [x] Testy czystej logiki (`vitest run tests/unit/features/map`), `tsc` czysty.
+- [ ] Przegląd wyglądu na żywo (krok 3 zadania 8 obejmuje też wnętrze): czy ±2% nie „pływa” węzłów i etykiet (wtedy cofnąć tylko `GLOBE_BREATH_AMP`), czy lawa nie zasłania tylnych łuków (wtedy obniżyć `CORE_MAX_ALPHA`).
+
+---
+
 ### Zadanie 7: `MapView`, CSS i okno (`MapView.tsx`, `map.css`)
 
 **Pliki:** zmiana `src/features/map/MapView.tsx`, `src/features/map/map.css`.
@@ -1062,6 +1072,7 @@ Oczekiwane: ok. 20–22 skupiska, ok. 250–260 węzłów, > 1000 krawędzi, `cl
   1. §4 `MapClusterPanel`: „liczba linków wychodzących/przychodzących” → „liczba powiązań i lista sąsiadów” (krawędzie są nieskierowane, D18).
   2. §6: zoom względem `fitRadius`; „Dopasuj” = zoom 1× (promień zawsze podąża za rozmiarem okna, osobna flaga śledzenia nie jest potrzebna); klawisze `+`, `−`, `0` działają przy fokusie na kontenerze globusa (`role="application"`).
   3. §4 `globeMath`: `globeRadius` zmienia nazwę na `fitRadius`; dodane `capPoint`, `capOutline`, `stepZoom`, `patchRadius`; ewentualne zmiany stałych `PATCH_*` z kroku 8.
+  4. §4 i §5a: `core.ts` i wnętrze kuli (jądro jak lawa, aksony, pył, siatka, oddech, brzeg) opisane zgodnie z kodem (zrobione przy zadaniu 6a); stałe zmienione po przeglądzie wpisz równocześnie w test i w spec.
 - [ ] **Krok 3: Commit**
 
 ```bash

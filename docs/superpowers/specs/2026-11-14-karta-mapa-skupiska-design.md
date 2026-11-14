@@ -57,6 +57,7 @@ Rozmiar odpowiedzi: ok. 260 węzłów i ok. 1,9 tys. krawędzi to rząd 150 KB J
 
 - `globeMath.ts`: `layoutClusters(clusters, clusterEdges)` zamiast `layoutNodes`; `layoutPoints(center, R, nodes)` (spirala w płacie, rzut na sferę jednostkową); `fitRadius(w, h)` i `clampZoom(z)`; `project` dostaje promień z zoomem. `rotate`, `arcPoints`, `rotationTo`, `hitTest`, `isClick` zostają.
 - `Globe.tsx`: rysuje płaty (delikatna obwiednia i podpis skupiska), punkty, łuki zagregowane i, dla zaznaczenia, łuki notatkowe; stan zoomu, `ResizeObserver` i obsługa wejścia (D20).
+- `core.ts` (nowy, czysta logika wnętrza kuli: `withAlpha`, `coreAlphas`, `coreStops`, `coreStops`, `makeDust`, `dustPosition`, `axonPulse`, `innerSphere`) i `motion.ts` (dodane `globeBreath`, `rimFactor`): zob. §5a.
 - `MapNodeList.tsx`: lista **skupisk** (ok. 21 przycisków, pogrupowana wg `group`), nie 260 punktów. Enter obraca do skupiska, a skupisko projektu dodatkowo otwiera kartę Projekty (jak dziś).
 - `MapClusterPanel.tsx` (nowy): po zaznaczeniu skupiska lista jego notatek jako przyciski (dostępność z klawiatury); po zaznaczeniu punktu tytuł, skupisko i liczba linków wychodzących/przychodzących. Otwieranie notatki w innej karcie jest poza zakresem.
 - `MapView.tsx`, `mapTiles.ts`, `map.css`: stan zaznaczenia (skupisko lub notatka), układ wypełniający wysokość okna.
@@ -70,6 +71,18 @@ Rozmiar odpowiedzi: ok. 260 węzłów i ok. 1,9 tys. krawędzi to rząd 150 KB J
 - **Etykiety:** podpisy skupisk zawsze; podpisy punktów tylko przy zoomie ≥ 2,5× i tylko na przedniej półkuli (`z > 0`), z unikaniem nakładania (pomijamy podpis, który zachodzi na już narysowany).
 - **Głębia i `prefers-reduced-motion`:** jak w etapie 1 (alfa i grubość z `z`; brak pętli animacji, obrót na żądanie).
 
+### 5a. Wnętrze i ruch kuli (dodane po implementacji, bez zmiany danych)
+
+Kula ma „żywe” wnętrze, rysowane pod płatami i punktami (czysta wizualizacja; nie wpływa na hit-test ani dane). Logika liczbowa jest w `core.ts` i `motion.ts`, rysowanie w `Globe.tsx`.
+
+- **Tło i jądro:** radialny gradient ciemnego brzegu (alfa `0,34 + 0,08·puls`, w środku połowa) oraz świecące jądro jak lawa (`LAVA`: żar `#fff0a8` → pomarańcz `#ff8a1f` → czerwień `#d0300a`, `coreStops`; alfa do `CORE_MAX_ALPHA` = 0,4, gaśnie na 85% promienia; kolor stały, nie z palety motywu). Puls to `slowPulse` (okres ok. 6,3 s); `coreAlphas(puls)` zwraca obie alfy.
+- **Wewnętrzna siatka:** `innerSphere(0,4, 3 równoleżniki, 4 południki, 48 odcinków)`, cienkie linie `accent` (alfa `0,06 + 0,05·puls`), obracane razem z globusem; przy zaznaczeniu przygaszone.
+- **Aksony:** od jądra do środka każdego skupiska (bez Skilli) cienkie włókno w kolorze grupy; przy zaznaczeniu skupiska rozjaśnione, pozostałe przygaszone. Wzdłuż włókna biegnie kropka (`axonPulse`, okres 4,2 s, stałe przesunięcie fazy z `id`).
+- **Pył:** `DUST_COUNT` = 110 ziaren (`makeDust`, deterministyczny generator `mulberry32` z ziarnem 7224, więc ten sam wygląd po odświeżeniu) na promieniach 0,2–0,75; `dustPosition` daje powolne krążenie wokół osi pionowej i lekkie pływanie.
+- **Oddech kuli:** `globeBreath(now)` = 1 ± `GLOBE_BREATH_AMP` (**±2%**, okres ok. 5,2 s) skaluje cały rzut (węzły, łuki, etykiety, hit-test) razem.
+- **Elastyczny brzeg:** promień obrysu kuli mnożony przez `rimFactor(θ, now)`: trzy harmoniczne (2, 3, 5) o amplitudach 1,4%, 1,0%, 0,8%, więc maksymalne odchylenie `RIM_MAX_WOBBLE` = **3,2%**. `RIM_MAX_WOBBLE` ma równać się sumie amplitud harmonicznych (test sprawdza tylko, że brzeg mieści się w 1 ± `RIM_MAX_WOBBLE`, więc przy zmianie amplitud podnosimy je razem ręcznie). Brzeg działa niezależnie od oddechu: gdy ±2% jest zbyt ruchliwe (węzły i etykiety „pływają”), cofamy tylko `GLOBE_BREATH_AMP`.
+- **`prefers-reduced-motion`:** bez oddechu (mnożnik 1), bez falowania brzegu (okrąg), bez pyłu i bez biegnących kropek; jądro, siatka i aksony statyczne.
+
 ## 6. Widok: dopasowanie do okna i zoom (D20)
 
 - **Wypełnianie okna:** kontener płótna zajmuje wysokość `100dvh` pomniejszoną o to, co jest nad nim (nagłówek, kafle), z dolną granicą 420 px. `ResizeObserver` ustawia rozmiar bufora płótna z uwzględnieniem `devicePixelRatio`, bez przeładowania. Kafle i panel agentów zostają jak były, a lista węzłów i legenda pod globusem.
@@ -82,6 +95,7 @@ Rozmiar odpowiedzi: ok. 260 węzłów i ok. 1,9 tys. krawędzi to rząd 150 KB J
 ## 7. Testy
 
 - `globeMath.test.ts`: `layoutClusters` deterministyczny (dwa wywołania, identyczny wynik), środki na sferze jednostkowej, płaty się nie nakładają (odległość środków ≥ `Rᵢ + Rⱼ`) dla danych z ok. 21 skupiskami; `layoutPoints` zwraca punkty w czapie o promieniu `R` na sferze jednostkowej, węzeł o największym `links` najbliżej środka; `fitRadius` rośnie z płótnem i uwzględnia margines; `clampZoom` przycina do 0,5–6; `project` z zoomem skaluje promień; `hitTest` nadal pomija tylną półkulę.
+- `core.test.ts` i `motion.test.ts` (wnętrze kuli, §5a): `withAlpha` (hex 3/6, `rgb()`, nieznany format → `fallback`, przycięcie alfy), `coreAlphas` w granicach, `coreStops` (ciepłe kolory, alfa malejąca do 0 na brzegu), `makeDust` deterministyczny z promieniami w `[DUST_MIN_RADIUS, DUST_MAX_RADIUS]`, `axonPulse` w [0, 1), `innerSphere` (liczba łamanych, długość `segments + 1`, punkty na promieniu), `globeBreath` w 1 ± `GLOBE_BREATH_AMP`, `rimFactor` w 1 ± `RIM_MAX_WOBBLE`, brzeg nie jest okręgiem i faluje w czasie.
 - `resolveLink`: pełna ścieżka, sam `basename`, alias `|`, kotwica `#`, link do `_index`, nieznany cel, pierwszeństwo Wiedza przed Projektami przy dublecie, link do samego siebie.
 - `buildClusters`: pierwsza kategoria, brak `categories`, kategoria z 2 notatkami trafia do „inne”, Skille bez punktów.
 - `aggregateEdges`: suma wag w parze, pominięcie linków wewnątrz skupiska, obcięcie do 40 z deterministyczną kolejnością przy remisie.
