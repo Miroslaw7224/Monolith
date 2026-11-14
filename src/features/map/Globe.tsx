@@ -1,24 +1,40 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
-import type { MapEdgeDto, MapNodeDto } from "@/contexts/bc_map/schemas";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  MapClusterDto,
+  MapClusterEdgeDto,
+  MapEdgeDto,
+  MapNodeDto,
+} from "@/contexts/bc_map/schemas";
+import { GlobeControls } from "./GlobeControls";
 import {
+  POINT_LABEL_ZOOM,
   arcPoints,
-  globeRadius,
+  capOutline,
+  clampZoom,
+  fitRadius,
   hitTest,
   isClick,
-  layoutNodes,
+  layoutClusters,
+  layoutPoints,
   project,
   rotate,
   rotationTo,
+  stepZoom,
   wrapAngle,
+  type ClusterPlacement,
   type ProjectedNode,
   type Vec3,
 } from "./globeMath";
+import { selectionHighlight, type MapSelection } from "./selection";
 
 /** Prędkość auto-obrotu: ok. 0,12 rad/s, pełny obrót w ~52 s. */
 const AUTO_SPEED = 0.12;
 const PITCH_LIMIT = 1.2;
+const BUTTON_ZOOM_STEP = 1.25;
+const WHEEL_ZOOM_STEP = 1.1;
+const MAX_POINT_LABELS = 150;
 
 type Palette = {
   accent: string;
@@ -50,59 +66,106 @@ function readPalette(el: HTMLElement): Palette {
   };
 }
 
-function nodeRadius(n: MapNodeDto): number {
-  if (n.kind === "project") return 7;
-  if (n.soon) return 9;
-  return 9 + Math.min(14, Math.sqrt(n.size ?? 0) * 0.8);
+const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+type Geometry = {
+  placement: Record<string, ClusterPlacement>;
+  notePos: Record<string, Vec3>;
+  outlines: Record<string, Vec3[]>;
+};
+
+function buildGeometry(
+  clusters: MapClusterDto[],
+  nodes: MapNodeDto[],
+  clusterEdges: MapClusterEdgeDto[]
+): Geometry {
+  const placement = layoutClusters(
+    clusters.map(({ id, group, size, soon }) => ({ id, group, size, soon })),
+    clusterEdges
+  );
+  const byCluster = new Map<string, MapNodeDto[]>();
+  for (const n of nodes) byCluster.set(n.cluster, [...(byCluster.get(n.cluster) ?? []), n]);
+  const notePos: Record<string, Vec3> = {};
+  const outlines: Record<string, Vec3[]> = {};
+  for (const c of clusters) {
+    const pl = placement[c.id];
+    if (!pl) continue;
+    outlines[c.id] = capOutline(pl.center, pl.radius, 40);
+    const list = (byCluster.get(c.id) ?? []).sort((a, b) => b.links - a.links || cmp(a.id, b.id));
+    layoutPoints(pl.center, pl.radius, list.length).forEach((p, i) => {
+      notePos[list[i].id] = p;
+    });
+  }
+  return { placement, notePos, outlines };
 }
 
 export type GlobeProps = {
+  clusters: MapClusterDto[];
   nodes: MapNodeDto[];
   edges: MapEdgeDto[];
-  selectedId: string | null;
-  /** Zmiana `tick` obraca globus do węzła `id`. */
+  clusterEdges: MapClusterEdgeDto[];
+  selection: MapSelection | null;
+  /** Zmiana `tick` obraca globus do skupiska lub notatki `id`. */
   focus: { id: string; tick: number } | null;
-  /** Zatrzymuje auto-obrót (np. fokus w liście węzłów). */
+  /** Zatrzymuje auto-obrót (np. fokus w liście skupisk). */
   paused?: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (s: MapSelection) => void;
   ariaLabel: string;
 };
 
 export function Globe({
+  clusters,
   nodes,
   edges,
-  selectedId,
+  clusterEdges,
+  selection,
   focus,
   paused = false,
   onSelect,
   ariaLabel,
 }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const positions = useMemo(
-    () =>
-      layoutNodes(
-        nodes.map((n) => ({ id: n.id, kind: n.kind })),
-        edges
-      ),
-    [nodes, edges]
+  const geo = useMemo(
+    () => buildGeometry(clusters, nodes, clusterEdges),
+    [clusters, nodes, clusterEdges]
   );
+  const highlight = useMemo(
+    () => selectionHighlight(selection, nodes, edges),
+    [selection, nodes, edges]
+  );
+
   const view = useRef({ yaw: 0.4, pitch: -0.25 });
   const target = useRef<{ yaw: number; pitch: number } | null>(null);
+  const zoomRef = useRef(1);
+  const zoomTarget = useRef(1);
+  const [zoomLabel, setZoomLabel] = useState(1);
   const hover = useRef(false);
   const drag = useRef<{ sx: number; sy: number; lx: number; ly: number } | null>(null);
-  const projected = useRef<ProjectedNode[]>([]);
-  const pausedRef = useRef(paused);
-  const selectedRef = useRef(selectedId);
-  const onSelectRef = useRef(onSelect);
+  const projectedNotes = useRef<ProjectedNode[]>([]);
+  const projectedClusters = useRef<ProjectedNode[]>([]);
   const reduced = useRef(false);
   const drawRef = useRef<() => void>(() => {});
+  const pausedRef = useRef(paused);
+  const onSelectRef = useRef(onSelect);
+  const dataRef = useRef({ geo, highlight, clusters, nodes, clusterEdges });
+
+  /** Zmiana zoomu (przyciski, kółko, klawisze, szczypanie); przy „ogranicz ruch” bez wygładzania. */
+  const applyZoom = useCallback((next: number, immediate = false) => {
+    const z = clampZoom(next);
+    zoomTarget.current = z;
+    setZoomLabel(z);
+    if (immediate || reduced.current) {
+      zoomRef.current = z;
+      drawRef.current();
+    }
+  }, []);
 
   useEffect(() => {
+    dataRef.current = { geo, highlight, clusters, nodes, clusterEdges };
     pausedRef.current = paused;
-    selectedRef.current = selectedId;
     onSelectRef.current = onSelect;
     drawRef.current();
-  }, [paused, selectedId, onSelect]);
+  }, [geo, highlight, clusters, nodes, clusterEdges, paused, onSelect]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -110,8 +173,17 @@ export function Globe({
     if (!canvas || !ctx) return;
     reduced.current = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
     const pal = readPalette(canvas);
+    const groupColor = (g: MapClusterDto["group"]): string =>
+      g === "knowledge" ? pal.ok : g === "skills" ? pal.muted : pal.accent;
 
     const draw = () => {
+      const {
+        geo: g,
+        highlight: hl,
+        clusters: cls,
+        nodes: nds,
+        clusterEdges: ces,
+      } = dataRef.current;
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -123,10 +195,14 @@ export function Globe({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
       const { yaw, pitch } = view.current;
-      const selected = selectedRef.current;
+      const zoom = zoomRef.current;
+      const R = fitRadius(w, h) * zoom;
+      const pj = (p: Vec3) => project(rotate(p, yaw, pitch), w, h, zoom);
+      const selecting = hl.clusterId !== null;
 
+      // 1. Dysk kuli.
       ctx.beginPath();
-      ctx.arc(w / 2, h / 2, globeRadius(w, h), 0, Math.PI * 2);
+      ctx.arc(w / 2, h / 2, R, 0, Math.PI * 2);
       ctx.globalAlpha = 0.35;
       ctx.fillStyle = pal.surface;
       ctx.fill();
@@ -135,17 +211,67 @@ export function Globe({
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      for (const e of edges) {
-        const a = positions[e.from];
-        const b = positions[e.to];
+      // 2. Płaty skupisk.
+      for (const c of cls) {
+        const pl = g.placement[c.id];
+        const outline = g.outlines[c.id];
+        if (!pl || !outline) continue;
+        const front = pj(pl.center).z >= 0;
+        const active = hl.clusterId === c.id;
+        const color = groupColor(c.group);
+        ctx.beginPath();
+        outline.map(pj).forEach((q, i) => (i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y)));
+        ctx.closePath();
+        if (c.soon) {
+          ctx.setLineDash([4, 4]);
+          ctx.globalAlpha = front ? 0.7 : 0.2;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          ctx.globalAlpha = (front ? 0.07 : 0.02) * (active ? 2 : 1);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.globalAlpha = (active ? 0.9 : 0.28) * (front ? 1 : 0.3);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = active ? 2 : 1;
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // 3. Łuki zagregowane między skupiskami.
+      for (const e of ces) {
+        const a = g.placement[e.from];
+        const b = g.placement[e.to];
         if (!a || !b) continue;
-        const pts = arcPoints(a, b, 28).map((p) => project(rotate(p, yaw, pitch), w, h));
-        const hot = selected !== null && (e.from === selected || e.to === selected);
-        ctx.strokeStyle = hot ? pal.accent : pal.muted;
-        ctx.lineWidth = (hot ? 2 : 1) + Math.min(e.weight, 4) * 0.35;
+        const pts = arcPoints(a.center, b.center, 28).map(pj);
+        const related = selecting && (e.from === hl.clusterId || e.to === hl.clusterId);
+        const dim = selecting && !related;
+        ctx.strokeStyle = related ? pal.accent : pal.muted;
+        ctx.lineWidth = 1 + Math.min(5, Math.log2(1 + e.weight));
         for (let i = 1; i < pts.length; i += 1) {
           const front = (pts[i - 1].z + pts[i].z) / 2 >= 0;
-          ctx.globalAlpha = (hot ? 0.95 : 0.55) * (front ? 1 : 0.25);
+          ctx.globalAlpha = (dim ? 0.2 : 0.55) * (front ? 1 : 0.25);
+          ctx.beginPath();
+          ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+          ctx.lineTo(pts[i].x, pts[i].y);
+          ctx.stroke();
+        }
+      }
+
+      // 4. Łuki notatkowe (tylko przy zaznaczeniu).
+      ctx.strokeStyle = pal.accent;
+      ctx.lineWidth = 1;
+      for (const e of hl.edges) {
+        const from = g.notePos[e.from];
+        const to = e.type === "link" ? g.notePos[e.to] : g.placement[e.to]?.center;
+        if (!from || !to) continue;
+        const pts = arcPoints(from, to, 8).map(pj);
+        for (let i = 1; i < pts.length; i += 1) {
+          const front = (pts[i - 1].z + pts[i].z) / 2 >= 0;
+          ctx.globalAlpha = 0.45 * (front ? 1 : 0.25);
           ctx.beginPath();
           ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
           ctx.lineTo(pts[i].x, pts[i].y);
@@ -154,53 +280,84 @@ export function Globe({
       }
       ctx.globalAlpha = 1;
 
-      const items = nodes
+      // 5. Punkty-notatki (od tyłu do przodu).
+      const cluster = new Map(cls.map((c) => [c.id, c]));
+      const items = nds
         .flatMap((n) => {
-          const p: Vec3 | undefined = positions[n.id];
-          if (!p) return [];
-          const pr = project(rotate(p, yaw, pitch), w, h);
-          return [{ n, pr, r: nodeRadius(n) * pr.scale }];
+          const p = g.notePos[n.id];
+          return p ? [{ n, pr: pj(p) }] : [];
         })
         .sort((a, b) => a.pr.z - b.pr.z);
-      projected.current = items.map((i) => ({
-        id: i.n.id,
-        x: i.pr.x,
-        y: i.pr.y,
-        z: i.pr.z,
-        r: i.r,
+      const pointScale = Math.sqrt(zoom);
+      projectedNotes.current = items.map(({ n, pr }) => ({
+        id: n.id,
+        x: pr.x,
+        y: pr.y,
+        z: pr.z,
+        r: 3.5 * pr.scale * pointScale,
       }));
-
-      for (const { n, pr, r } of items) {
-        const front = pr.z >= 0;
-        const color = n.kind === "continent" ? pal.ok : pal.accent;
-        ctx.globalAlpha = front ? 1 : 0.3;
+      for (const { n, pr } of items) {
+        const isSel = hl.noteId === n.id;
+        const dim = selecting && n.cluster !== hl.clusterId && !hl.lit.has(n.id);
+        const r = (isSel ? 4.5 : 2.2) * pr.scale * pointScale;
+        ctx.globalAlpha = (pr.z >= 0 ? 1 : 0.25) * (dim ? 0.5 : 1);
+        ctx.fillStyle = groupColor(cluster.get(n.cluster)?.group ?? "knowledge");
         ctx.beginPath();
         ctx.arc(pr.x, pr.y, r, 0, Math.PI * 2);
-        if (n.soon) {
-          ctx.setLineDash([3, 3]);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-          ctx.setLineDash([]);
-        } else {
-          ctx.fillStyle = color;
-          ctx.fill();
-        }
-        if (n.id === selected) {
+        ctx.fill();
+        if (isSel) {
           ctx.beginPath();
-          ctx.arc(pr.x, pr.y, r + 4, 0, Math.PI * 2);
+          ctx.arc(pr.x, pr.y, r + 3, 0, Math.PI * 2);
           ctx.strokeStyle = pal.text;
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
-        if (pr.z > -0.2) {
-          ctx.fillStyle = pal.text;
-          ctx.font = `${Math.round(11 * pr.scale)}px ui-monospace, monospace`;
-          ctx.textAlign = "center";
-          ctx.fillText(n.soon ? `${n.label} (wkrótce)` : n.label, pr.x, pr.y + r + 13);
-        }
       }
       ctx.globalAlpha = 1;
+
+      // 6. Podpisy skupisk i dane do hit-testu skupisk.
+      const clusterHits: ProjectedNode[] = [];
+      ctx.fillStyle = pal.text;
+      ctx.textAlign = "center";
+      for (const c of cls) {
+        const pl = g.placement[c.id];
+        if (!pl) continue;
+        const pr = pj(pl.center);
+        clusterHits.push({
+          id: c.id,
+          x: pr.x,
+          y: pr.y,
+          z: pr.z,
+          r: Math.max(10, Math.sin(pl.radius) * R * pr.scale),
+        });
+        if (pr.z > -0.2) {
+          ctx.globalAlpha = pr.z >= 0 ? 1 : 0.4;
+          ctx.font = `${Math.round(11 * pr.scale)}px ui-monospace, monospace`;
+          ctx.fillText(c.soon ? `${c.label} (wkrótce)` : c.label, pr.x, pr.y + 4);
+        }
+      }
+      projectedClusters.current = clusterHits;
+      ctx.globalAlpha = 1;
+
+      // 7. Podpisy punktów (tylko przy dużym zoomie, bez nakładania).
+      if (zoom >= POINT_LABEL_ZOOM) {
+        const boxes: { x0: number; y0: number; x1: number; y1: number }[] = [];
+        let drawn = 0;
+        ctx.font = `${Math.round(10 * pointScale)}px ui-monospace, monospace`;
+        for (let i = items.length - 1; i >= 0 && drawn < MAX_POINT_LABELS; i -= 1) {
+          const { n, pr } = items[i];
+          if (pr.z <= 0.1) continue;
+          const width = ctx.measureText(n.label).width;
+          const y = pr.y - 6 * pointScale;
+          const box = { x0: pr.x - width / 2, y0: y - 11, x1: pr.x + width / 2, y1: y + 3 };
+          if (boxes.some((b) => box.x0 < b.x1 && box.x1 > b.x0 && box.y0 < b.y1 && box.y1 > b.y0)) {
+            continue;
+          }
+          boxes.push(box);
+          ctx.fillText(n.label, pr.x, y);
+          drawn += 1;
+        }
+      }
     };
     drawRef.current = draw;
 
@@ -209,6 +366,11 @@ export function Globe({
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      const zt = zoomTarget.current;
+      zoomRef.current =
+        Math.abs(zt - zoomRef.current) > 0.001
+          ? zoomRef.current + (zt - zoomRef.current) * 0.25
+          : zt;
       const t = target.current;
       if (t) {
         const dy = wrapAngle(t.yaw - view.current.yaw);
@@ -225,16 +387,43 @@ export function Globe({
     if (!reduced.current) raf = requestAnimationFrame(loop);
     draw();
 
+    const pointers = new Map<number, { x: number; y: number }>();
+    let pinchDist = 0;
+    let pinched = false;
+    const pinchDistance = () => {
+      const [a, b] = [...pointers.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    };
     const local = (e: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
       return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     };
+    const pick = (x: number, y: number): MapSelection | null => {
+      const note = hitTest(projectedNotes.current, x, y);
+      if (note) return { kind: "note", id: note };
+      const cl = hitTest(projectedClusters.current, x, y);
+      return cl ? { kind: "cluster", id: cl } : null;
+    };
     const onDown = (e: PointerEvent) => {
       canvas.setPointerCapture?.(e.pointerId);
-      drag.current = { sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY };
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       target.current = null;
+      if (pointers.size === 1) {
+        drag.current = { sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY };
+      } else if (pointers.size === 2) {
+        drag.current = null;
+        pinched = true;
+        pinchDist = pinchDistance();
+      }
     };
     const onMove = (e: PointerEvent) => {
+      if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size >= 2) {
+        const d = pinchDistance();
+        if (pinchDist > 0 && d > 0) applyZoom(stepZoom(zoomRef.current, d / pinchDist), true);
+        pinchDist = d;
+        return;
+      }
       const d = drag.current;
       if (d) {
         view.current.yaw += (e.clientX - d.lx) * 0.008;
@@ -248,20 +437,29 @@ export function Globe({
         return;
       }
       const { x, y } = local(e);
-      canvas.style.cursor = hitTest(projected.current, x, y) ? "pointer" : "grab";
+      canvas.style.cursor = pick(x, y) ? "pointer" : "grab";
     };
     const onUp = (e: PointerEvent) => {
       const d = drag.current;
       drag.current = null;
+      pointers.delete(e.pointerId);
       if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
-      if (d && isClick(e.clientX - d.sx, e.clientY - d.sy)) {
+      const wasPinch = pinched;
+      if (pointers.size === 0) pinched = false;
+      if (!wasPinch && d && isClick(e.clientX - d.sx, e.clientY - d.sy)) {
         const { x, y } = local(e);
-        const id = hitTest(projected.current, x, y);
-        if (id) onSelectRef.current(id);
+        const sel = pick(x, y);
+        if (sel) onSelectRef.current(sel);
       }
     };
-    const onCancel = () => {
+    const onCancel = (e: PointerEvent) => {
       drag.current = null;
+      pointers.delete(e.pointerId);
+      if (pointers.size === 0) pinched = false;
+    };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      applyZoom(stepZoom(zoomTarget.current, e.deltaY < 0 ? WHEEL_ZOOM_STEP : 1 / WHEEL_ZOOM_STEP));
     };
     const onEnter = () => {
       hover.current = true;
@@ -275,6 +473,7 @@ export function Globe({
     canvas.addEventListener("pointercancel", onCancel);
     canvas.addEventListener("pointerenter", onEnter);
     canvas.addEventListener("pointerleave", onLeave);
+    canvas.addEventListener("wheel", onWheel, { passive: false });
 
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => draw());
     resize?.observe(canvas);
@@ -288,13 +487,14 @@ export function Globe({
       canvas.removeEventListener("pointercancel", onCancel);
       canvas.removeEventListener("pointerenter", onEnter);
       canvas.removeEventListener("pointerleave", onLeave);
+      canvas.removeEventListener("wheel", onWheel);
       drawRef.current = () => {};
     };
-  }, [nodes, edges, positions]);
+  }, [applyZoom]);
 
   useEffect(() => {
     if (!focus) return;
-    const p = positions[focus.id];
+    const p = geo.notePos[focus.id] ?? geo.placement[focus.id]?.center;
     if (!p) return;
     const goal = rotationTo(p);
     if (reduced.current) {
@@ -303,7 +503,39 @@ export function Globe({
     } else {
       target.current = goal;
     }
-  }, [focus, positions]);
+    // Tylko zmiana `tick` obraca globus; geometria nie zmienia się po załadowaniu grafu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
-  return <canvas ref={canvasRef} className="map-canvas__el" role="img" aria-label={ariaLabel} />;
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "+" || e.key === "=") {
+      e.preventDefault();
+      applyZoom(stepZoom(zoomTarget.current, BUTTON_ZOOM_STEP));
+    } else if (e.key === "-" || e.key === "_") {
+      e.preventDefault();
+      applyZoom(stepZoom(zoomTarget.current, 1 / BUTTON_ZOOM_STEP));
+    } else if (e.key === "0") {
+      e.preventDefault();
+      applyZoom(1);
+    }
+  };
+
+  return (
+    <div
+      className="map-globe"
+      role="application"
+      tabIndex={0}
+      aria-label="Globus sieci NEXUS. Klawisze: plus i minus zmieniają powiększenie, zero dopasowuje do okna."
+      onKeyDown={onKeyDown}
+    >
+      <canvas ref={canvasRef} className="map-canvas__el" role="img" aria-label={ariaLabel} />
+      <GlobeControls
+        zoom={zoomLabel}
+        onZoomIn={() => applyZoom(stepZoom(zoomTarget.current, BUTTON_ZOOM_STEP))}
+        onZoomOut={() => applyZoom(stepZoom(zoomTarget.current, 1 / BUTTON_ZOOM_STEP))}
+        onFit={() => applyZoom(1)}
+      />
+    </div>
+  );
 }
