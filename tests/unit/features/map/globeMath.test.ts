@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
   arcPoints,
+  capOutline,
+  clampZoom,
+  fitRadius,
   fromLonLat,
-  globeRadius,
   hitTest,
   isClick,
-  layoutNodes,
+  layoutClusters,
+  layoutPoints,
+  patchRadius,
   project,
   rotate,
   rotationTo,
+  stepZoom,
   wrapAngle,
+  type LayoutCluster,
   type Vec3,
 } from "@/src/features/map/globeMath";
 
@@ -17,63 +23,122 @@ const len = (v: Vec3) => Math.hypot(v.x, v.y, v.z);
 const dist = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
 
-const CONT = [
-  { id: "@a", kind: "continent" as const },
-  { id: "@b", kind: "continent" as const },
-  { id: "@c", kind: "continent" as const },
+const KNOWLEDGE_SIZES = [55, 36, 34, 21, 20, 15, 8, 7, 6, 5, 5, 3];
+const realistic = (): LayoutCluster[] => [
+  ...Array.from({ length: 7 }, (_, i) => ({
+    id: `p${i}`,
+    group: "projects" as const,
+    size: 4,
+  })),
+  ...KNOWLEDGE_SIZES.map((size, i) => ({ id: `k${i}`, group: "knowledge" as const, size })),
+  { id: "ai", group: "ai2030" as const, size: 4 },
+  { id: "skille", group: "skills" as const, size: 0, soon: true },
 ];
+const angle = (a: Vec3, b: Vec3) => Math.acos(Math.max(-1, Math.min(1, dot(a, b))));
 
-describe("layoutNodes", () => {
-  const nodes = [
-    ...CONT,
-    ...["p1", "p2", "p3", "p4", "p5", "p6"].map((id) => ({ id, kind: "project" as const })),
-    { id: "free", kind: "project" as const },
+describe("layoutClusters", () => {
+  const edges = [
+    { from: "k0", to: "p0", weight: 6 },
+    { from: "k1", to: "p1", weight: 2 },
   ];
-  const edges = ["p1", "p2", "p3", "p4", "p5", "p6"].map((p) => ({ from: p, to: "@a", weight: 1 }));
-
+  it("puste wejście daje pusty układ", () => {
+    expect(layoutClusters([], [])).toEqual({});
+  });
   it("jest deterministyczny", () => {
-    expect(layoutNodes(nodes, edges)).toEqual(
-      layoutNodes([...nodes].reverse(), [...edges].reverse())
+    expect(JSON.stringify(layoutClusters(realistic(), edges))).toBe(
+      JSON.stringify(layoutClusters(realistic(), edges))
     );
   });
-
-  it("wszystkie punkty leżą na sferze jednostkowej", () => {
-    for (const v of Object.values(layoutNodes(nodes, edges))) expect(len(v)).toBeCloseTo(1, 9);
+  it("środki leżą na sferze jednostkowej, promienie wg wzoru", () => {
+    const lay = layoutClusters(realistic(), edges);
+    for (const { center } of Object.values(lay)) expect(len(center)).toBeCloseTo(1, 9);
+    expect(lay.p0.radius).toBeCloseTo(0.1 + 0.045 * 2, 9);
+    expect(lay.k0.radius).toBeCloseTo(0.1 + 0.045 * Math.sqrt(55), 9);
+    expect(lay.skille.radius).toBeCloseTo(0.1, 9);
   });
-
-  it("kotwice kontynentów są rozłożone (cięciwa 120° ≈ 1,73)", () => {
-    const pos = layoutNodes(nodes, edges);
-    expect(dist(pos["@a"], pos["@b"])).toBeGreaterThan(1.5);
-    expect(dist(pos["@b"], pos["@c"])).toBeGreaterThan(1.5);
-    expect(dist(pos["@a"], pos["@c"])).toBeGreaterThan(1.5);
-  });
-
-  it("projekty z jednego sektora nie nakładają się", () => {
-    const pos = layoutNodes(nodes, edges);
-    const ids = ["p1", "p2", "p3", "p4", "p5", "p6"];
+  it("płaty 21 skupisk się nie nakładają", () => {
+    const lay = layoutClusters(realistic(), edges);
+    const ids = Object.keys(lay);
     for (let i = 0; i < ids.length; i += 1) {
       for (let j = i + 1; j < ids.length; j += 1) {
-        expect(dist(pos[ids[i]], pos[ids[j]])).toBeGreaterThan(0.2);
+        const a = lay[ids[i]];
+        const b = lay[ids[j]];
+        expect(angle(a.center, b.center)).toBeGreaterThanOrEqual(a.radius + b.radius - 1e-6);
       }
     }
   });
-
-  it("projekt leży bliżej kontynentu o największej wadze; remis: pierwszy alfabetycznie", () => {
-    const pos = layoutNodes(
-      [...CONT, { id: "x", kind: "project" }, { id: "y", kind: "project" }],
+  it("dwa skupiska startujące w tym samym miejscu nie dają NaN", () => {
+    const lay = layoutClusters(
       [
-        { from: "x", to: "@a", weight: 1 },
-        { from: "x", to: "@b", weight: 3 },
-        { from: "y", to: "@c", weight: 2 },
-        { from: "y", to: "@b", weight: 2 },
-      ]
+        { id: "a", group: "projects", size: 1 },
+        { id: "b", group: "projects", size: 1 },
+      ],
+      []
     );
-    expect(dot(pos.x, pos["@b"])).toBeGreaterThan(dot(pos.x, pos["@a"]));
-    expect(dot(pos.y, pos["@b"])).toBeGreaterThan(dot(pos.y, pos["@c"]));
+    for (const { center } of Object.values(lay)) {
+      expect(Number.isNaN(center.x + center.y + center.z)).toBe(false);
+    }
   });
+});
 
-  it("projekt bez krawędzi też dostaje punkt na sferze", () => {
-    expect(len(layoutNodes(nodes, edges).free)).toBeCloseTo(1, 9);
+describe("patchRadius", () => {
+  it("rośnie z pierwiastkiem liczby notatek, Skille ma stały", () => {
+    expect(patchRadius({ id: "x", group: "projects", size: 0 })).toBeCloseTo(0.1, 9);
+    expect(patchRadius({ id: "x", group: "knowledge", size: 36 })).toBeCloseTo(0.1 + 0.045 * 6, 9);
+    expect(patchRadius({ id: "s", group: "skills", size: 99, soon: true })).toBeCloseTo(0.1, 9);
+  });
+});
+
+describe("layoutPoints / capOutline", () => {
+  const center = fromLonLat(0.7, 0.3);
+  it("zwraca n punktów na sferze, w czapie 0,92·R, deterministycznie", () => {
+    const pts = layoutPoints(center, 0.4, 55);
+    expect(pts).toHaveLength(55);
+    for (const p of pts) {
+      expect(len(p)).toBeCloseTo(1, 9);
+      expect(angle(p, center)).toBeLessThanOrEqual(0.4 * 0.92 + 1e-9);
+    }
+    expect(JSON.stringify(layoutPoints(center, 0.4, 55))).toBe(JSON.stringify(pts));
+  });
+  it("pierwszy punkt jest najbliżej środka, a punkty są różne", () => {
+    const pts = layoutPoints(center, 0.4, 20);
+    const d0 = angle(pts[0], center);
+    for (const p of pts.slice(1)) expect(angle(p, center)).toBeGreaterThan(d0);
+    for (let i = 0; i < pts.length; i += 1) {
+      for (let j = i + 1; j < pts.length; j += 1) {
+        expect(dist(pts[i], pts[j])).toBeGreaterThan(1e-3);
+      }
+    }
+  });
+  it("zero notatek daje pustą listę; obwiednia leży w stałej odległości od środka", () => {
+    expect(layoutPoints(center, 0.4, 0)).toEqual([]);
+    for (const p of capOutline(center, 0.4, 24)) {
+      expect(dot(p, center)).toBeCloseTo(Math.cos(0.4), 9);
+    }
+  });
+  it("działa też przy środku na biegunie", () => {
+    const pole = { x: 0, y: 1, z: 0 };
+    for (const p of layoutPoints(pole, 0.3, 10)) expect(len(p)).toBeCloseTo(1, 9);
+  });
+});
+
+describe("zoom", () => {
+  it("clampZoom przycina do 0,5–6, NaN daje 1", () => {
+    expect(clampZoom(0.1)).toBe(0.5);
+    expect(clampZoom(99)).toBe(6);
+    expect(clampZoom(2)).toBe(2);
+    expect(clampZoom(Number.NaN)).toBe(1);
+  });
+  it("stepZoom mnoży i przycina", () => {
+    expect(stepZoom(1, 1.25)).toBeCloseTo(1.25, 9);
+    expect(stepZoom(5, 1.25)).toBe(6);
+    expect(stepZoom(0.55, 0.8)).toBe(0.5);
+  });
+  it("project skaluje promień kuli przez zoom, a fitRadius zależy od krótszego boku", () => {
+    expect(fitRadius(400, 300)).toBeCloseTo(300 * 0.36, 9);
+    const x1 = project({ x: 1, y: 0, z: 0 }, 400, 300).x - 200;
+    const x2 = project({ x: 1, y: 0, z: 0 }, 400, 300, 2).x - 200;
+    expect(x2).toBeCloseTo(2 * x1, 9);
   });
 });
 
@@ -114,10 +179,6 @@ describe("project", () => {
     expect(c.x).toBeCloseTo(200, 9);
     expect(c.y).toBeCloseTo(150, 9);
     expect(project({ x: 0, y: 1, z: 0 }, 400, 300).y).toBeLessThan(150);
-  });
-
-  it("globeRadius zależy od krótszego boku", () => {
-    expect(globeRadius(400, 300)).toBeCloseTo(300 * 0.36, 9);
   });
 });
 
@@ -163,6 +224,11 @@ describe("hitTest / isClick / wrapAngle", () => {
   it("trafienie w promieniu + margines, pudło daje null", () => {
     expect(hitTest(nodes, 300 + 13, 300)).toBe("far");
     expect(hitTest(nodes, 300 + 20, 300)).toBeNull();
+  });
+  it("mały punkt da się trafić w granicach 5 px + pad", () => {
+    const tiny = [{ id: "p", x: 100, y: 100, z: 0.5, r: 1 }];
+    expect(hitTest(tiny, 108, 100)).toBe("p");
+    expect(hitTest(tiny, 110, 100)).toBeNull();
   });
   it("próg kliknięcia to 4 px", () => {
     expect(isClick(3, 0)).toBe(true);
