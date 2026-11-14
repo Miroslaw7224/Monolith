@@ -3,6 +3,9 @@ import dynamic from "next/dynamic";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { markdownToHtml } from "@/lib/markdown/html-markdown";
 import { cn } from "@/src/lib/cn";
+import { NexusDocsSection } from "./NexusDocsSection";
+import { NexusDocView } from "./NexusDocView";
+import { useNexusDocs, type ApiFetch } from "./useNexusDocs";
 import type { Note } from "./useNotesData";
 import {
   collectPopularTags,
@@ -37,6 +40,8 @@ export interface NotesPanelProps {
   deleteNote: string;
   /** Liczba otwartych wpisów Inboxu do kafla; `null`/brak = brak danych. */
   inboxOpen?: number | null;
+  /** Gdy podane, panel pokazuje sekcję „Baza wiedzy NEXUS” (tylko odczyt). */
+  apiFetch?: ApiFetch;
 }
 
 function formatSize(text: string): string {
@@ -60,12 +65,26 @@ export function NotesPanel({
   noteEdit,
   deleteNote,
   inboxOpen = null,
+  apiFetch,
 }: NotesPanelProps) {
   const [filter, setFilter] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [split, setSplit] = useState(false);
+  const [nexusPath, setNexusPath] = useState<string | null>(null);
+  const nexus = useNexusDocs(apiFetch);
+  const nexusDoc = useMemo(
+    () => nexus.docs.find((d) => d.path === nexusPath) ?? null,
+    [nexus.docs, nexusPath]
+  );
+
+  const selectNexus = (path: string) => {
+    setNexusPath(path);
+    setSelectedNote(null);
+    setNoteEditMode(false);
+  };
 
   const handleCreateNew = () => {
+    setNexusPath(null);
     setSelectedNote({
       id: "",
       title: "",
@@ -168,14 +187,16 @@ export function NotesPanel({
               <Trash2 className="w-4 h-4" />
             </button>
           )}
-          <button
-            type="button"
-            onClick={onSaveNote}
-            disabled={!editing}
-            className="btn btn--primary not-btn--primary"
-          >
-            {saveNote} (Ctrl+S)
-          </button>
+          {nexusPath === null && (
+            <button
+              type="button"
+              onClick={onSaveNote}
+              disabled={!editing}
+              className="btn btn--primary not-btn--primary"
+            >
+              {saveNote} (Ctrl+S)
+            </button>
+          )}
         </div>
       </header>
 
@@ -226,6 +247,7 @@ export function NotesPanel({
                         <button
                           type="button"
                           onClick={() => {
+                            setNexusPath(null);
                             setSelectedNote(note);
                             setNoteEditMode(false);
                           }}
@@ -267,10 +289,26 @@ export function NotesPanel({
               </div>
             )}
           </div>
+
+          {apiFetch ? (
+            <NexusDocsSection
+              docs={nexus.docs}
+              error={nexus.error}
+              selectedPath={nexusPath}
+              onSelect={selectNexus}
+            />
+          ) : null}
         </aside>
 
         <main className="not-editor-col">
-          {selectedNote ? (
+          {nexusPath !== null && apiFetch ? (
+            <NexusDocView
+              apiFetch={apiFetch}
+              path={nexusPath}
+              docs={nexus.docs}
+              onNavigate={selectNexus}
+            />
+          ) : selectedNote ? (
             <div className="not-editor-wrap">
               <div className="not-toolbar">
                 <div className="not-toolbar__path">
@@ -390,7 +428,18 @@ export function NotesPanel({
               </h3>
               <span className="chip">Markdown</span>
             </div>
-            {selectedNote ? (
+            {nexusDoc ? (
+              <dl className="not-kv">
+                <dt>Ścieżka</dt>
+                <dd>{nexusDoc.path}</dd>
+                <dt>Obszar</dt>
+                <dd>{nexusDoc.group ? `${nexusDoc.area} / ${nexusDoc.group}` : nexusDoc.area}</dd>
+                <dt>Tagi</dt>
+                <dd>
+                  {nexusDoc.tags.length > 0 ? nexusDoc.tags.map((t) => `#${t}`).join(" ") : "—"}
+                </dd>
+              </dl>
+            ) : selectedNote ? (
               <dl className="not-kv">
                 <dt>Utworzono</dt>
                 <dd>
