@@ -17,7 +17,12 @@ export function htmlToMarkdown(html: string): string {
 }
 
 // `html: false`: surowy HTML w źródle jest escapowany (E1); markdown-it odrzuca też linki `javascript:`.
-const markdown = new MarkdownIt({ html: false, linkify: false, breaks: false });
+// Jedyne miejsce konfiguracji: wtyczki (np. wikilinki) budują instancję przez tę funkcję.
+export function createMarkdown(): MarkdownIt {
+  return new MarkdownIt({ html: false, linkify: false, breaks: false });
+}
+
+const markdown = createMarkdown();
 
 /** Markdown → HTML; pusty lub biały tekst daje "". */
 export function markdownToHtml(source: string): string {

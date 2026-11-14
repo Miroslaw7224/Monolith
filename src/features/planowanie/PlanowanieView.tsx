@@ -262,6 +262,7 @@ export default function PlanowanieView({
             noteEdit={t.noteEdit}
             deleteNote={t.deleteNote}
             inboxOpen={inboxOpen}
+            apiFetch={apiFetch}
           />
         ) : planningTab === "resources" ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
