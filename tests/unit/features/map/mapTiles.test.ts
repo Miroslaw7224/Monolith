@@ -3,8 +3,10 @@ import type { MapGraphDto } from "@/contexts/bc_map/schemas";
 import { buildMapTiles } from "@/src/features/map/mapTiles";
 
 const graph: MapGraphDto = {
+  clusters: [],
   nodes: [],
   edges: [],
+  clusterEdges: [],
   tiles: {
     neurons: { total: 330, knowledge: 300, ai2030: 20, projects: 10 },
     dependencies: 12,

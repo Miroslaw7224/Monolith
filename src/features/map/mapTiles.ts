@@ -18,7 +18,7 @@ export function buildMapTiles(
       id: "deps",
       label: "Zależności",
       value: String(graph.tiles.dependencies),
-      meta: "współdzielone komponenty i wiedza",
+      meta: "połączone skupiska (komponenty, linki, projekty)",
     },
     { id: "blockers", label: "Aktywne blokery", value: "—", meta: "wkrótce" },
     {
