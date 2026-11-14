@@ -1,7 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { composeGraph, resolveAgentProject, toAgents } from "@/contexts/bc_map/services";
-import type { MapSources, ProjectRef } from "@/contexts/bc_map/models";
+import {
+  aggregateEdges,
+  composeGraph,
+  resolveAgentProject,
+  resolveLink,
+  toAgents,
+} from "@/contexts/bc_map/services";
+import type { MapSources, ProjectRef, RawNote } from "@/contexts/bc_map/models";
 import type { HerdrTerminal } from "@/lib/herdr/hc-ls";
 
 const P = (id: string, localPath: string, owner: "personal" | "work" = "personal"): ProjectRef => ({
@@ -11,51 +17,139 @@ const P = (id: string, localPath: string, owner: "personal" | "work" = "personal
   owner,
 });
 
+const note = (path: string, o: Partial<RawNote> = {}): RawNote => ({
+  path,
+  area: "knowledge",
+  title: path.split("/").pop() ?? path,
+  projects: [],
+  links: [],
+  ...o,
+});
+
+describe("resolveLink", () => {
+  const notes = [
+    note("Knowledge/sub/b"),
+    note("Knowledge/a"),
+    note("Projects/monolith/monolith", { area: "project", projectId: "monolith" }),
+    note("AI-2030/a", { area: "ai2030" }),
+  ];
+  it("sam basename, wiele trafień: Wiedza przed AI-2030", () => {
+    expect(resolveLink("a", notes)).toEqual({ kind: "note", id: "Knowledge/a" });
+  });
+  it("częściowa i pełna ścieżka, wielkość liter i .md", () => {
+    expect(resolveLink("sub/b", notes)).toEqual({ kind: "note", id: "Knowledge/sub/b" });
+    expect(resolveLink("B.md", notes)).toEqual({ kind: "note", id: "Knowledge/sub/b" });
+    expect(resolveLink("Projects/monolith/monolith", notes)).toEqual({
+      kind: "note",
+      id: "Projects/monolith/monolith",
+    });
+  });
+  it("_index i _tags są ignorowane, nieznany cel to missing", () => {
+    expect(resolveLink("_index", notes)).toEqual({ kind: "ignored" });
+    expect(resolveLink("Knowledge/_tags", notes)).toEqual({ kind: "ignored" });
+    expect(resolveLink("nie-ma", notes)).toEqual({ kind: "missing" });
+  });
+});
+
+describe("aggregateEdges", () => {
+  it("pomija pary w jednym skupisku, łączy kierunki, obcina do limitu i liczy total", () => {
+    const pairs = Array.from({ length: 50 }, (_, i) => ({
+      a: `c${String(i).padStart(2, "0")}`,
+      b: "z",
+      weight: 1,
+    }));
+    const r = aggregateEdges(
+      [...pairs, { a: "z", b: "c00", weight: 4 }, { a: "x", b: "x", weight: 9 }],
+      40
+    );
+    expect(r.total).toBe(50);
+    expect(r.edges).toHaveLength(40);
+    expect(r.edges[0]).toEqual({ from: "c00", to: "z", weight: 5 });
+    expect(r.edges[39].from).toBe("c39");
+  });
+});
+
 describe("composeGraph", () => {
-  const projects = [P("nexus", "~/n"), P("monolith", "~/m"), P("english-agent", "~/e")];
+  const projects = [P("nexus", "~/n"), P("monolith", "~/m")];
+  const notes: RawNote[] = [
+    note("Knowledge/a", {
+      category: "tools",
+      projects: ["monolith"],
+      links: ["b", "Projects/monolith/monolith", "nie-ma", "_index"],
+    }),
+    note("Knowledge/b", { category: "tools", links: ["a", "Knowledge/b"] }),
+    note("Knowledge/c", { category: "tools", projects: ["nexus", "ghost"], links: ["a"] }),
+    note("Knowledge/d", { category: "rzadka", links: ["a"] }),
+    note("AI-2030/x", { area: "ai2030", links: ["a"] }),
+    note("Projects/monolith/monolith", {
+      area: "project",
+      projectId: "monolith",
+      links: ["a", "a"],
+    }),
+    note("Projects/ghostproj/index", { area: "project", projectId: "ghostproj" }),
+  ];
   const sources: MapSources = {
-    sharedSections: [
-      ["english-agent", "monolith", "unknown-x"],
-      ["english-agent", "monolith"],
-    ],
-    noteProjects: [["monolith"], ["monolith", "nexus"], ["ghost"]],
-    counts: { knowledge: 10, ai2030: 4, projects: 20 },
+    sharedSections: [["nexus", "monolith", "unknown-x"]],
+    notes,
     warnings: [],
   };
   const graph = composeGraph(projects, sources);
 
-  it("liczy krawędzie: pary ze wspólnych sekcji i projekt–Wiedza, posortowane", () => {
+  it("buduje skupiska: projekty, Wiedza z „inne”, AI-2030, Skille", () => {
+    expect(graph.clusters.map((c) => [c.id, c.size])).toEqual([
+      ["monolith", 1],
+      ["nexus", 0],
+      ["knowledge:tools", 3],
+      ["knowledge:inne", 1],
+      ["ai-2030", 1],
+      ["skille", 0],
+    ]);
+    expect(graph.clusters.at(-1)?.soon).toBe(true);
+  });
+
+  it("węzły: przypisane do skupisk, z liczbą powiązań; notatka nieznanego projektu pominięta", () => {
+    expect(graph.nodes.map((n) => [n.id, n.cluster, n.links])).toEqual([
+      ["AI-2030/x", "ai-2030", 1],
+      ["Knowledge/a", "knowledge:tools", 9],
+      ["Knowledge/b", "knowledge:tools", 2],
+      ["Knowledge/c", "knowledge:tools", 2],
+      ["Knowledge/d", "knowledge:inne", 1],
+      ["Projects/monolith/monolith", "monolith", 3],
+    ]);
+  });
+
+  it("krawędzie notatkowe: sumuje kierunki i duplikaty, pomija self i _index; projects: → krawędź project", () => {
     expect(graph.edges).toEqual([
-      { from: "english-agent", to: "monolith", weight: 2, type: "shared" },
-      { from: "monolith", to: "@wiedza", weight: 2, type: "shared" },
-      { from: "nexus", to: "@wiedza", weight: 1, type: "shared" },
+      { from: "AI-2030/x", to: "Knowledge/a", weight: 1, type: "link" },
+      { from: "Knowledge/a", to: "Knowledge/b", weight: 2, type: "link" },
+      { from: "Knowledge/a", to: "Knowledge/c", weight: 1, type: "link" },
+      { from: "Knowledge/a", to: "Knowledge/d", weight: 1, type: "link" },
+      { from: "Knowledge/a", to: "Projects/monolith/monolith", weight: 3, type: "link" },
+      { from: "Knowledge/a", to: "monolith", weight: 1, type: "project" },
+      { from: "Knowledge/c", to: "nexus", weight: 1, type: "project" },
     ]);
   });
 
-  it("nieznane id nie tworzy krawędzi i daje ostrzeżenie", () => {
-    const text = graph.warnings.join("\n");
-    expect(text).toContain("unknown-x");
-    expect(text).toContain("ghost");
-  });
-
-  it("węzły: 3 projekty i 3 kontynenty; Skille to placeholder bez rozmiaru", () => {
-    expect(graph.nodes.filter((n) => n.kind === "project").map((n) => n.id)).toEqual([
-      "english-agent",
-      "monolith",
-      "nexus",
+  it("krawędzie zagregowane: linki + projects: + sekcje Używają; dependencies liczy wszystkie pary", () => {
+    expect(graph.clusterEdges).toEqual([
+      { from: "knowledge:tools", to: "monolith", weight: 4 },
+      { from: "ai-2030", to: "knowledge:tools", weight: 1 },
+      { from: "knowledge:inne", to: "knowledge:tools", weight: 1 },
+      { from: "knowledge:tools", to: "nexus", weight: 1 },
+      { from: "monolith", to: "nexus", weight: 1 },
     ]);
-    const byId = Object.fromEntries(graph.nodes.map((n) => [n.id, n]));
-    expect(byId["@wiedza"]).toMatchObject({ kind: "continent", label: "Wiedza", size: 10 });
-    expect(byId["@ai-2030"]).toMatchObject({ kind: "continent", size: 4 });
-    expect(byId["@skille"]).toMatchObject({ kind: "continent", soon: true });
-    expect(byId["@skille"]).not.toHaveProperty("size");
-  });
-
-  it("kafle: neurony bez Skille, zależności = liczba krawędzi", () => {
     expect(graph.tiles).toEqual({
-      neurons: { total: 34, knowledge: 10, ai2030: 4, projects: 20 },
-      dependencies: 3,
+      neurons: { total: 6, knowledge: 4, ai2030: 1, projects: 1 },
+      dependencies: 5,
     });
+  });
+
+  it("ostrzeżenia: nieznane projekty, nierozwiązane linki", () => {
+    const text = graph.warnings.join("\n");
+    expect(text).toContain("„ghost”");
+    expect(text).toContain("„unknown-x”");
+    expect(text).toContain("ghostproj");
+    expect(text).toContain("nierozwiązane linki: 1");
   });
 });
 
