@@ -270,207 +270,409 @@
   text-align: center;
 }
 
-/* Kontener siatki kalendarza */
-.kal-grid-card {
-  flex: 1 1 0;
-  min-height: 0;
+.kal-state--inline {
+  padding: var(--s-2) 0;
+  text-align: left;
+}
+
+.kal-title__week {
+  margin-left: var(--s-2);
+  font-size: var(--fs-lg);
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Zakładki widoków (Miesiąc / Tydzień / Agenda) */
+.kal-tabs {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+
+.kal-tabs__btn {
+  height: 28px;
+  padding: 0 var(--s-3);
+  border: 0;
+  background: transparent;
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.kal-tabs__btn[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow:
+    0 1px 0 var(--line),
+    0 0 0 1px var(--accent);
+}
+
+/* Kafle liczb tygodnia (.kal-tiles) */
+.kal-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-5);
+}
+
+.kal-tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.kal-tile::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--line);
+}
+
+.kal-tile--accent {
+  border-color: var(--accent);
+  box-shadow: 0 0 22px -8px var(--glow);
+}
+
+.kal-tile--accent::after {
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+}
+
+.kal-tile__label {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.kal-tile__value {
+  font: 600 var(--fs-2xl) / 1.1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.kal-tile--accent .kal-tile__value {
+  color: var(--accent-text);
+}
+
+.kal-tile__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+/* Układ: widok + panel boczny */
+.kal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--s-4);
+  align-items: start;
+}
+
+.kal-main {
+  min-width: 0;
+}
+
+.kal-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .kal-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Panele, chipy, listy (kopie z shell.css, ograniczone do karty) */
+.kal .panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+}
+
+.kal .panel--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 22px -8px var(--glow);
+}
+
+.kal .panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+}
+
+.kal .panel__title {
+  margin: 0;
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.kal .panel__title b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.kal .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.kal .mono {
+  font-family: var(--font-mono);
+}
+
+.kal .muted {
+  color: var(--muted);
+}
+
+.kal .chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--s-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.kal .chip--accent {
+  color: var(--accent-text);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.kal .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 28px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.kal .btn:hover {
+  border-color: var(--accent);
+}
+
+.kal .btn--sm {
+  height: 24px;
+  padding: 0 var(--s-2);
+  font-size: var(--fs-xs);
+}
+
+.kal .btn--ghost {
+  background: transparent;
+}
+
+.kal .list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kal .list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+}
+
+.kal .list__item:last-child {
+  border-bottom: 0;
+}
+
+.kal .list__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kal .list__title {
+  color: var(--text);
+}
+
+.kal .list__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.kal .energy {
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.kal .energy--deep {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.kal .energy--quick {
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* Tydzień: pionowa oś godzin, dni jako kolumny */
+.kal-week {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
-.kal-grid-scroll {
-  flex: 1 1 0;
-  overflow: auto;
-  position: relative;
+.kal-scroll {
+  max-height: min(660px, calc(100vh - 360px));
+  min-height: 360px;
+  overflow-y: auto;
 }
 
-.kal-grid-table {
-  position: relative;
-}
-
-/* Wiersz nagłówka godzin */
-.kal-grid-header {
-  display: flex;
-  height: 44px;
-  background: var(--surface-2);
+.kal-days {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(0, 1fr));
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 6;
+  background: var(--surface);
 }
 
-.kal-grid-header__day-label {
-  flex-shrink: 0;
-  position: sticky;
-  left: 0;
-  z-index: 30;
-  background: var(--surface-2);
-  border-right: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  padding: 0 var(--s-3);
-  font: 600 var(--fs-xs) / 1 var(--font-mono);
+.kal-days--month {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  position: static;
+}
+
+.kal-day-h {
+  padding: var(--s-3) var(--s-2) var(--s-2);
+  border-left: 1px solid var(--line);
+}
+
+.kal-day-h:first-child {
+  border-left: 0;
+}
+
+.kal-day-h span {
+  display: block;
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 1.2px;
   color: var(--muted);
 }
 
-.kal-grid-header__hours {
-  display: flex;
-  background: var(--surface-2);
-}
-
-.kal-grid-header__hour {
-  flex-shrink: 0;
-  border-right: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font: 500 var(--fs-xs) / 1 var(--font-mono);
-  color: var(--muted);
-}
-
-/* Wiersz pojedynczego dnia (CalendarDayColumn) */
-.kal-day-row {
-  display: flex;
-  height: 48px;
-  border-bottom: 1px solid var(--line);
-  position: relative;
-  transition: background-color 0.1s ease;
-}
-
-.kal-day-row:hover {
-  background-color: rgba(255, 255, 255, 0.015);
-}
-
-.kal-day-row--today {
-  background-color: rgba(255, 90, 78, 0.03);
-}
-
-.kal-day-cell {
-  flex-shrink: 0;
-  position: sticky;
-  left: 0;
-  z-index: 10;
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--s-3);
-  font-family: var(--font-mono);
-  user-select: none;
-}
-
-.kal-day-cell b {
-  font: 600 var(--fs-md) / 1 var(--font-mono);
+.kal-day-h b {
+  font: 600 var(--fs-xl) / 1.3 var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: var(--text);
 }
 
-.kal-day-cell span {
-  font: 500 var(--fs-xs) / 1 var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--muted);
-}
-
-.kal-day-row--today .kal-day-cell {
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
-}
-
-.kal-day-row--today .kal-day-cell b,
-.kal-day-row--today .kal-day-cell span {
+.kal-day-h--today span,
+.kal-day-h--today b {
   color: var(--accent-text);
 }
 
-.kal-day-row--today .kal-day-cell b {
-  text-shadow: 0 0 16px var(--glow);
+.kal-day-h--today b {
+  text-shadow: 0 0 18px var(--glow);
 }
 
-.kal-day-row--weekend {
+.kal-body {
+  display: grid;
+  grid-template-columns: 56px repeat(7, minmax(0, 1fr));
+}
+
+.kal-hours span {
+  display: block;
+  height: var(--kal-hour);
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+  text-align: right;
+  padding: 4px var(--s-2) 0 0;
+}
+
+.kal-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+  height: calc(var(--kal-hour) * 24);
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0 calc(var(--kal-hour) - 1px),
+    color-mix(in srgb, var(--line) 60%, transparent) calc(var(--kal-hour) - 1px) var(--kal-hour)
+  );
+  cursor: cell;
+}
+
+.kal-col--weekend {
   background-color: rgba(0, 0, 0, 0.18);
 }
 
-.kal-day-row--weekend .kal-day-cell {
-  background: color-mix(in srgb, #000 20%, var(--surface));
+.kal-col--today {
+  background-color: rgba(255, 255, 255, 0.025);
 }
 
-/* Oś godzinowa dnia */
-.kal-day-track {
-  flex: 1;
-  position: relative;
-  cursor: crosshair;
-  background: repeating-linear-gradient(
-    90deg,
-    transparent 0 calc(var(--kal-cell-w, 80px) - 1px),
-    color-mix(in srgb, var(--line) 45%, transparent) calc(var(--kal-cell-w, 80px) - 1px)
-      var(--kal-cell-w, 80px)
-  );
-}
-
-/* Linia Teraz */
-.kal-now-line {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--glow);
-  z-index: 15;
-  pointer-events: none;
-}
-
-.kal-now-line::before {
-  content: "";
-  position: absolute;
-  top: -3px;
-  left: -3px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--glow);
-}
-
-/* Wydarzenie (.kal-ev) */
+/* Wydarzenie (.kal-ev): pozycja z --start / --len w godzinach */
 .kal-ev {
   position: absolute;
+  left: 4px;
+  right: 4px;
+  top: calc(var(--start) * var(--kal-hour) + 1px);
+  height: calc(var(--len) * var(--kal-hour) - 3px);
+  padding: 4px 8px;
   overflow: hidden;
   border-radius: var(--r-sm);
-  padding: 2px 6px;
+  font-size: var(--fs-xs);
+  line-height: 1.3;
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-left: 3px solid var(--kal-prj);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--fs-xs);
-  line-height: 1.3;
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition:
-    border-color 0.15s var(--ease),
-    box-shadow 0.15s var(--ease);
-  z-index: 5;
+  cursor: pointer;
+  z-index: 3;
 }
 
 .kal-ev:hover {
   border-color: var(--muted);
-  box-shadow: 0 0 12px -2px var(--glow);
-  z-index: 12;
 }
 
 .kal-ev b {
+  display: block;
   font-weight: 600;
-  font-size: 11px;
-  color: var(--text);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kal-ev time {
@@ -493,35 +695,274 @@
   border-left: 3px solid var(--warn) !important;
 }
 
+.kal-ev--slot {
+  background: transparent;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+  cursor: cell;
+  z-index: 1;
+}
+
+.kal-ev--slot b {
+  color: var(--text);
+}
+
+.kal-ev--done {
+  opacity: 0.5;
+}
+
+.kal-ev--short {
+  padding-top: 2px;
+  padding-bottom: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.kal-ev--short b {
+  display: inline;
+}
+
+.kal-ev--sel {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 18px -4px var(--glow);
+  background: var(--accent-soft);
+  opacity: 1;
+  z-index: 5;
+}
+
 .kal-ev--active-session {
   border: 2px dashed var(--accent) !important;
   background: var(--accent-soft) !important;
   box-shadow: 0 0 16px -2px var(--glow);
-  z-index: 14;
+  z-index: 4;
+  pointer-events: none;
 }
 
-.kal-ev__title {
+.kal-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--start) * var(--kal-hour));
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.kal-now::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Mini-miesiąc */
+.kal-mini {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+  font: 500 var(--fs-xs) / 1 var(--font-mono);
+}
+
+.kal-mini .h,
+.kal-mini button {
+  padding: 7px 0;
+  border-radius: var(--r-sm);
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.kal-mini button {
+  cursor: pointer;
+  position: relative;
+}
+
+.kal-mini button:hover {
+  background: var(--surface-2);
+}
+
+.kal-mini .h {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.kal-mini .o {
+  color: color-mix(in srgb, var(--muted) 50%, transparent);
+}
+
+.kal-mini .w {
+  background: var(--surface-2);
+}
+
+.kal-mini .t {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.kal-mini .e::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+/* Szczegóły wydarzenia */
+.kal-detail__title {
+  font: 700 var(--fs-xl) / 1.15 var(--font-display);
+  margin: var(--s-2) 0 var(--s-3);
+}
+
+.kal-sec {
+  margin-top: var(--s-4);
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.kal-sec h4 {
+  margin: 0 0 var(--s-2);
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.kal-sec ol {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+}
+
+.kal-sec li {
+  margin: 3px 0;
+}
+
+/* Agenda */
+.kal-agenda {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+}
+
+.kal-agenda__day {
+  padding: var(--s-4);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.kal-agenda__day:first-child,
+.kal-agenda__day:first-child + .kal-agenda__items {
+  border-top: 0;
+}
+
+.kal-agenda__day b {
+  display: block;
+  font: 600 var(--fs-2xl) / 1 var(--font-mono);
+  color: var(--text);
+}
+
+.kal-agenda__items {
+  padding: var(--s-3) var(--s-4) !important;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.kal-agenda__items .list__item {
+  cursor: pointer;
+}
+
+/* Miesiąc */
+.kal-month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.kal-month > div {
+  min-height: 96px;
+  padding: var(--s-2);
+  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.kal-month > div:nth-child(7n + 1) {
+  border-left: 0;
+}
+
+.kal-month > div:nth-child(-n + 7) {
+  border-top: 0;
+}
+
+.kal-month > .muted {
+  opacity: 0.55;
+}
+
+.kal-month b {
+  font: 600 var(--fs-md) / 1 var(--font-mono);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.kal-month .t {
+  background: var(--accent-soft);
+}
+
+.kal-month .t b {
+  color: var(--accent-text);
+}
+
+.kal-month .pill {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  padding: 1px 5px;
+  border: 0;
+  border-radius: 4px;
+  border-left: 2px solid var(--kal-prj);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 600;
-  flex: 1;
-  min-width: 0;
+  cursor: pointer;
 }
 
-.kal-ev__icon {
-  flex-shrink: 0;
-  opacity: 0.85;
+.kal-month .pill--etat {
+  background: var(--kal-etat);
+  color: var(--kal-etat-ink);
+  border-left-color: var(--muted);
 }
 
-.kal-ev__action-icon {
-  flex-shrink: 0;
-  opacity: 0.6;
-  margin-left: auto;
+.kal-month .pill--deadline {
+  border-left-color: var(--warn);
+  outline: 1px dashed var(--warn);
+  outline-offset: -1px;
 }
 
-.kal-ev:hover .kal-ev__action-icon {
-  opacity: 1;
+.kal-month .pill--more {
+  color: var(--muted);
+  background: transparent;
+  cursor: default;
 }
 
 /* Okna modalne (.kal-overlay, .kal-modal) */
