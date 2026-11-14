@@ -21,6 +21,7 @@ import { buildAppCommands } from "@/src/features/cards/appCommands";
 import { FeedbackModal } from "@/src/components/layout/FeedbackModal";
 import { useTheme } from "@/src/components/theme/ThemeProvider";
 import { ProjectsView } from "@/src/features/projects/ProjectsView";
+import { MapView } from "@/src/features/map/MapView";
 
 export default function App() {
   const [lang, setLang] = useState<"en" | "pl">("pl");
@@ -32,6 +33,7 @@ export default function App() {
     setPlanningTab,
     placeholder,
     projectsOpen,
+    mapOpen,
     activeCard,
     selectCard,
   } = useCardNavigation();
@@ -80,7 +82,7 @@ export default function App() {
       data-card={activeCard}
     >
       <CardRail activeCard={activeCard} onSelect={selectCard} onOpenPalette={openPalette} />
-      {!projectsOpen && !placeholder && appMode === "home" ? (
+      {!projectsOpen && !mapOpen && !placeholder && appMode === "home" ? (
         <HomeView
           apiFetch={apiFetch}
           onOpenProject={openProject}
@@ -92,6 +94,8 @@ export default function App() {
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden pb-16 md:pb-0">
           {projectsOpen ? (
             <ProjectsView apiFetch={apiFetch} initialProjectId={projectToOpen} />
+          ) : mapOpen ? (
+            <MapView apiFetch={apiFetch} onOpenProject={openProject} />
           ) : placeholder ? (
             <CardPlaceholder cardId={placeholder} />
           ) : (

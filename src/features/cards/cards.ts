@@ -17,6 +17,7 @@ export type CardTarget =
   | { kind: "home" }
   | { kind: "planning"; tab: PlanningTab }
   | { kind: "projects" }
+  | { kind: "map" }
   | { kind: "placeholder"; stage: string };
 
 export interface CardDef {
@@ -39,7 +40,7 @@ export const CARDS: readonly CardDef[] = [
   { id: "notatki", label: "Notatki", hotkey: 5, target: { kind: "planning", tab: "notes" } },
   { id: "plotno", label: "Płótno", hotkey: 6, target: { kind: "planning", tab: "board" } },
   { id: "arsenal", label: "Arsenał", hotkey: 7, target: { kind: "planning", tab: "resources" } },
-  { id: "mapa", label: "Mapa", hotkey: 8, target: { kind: "placeholder", stage: "etap 4" } },
+  { id: "mapa", label: "Mapa", hotkey: 8, target: { kind: "map" } },
   {
     id: "kodeks",
     label: "Kodeks",
