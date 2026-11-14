@@ -252,3 +252,18 @@ export function formatHoursMinutes(minutes: number): string {
 export function formatClock(minutes: number): string {
   return `${pad2(Math.floor(minutes / 60) % 24)}:${pad2(minutes % 60)}`;
 }
+
+/** Wysokość godziny w siatce tygodnia (px); musi równać się `--kal-hour` w `calendar.css`. */
+export const KAL_HOUR_PX = 52;
+
+/** O ile godzin przed „teraz” zaczyna się widoczny fragment siatki (kontekst: co było przed chwilą). */
+const SCROLL_LEAD_HOURS = 2;
+
+/** Przy tygodniu bez dzisiejszego dnia przewijamy do okolic 07:00 (nie od północy). */
+const DEFAULT_SCROLL_HOUR = 7;
+
+/** Początkowe `scrollTop` siatki tygodnia: tydzień z dzisiaj → okolice aktualnej godziny, inaczej 07:00. */
+export function weekScrollTop(nowMinutes: number, weekIncludesToday: boolean): number {
+  if (!weekIncludesToday) return DEFAULT_SCROLL_HOUR * KAL_HOUR_PX;
+  return Math.max(0, (nowMinutes / 60 - SCROLL_LEAD_HOURS) * KAL_HOUR_PX);
+}
