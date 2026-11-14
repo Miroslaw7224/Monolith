@@ -57,6 +57,9 @@ const AREAS = [
   { dir: "Projects", area: "project" },
 ] as const;
 
+/** Pliki robocze projektu (bezpośrednio w `Projects/<id>/`), niepotrzebne w grafie. */
+const PROJECT_WORK_FILES: readonly string[] = ["tasks.md", "devlog.md", "changelog.md"];
+
 function noteTitle(meta: Frontmatter, fallback: string): string {
   for (const key of ["name", "title"]) {
     const v = meta[key];
@@ -84,6 +87,9 @@ export function readMapSources(): MapSources {
       const file = segments[segments.length - 1];
       if (file.startsWith("_") || segments.includes("attachments")) continue;
       if (area === "project" && segments.length < 3) continue;
+      if (area === "project" && segments.length === 3 && PROJECT_WORK_FILES.includes(file)) {
+        continue;
+      }
       try {
         const read = readVaultFile(rel);
         if (read === null) continue;

@@ -3,7 +3,12 @@
 import React, { useState } from "react";
 import { GripVertical } from "lucide-react";
 import {
+  ARCHIVE_DAYS_OPTIONS,
+  ARCHIVE_DEFAULT_DAYS,
   NOW_LIMIT,
+  archiveDateOf,
+  isArchivable,
+  localIsoDate,
   type BoardTaskDto,
   type TaskOpInputDto,
   type TasksBoardDto,
@@ -18,6 +23,23 @@ const COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "next", label: "Następne" },
   { key: "icebox", label: "Icebox" },
 ];
+
+type Filter = "all" | "open" | "done";
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "Wszystkie" },
+  { key: "open", label: "Otwarte" },
+  { key: "done", label: "Ukończone" },
+];
+
+const EMPTY_TEXT: Record<Filter, string> = {
+  all: "Brak",
+  open: "Brak otwartych",
+  done: "Brak ukończonych",
+};
+
+const matchesFilter = (filter: Filter, task: BoardTaskDto) =>
+  filter === "all" || (filter === "done") === task.done;
 
 type TaskPos = { column: ColumnKey; index: number };
 
@@ -40,9 +62,10 @@ const samePos = (a: TaskPos | null, column: ColumnKey, index: number) =>
 export function ProjectTasksBoard(props: {
   board: TasksBoardDto;
   onOp: (input: TaskOpInputDto) => Promise<MutationResult>;
+  onArchive: (version: string | null, olderThanDays: number) => Promise<MutationResult>;
   onReload: () => void;
 }): React.JSX.Element {
-  const { board, onOp, onReload } = props;
+  const { board, onOp, onArchive, onReload } = props;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<TaskPos | null>(null);
@@ -58,13 +81,36 @@ export function ProjectTasksBoard(props: {
     icebox: "",
   });
 
+  const [filter, setFilter] = useState<Filter>("all");
+  const [days, setDays] = useState<number>(ARCHIVE_DEFAULT_DAYS);
+  const [confirmingArchive, setConfirmingArchive] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  /** Zmiana filtra zamyka edycję i potwierdzenie usunięcia (trzymane po pozycji). */
+  const changeFilter = (next: Filter) => {
+    setFilter(next);
+    setEditing(null);
+    setConfirming(null);
+  };
+
   const nowFull = board.now.length >= NOW_LIMIT;
 
-  /** Jedna mutacja naraz; wersja pliku z ostatniego odczytu jest dopisywana przez wywołującego. */
-  const run = async (input: TaskOpInputDto): Promise<boolean> => {
+  // M i K z pełnej tablicy (nie z widoku), tymi samymi funkcjami co serwer.
+  const allTasks = COLUMNS.flatMap(({ key }) => board[key]);
+  const today = localIsoDate(new Date());
+  const archivable = allTasks.filter((t) => isArchivable(t, today, days));
+  const archiveCount = archivable.length;
+  const archiveNoDate = archivable.filter((t) => archiveDateOf(t) === null).length;
+  const hasDone = allTasks.some((t) => t.done);
+
+  /** Jedna mutacja naraz (wspólny `busy`/`error`/konflikt); wersję pliku dopisuje wywołujący. */
+  const exec = async (call: () => Promise<MutationResult>): Promise<MutationResult> => {
     setBusy(true);
     setError(null);
-    const result = await onOp(input);
+    setNotice(null);
+    // Każda mutacja zamyka otwarte potwierdzenie archiwizacji (M/K mogą się zmienić).
+    setConfirmingArchive(false);
+    const result = await call();
     setBusy(false);
     // Indeksy zadań zmieniają się po każdej udanej mutacji, więc otwarta edycja i potwierdzenie
     // usunięcia (trzymane po indeksie) przestałyby wskazywać to samo zadanie.
@@ -80,9 +126,20 @@ export function ProjectTasksBoard(props: {
         setConfirming(null);
         onReload();
       }
-      return false;
     }
-    return true;
+    return result;
+  };
+
+  const run = async (input: TaskOpInputDto): Promise<boolean> =>
+    (await exec(() => onOp(input))).ok === true;
+
+  const confirmArchive = async () => {
+    if (busy) return;
+    const result = await exec(() => onArchive(board.version, days));
+    setConfirmingArchive(false);
+    if (result.ok === true) {
+      setNotice(`Przeniesiono ${result.archived ?? 0} zadań do changelog.md`);
+    }
   };
 
   /** Referencja do zadania; zadania istnieją tylko, gdy plik istnieje, więc wersja jest wtedy niepusta. */
@@ -268,8 +325,88 @@ export function ProjectTasksBoard(props: {
           {error}
         </p>
       ) : null}
+      {notice ? (
+        <p className="prj-board__notice" role="status">
+          {notice}
+        </p>
+      ) : null}
+      <div className="prj-board__toolbar">
+        <div className="prj-board__filter" role="group" aria-label="Filtr zadań">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={filter === key ? "prj-btn prj-btn--primary" : "prj-btn"}
+              aria-pressed={filter === key}
+              onClick={() => changeFilter(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {hasDone ? (
+          <div className="prj-board__archive">
+            <span>starsze niż</span>
+            <select
+              aria-label="Archiwizuj starsze niż"
+              value={days}
+              disabled={busy}
+              onChange={(e) => {
+                setDays(Number(e.target.value));
+                setConfirmingArchive(false);
+              }}
+            >
+              {ARCHIVE_DAYS_OPTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d} dni
+                </option>
+              ))}
+            </select>
+            {archiveCount === 0 ? null : confirmingArchive ? (
+              <>
+                <span>
+                  {`Przenieść ${archiveCount} zadań do changelog.md${
+                    archiveNoDate > 0 ? ` (w tym ${archiveNoDate} bez daty)` : ""
+                  }?`}
+                </span>
+                <button
+                  type="button"
+                  className="prj-btn prj-btn--danger"
+                  aria-label="Potwierdź archiwizację"
+                  disabled={busy}
+                  onClick={confirmArchive}
+                >
+                  Tak
+                </button>
+                <button
+                  type="button"
+                  className="prj-btn"
+                  aria-label="Anuluj archiwizację"
+                  disabled={busy}
+                  onClick={() => setConfirmingArchive(false)}
+                >
+                  Anuluj
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="prj-btn"
+                disabled={busy}
+                onClick={() => setConfirmingArchive(true)}
+              >
+                {`Archiwizuj ukończone (${archiveCount})`}
+              </button>
+            )}
+          </div>
+        ) : null}
+      </div>
       {COLUMNS.map(({ key, label }) => {
         const tasks = board[key];
+        // Indeksy zostają oryginalne (z pełnej kolumny): filtr tylko ukrywa wiersze.
+        const visible = tasks
+          .map((task, index) => ({ task, index }))
+          .filter(({ task }) => matchesFilter(filter, task));
         const addDisabled = busy || (key === "now" && nowFull);
         return (
           <section
@@ -308,24 +445,28 @@ export function ProjectTasksBoard(props: {
                 ) : null}
               </h4>
               {key !== "now" ? (
-                <span className="prj-column__count">{countLabel(key, tasks.length)}</span>
+                <span className="prj-column__count">{countLabel(key, visible.length)}</span>
               ) : null}
             </div>
-            {tasks.length === 0 ? <p className="prj-task-empty">Brak</p> : null}
-            <ul className="prj-task-list">{tasks.map((t, i) => renderTask(key, t, i))}</ul>
-            <form className="prj-board__add" onSubmit={(e) => submitAdd(e, key)}>
-              <input
-                aria-label={`Dodaj zadanie: ${label}`}
-                placeholder="Nowe zadanie…"
-                value={drafts[key]}
-                maxLength={300}
-                disabled={addDisabled}
-                onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
-              />
-              <button type="submit" className="prj-btn" disabled={addDisabled}>
-                Dodaj zadanie
-              </button>
-            </form>
+            {visible.length === 0 ? <p className="prj-task-empty">{EMPTY_TEXT[filter]}</p> : null}
+            <ul className="prj-task-list">
+              {visible.map(({ task, index }) => renderTask(key, task, index))}
+            </ul>
+            {filter === "done" ? null : (
+              <form className="prj-board__add" onSubmit={(e) => submitAdd(e, key)}>
+                <input
+                  aria-label={`Dodaj zadanie: ${label}`}
+                  placeholder="Nowe zadanie…"
+                  value={drafts[key]}
+                  maxLength={300}
+                  disabled={addDisabled}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
+                />
+                <button type="submit" className="prj-btn" disabled={addDisabled}>
+                  Dodaj zadanie
+                </button>
+              </form>
+            )}
           </section>
         );
       })}

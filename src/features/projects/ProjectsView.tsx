@@ -40,6 +40,7 @@ export function ProjectsView(props: {
     setProjectStatus,
     createProject,
     tasksOp,
+    archiveDone,
     loadContextPack,
     reloadDetail,
   } = useProjects(props.apiFetch, props.initialProjectId ?? null);
@@ -187,6 +188,7 @@ export function ProjectsView(props: {
                 setLinks,
                 setProjectStatus,
                 tasksOp,
+                archiveDone,
                 loadContextPack,
                 reloadDetail,
               }}

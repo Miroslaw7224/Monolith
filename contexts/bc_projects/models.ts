@@ -100,6 +100,11 @@ export type TaskOp =
   | ({ op: "remove" } & TaskRef)
   | ({ op: "move"; to: TaskColumn } & TaskRef);
 
+/** Zarchiwizowany blok zadania: linia zadania z wciętymi liniami; `date` = data ukończenia (`null` = bez daty). */
+export type ArchivedBlock = { date: string | null; lines: string[] };
+/** Wynik archiwizacji (lista bloków tylko wewnątrz kontekstu; DTO ma samo `archived`). */
+export type ArchiveResult = { archived: number; blocks: ArchivedBlock[] };
+
 /** Niezakończone zadanie z kolumny „Teraz” jednego projektu (widok zbiorczy Kokpitu, etap 2-1). */
 export type NowTask = {
   projectId: string;

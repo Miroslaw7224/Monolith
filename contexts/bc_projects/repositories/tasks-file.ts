@@ -1,5 +1,12 @@
-import type { BoardTask, TaskColumn, TaskOp, TasksBoard } from "@/contexts/bc_projects/models";
+import type {
+  ArchivedBlock,
+  BoardTask,
+  TaskColumn,
+  TaskOp,
+  TasksBoard,
+} from "@/contexts/bc_projects/models";
 import { ConflictError } from "@/lib/errors";
+import { archiveDateOf, isArchivable } from "@/lib/schema/archive-date";
 
 /**
  * Edytor tekstowy `Projects/<id>/tasks.md` dla tablicy zadań (etap 1-3).
@@ -159,10 +166,12 @@ export function applyTaskOp(text: string | null, op: TaskOp, ctx: TaskFileContex
     case "toggle": {
       const scan = scanTasks(text);
       const task = locateTask(scan, op);
-      scan.lines[task.start] = task.done
-        ? formatTaskLine({ done: false, now: false, text: task.text })
-        : formatTaskLine({ done: true, now: false, text: task.text, doneDate: ctx.today });
-      return scan.lines.join("\n");
+      const toggled = formatTaskLine(
+        task.done
+          ? { done: false, now: false, text: task.text }
+          : { done: true, now: false, text: task.text, doneDate: ctx.today }
+      );
+      return reorderBlock(scan, task, [toggled, ...scan.lines.slice(task.start + 1, task.end)]);
     }
     case "edit": {
       const scan = scanTasks(text);
@@ -223,6 +232,35 @@ function sectionKindOf(column: TaskColumn): SectionKind {
   return column === "now" ? "next" : column;
 }
 
+/**
+ * Indeks w `scan.lines`, przed którym ląduje blok w sekcji z zadaniami: tuż za ostatnim otwartym zadaniem
+ * (to samo miejsce jest górą „ogona” ukończonych); gdy są same ukończone, przed pierwszym z nich.
+ * `null`, gdy sekcja nie ma żadnych zadań.
+ */
+function taskInsertIndex(scan: Scan, section: ScannedSection): number | null {
+  const inSection = scan.tasks.filter((t) => t.start > section.heading && t.start < section.end);
+  if (inSection.length === 0) return null;
+  const open = inSection.filter((t) => !t.done);
+  return open.length > 0 ? open[open.length - 1].end : inSection[0].start;
+}
+
+/**
+ * `toggle`: podmienia blok zadania i ustawia go w punkcie z `taskInsertIndex` liczonym po wycięciu bloku
+ * (inaczej punkt przesunąłby się o jego długość). Gdy w sekcji nie ma innych zadań, edytuje blok w miejscu.
+ */
+function reorderBlock(scan: Scan, task: ScannedTask, block: string[]): string {
+  const cut = [...scan.lines.slice(0, task.start), ...scan.lines.slice(task.end)];
+  const rest = scanTasks(cut.join("\n"));
+  const section = rest.sections[sectionKindOf(task.column)];
+  const at = section === undefined ? null : taskInsertIndex(rest, section);
+  if (at === null) {
+    scan.lines.splice(task.start, task.end - task.start, ...block);
+    return scan.lines.join("\n");
+  }
+  rest.lines.splice(at, 0, ...block);
+  return rest.lines.join("\n");
+}
+
 /** Nowy plik (brak `tasks.md`): nagłówek, trzy sekcje, zadanie w sekcji docelowej. */
 function newFileWith(projectName: string, target: SectionKind, block: string[]): string {
   let out = `# Tasks — ${projectName}\n`;
@@ -234,8 +272,9 @@ function newFileWith(projectName: string, target: SectionKind, block: string[]):
 }
 
 /**
- * Wstawia blok linii do sekcji: po ostatnim zadaniu; w sekcji bez zadań usuwa placeholdery `Brak…`
- * i wstawia pod nagłówkiem (albo po ostatniej niepustej linii prozy); brak sekcji dopisuje na końcu pliku.
+ * Wstawia blok linii do sekcji: za ostatnim otwartym zadaniem (przed ukończonymi; same ukończone: przed
+ * pierwszym); w sekcji bez zadań usuwa placeholdery `Brak…` i wstawia pod nagłówkiem (albo po ostatniej
+ * niepustej linii prozy); brak sekcji dopisuje na końcu pliku.
  */
 function insertBlock(text: string, kind: SectionKind, block: string[]): string {
   const scan = scanTasks(text);
@@ -246,9 +285,9 @@ function insertBlock(text: string, kind: SectionKind, block: string[]): string {
     return `${head === "" ? "" : `${head}\n\n`}${heading}\n\n${block.join("\n")}\n`;
   }
 
-  const inSection = scan.tasks.filter((t) => t.start > section.heading && t.start < section.end);
-  if (inSection.length > 0) {
-    scan.lines.splice(inSection[inSection.length - 1].end, 0, ...block);
+  const at = taskInsertIndex(scan, section);
+  if (at !== null) {
+    scan.lines.splice(at, 0, ...block);
     return scan.lines.join("\n");
   }
 
@@ -269,4 +308,25 @@ function insertBlock(text: string, kind: SectionKind, block: string[]): string {
       : [...body.slice(0, lastNonBlank + 1), "", ...block, ...(tail.length === 0 ? [""] : tail)];
   scan.lines.splice(section.heading + 1, section.end - section.heading - 1, ...newBody);
   return scan.lines.join("\n");
+}
+
+/**
+ * Wycina z `tasks.md` ukończone zadania do archiwizacji (`isArchivable`) ze wszystkich znanych sekcji.
+ * Zwraca tekst bez nich (reszta bajt w bajt) i wycięte bloki w kolejności pliku; gdy nic się nie
+ * kwalifikuje (albo pliku nie ma), tekst wraca bez zmian.
+ */
+export function extractArchivable(
+  text: string | null,
+  today: string,
+  olderThanDays: number
+): { text: string | null; blocks: ArchivedBlock[] } {
+  const scan = scanTasks(text);
+  const picked = scan.tasks.filter((t) => isArchivable(t, today, olderThanDays));
+  if (text === null || picked.length === 0) return { text, blocks: [] };
+  const blocks = picked.map((t) => ({
+    date: archiveDateOf(t),
+    lines: scan.lines.slice(t.start, t.end),
+  }));
+  for (const t of [...picked].reverse()) scan.lines.splice(t.start, t.end - t.start);
+  return { text: scan.lines.join("\n"), blocks };
 }

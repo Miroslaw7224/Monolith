@@ -82,6 +82,7 @@ describe("isVisiblePath", () => {
     ["Projects/p/state.md", false],
     ["Projects/p/ai-context.md", false],
     ["Projects/p/devlog.md", false],
+    ["Projects/p/changelog.md", false],
     ["Projects/p/_x.md", false],
     ["Projects/p/sub/x.md", false],
     ["Projects/loose.md", false],

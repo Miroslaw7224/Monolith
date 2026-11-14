@@ -11,6 +11,7 @@ export const PROJECT_EXCLUDED_FILES: readonly string[] = [
   "state.md",
   "ai-context.md",
   "devlog.md",
+  "changelog.md",
 ];
 
 /** Treść dłuższa niż 1 MB daje 413 przy odczycie pojedynczego dokumentu. */

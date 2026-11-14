@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import type { ProjectState } from "@/contexts/bc_projects/models";
+import type { ArchivedBlock, ProjectState } from "@/contexts/bc_projects/models";
 import {
+  mergeChangelog,
   parseBugs,
   parseChecklist,
   parseDevlog,
@@ -378,5 +379,124 @@ describe("bc_projects markdown: odporność state.md i devlog.md (review agy)", 
       "# Devlog\n\n## \n\nśmieć\n\n## 2026-11-13 — T\n\nW\n\n## 2026-11-12 — Stary\n\nS\n"
     );
     expect(parseDevlog(out)[0]).toEqual(entry);
+  });
+});
+
+describe("mergeChangelog", () => {
+  const block = (date: string | null, text: string, ...extra: string[]): ArchivedBlock => ({
+    date,
+    lines: [`- [x] ${text}${date === null ? "" : ` — ${date}`}`, ...extra],
+  });
+  const HEAD = "# Changelog — Demo\n\n";
+
+  it("nowy plik: nagłówek z nazwą projektu i miesiąc", () => {
+    expect(mergeChangelog(null, [block("2026-11-13", "A")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n`
+    );
+  });
+
+  it("istniejący miesiąc: malejąco po dacie, przy równej dacie nowe za istniejącymi", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n- [x] D — 2026-11-10\n`;
+    expect(mergeChangelog(existing, [block("2026-11-12", "C")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n- [x] C — 2026-11-12\n- [x] D — 2026-11-10\n`
+    );
+    expect(mergeChangelog(existing, [block("2026-11-14", "E")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n- [x] E — 2026-11-14\n- [x] D — 2026-11-10\n`
+    );
+    expect(mergeChangelog(existing, [block("2026-11-20", "F")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] F — 2026-11-20\n- [x] B — 2026-11-14\n- [x] D — 2026-11-10\n`
+    );
+  });
+
+  it("kilka bloków naraz trafia na właściwe miejsca", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n- [x] D — 2026-11-10\n`;
+    expect(
+      mergeChangelog(existing, [block("2026-11-12", "C"), block("2026-11-13", "G")], "Demo")
+    ).toBe(
+      `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n- [x] G — 2026-11-13\n- [x] C — 2026-11-12\n- [x] D — 2026-11-10\n`
+    );
+  });
+
+  it("nowy, nowszy miesiąc ląduje na górze", () => {
+    const existing = `${HEAD}## 2026-10\n\n- [x] X — 2026-10-29\n`;
+    expect(mergeChangelog(existing, [block("2026-11-14", "N")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] N — 2026-11-14\n\n## 2026-10\n\n- [x] X — 2026-10-29\n`
+    );
+  });
+
+  it("nowy, starszy miesiąc ląduje pod istniejącymi", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n`;
+    expect(mergeChangelog(existing, [block("2026-10-29", "X")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n\n## 2026-10\n\n- [x] X — 2026-10-29\n`
+    );
+  });
+
+  it("## Bez daty zawsze na dole: nowy miesiąc idzie nad nią, bez daty dopisuje na końcu", () => {
+    const existing = `${HEAD}## Bez daty\n\n- [x] Old\n`;
+    expect(mergeChangelog(existing, [block("2026-11-14", "N")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] N — 2026-11-14\n\n## Bez daty\n\n- [x] Old\n`
+    );
+    expect(mergeChangelog(existing, [block(null, "New")], "Demo")).toBe(
+      `${HEAD}## Bez daty\n\n- [x] Old\n- [x] New\n`
+    );
+    expect(
+      mergeChangelog(`${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n`, [block(null, "Z")], "Demo")
+    ).toBe(`${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n\n## Bez daty\n\n- [x] Z\n`);
+  });
+
+  it("bez deduplikacji: identyczne linie w jednej archiwizacji i już obecne trafiają wszystkie", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n`;
+    expect(
+      mergeChangelog(existing, [block("2026-11-13", "A"), block("2026-11-13", "A")], "Demo")
+    ).toBe(
+      `${HEAD}## 2026-11\n\n- [x] A — 2026-11-13\n- [x] A — 2026-11-13\n- [x] A — 2026-11-13\n`
+    );
+  });
+
+  it("blok z wciętymi liniami dopisuje się w całości, istniejący blok nie jest rozcinany", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n  - sub B\n- [x] D — 2026-11-10\n`;
+    expect(mergeChangelog(existing, [block("2026-11-12", "C", "  - sub C")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] B — 2026-11-14\n  - sub B\n- [x] C — 2026-11-12\n  - sub C\n- [x] D — 2026-11-10\n`
+    );
+  });
+
+  it("data istniejącego bloku: końcowa data ukończenia ma pierwszeństwo przed wcześniejszą w treści", () => {
+    const existing = `${HEAD}## 2026-11\n\n- [x] A wspomina — 2026-01-05 coś — 2026-11-14\n- [x] D — 2026-11-10\n`;
+    expect(mergeChangelog(existing, [block("2026-11-12", "C")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\n- [x] A wspomina — 2026-01-05 coś — 2026-11-14\n- [x] C — 2026-11-12\n- [x] D — 2026-11-10\n`
+    );
+  });
+
+  it("proza poza nagłówkami i w sekcjach zostaje bajt w bajt", () => {
+    const existing = `${HEAD}Notatka ręczna.\n\n## 2026-11\n\n- [x] A — 2026-11-13\n\nProza w sekcji.\n`;
+    expect(mergeChangelog(existing, [block("2026-11-14", "B")], "Demo")).toBe(
+      `${HEAD}Notatka ręczna.\n\n## 2026-11\n\n- [x] B — 2026-11-14\n- [x] A — 2026-11-13\n\nProza w sekcji.\n`
+    );
+  });
+
+  it("pusta sekcja z prozą (bez zadań): blok po ostatniej niepustej linii", () => {
+    const existing = `${HEAD}## 2026-11\n\nProza.\n\n## 2026-10\n\n- [x] X — 2026-10-29\n`;
+    expect(mergeChangelog(existing, [block("2026-11-14", "B")], "Demo")).toBe(
+      `${HEAD}## 2026-11\n\nProza.\n\n- [x] B — 2026-11-14\n\n## 2026-10\n\n- [x] X — 2026-10-29\n`
+    );
+  });
+
+  it("nieznany nagłówek ##: DomainError 422 z nazwą pliku", () => {
+    const run = () =>
+      mergeChangelog(`${HEAD}## Foo\n\n- [x] a\n`, [block("2026-11-14", "B")], "Demo");
+    expect(run).toThrow(DomainError);
+    expect(run).toThrow(/changelog\.md ma nieznany nagłówek „Foo”/);
+    try {
+      run();
+    } catch (err) {
+      expect((err as DomainError).statusCode).toBe(422);
+    }
+  });
+
+  it("powtórzony nagłówek: DomainError 422", () => {
+    const dup = `${HEAD}## 2026-11\n\n- [x] a — 2026-11-01\n\n## 2026-11\n\n- [x] b — 2026-11-02\n`;
+    expect(() => mergeChangelog(dup, [block("2026-11-14", "B")], "Demo")).toThrow(
+      /changelog\.md ma powtórzony nagłówek „2026-11”/
+    );
   });
 });

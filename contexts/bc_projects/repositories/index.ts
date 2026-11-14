@@ -3,6 +3,7 @@ import {
   PROJECT_LINK_KEYS,
   PROJECT_TYPES,
   type ProjectLinksInput,
+  type ArchiveResult,
   type BugEntry,
   type ChecklistSection,
   type DevlogEntry,
@@ -37,6 +38,7 @@ import {
   writeVaultFile,
 } from "@/lib/nexus/vault-fs";
 import {
+  mergeChangelog,
   parseBugs,
   parseChecklist,
   parseDevlog,
@@ -47,7 +49,7 @@ import {
   serializeState,
   setFrontmatterType,
 } from "./markdown";
-import { applyTaskOp, readBoardText } from "./tasks-file";
+import { applyTaskOp, extractArchivable, readBoardText } from "./tasks-file";
 
 const REGISTRY = "Projects/_registry.yaml";
 const MISSING_PROJECTS_LIST = "Projects/_registry.yaml: brak listy 'projects'";
@@ -382,6 +384,37 @@ export function writeProjectTasks(
     today: ctx.today,
   });
   return writeVaultFile(rel, next, { expected });
+}
+
+/**
+ * Archiwizacja ukończonych zadań do `changelog.md` (spec archiwizacji §4.3).
+ * Krok 0: wersja `tasks.md` musi zgadzać się z `expected` (`ConflictError` przed dotknięciem changelogu);
+ * brak `tasks.md` albo nic do przeniesienia → `archived: 0` bez zapisu.
+ * Krok 1: dopisanie do `changelog.md` (zmiana lokalna, ponawiana po konflikcie; uszkodzony plik to 422).
+ * Krok 2: usunięcie tych samych bloków z `tasks.md` z kontrolą wersji (zmiana między krokami to 409).
+ * Awaria po kroku 1 zostawia duplikaty w changelogu, nigdy utratę zadań.
+ */
+export async function archiveDoneTasks(
+  entry: RegistryEntry,
+  expected: VersionToken | null,
+  ctx: { today: string; olderThanDays: number }
+): Promise<ArchiveResult> {
+  const tasksRel = projectPath(entry.folder, "tasks.md");
+  const changelogRel = projectPath(entry.folder, "changelog.md");
+  assertWritable(entry, tasksRel);
+  assertWritable(entry, changelogRel);
+  const file = readVaultFile(tasksRel);
+  if (!sameVersion(file?.version ?? null, expected)) {
+    throw new ConflictError(`Plik zmienił się w międzyczasie: ${tasksRel}`);
+  }
+  if (file === null) return { archived: 0, blocks: [] };
+  const extracted = extractArchivable(file.text, ctx.today, ctx.olderThanDays);
+  if (extracted.text === null || extracted.blocks.length === 0) return { archived: 0, blocks: [] };
+  await updateVaultFile(changelogRel, (current) =>
+    mergeChangelog(current, extracted.blocks, entry.name)
+  );
+  writeVaultFile(tasksRel, extracted.text, { expected: file.version });
+  return { archived: extracted.blocks.length, blocks: extracted.blocks };
 }
 
 // ── źródła paczki kontekstu (etap 1-4) ──────────────────────────────────────────

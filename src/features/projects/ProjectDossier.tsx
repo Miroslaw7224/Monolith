@@ -127,6 +127,7 @@ export function ProjectDossier(props: {
           key={project.id}
           board={project.board}
           onOp={actions.tasksOp}
+          onArchive={actions.archiveDone}
           onReload={actions.reloadDetail}
         />
       </article>

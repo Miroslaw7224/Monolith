@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
+  ArchiveDoneInputSchema,
   DevlogInputSchema,
   NewProjectInputSchema,
   ProjectPatchInputSchema,
   StateInputSchema,
   TaskOpInputSchema,
+  toArchiveDto,
   toContextPackDto,
   toDetailDto,
   toSummaryDto,
@@ -109,6 +111,23 @@ export async function postTasks(req: NextRequest, ctx: RouteContext): Promise<Ne
     const { version, ...op } = parsed.data;
     const project = await services.applyTaskOp(id, op, version ?? null);
     return NextResponse.json(toDetailDto(project));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function postTasksArchive(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  try {
+    const parsed = await parseBody(req, ArchiveDoneInputSchema);
+    if (parsed.success === false) return parsed.response;
+    const { id } = await ctx.params;
+    // `strict: false` jak w `postTasks`: jawne domknięcie null.
+    const { project, archived } = await services.archiveDone(
+      id,
+      parsed.data.version ?? null,
+      parsed.data.olderThanDays
+    );
+    return NextResponse.json(toArchiveDto(project, archived));
   } catch (err) {
     return handleServiceError(err);
   }

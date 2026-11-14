@@ -827,6 +827,36 @@
   grid-column: 1 / -1;
 }
 
+.prj-board__toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.prj-board__filter {
+  display: inline-flex;
+  gap: var(--s-1);
+}
+
+.prj-board__archive {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+.prj-board__notice {
+  grid-column: 1 / -1;
+  margin: 0;
+  font: 500 var(--fs-xs) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
 .prj-board__col {
   display: flex;
   flex-direction: column;
