@@ -38,17 +38,18 @@ poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu
 
 ## 3. Zadania (`src/features/tasks/TasksSection.tsx`)
 
-| Funkcja                              | Stan      | Gdzie / uwagi                                                               |
-| ------------------------------------ | --------- | --------------------------------------------------------------------------- |
-| Termin                               | JEST      | src/features/tasks/TaskCard.tsx, `contexts/bc_tasks/models.ts` (`due_date`) |
-| Szablony zadań                       | JEST      | TaskTemplatesModal.tsx                                                      |
-| Wspólna lista                        | CZĘŚCIOWO | TasksSection.tsx; globalna, bez powiązania z projektami                     |
-| Priorytet                            | CZĘŚCIOWO | pole `priority` w `contexts/bc_tasks/models.ts`, brak kontrolki w UI        |
-| Panel szczegółów                     | CZĘŚCIOWO | TaskDetailModal.tsx; modal, bez checklisty kroków                           |
-| Energia Deep / Quick                 | BRAK      |                                                                             |
-| Filtry projekt / energia / priorytet | BRAK      | jest tylko wyszukiwanie tekstu (useTasksBoard.ts)                           |
-| Grupy Teraz / Następne / Icebox      | BRAK      | są kolumny todo / in_progress / to_review / done                            |
-| Szybkie dodawanie ze składnią        | BRAK      |                                                                             |
+| Funkcja                              | Stan      | Gdzie / uwagi                                                                                                  |
+| ------------------------------------ | --------- | -------------------------------------------------------------------------------------------------------------- |
+| Termin                               | JEST      | src/features/tasks/TaskCard.tsx, `contexts/bc_tasks/models.ts` (`due_date`)                                    |
+| Szablony zadań                       | JEST      | TaskTemplatesModal.tsx                                                                                         |
+| Wspólna lista                        | CZĘŚCIOWO | TasksSection.tsx; globalna, bez powiązania z projektami                                                        |
+| Priorytet                            | CZĘŚCIOWO | pole `priority` w `contexts/bc_tasks/models.ts`, brak kontrolki w UI                                           |
+| Panel szczegółów                     | CZĘŚCIOWO | TaskDetailModal.tsx; modal, bez checklisty kroków                                                              |
+| Energia Deep / Quick                 | CZĘŚCIOWO | tag `#deep`/`#quick` w tytule, przyciski w pasku dodawania i na karcie (taskEnergyUtils.ts); bez osobnego pola |
+| Kafle liczb                          | JEST      | TaskTiles.tsx, taskStatsUtils.ts (w toku, do zrobienia, terminy, zrobione w tygodniu)                          |
+| Filtry projekt / energia / priorytet | BRAK      | jest tylko wyszukiwanie tekstu (useTasksBoard.ts)                                                              |
+| Grupy Teraz / Następne / Icebox      | BRAK      | są kolumny todo / in_progress / to_review / done                                                               |
+| Szybkie dodawanie ze składnią        | BRAK      |                                                                                                                |
 
 ## 4. Projekty (`src/features/projects/`, `contexts/bc_projects/`)
 

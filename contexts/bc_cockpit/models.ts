@@ -51,6 +51,8 @@ export type QueueItem = {
   priority: string | null;
   /** Z tagu `#deep` / `#quick` albo `[energy:: …]` w tekście zadania. */
   energy: Energy | null;
+  /** Zadanie ogólne z priorytetem 1 („Pilne”, do zrobienia od ręki); brak pola = nie pilne. */
+  urgent?: boolean;
   source: QueueSource;
 };
 /** Grupa kolejki: projekt albo „Ogólne” (`projectId: null`). */

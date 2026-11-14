@@ -94,6 +94,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
         projectName: i.projectName,
         priority: i.priority,
         energy: i.energy,
+        ...(i.urgent ? { urgent: true } : {}),
         source:
           i.source.type === "task"
             ? { type: "task", taskId: i.source.taskId }

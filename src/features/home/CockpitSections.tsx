@@ -369,7 +369,14 @@ export function CockpitSections({
   const deepCount = allItems.filter((i) => i.energy === "deep").length;
   const quickCount = allItems.filter((i) => i.energy === "quick").length;
   const hasEnergy = deepCount + quickCount > 0;
-  const visibleQueue = data.queue
+  // Pilne (zadania ogólne z priorytetem 1) idą na samą górę Kokpitu i nie powtarzają się w kolejce.
+  const urgentEntries = data.queue.flatMap((g) =>
+    g.items.filter((i) => i.urgent).map((item) => ({ item, group: g }))
+  );
+  const restQueue = data.queue
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.urgent) }))
+    .filter((g) => g.items.length > 0);
+  const visibleQueue = restQueue
     .map((g) => ({
       ...g,
       items: g.items.filter((i) => energyFilter === "all" || i.energy === energyFilter),
@@ -451,6 +458,54 @@ export function CockpitSections({
 
   return (
     <>
+      {urgentEntries.length > 0 ? (
+        <section className="kok-urgent" aria-label="Pilne">
+          <h3 className="kok-urgent__title">
+            <b>Pilne</b> · do zrobienia od ręki
+          </h3>
+          <ul className="kok-list">
+            {urgentEntries.map(({ item, group }) => (
+              <li key={sourceKey(item)} className="kok-list__item">
+                <input
+                  className="kok-check"
+                  type="checkbox"
+                  aria-label="zrobione"
+                  checked={busyKey === sourceKey(item)}
+                  disabled={busyKey !== null}
+                  onChange={() => void completeItem(item)}
+                />
+                <span className="kok-list__title">
+                  <button
+                    type="button"
+                    className="kok-list__open"
+                    onClick={() => {
+                      setQueueError(null);
+                      setPreview({ item, group });
+                    }}
+                  >
+                    {item.title}
+                  </button>
+                </span>
+                <EnergySwitch
+                  title={item.title}
+                  energy={item.energy}
+                  disabled={busyKey !== null}
+                  onChange={(energy) => void setItemEnergy(item, energy)}
+                />
+                {item.kind === "overdue" && item.due ? (
+                  <span className="kok-badge kok-badge--danger">{item.due}</span>
+                ) : null}
+                {item.kind === "today" ? (
+                  <span className="kok-badge kok-badge--accent">dziś</span>
+                ) : null}
+                {item.kind === "upcoming" && item.due ? (
+                  <span className="kok-badge">do {item.due}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <section className="kok-tiles tiles" aria-label="Liczby dnia">
         <div className="kok-tile kok-tile--accent tile tile--accent">
           <span className="kok-tile__label">Następne spotkanie</span>
@@ -599,7 +654,7 @@ export function CockpitSections({
                 <span className="kok-chip">{visibleCount} zadań</span>
               </div>
             </div>
-            {data.queue.length === 0 ? (
+            {restQueue.length === 0 ? (
               <p className="kok-empty-msg">Nic w kolejce</p>
             ) : visibleCount === 0 ? (
               <p className="kok-empty-msg">Brak zadań z tą energią</p>

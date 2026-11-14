@@ -369,6 +369,34 @@ describe("następne spotkanie", () => {
 });
 
 describe("kolejka na dziś", () => {
+  it("zadanie ogólne z priorytetem 1 jest oznaczone jako pilne, niezależnie od terminu", async () => {
+    mockGetTasks.mockResolvedValue([
+      task({ id: "u", title: "Od ręki", due_date: "2026-12-01", priority: 1 }),
+      task({ id: "n", title: "Zwykłe", priority: 2 }),
+      task({ id: "d", title: "Zrobione pilne", priority: 1, status: "done" }),
+    ]);
+
+    const { queue } = await getCockpit(TODAY);
+    const items = queue.flatMap((g) => g.items);
+
+    expect(items.find((i) => i.title === "Od ręki")?.urgent).toBe(true);
+    expect(items.find((i) => i.title === "Zwykłe")?.urgent).toBeUndefined();
+    expect(items.some((i) => i.title === "Zrobione pilne")).toBe(false);
+  });
+
+  it("zadania ogólne „do sprawdzenia” znikają z kolejki (także pilne); „w toku” zostaje", async () => {
+    mockGetTasks.mockResolvedValue([
+      task({ id: "r", title: "Wysłane do sprawdzenia", priority: 1, status: "to_review" }),
+      task({ id: "r2", title: "Do sprawdzenia z terminem", due_date: TODAY, status: "to_review" }),
+      task({ id: "w", title: "W toku pilne", priority: 1, status: "in_progress" }),
+    ]);
+
+    const { queue } = await getCockpit(TODAY);
+    const titles = queue.flatMap((g) => g.items.map((i) => i.title));
+
+    expect(titles).toEqual(["W toku pilne"]);
+  });
+
   it("kolejność: dzisiejsze due, zaległe (najświeższe pierwsze), potem [now::], na końcu bez terminu; grupy per projekt, ogólne jako „Ogólne”", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
