@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import type { TaskTemplateDto } from "@/contexts/bc_tasks/schemas";
 
@@ -45,7 +45,7 @@ export function TaskTemplatesModal({
     close: (t.calendarCancel as string) ?? "Close",
   };
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     setLoading(true);
     try {
       const res = await apiFetch("/api/task-templates");
@@ -56,7 +56,7 @@ export function TaskTemplatesModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiFetch]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -65,7 +65,7 @@ export function TaskTemplatesModal({
     setNewLabel("");
     setNewTitle("");
     setNewLink("");
-  }, [isOpen, apiFetch]);
+  }, [isOpen, fetchTemplates]);
 
   const notifyChange = () => {
     onTemplatesChange();

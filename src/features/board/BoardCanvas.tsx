@@ -190,6 +190,13 @@ function CanvasInner({
     resolve: (ok: boolean) => void;
   } | null>(null);
   const stored = readViewport();
+  const confirmDelete = useCallback(
+    (ids: string[]) => {
+      const copy = deleteCopy(deletePlan(ids, board), lang);
+      return new Promise<boolean>((resolve) => setPending({ copy, resolve }));
+    },
+    [board, lang]
+  );
   const actions = {
     onDelete: (id: string) => {
       void confirmDelete([id]).then((ok) => {
@@ -242,8 +249,13 @@ function CanvasInner({
     [onChange]
   );
 
+  const actionsRef = useRef(actions);
   useEffect(() => {
-    const next = buildGraph(board, actions);
+    actionsRef.current = actions;
+  });
+
+  useEffect(() => {
+    const next = buildGraph(board, actionsRef.current);
     setNodes((current) => {
       const selected = new Set(current.filter((node) => node.selected).map((node) => node.id));
       return next.nodes.map((node) => ({ ...node, selected: selected.has(node.id) }));
@@ -264,18 +276,13 @@ function CanvasInner({
     });
   }
 
-  function confirmDelete(ids: string[]) {
-    const copy = deleteCopy(deletePlan(ids, board), lang);
-    return new Promise<boolean>((resolve) => setPending({ copy, resolve }));
-  }
-
   const onBeforeDelete: OnBeforeDelete = useCallback(
     async ({ nodes: deleted }) => {
       const ids = deleteIdsFromNodes(deleted);
       if (ids.length === 0) return true;
       return confirmDelete(ids);
     },
-    [board, lang]
+    [confirmDelete]
   );
 
   return (
