@@ -1,18 +1,37 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Plus, Trash2, Play, Square } from "lucide-react";
 import "./calendar.css";
 import { CalendarEventForm, type CalendarEventFormData } from "./CalendarEventForm";
 import { StartSessionModal } from "@/src/components/sessions/StartSessionModal";
 import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
-import { type CalendarEvent, MONTH_NAMES, DAY_NAMES, expandEventToSegments } from "./calendarUtils";
-import { CalendarDayColumn } from "./CalendarDayColumn";
+import {
+  type CalendarEvent,
+  type CalendarViewMode,
+  MONTH_NAMES,
+  expandEventToSegments,
+  toYmd,
+  weekDates as weekDatesOf,
+  weekRangeLabel,
+} from "./calendarUtils";
+import { CalendarWeekGrid } from "./CalendarWeekGrid";
+import { CalendarMonthGrid } from "./CalendarMonthGrid";
+import { CalendarAgenda } from "./CalendarAgenda";
+import { CalendarTiles, type CalendarTilesData } from "./CalendarTiles";
+import { CalendarEventDetail, CalendarMiniMonth, CalendarSlotPlanner } from "./CalendarSidePanel";
 import { useCalendarData } from "./useCalendarData";
+import { isEtat } from "./calendarEventStyle";
+import { upcomingWindows, weekNumber } from "@/src/features/home/cockpitFormat";
+import type { DeepWindowDto } from "@/contexts/bc_cockpit/schemas";
 import type { UserTag } from "@/src/features/tags/TagsSection";
 import type { ActiveSession } from "@/src/components/sessions/activeSession";
 
 export type { CalendarEvent } from "./calendarUtils";
 
-const HOURS = 24;
+const VIEW_TABS: { id: CalendarViewMode; label: string }[] = [
+  { id: "month", label: "Miesiąc" },
+  { id: "week", label: "Tydzień" },
+  { id: "agenda", label: "Agenda" },
+];
 
 type TranslationDict = Record<string, string | string[]>;
 
@@ -45,23 +64,30 @@ export function CalendarView({
 }: CalendarViewProps) {
   const now = new Date();
   const {
+    anchor,
+    setAnchor,
+    view,
+    setView,
     viewYear,
     viewMonth,
+    grid,
     events,
     setEvents,
     loading,
-    days,
     startDate,
     endDate,
-    handlePrevMonth,
-    handleNextMonth,
+    handlePrev,
+    handleNext,
+    goToday,
   } = useCalendarData(apiFetch, refreshTrigger);
   const [modalOpen, setModalOpen] = useState(false);
   const [startSessionModalOpen, setStartSessionModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [addDate, setAddDate] = useState<string | null>(null);
+  const [addStart, setAddStart] = useState<number>(9 * 60);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [windows, setWindows] = useState<DeepWindowDto[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
 
   const [nowMinutes, setNowMinutes] = useState(() => {
     const n = new Date();
@@ -74,6 +100,24 @@ export function CalendarView({
     }, 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Okna Deep Work / Quick Win liczy Kokpit (te same dane, tylko do odczytu).
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/cockpit")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const list = (data as { windows?: unknown } | null)?.windows;
+        setWindows(Array.isArray(list) ? (list as DeepWindowDto[]) : []);
+      })
+      .catch(() => {
+        if (!cancelled) setWindows([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiFetch, refreshTrigger]);
 
   const monthLabel = MONTH_NAMES[lang][viewMonth];
 
@@ -93,8 +137,9 @@ export function CalendarView({
     }
   }
 
-  const handleOpenAdd = (date: string) => {
+  const handleOpenAdd = (date: string, startMinutes = 9 * 60) => {
     setAddDate(date);
+    setAddStart(startMinutes);
     setEditingEvent(null);
     setSaveError(null);
     setModalOpen(true);
@@ -109,6 +154,15 @@ export function CalendarView({
     setAddDate(null);
     setSaveError(null);
     setModalOpen(true);
+  };
+
+  /** Klik w wydarzenie: podgląd w panelu bocznym (termin zadania otwiera zadanie). */
+  const handleSelect = (ev: CalendarEvent) => {
+    if (ev.type === "task_deadline") {
+      onOpenTaskDeadline?.(ev.id.replace(/^task:/, ""));
+      return;
+    }
+    setSelectedId(ev.id);
   };
 
   const handleSave = async (data: CalendarEventFormData) => {
@@ -158,10 +212,40 @@ export function CalendarView({
     }
   };
 
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const cellWidth = 80;
-  const dayLabelWidth = 80;
-  const totalWidth = dayLabelWidth + HOURS * cellWidth;
+  const todayStr = toYmd(now);
+  const weekDates = useMemo(() => weekDatesOf(anchor), [anchor]);
+  const eventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    // Wydarzenia przechodzące przez północ trafiają do każdego dnia, którego dotykają.
+    for (const seg of eventSegments) {
+      const list = map.get(seg.segmentDate) ?? [];
+      if (!list.includes(seg.source)) list.push(seg.source);
+      map.set(seg.segmentDate, list);
+    }
+    for (const list of map.values()) list.sort((a, b) => a.start_minutes - b.start_minutes);
+    return map;
+  }, [eventSegments]);
+  const selectedEvent = events.find((e) => e.id === selectedId) ?? null;
+  const upcoming = useMemo(() => upcomingWindows(windows, nowMinutes), [windows, nowMinutes]);
+
+  const tiles: CalendarTilesData = useMemo(() => {
+    const real = (e: CalendarEvent) => e.type !== "task_deadline";
+    const weekSet = new Set(weekDates);
+    const weekEvents = events.filter((e) => weekSet.has(e.date) && real(e));
+    // Poza pobranym zakresem (inny miesiąc) nie znamy dzisiejszych wydarzeń.
+    const todayLoaded = todayStr >= startDate && todayStr <= endDate;
+    const todayEvents = (eventsByDate.get(todayStr) ?? []).filter(real);
+    const deep = upcoming.filter((w) => w.energy === "deep");
+    return {
+      todayCount: todayLoaded ? todayEvents.length : null,
+      nextTodayStart: todayEvents.find((e) => e.start_minutes > nowMinutes)?.start_minutes ?? null,
+      weekCount: weekEvents.length,
+      weekEtat: weekEvents.filter(isEtat).length,
+      deepMinutes: deep.reduce((sum, w) => sum + (w.endMinutes - w.startMinutes), 0),
+      deepWindows: deep.length,
+      deadlines: events.filter((e) => weekSet.has(e.date) && e.type === "task_deadline").length,
+    };
+  }, [events, eventsByDate, weekDates, upcoming, todayStr, nowMinutes, startDate, endDate]);
 
   const formatSessionTime = (iso: string) => {
     const d = new Date(iso);
@@ -176,38 +260,57 @@ export function CalendarView({
     (activeSession ? `Work in progress since ${formatSessionTime(activeSession.startedAt)}` : "");
 
   return (
-    <div className="kal flex-1 min-w-0 flex flex-col overflow-hidden" data-card="kalendarz">
+    <div className="kal flex-1 min-w-0 flex flex-col overflow-y-auto" data-card="kalendarz">
       <header className="kal-head">
         <div>
           <p className="kal-eyebrow">Alt+2 · Kalendarz</p>
-          <div className="kal-head__title-group">
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              className="kal-btn kal-btn--icon kal-btn--ghost"
-              aria-label="Poprzedni miesiąc"
-            >
-              ‹
-            </button>
-            <h1 className="kal-title">
-              {monthLabel} {viewYear}
-            </h1>
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              className="kal-btn kal-btn--icon kal-btn--ghost"
-              aria-label="Następny miesiąc"
-            >
-              ›
-            </button>
-          </div>
+          <h1 className="kal-title">
+            {monthLabel} {viewYear}
+            <span className="kal-title__week">
+              · tydzień {weekNumber(new Date(`${anchor}T12:00:00`))}
+            </span>
+          </h1>
           <p className="kal-sub">
+            {weekRangeLabel(weekDates)} ·{" "}
             {lang === "pl"
               ? "etat i projekty w jednym planie"
               : "full-time job and projects in one schedule"}
           </p>
         </div>
         <div className="kal-head__actions">
+          <button
+            type="button"
+            onClick={handlePrev}
+            className="kal-btn kal-btn--icon kal-btn--ghost"
+            aria-label={view === "month" ? "Poprzedni miesiąc" : "Poprzedni tydzień"}
+          >
+            ‹
+          </button>
+          <button type="button" onClick={goToday} className="kal-btn">
+            Dziś
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            className="kal-btn kal-btn--icon kal-btn--ghost"
+            aria-label={view === "month" ? "Następny miesiąc" : "Następny tydzień"}
+          >
+            ›
+          </button>
+          <div className="kal-tabs" role="tablist" aria-label="Widok kalendarza">
+            {VIEW_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                className="kal-tabs__btn"
+                aria-selected={view === tab.id}
+                onClick={() => setView(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
           {activeSession ? (
             <div className="kal-session-active">
               <span className="kal-session-badge">{sessionInProgressLabel}</span>
@@ -232,12 +335,7 @@ export function CalendarView({
           )}
           <button
             type="button"
-            onClick={() => {
-              setAddDate(days[0]?.date ?? startDate);
-              setEditingEvent(null);
-              setSaveError(null);
-              setModalOpen(true);
-            }}
+            onClick={() => handleOpenAdd(anchor)}
             className="kal-btn kal-btn--primary"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -257,48 +355,58 @@ export function CalendarView({
         </div>
       )}
 
-      <div className="kal-grid-card" ref={gridRef}>
-        {loading ? (
-          <div className="kal-state">Loading…</div>
-        ) : (
-          <div className="kal-grid-scroll">
-            <div className="kal-grid-table" style={{ width: totalWidth, minWidth: totalWidth }}>
-              <div className="kal-grid-header">
-                <div className="kal-grid-header__day-label" style={{ width: dayLabelWidth }}>
-                  {(t.calendarDay as string) ?? "Day"}
-                </div>
-                <div className="kal-grid-header__hours">
-                  {Array.from({ length: HOURS }, (_, h) => (
-                    <div key={h} className="kal-grid-header__hour" style={{ width: cellWidth }}>
-                      {String(h).padStart(2, "0")}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {days.map((day) => {
-                const daySegments = eventSegments.filter((s) => s.segmentDate === day.date);
-                return (
-                  <CalendarDayColumn
-                    key={day.date}
-                    day={day}
-                    daySegments={daySegments}
-                    cellWidth={cellWidth}
-                    lang={lang}
-                    dayNames={DAY_NAMES[lang]}
-                    isToday={day.date === todayStr}
-                    onAddClick={(date) => handleOpenAdd(date)}
-                    onEventClick={handleOpenEdit}
-                    activeSession={activeSession}
-                    todayStr={todayStr}
-                    nowMinutes={nowMinutes}
-                    onEndSession={onEndSession}
-                    t={t}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        )}
+      <CalendarTiles data={tiles} />
+
+      <div className="kal-layout">
+        <div className="kal-main">
+          {loading ? (
+            <p className="kal-state">Loading…</p>
+          ) : view === "week" ? (
+            <CalendarWeekGrid
+              dates={weekDates}
+              segments={eventSegments}
+              todayStr={todayStr}
+              nowMinutes={nowMinutes}
+              selectedId={selectedId}
+              windows={upcoming}
+              activeSession={activeSession}
+              onSelect={handleSelect}
+              onAdd={handleOpenAdd}
+            />
+          ) : view === "month" ? (
+            <CalendarMonthGrid
+              weeks={grid.weeks}
+              viewMonth={viewMonth}
+              todayStr={todayStr}
+              eventsByDate={eventsByDate}
+              onPickDay={(date) => {
+                setAnchor(date);
+                setView("week");
+              }}
+              onSelect={handleSelect}
+            />
+          ) : (
+            <CalendarAgenda
+              dates={weekDates}
+              todayStr={todayStr}
+              eventsByDate={eventsByDate}
+              onSelect={handleSelect}
+            />
+          )}
+        </div>
+
+        <aside className="kal-aside">
+          <CalendarMiniMonth
+            weeks={grid.weeks}
+            viewMonth={viewMonth}
+            todayStr={todayStr}
+            weekDates={weekDates}
+            eventDates={new Set(eventsByDate.keys())}
+            onPick={setAnchor}
+          />
+          <CalendarEventDetail event={selectedEvent} onEdit={handleOpenEdit} />
+          <CalendarSlotPlanner windows={upcoming} />
+        </aside>
       </div>
 
       {modalOpen && (
@@ -325,7 +433,7 @@ export function CalendarView({
                   : addDate
                     ? {
                         date: addDate,
-                        start_minutes: 9 * 60,
+                        start_minutes: addStart,
                         duration_minutes: 60,
                         title: "",
                         tags: [],

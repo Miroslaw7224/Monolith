@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 import { CalendarView } from "@/src/features/calendar/CalendarView";
-import { MONTH_NAMES } from "@/src/features/calendar/calendarUtils";
+import { MONTH_NAMES, monthGrid } from "@/src/features/calendar/calendarUtils";
 
 const apiFetch = vi.fn();
 
@@ -12,11 +12,8 @@ function monthLabel(date: Date) {
 }
 
 function monthRange(date: Date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const days = new Date(year, month + 1, 0).getDate();
-  const mm = String(month + 1).padStart(2, "0");
-  return `startDate=${year}-${mm}-01&endDate=${year}-${mm}-${String(days).padStart(2, "0")}`;
+  const { start, end } = monthGrid(date.getFullYear(), date.getMonth());
+  return `startDate=${start}&endDate=${end}`;
 }
 
 beforeEach(() => {
@@ -37,8 +34,9 @@ test("loads the visible month and the next month without posting", async () => {
   });
   expect(screen.getByText(monthLabel(now))).toBeInTheDocument();
 
-  const label = screen.getByText(monthLabel(now));
-  await user.click(label.nextElementSibling as HTMLButtonElement);
+  // Domyślny widok to tydzień; przejście o miesiąc: zakładka Miesiąc + strzałka.
+  await user.click(screen.getByRole("tab", { name: "Miesiąc" }));
+  await user.click(screen.getByRole("button", { name: "Następny miesiąc" }));
 
   await waitFor(() => {
     expect(screen.getByText(monthLabel(next))).toBeInTheDocument();

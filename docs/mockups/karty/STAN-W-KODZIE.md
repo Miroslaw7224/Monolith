@@ -30,11 +30,11 @@ poniżej się nie zmieniły. Mapa i Kodeks zostają zaślepkami (makieta Kodeksu
 | Funkcja                            | Stan      | Gdzie / uwagi                                                          |
 | ---------------------------------- | --------- | ---------------------------------------------------------------------- |
 | Dodawanie wydarzenia               | JEST      | src/features/calendar/CalendarView.tsx, CalendarEventForm.tsx          |
-| Widok miesiąc / tydzień / agenda   | CZĘŚCIOWO | CalendarView.tsx; jest tylko siatka 24 h jednego dnia                  |
+| Widok miesiąc / tydzień / agenda   | JEST      | CalendarView.tsx (zakładki), CalendarWeekGrid/MonthGrid/Agenda.tsx     |
 | Tag projektu, etat vs projekty     | CZĘŚCIOWO | CalendarView.tsx; ogólne tagi i typ work/meeting                       |
 | Planer slotów Deep Work            | JEST      | planWindows (bc_cockpit/services), sloty na osi czasu (K5, 2026-11-13) |
-| Szczegóły z briefem i action items | BRAK      |                                                                        |
-| Mini-kalendarz miesiąca            | BRAK      |                                                                        |
+| Szczegóły z briefem i action items | CZĘŚCIOWO | CalendarSidePanel.tsx: brief i link jest, action items BRAK            |
+| Mini-kalendarz miesiąca            | JEST      | CalendarSidePanel.tsx (CalendarMiniMonth)                              |
 
 ## 3. Zadania (`src/features/tasks/TasksSection.tsx`)
 

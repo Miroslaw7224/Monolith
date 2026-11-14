@@ -148,3 +148,107 @@ export const DAY_NAMES: Record<"pl" | "en", string[]> = {
 };
 
 export const CALENDAR_MAX_STACK = MAX_STACK;
+
+/* ---------- Tydzień od poniedziałku, siatka miesiąca (karta wg makiety 02) ---------- */
+
+export type CalendarViewMode = "week" | "month" | "agenda";
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+export function parseYmd(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function toYmd(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+/** Poniedziałek tygodnia, do którego należy dzień. */
+export function startOfWeek(ymd: string): string {
+  const d = parseYmd(ymd);
+  return addCalendarDays(ymd, -((d.getDay() + 6) % 7));
+}
+
+/** Siedem dni tygodnia (pon–nd). */
+export function weekDates(ymd: string): string[] {
+  const start = startOfWeek(ymd);
+  return Array.from({ length: 7 }, (_, i) => addCalendarDays(start, i));
+}
+
+/** Ten sam dzień miesiąca przesunięty o `delta` miesięcy (przycięty do długości miesiąca). */
+export function addCalendarMonths(ymd: string, delta: number): string {
+  const d = parseYmd(ymd);
+  const target = new Date(d.getFullYear(), d.getMonth() + delta, 1);
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  return toYmd(new Date(target.getFullYear(), target.getMonth(), Math.min(d.getDate(), last)));
+}
+
+/** Tygodnie (pon–nd) pokrywające cały miesiąc; zakres wystarcza też dla widoku tygodnia. */
+export function monthGrid(
+  year: number,
+  month: number
+): { start: string; end: string; weeks: string[][] } {
+  const first = toYmd(new Date(year, month, 1));
+  const lastDay = toYmd(new Date(year, month + 1, 0));
+  const weeks: string[][] = [];
+  let cursor = startOfWeek(first);
+  while (cursor <= lastDay) {
+    weeks.push(weekDates(cursor));
+    cursor = addCalendarDays(cursor, 7);
+  }
+  return { start: weeks[0][0], end: weeks[weeks.length - 1][6], weeks };
+}
+
+export const WEEKDAY_SHORT_PL = ["pon", "wt", "śr", "czw", "pt", "sob", "nd"];
+export const WEEKDAY_MINI_PL = ["pn", "wt", "śr", "cz", "pt", "sb", "nd"];
+export const WEEKDAY_LONG_PL = [
+  "poniedziałek",
+  "wtorek",
+  "środa",
+  "czwartek",
+  "piątek",
+  "sobota",
+  "niedziela",
+];
+export const MONTH_GENITIVE_PL = [
+  "stycznia",
+  "lutego",
+  "marca",
+  "kwietnia",
+  "maja",
+  "czerwca",
+  "lipca",
+  "sierpnia",
+  "września",
+  "października",
+  "listopada",
+  "grudnia",
+];
+
+/** Indeks 0 = poniedziałek. */
+export function weekdayIndex(ymd: string): number {
+  return (parseYmd(ymd).getDay() + 6) % 7;
+}
+
+/** `9–15 listopada` albo `30 listopada – 6 grudnia`. */
+export function weekRangeLabel(dates: string[]): string {
+  const a = parseYmd(dates[0]);
+  const b = parseYmd(dates[dates.length - 1]);
+  if (a.getMonth() === b.getMonth()) {
+    return `${a.getDate()}–${b.getDate()} ${MONTH_GENITIVE_PL[b.getMonth()]}`;
+  }
+  return `${a.getDate()} ${MONTH_GENITIVE_PL[a.getMonth()]} – ${b.getDate()} ${MONTH_GENITIVE_PL[b.getMonth()]}`;
+}
+
+/** `5 h 45`, `45 min`, `2 h`. */
+export function formatHoursMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${m}`;
+}
+
+export function formatClock(minutes: number): string {
+  return `${pad2(Math.floor(minutes / 60) % 24)}:${pad2(minutes % 60)}`;
+}
