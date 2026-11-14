@@ -23,6 +23,17 @@ type TaskPos = { column: ColumnKey; index: number };
 
 const CONFLICT_MESSAGE = "Plik zadań zmienił się; odświeżono tablicę. Spróbuj ponownie.";
 
+/** Podpis liczby zadań w nagłówku kolumny (po polsku: 1 zadanie, 2–4 zadania, 0/5+ zadań). */
+function countLabel(column: ColumnKey, n: number): string {
+  if (column === "icebox") return `${n} odłożone`;
+  if (n === 1) return "1 zadanie";
+  const lastTwo = n % 100;
+  const last = n % 10;
+  return last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)
+    ? `${n} zadania`
+    : `${n} zadań`;
+}
+
 const samePos = (a: TaskPos | null, column: ColumnKey, index: number) =>
   a !== null && a.column === column && a.index === index;
 
@@ -204,45 +215,47 @@ export function ProjectTasksBoard(props: {
             <span className="prj-board__text">{task.text}</span>
           </label>
         </div>
-        {task.doneDate ? <span className="prj-board__date">{task.doneDate}</span> : null}
-        <div className="prj-board__actions">
-          <button
-            type="button"
-            className="prj-btn"
-            aria-label={`Edytuj: ${task.text}`}
-            disabled={busy}
-            onClick={() => {
-              setConfirming(null);
-              setEditText(task.text);
-              setEditing({ column, index });
-            }}
-          >
-            Edytuj
-          </button>
-          {samePos(confirming, column, index) ? (
-            <button
-              type="button"
-              className="prj-btn prj-btn--danger"
-              aria-label={`Potwierdź usunięcie: ${task.text}`}
-              disabled={busy}
-              onClick={() => confirmRemove(column, index, task)}
-            >
-              Potwierdź
-            </button>
-          ) : (
+        <div className="prj-board__foot">
+          <span className="prj-board__date">{task.doneDate ?? ""}</span>
+          <div className="prj-board__actions">
             <button
               type="button"
               className="prj-btn"
-              aria-label={`Usuń: ${task.text}`}
+              aria-label={`Edytuj: ${task.text}`}
               disabled={busy}
               onClick={() => {
-                setEditing(null);
-                setConfirming({ column, index });
+                setConfirming(null);
+                setEditText(task.text);
+                setEditing({ column, index });
               }}
             >
-              Usuń
+              Edytuj
             </button>
-          )}
+            {samePos(confirming, column, index) ? (
+              <button
+                type="button"
+                className="prj-btn prj-btn--danger"
+                aria-label={`Potwierdź usunięcie: ${task.text}`}
+                disabled={busy}
+                onClick={() => confirmRemove(column, index, task)}
+              >
+                Potwierdź
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="prj-btn"
+                aria-label={`Usuń: ${task.text}`}
+                disabled={busy}
+                onClick={() => {
+                  setEditing(null);
+                  setConfirming({ column, index });
+                }}
+              >
+                Usuń
+              </button>
+            )}
+          </div>
         </div>
       </li>
     );
@@ -263,8 +276,8 @@ export function ProjectTasksBoard(props: {
             key={key}
             className={
               drag !== null && overColumn === key
-                ? "prj-board__col prj-board__col--over"
-                : "prj-board__col"
+                ? `prj-board__col prj-board__col--${key} prj-board__col--over`
+                : `prj-board__col prj-board__col--${key}`
             }
             aria-label={`Kolumna ${label}`}
             onDragOver={(e) => {
@@ -284,26 +297,33 @@ export function ProjectTasksBoard(props: {
               void dropOn(key);
             }}
           >
-            <h4 className="prj-task-section__title">
-              {label}
-              {key === "now" ? (
-                <span className="prj-board__count">
-                  {board.now.length}/{NOW_LIMIT}
-                </span>
+            <div className="prj-column__head">
+              <h4 className="prj-column__title">
+                <span className={`prj-dot prj-dot--${key}`} aria-hidden />
+                {label}
+                {key === "now" ? (
+                  <span className="prj-board__count">
+                    {board.now.length}/{NOW_LIMIT}
+                  </span>
+                ) : null}
+              </h4>
+              {key !== "now" ? (
+                <span className="prj-column__count">{countLabel(key, tasks.length)}</span>
               ) : null}
-            </h4>
+            </div>
             {tasks.length === 0 ? <p className="prj-task-empty">Brak</p> : null}
             <ul className="prj-task-list">{tasks.map((t, i) => renderTask(key, t, i))}</ul>
             <form className="prj-board__add" onSubmit={(e) => submitAdd(e, key)}>
               <input
                 aria-label={`Dodaj zadanie: ${label}`}
+                placeholder="Nowe zadanie…"
                 value={drafts[key]}
                 maxLength={300}
                 disabled={addDisabled}
                 onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
               />
               <button type="submit" className="prj-btn" disabled={addDisabled}>
-                Dodaj
+                Dodaj zadanie
               </button>
             </form>
           </section>

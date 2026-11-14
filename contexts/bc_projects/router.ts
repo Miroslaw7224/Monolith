@@ -3,7 +3,8 @@ import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
   DevlogInputSchema,
-  ProjectTypeInputSchema,
+  NewProjectInputSchema,
+  ProjectPatchInputSchema,
   StateInputSchema,
   TaskOpInputSchema,
   toContextPackDto,
@@ -26,6 +27,17 @@ export async function listProjects(): Promise<NextResponse> {
   }
 }
 
+export async function postProject(req: NextRequest): Promise<NextResponse> {
+  try {
+    const parsed = await parseBody(req, NewProjectInputSchema);
+    if (parsed.success === false) return parsed.response;
+    const project = await services.createProject(parsed.data);
+    return NextResponse.json(toDetailDto(project), { status: 201 });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
 export async function getProject(
   _req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
@@ -41,10 +53,16 @@ export async function getProject(
 
 export async function patchProject(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   try {
-    const parsed = await parseBody(req, ProjectTypeInputSchema);
+    const parsed = await parseBody(req, ProjectPatchInputSchema);
     if (parsed.success === false) return parsed.response;
     const { id } = await ctx.params;
-    const project = await services.setProjectType(id, parsed.data.type);
+    const data = parsed.data;
+    const project =
+      "type" in data
+        ? await services.setProjectType(id, data.type)
+        : "links" in data
+          ? await services.setProjectLinks(id, data.links)
+          : await services.setProjectStatus(id, data.status);
     return NextResponse.json(toDetailDto(project));
   } catch (err) {
     return handleServiceError(err);

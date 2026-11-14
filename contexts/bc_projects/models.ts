@@ -12,11 +12,33 @@ export type RegistryEntry = {
   localPath: string;
   deploy?: string;
   github?: string;
+  /** Dokumentacja: link http(s) albo ścieżka w repozytorium (`docs/specs/v2.md`). */
+  docs?: string;
   owner: Owner;
 };
 
+/** Zmiana linków projektu w rejestrze; pusty napis usuwa link, pominięte pole zostaje bez zmian. */
+export type ProjectLinksInput = { github?: string; deploy?: string; docs?: string };
+export const PROJECT_LINK_KEYS = ["github", "deploy", "docs"] as const;
+
 export type ProjectType = "etat" | "wlasny" | "biblioteka";
 export const PROJECT_TYPES: readonly ProjectType[] = ["etat", "wlasny", "biblioteka"];
+
+/** Status, który aplikacja ustawia sama (przycisk „Uśpij” / „Wznów”); inne wartości rejestru zostają ręczne. */
+export type ProjectStatusChange = "active" | "paused";
+export const PROJECT_STATUS_CHANGES: readonly ProjectStatusChange[] = ["active", "paused"];
+
+export type ProjectPriority = "high" | "medium" | "low";
+export const PROJECT_PRIORITIES: readonly ProjectPriority[] = ["high", "medium", "low"];
+
+/** Dane z formularza „Nowy projekt”; `id` i folder wylicza serwis z nazwy. */
+export type NewProjectInput = {
+  name: string;
+  priority: ProjectPriority;
+  type?: ProjectType;
+  localPath: string;
+  github?: string;
+};
 
 /** Wersja pliku (strukturalnie zgodna z `FileVersion` z `lib/nexus/vault-fs`; models nie importuje `lib/nexus`, reguła R5). */
 export type VersionToken = { size: number; hash: string };

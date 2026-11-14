@@ -169,10 +169,18 @@ export function ProjectSaveState(props: {
   }
 
   if (state === null) {
+    // Ta sama karta co przy istniejącym `state.md`; bez pliku pokazuje akapit „Gdzie skończyłem” z `index.md`.
     return (
       <article className="prj-card">
-        <h3 className="prj-section-title">Gdzie skończyłem</h3>
-        <p className="prj-where">{project.whereIStopped ?? "Brak wpisu"}</p>
+        <div className="prj-card__head">
+          <h3 className="prj-section-title">Save State</h3>
+          <span className="prj-statebox__meta">brak state.md</span>
+        </div>
+        <div className="prj-savestate">
+          <StateBox label="Gdzie skończyłem (z index.md)" wide>
+            <p className="prj-where">{project.whereIStopped ?? "Brak wpisu"}</p>
+          </StateBox>
+        </div>
         <div className="prj-form__actions">
           <button type="button" className="prj-btn" onClick={open}>
             Utwórz Save State

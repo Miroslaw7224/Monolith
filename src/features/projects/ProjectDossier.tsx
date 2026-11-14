@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import type { ProjectDetailDto, ProjectType } from "@/contexts/bc_projects/schemas";
-import { isHttpUrl } from "./isHttpUrl";
 import type { ProjectActions } from "./mutation";
-import { ProjectContextPack } from "./ProjectContextPack";
+import { ProjectContextPack, type ContextPackModel } from "./ProjectContextPack";
 import { ProjectDevlog } from "./ProjectDevlog";
+import { ProjectLinks } from "./ProjectLinks";
 import { ProjectSaveState } from "./ProjectSaveState";
+import { isPaused } from "./projectTiles";
 import { ProjectTasksBoard } from "./ProjectTasksBoard";
 
 const TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
@@ -16,10 +17,12 @@ const TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
 export function ProjectDossier(props: {
   project: ProjectDetailDto;
   actions: ProjectActions;
+  pack: ContextPackModel;
 }): React.JSX.Element {
-  const { project, actions } = props;
+  const { project, actions, pack } = props;
   const [typeSaving, setTypeSaving] = useState(false);
   const [typeError, setTypeError] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const changeType = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     setTypeSaving(true);
@@ -30,6 +33,20 @@ export function ProjectDossier(props: {
     if (result.ok === false) setTypeError(result.error);
   };
 
+  const paused = isPaused(project);
+  const canToggleStatus = paused || project.status.toLowerCase() === "active";
+  const toggleStatus = async () => {
+    setStatusSaving(true);
+    setTypeError(null);
+    const result = await actions.setProjectStatus(project.id, paused ? "active" : "paused");
+    setStatusSaving(false);
+    if (result.ok === false) setTypeError(result.error);
+  };
+
+  const taskTotal = (["blockers", "now", "next", "icebox"] as const).reduce(
+    (sum, column) => sum + project.board[column].length,
+    0
+  );
   const activeBugs = project.bugs.filter((b) => b.section !== "Zamknięte");
   const closedBugs = project.bugs.filter((b) => b.section === "Zamknięte");
 
@@ -46,29 +63,23 @@ export function ProjectDossier(props: {
               ) : null}
             </p>
           </div>
-          <ProjectContextPack key={project.id} onLoad={actions.loadContextPack} />
-        </div>
-        <div className="prj-links">
-          {project.github ? (
-            isHttpUrl(project.github) ? (
-              <a href={project.github} target="_blank" rel="noreferrer" className="prj-link">
-                github
-              </a>
-            ) : (
-              <span className="prj-link">github: {project.github}</span>
-            )
+          {canToggleStatus ? (
+            <button
+              type="button"
+              className="prj-btn"
+              disabled={statusSaving}
+              onClick={toggleStatus}
+              title={
+                paused
+                  ? "Przywraca status active w rejestrze"
+                  : "Ustawia status paused w rejestrze: projekt przestaje wymagać decyzji"
+              }
+            >
+              {paused ? "Wznów projekt" : "Uśpij projekt"}
+            </button>
           ) : null}
-          {project.deploy ? (
-            isHttpUrl(project.deploy) ? (
-              <a href={project.deploy} target="_blank" rel="noreferrer" className="prj-link">
-                deploy
-              </a>
-            ) : (
-              <span className="prj-link">deploy: {project.deploy}</span>
-            )
-          ) : null}
-          <code className="prj-local-path">{project.localPath}</code>
         </div>
+        <ProjectLinks key={project.id} project={project} onSave={actions.setLinks} />
         <div className="prj-meta-row">
           <select
             className="prj-type-select"
@@ -108,7 +119,10 @@ export function ProjectDossier(props: {
       />
 
       <article className="prj-card">
-        <h3 className="prj-section-title">Zadania</h3>
+        <div className="prj-card__head">
+          <h3 className="prj-section-title">Tablica zadań · tasks.md</h3>
+          <span className="prj-chip">{taskTotal} w projekcie</span>
+        </div>
         <ProjectTasksBoard
           key={project.id}
           board={project.board}
@@ -147,6 +161,8 @@ export function ProjectDossier(props: {
         entries={project.devlog}
         onAdd={actions.addDevlogEntry}
       />
+
+      <ProjectContextPack pack={pack} />
     </section>
   );
 }
