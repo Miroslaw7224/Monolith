@@ -1,4 +1,5 @@
 import type {
+  ArchivedBlock,
   BugEntry,
   ChecklistItem,
   DevlogEntry,
@@ -7,6 +8,7 @@ import type {
 } from "@/contexts/bc_projects/models";
 import { DomainError } from "@/lib/errors";
 import { formatFrontmatter, parseFrontmatter } from "@/lib/nexus/frontmatter";
+import { archiveDateOf } from "@/lib/schema/archive-date";
 
 const SECTION_RE = /^## (.+?)\s*$/;
 const CHECKBOX_RE = /^\s*[-*] \[( |x|X)\] (.*)$/;
@@ -306,4 +308,112 @@ export function renderNewProjectFiles(
     { name: "tasks.md", text: tasks },
     { name: "bugs.md", text: bugs },
   ];
+}
+
+// ── changelog.md (archiwizacja zadań) ───────────────────────────────────────────
+
+const CHANGELOG_MONTH_RE = /^\d{4}-\d{2}$/;
+const NO_DATE_HEADING = "Bez daty";
+const BLOCK_START_RE = /^- \[( |x|X)\] (.*)$/;
+const BLOCK_CONTINUATION_RE = /^[ \t]+\S/;
+
+type ChangelogSection = { key: string; heading: number; end: number };
+type ChangelogBlock = { start: number; end: number; date: string | null };
+
+/** Sekcje `##` changelogu; nagłówek inny niż `RRRR-MM` / `Bez daty` albo powtórzony to `DomainError` 422. */
+function changelogSections(lines: string[]): ChangelogSection[] {
+  const heads: number[] = [];
+  lines.forEach((line, i) => {
+    if (SECTION_RE.test(line)) heads.push(i);
+  });
+  const seen = new Set<string>();
+  return heads.map((heading, i) => {
+    const key = SECTION_RE.exec(lines[heading])![1].trim();
+    if (key !== NO_DATE_HEADING && !CHANGELOG_MONTH_RE.test(key)) {
+      throw new DomainError(`changelog.md ma nieznany nagłówek „${key}”`, 422);
+    }
+    if (seen.has(key)) throw new DomainError(`changelog.md ma powtórzony nagłówek „${key}”`, 422);
+    seen.add(key);
+    return { key, heading, end: i + 1 < heads.length ? heads[i + 1] : lines.length };
+  });
+}
+
+function changelogBlocks(lines: string[], section: ChangelogSection): ChangelogBlock[] {
+  const blocks: ChangelogBlock[] = [];
+  for (let i = section.heading + 1; i < section.end; i += 1) {
+    const match = BLOCK_START_RE.exec(lines[i]);
+    if (!match) continue;
+    let end = i + 1;
+    while (end < section.end && BLOCK_CONTINUATION_RE.test(lines[end])) end += 1;
+    blocks.push({ start: i, end, date: archiveDateOf({ text: match[2] }) });
+    i = end - 1;
+  }
+  return blocks;
+}
+
+function addChangelogSection(
+  lines: string[],
+  sections: ChangelogSection[],
+  key: string,
+  block: ArchivedBlock
+): void {
+  const chunk = [`## ${key}`, "", ...block.lines, ""];
+  // Najnowszy miesiąc na górze: przed pierwszym starszym; w ostateczności nad `Bez daty`; `Bez daty` na dole.
+  const before =
+    key === NO_DATE_HEADING
+      ? undefined
+      : (sections.find((s) => s.key !== NO_DATE_HEADING && s.key < key) ??
+        sections.find((s) => s.key === NO_DATE_HEADING));
+  if (before !== undefined) {
+    lines.splice(before.heading, 0, ...chunk);
+    return;
+  }
+  while (lines.length > 0 && lines[lines.length - 1].trim() === "") lines.pop();
+  lines.push("", ...chunk);
+}
+
+function insertChangelogBlock(lines: string[], block: ArchivedBlock): void {
+  const sections = changelogSections(lines);
+  const key = block.date === null ? NO_DATE_HEADING : block.date.slice(0, 7);
+  const section = sections.find((s) => s.key === key);
+  if (section === undefined) {
+    addChangelogSection(lines, sections, key, block);
+    return;
+  }
+  const blocks = changelogBlocks(lines, section);
+  if (blocks.length > 0) {
+    let at: number;
+    if (block.date === null) {
+      at = blocks[blocks.length - 1].end;
+    } else {
+      const day = block.date;
+      const newer = blocks.filter((b) => b.date !== null && b.date >= day);
+      at = newer.length > 0 ? newer[newer.length - 1].end : blocks[0].start;
+    }
+    lines.splice(at, 0, ...block.lines);
+    return;
+  }
+  let lastNonBlank = -1;
+  for (let i = section.heading + 1; i < section.end; i += 1) {
+    if (lines[i].trim() !== "") lastNonBlank = i;
+  }
+  if (lastNonBlank === -1) lines.splice(section.heading + 1, 0, "", ...block.lines);
+  else lines.splice(lastNonBlank + 1, 0, "", ...block.lines);
+}
+
+/**
+ * Dopisuje zarchiwizowane bloki do `changelog.md` (`null` = nowy plik z nagłówkiem `# Changelog — <nazwa>`).
+ * Bez deduplikacji: każdy blok trafia do pliku. Niepoprawny plik (obcy albo powtórzony nagłówek `##`)
+ * to `DomainError` 422 zanim cokolwiek zostanie zmienione; reszta pliku zostaje bajt w bajt.
+ */
+export function mergeChangelog(
+  text: string | null,
+  blocks: ArchivedBlock[],
+  projectName: string
+): string {
+  const lines =
+    text === null || text.trim() === "" ? [`# Changelog — ${projectName}`] : text.split("\n");
+  changelogSections(lines);
+  for (const block of blocks) insertChangelogBlock(lines, block);
+  return lines.join("\n");
 }
