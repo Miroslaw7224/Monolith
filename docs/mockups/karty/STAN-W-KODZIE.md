@@ -78,15 +78,16 @@ dziennik decyzji (`devlog.md`, tylko dopisywanie na górze), `type` projektu (zm
 
 ## 5. Notatki (`src/features/notes/`, `src/components/note-editor/NoteEditor.tsx`)
 
-| Funkcja                                      | Stan      | Gdzie / uwagi                                      |
-| -------------------------------------------- | --------- | -------------------------------------------------- |
-| Edytor notatki                               | JEST      | NoteEditor.tsx                                     |
-| Lista notatek                                | CZĘŚCIOWO | NotesPanel.tsx; płaska, bez folderów               |
-| Podgląd                                      | CZĘŚCIOWO | NotesPanel.tsx; HTML (prose), nie Markdown         |
-| Tagi notatek                                 | BRAK      | rekord notatki nie ma tagów (mają je tylko zasoby) |
-| [[wiki]], backlinks, frontmatter, zakreślacz | BRAK      |                                                    |
-| Wyszukiwarka notatek                         | BRAK      | pole w AppHeader.tsx bez logiki                    |
-| Wyszukiwarka decyzji (devlogi)               | BRAK      |                                                    |
+| Funkcja                         | Stan      | Gdzie / uwagi                                                                                          |
+| ------------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| Edytor notatki                  | JEST      | NoteEditor.tsx; frontmatter `---` jest poza edytorem (noteMeta.ts: split/join)                         |
+| Lista notatek                   | CZĘŚCIOWO | NotesPanel.tsx; jedna grupa `Notes/`, filtr po tytule i treści; bez prawdziwych folderów               |
+| Podgląd                         | JEST      | NotesPanel.tsx; Markdown, blok frontmatter, zakładki Podgląd / Edycja / Split, Zapisz (Ctrl+S)         |
+| Kafle statystyk                 | CZĘŚCIOWO | noteMeta.ts `computeNoteTiles`: notatki, dodane dziś, Inbox (useInboxOpen); „Decyzje” = atrapa „—”     |
+| Tagi notatek                    | CZĘŚCIOWO | tylko z frontmattera `tagi:`/`tags:` w treści (chipy filtrują listę); rekord notatki nie ma pola tagów |
+| Metadane pliku (prawa kolumna)  | CZĘŚCIOWO | utworzono, rozmiar, słowa, tagi; bez „Zmieniono” (DTO nie niesie `updated_at`)                         |
+| [[wiki]], backlinks, zakreślacz | BRAK      | karta „Linki zwrotne” pokazuje stan „wkrótce”                                                          |
+| Wyszukiwarka decyzji (devlogi)  | BRAK      | karta „Baza decyzji” (pole nieaktywne) czeka na agregację devlogów wszystkich projektów                |
 
 ## 6. Płótno
 
