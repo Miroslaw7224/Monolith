@@ -80,7 +80,7 @@
   height: max(420px, calc(100dvh - var(--map-above)));
   min-height: 420px;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--r-lg);
   overflow: hidden;
 }
