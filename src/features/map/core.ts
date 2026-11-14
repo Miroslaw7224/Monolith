@@ -82,3 +82,38 @@ export function axonPulse(now: number, id: string): number {
   const f = (now / AXON_PERIOD + idPhase(id) / (2 * Math.PI)) % 1;
   return f < 0 ? f + 1 : f;
 }
+
+/**
+ * Siatka wewnętrznej kuli o promieniu `radius`: `parallels` równoleżników (równo między biegunami,
+ * bez samych biegunów) i `meridians` pełnych południków (okręgów przez bieguny), po `segments` odcinków.
+ * Zwraca łamane (równoleżniki najpierw).
+ */
+export function innerSphere(
+  radius: number,
+  parallels: number,
+  meridians: number,
+  segments: number
+): Vec3[][] {
+  const out: Vec3[][] = [];
+  const ring = (f: (a: number) => Vec3) =>
+    Array.from({ length: segments + 1 }, (_, i) => f((i / segments) * 2 * Math.PI));
+  for (let k = 1; k <= parallels; k += 1) {
+    const lat = -Math.PI / 2 + (k * Math.PI) / (parallels + 1);
+    const y = Math.sin(lat) * radius;
+    const rr = Math.cos(lat) * radius;
+    out.push(ring((a) => ({ x: rr * Math.cos(a), y, z: rr * Math.sin(a) })));
+  }
+  for (let k = 0; k < meridians; k += 1) {
+    const lon = (k * Math.PI) / meridians;
+    const cx = Math.cos(lon);
+    const cz = Math.sin(lon);
+    out.push(
+      ring((a) => ({
+        x: radius * Math.cos(a) * cx,
+        y: radius * Math.sin(a),
+        z: radius * Math.cos(a) * cz,
+      }))
+    );
+  }
+  return out;
+}

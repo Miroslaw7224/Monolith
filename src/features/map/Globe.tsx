@@ -29,7 +29,7 @@ import {
   type Vec3,
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
-import { axonPulse, coreAlphas, dustPosition, makeDust, withAlpha } from "./core";
+import { axonPulse, coreAlphas, dustPosition, innerSphere, makeDust, withAlpha } from "./core";
 import { approach, breathScale, idPhase, slowPulse } from "./motion";
 import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
@@ -45,6 +45,8 @@ type SparkEdge = { edge: MapEdgeDto; color: string };
 
 /** Liczba ziaren pyłu dryfującego we wnętrzu kuli. */
 const DUST_COUNT = 60;
+/** Wewnętrzna siatka: promień (w promieniach kuli); 3 równoleżniki, 4 południki, 48 odcinków. */
+const INNER_RADIUS = 0.4;
 /** Węzły wyższe niż to dostają „łodygę” do powierzchni kuli. */
 const STEM_MIN_HEIGHT = 0.025;
 const edgePhases = new WeakMap<MapEdgeDto, number>();
@@ -230,6 +232,7 @@ export function Globe({
     let hoverKey = "";
 
     const dust = makeDust(DUST_COUNT);
+    const inner = innerSphere(INNER_RADIUS, 3, 4, 48);
 
     // Miękkie podświetlenie: każde zaznaczenie/najechanie to warstwa, która płynnie rośnie lub gaśnie.
     const layers: HlLayer[] = [];
@@ -319,6 +322,21 @@ export function Globe({
       ctx.globalAlpha = 0.75 + 0.25 * pulse;
       ctx.strokeStyle = pal.line;
       ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // 1a. Wewnętrzna siatka (kula r = 0,4), obraca się razem z globusem.
+      ctx.beginPath();
+      for (const line of inner) {
+        line.forEach((p, i) => {
+          const q = pj(p);
+          if (i === 0) ctx.moveTo(q.x, q.y);
+          else ctx.lineTo(q.x, q.y);
+        });
+      }
+      ctx.globalAlpha = (0.06 + 0.05 * pulse) * (1 - 0.5 * selectAmt);
+      ctx.strokeStyle = pal.accent;
+      ctx.lineWidth = 0.8;
       ctx.stroke();
       ctx.globalAlpha = 1;
 

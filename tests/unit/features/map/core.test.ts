@@ -6,6 +6,7 @@ import {
   axonPulse,
   coreAlphas,
   dustPosition,
+  innerSphere,
   makeDust,
   withAlpha,
 } from "@/src/features/map/core";
@@ -75,5 +76,37 @@ describe("axonPulse", () => {
   });
   it("różne skupiska mają różne fazy", () => {
     expect(axonPulse(500, "a")).not.toBeCloseTo(axonPulse(500, "b"), 3);
+  });
+});
+
+describe("innerSphere", () => {
+  const lines = innerSphere(0.4, 3, 4, 24);
+  it("ma 3 równoleżniki i 4 południki, każdy po segments + 1 punktów", () => {
+    expect(lines).toHaveLength(7);
+    for (const l of lines) expect(l).toHaveLength(25);
+  });
+  it("wszystkie punkty leżą na kuli o zadanym promieniu", () => {
+    for (const l of lines) {
+      for (const p of l) expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(0.4);
+    }
+  });
+  it("linie są zamkniętymi okręgami", () => {
+    for (const l of lines) {
+      const a = l[0];
+      const b = l[l.length - 1];
+      expect(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)).toBeLessThan(1e-9);
+    }
+  });
+  it("równoleżniki są poziome, a południki obejmują oba bieguny", () => {
+    for (const l of lines.slice(0, 3)) {
+      expect(new Set(l.map((p) => p.y.toFixed(6))).size).toBe(1);
+    }
+    for (const l of lines.slice(3)) {
+      expect(Math.max(...l.map((p) => p.y))).toBeCloseTo(0.4, 2);
+      expect(Math.min(...l.map((p) => p.y))).toBeCloseTo(-0.4, 2);
+    }
+  });
+  it("brak linii dla zerowych liczności", () => {
+    expect(innerSphere(0.4, 0, 0, 24)).toEqual([]);
   });
 });
