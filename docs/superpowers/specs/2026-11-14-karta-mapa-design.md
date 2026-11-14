@@ -8,7 +8,7 @@ Karta Mapa pokazuje cały ekosystem NEXUS jako **obracany globus**: węzły leż
 
 W zakresie etapu 1:
 
-1. Globus (canvas 2D, własna projekcja 3D): 7 projektów z rejestru oraz 3 kontynenty: Wiedza, AI-2030, Skille.
+1. Globus (canvas 2D, własna projekcja 3D): 7 projektów z rejestru oraz 3 kontynenty: Wiedza, AI-2030, Skille (Skille jako placeholder, D13).
 2. Krawędzie: projekt–projekt (współdzielone komponenty) i projekt–Wiedza.
 3. Kafle: Neurony NEXUS, Zależności, Aktywne blokery („—”), Agenci na żywo.
 4. Panel agentów Herdr (`hc ls`, odświeżanie ręczne) z mapowaniem agent → projekt.
@@ -23,8 +23,8 @@ W zakresie etapu 1:
 | --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | Zakres etapu 1          | Herdr + kafle + graf z linków `[[…]]` i frontmatteru (D5), radar blokad jako stan pusty bez wymyślonych danych. Wybór użytkownika, 2026-11-14.                                                                                                                                                                                                                                                                                                                                  |
 | D2  | Kształt grafu           | Globus (węzły na kuli, obrót), nie płaski układ sił. Wybór użytkownika, 2026-11-14.                                                                                                                                                                                                                                                                                                                                                                                             |
-| D3  | Technika                | Canvas 2D z własną projekcją 3D, bez three.js i nowych zależności. Dla 10 węzłów i kilkunastu krawędzi WebGL jest przerostem. Odrzucone: three.js (~600 KB, trudniejsze testy), wart rozważenia dopiero przy setkach węzłów.                                                                                                                                                                                                                                                    |
-| D4  | Węzły                   | 7 projektów z rejestru (`_registry.yaml`; zakomentowany `career-guide` pomijany) i 3 kontynenty: **Wiedza** (`Vault/Knowledge/`, rekurencyjnie), **AI-2030** (`Vault/AI-2030/`), **Skille** (`NEXUS/Superpower/`, poza Vault). Rozmiar kontynentu = liczba plików `.md` (`size` mają tylko kontynenty; projekty mają stały promień). `Work/` jest zawsze pomijany. Wybór użytkownika, 2026-11-14.                                                                               |
+| D3  | Technika                | Canvas 2D z własną projekcją 3D, bez three.js i nowych zależności. Dla 10 węzłów i kilkunastu krawędzi WebGL jest przerostem. Odrzucone: three.js (~600 KB, trudniejsze testy), wart rozważenia dopiero przy setkach węzłów. Efekt dla użytkownika: prawdziwy 3D (rzut perspektywiczny, głębia, obrót myszą) z powolnym auto-obrotem; potwierdzone 2026-11-14.                                                                                                                  |
+| D4  | Węzły                   | 7 projektów z rejestru (`_registry.yaml`; zakomentowany `career-guide` pomijany) i 3 kontynenty: **Wiedza** (`Vault/Knowledge/`, rekurencyjnie), **AI-2030** (`Vault/AI-2030/`), **Skille** (placeholder bez rozmiaru, D13). Rozmiar Wiedzy i AI-2030 = liczba plików `.md` (`size` mają tylko kontynenty z danymi; Skille ma stały, mały promień i podpis „wkrótce”; projekty mają stały promień). `Work/` jest zawsze pomijany. Wybór użytkownika, 2026-11-14.                |
 | D5  | Krawędzie               | Typ „współdzielenie”. (a) projekt–projekt: dwa projekty występują w tej samej sekcji `**Używają:**` w `Vault/tech-stack-wspolny.md`; waga = liczba wspólnych sekcji. (b) projekt–Wiedza: pole `projects:` we frontmatterze notatki z `Knowledge/`; waga = liczba takich notatek. Skille i AI-2030 nie mają krawędzi: Skille wg D7, a notatki AI-2030 nie mają pola `projects:` (sprawdzone 2026-11-14; 97 z notatek Wiedzy ma je niepuste). Pary nieskierowane, bez duplikatów. |
 | D6  | Dlaczego nie `index.md` | `index.md` projektów zawiera tylko link nagłówkowy `[[<id>/<id>]]`; nie linkuje do płatów wiedzy (sprawdzone 2026-11-14). Źródłem krawędzi do Wiedzy jest więc frontmatter notatek.                                                                                                                                                                                                                                                                                             |
 | D7  | Skille bez krawędzi     | `NEXUS/Superpower/` to zewnętrzne repo metodyki (agenci, komendy, skille) i nie linkuje do projektów. Kontynent jest samodzielny; legenda mówi to wprost, żeby nie sugerować powiązań, których dane nie niosą.                                                                                                                                                                                                                                                                  |
@@ -32,13 +32,14 @@ W zakresie etapu 1:
 | D9  | Prywatność `owner`      | Dla projektów `owner: work` panel pokazuje tylko etykietę agenta i stan (bez `where`, `cwd` i nazwy zadania), zgodnie ze specem asystenta §8; test `isWorkProject`. Agent **bez dopasowanego projektu** też pokazuje tylko etykietę i stan (nie wiadomo, czy to repo z etatu). `cwd` nigdy nie trafia do DTO; `where` tylko dla agenta dopasowanego do projektu `personal`. Makieta pokazuje opis zadania agenta: `hc ls` go nie daje, więc go nie ma.                          |
 | D10 | Dostępność Herdr        | Brak `hc`, błąd albo timeout (2 s) nie psuje karty: panel pokazuje „Herdr niedostępny”, kafel „Agenci na żywo” ma „—”, reszta Mapy działa.                                                                                                                                                                                                                                                                                                                                      |
 | D11 | Dwa endpointy           | `GET /api/map/graph` (statyczny, ładowany raz) i `GET /api/map/agents` (przycisk „Odśwież stan”). Odrzucone: jeden `GET /api/map`, bo odświeżanie agentów nie powinno przeliczać grafu.                                                                                                                                                                                                                                                                                         |
+| D13 | Skille (placeholder)    | Kontynent Skille jest na globusie, ale bez liczenia plików i bez odczytu poza Vault: nie ma `lib/skills`, `NEXUS_SKILLS_PATH` ani wyjątku od zasady „aplikacja widzi tylko Vault”. Podpis „wkrótce”. Prawdziwy rozmiar i krawędzie Skille → projekty to osobna decyzja (§7). Wybór użytkownika, 2026-11-14.                                                                                                                                                                     |
 | D12 | Blokery                 | Makieta ma radar blokad z `Projects/*/bugs.md`, ale `bugs.md` nie ma pola blokera. Kafel „Aktywne blokery” pokazuje „—”, a radar stan „wkrótce”. Przycisk „Analizuj blokery” nie powstaje.                                                                                                                                                                                                                                                                                      |
 
 ## 3. Zmiany w kodzie (ADR-021)
 
 **Nowy kontekst `contexts/bc_map/`** (pięć plików):
 
-- `repositories.ts`: czyta dane grafu z vaulta (`tech-stack-wspolny.md`, frontmatter notatek `Knowledge/`, liczby plików) i woła `lib/herdr` oraz `lib/skills`. Jedyny dostęp do I/O kontekstu.
+- `repositories.ts`: czyta dane grafu z vaulta (`tech-stack-wspolny.md`, frontmatter notatek `Knowledge/`, liczby plików) i woła `lib/herdr`. Jedyny dostęp do I/O kontekstu.
 - `models.ts`: `MapNode = { id, kind: "project" | "continent", label, size?, owner? }` (`size` tylko dla kontynentów), `MapEdge = { from, to, weight, type: "shared" }`, `Agent = { address, label, state, status?, projectId?, where? }`. Surowy rekord terminala (`HerdrTerminal` z `cwd`, `where`, `agent`, `state`, `status`) jest typem `lib/herdr`; `repositories` zwraca go do `services`, które buduje `Agent` (po dopasowaniu i filtrze D9). `cwd` nie opuszcza `services`.
 - `services.ts`: składa graf. Listę projektów (id, nazwa, `localPath`, `owner`) bierze z `listProjects()` w `bc_projects/services` (R2: tylko `services` innego kontekstu). Liczy krawędzie, kafle i dopasowanie agent → projekt (`resolveAgentProject(terminals, projects, home)`, funkcja czysta); filtruje dane wg D9. Remisy wag rozstrzyga alfabetycznie po `id`.
 - `schemas.ts` (bezpieczny dla klienta): zod i typy DTO `MapGraphDto = { nodes, edges, tiles, warnings }` oraz `MapAgentsDto = { agents, available }`; mapery model → DTO.
@@ -46,8 +47,6 @@ W zakresie etapu 1:
 - Trasy `app/api/map/graph/route.ts` i `app/api/map/agents/route.ts`: tylko re-eksport.
 
 **Nowa warstwa `lib/herdr/`:** `listTerminals()` wywołuje `hc ls` przez `execFileSync` (bez powłoki, stałe argumenty) z `timeout` 2 s, `maxBuffer` i `stdio: ["ignore", "pipe", "ignore"]` (wzór: `lib/git/project-git.ts`) i parsuje JSON (`terminals[].address|agent|cwd|state|status|where`). Importuje ją tylko `bc_map/repositories` (wzór: `lib/git` w `bc_projects`). Test architektury nie zakazuje `child_process` w `lib/**` (poza `lib/nexus/vault-path.ts` i `vault-fs.ts`) i nie obejmuje `lib/herdr`, więc go nie zmienia.
-
-**Nowa warstwa `lib/skills/`:** `countSkillFiles(vaultRoot)` rekurencyjnie liczy `.md` w `<dirname(vaultRoot)>/Superpower` (bez `node_modules`, `.git`, **bez symlinków**). `vaultRoot` podaje `bc_map/repositories` (z `getVaultRoot()`); sam `lib/skills` nie importuje `lib/nexus` (reguła R5). Katalog można nadpisać zmienną `NEXUS_SKILLS_PATH`, czytaną w `lib/skills` (repozytoria kontekstów nie czytają `process.env`); wartość musi być ścieżką bezwzględną istniejącego katalogu, inaczej jest ignorowana z wpisem w `warnings`. Tylko odczyt i tylko liczenie; brak katalogu daje 0 i wpis w `warnings`. Ograniczenie: `lib/nexus` celowo nie czyta poza Vault (`resolveInsideVault` odrzuca `..`), dlatego Skille mają własny wąski moduł.
 
 **Odczyt vaulta:** `listVaultFiles` (`lib/nexus/vault-fs.ts`) i `markdown-dir.listEntries` są jednopoziomowe, a `markdown-dir` wymaga `id` we frontmatterze; `Knowledge/` ma podfoldery (`prompty`, `testowanie`, `ai-security`). Repozytoria kontekstów nie mogą używać `node:fs` (test warstwy plikowej). Dlatego: (1) do `lib/nexus/vault-fs.ts` dochodzi `listVaultFilesRecursive(dir)` (tylko `.md`, bez symlinków, **nigdy nie wchodzi do `Work/`**, więc nie rzuca `WorkAreaBlockedError`), z testem w `tests/unit/lib/nexus/`; (2) `bc_map/repositories` czyta pliki przez `readVaultFile` i `parseFrontmatter`, więc trafia na listę `VAULT_FS_IMPORTERS` w `tests/unit/architecture.static.test.ts`. **Zmiana tej listy idzie osobnym commitem przed kodem** (CLAUDE.md).
 
@@ -60,12 +59,12 @@ W zakresie etapu 1:
 
 **Kafle:**
 
-| Kafel           | Wartość                                                                                                                       |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Neurony NEXUS   | suma kontynentów (Wiedza + AI-2030 + Skille) i notatek `Vault/Projects/` (rekurencyjnie, bez `Work/`), z rozbiciem w podpisie |
-| Zależności      | liczba krawędzi                                                                                                               |
-| Aktywne blokery | „—” (D12)                                                                                                                     |
-| Agenci na żywo  | liczba terminali z agentem w `hc ls`; „—” gdy Herdr niedostępny                                                               |
+| Kafel           | Wartość                                                                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Neurony NEXUS   | suma plików kontynentów z danymi (Wiedza + AI-2030) i notatek `Vault/Projects/` (rekurencyjnie, bez `Work/`), z rozbiciem w podpisie; Skille nie wchodzi do sumy (D13) |
+| Zależności      | liczba krawędzi                                                                                                                                                        |
+| Aktywne blokery | „—” (D12)                                                                                                                                                              |
+| Agenci na żywo  | liczba terminali z agentem w `hc ls`; „—” gdy Herdr niedostępny                                                                                                        |
 
 ## 4. UI (`src/features/map/`)
 
@@ -87,7 +86,6 @@ UI importuje z kontekstu tylko `schemas`. Karta zastępuje zaślepkę: `cards.ts
 - Parser `tech-stack-wspolny.md` na fragmencie z dopiskiem „(V2)” i sekcją bez `**Używają:**`: oczekiwane pary i wagi. Parser `projects:` z frontmattera (puste, nieznane id).
 - `resolveAgentProject`: najdłuższy prefiks `cwd`, `~` rozwinięte, brak dopasowania, projekt `work` ukrywa zadanie i ścieżkę.
 - `lib/herdr`: parser JSON `hc ls` na zrzucie z polem `agent` pustym; timeout i brak `hc` kończą się `available: false`, nie wyjątkiem.
-- `lib/skills`: licznik pomija `node_modules`, `.git` i symlinki; brak katalogu = 0; `NEXUS_SKILLS_PATH` względna lub nieistniejąca jest ignorowana.
 - `listVaultFilesRecursive`: schodzi do podfolderów, zwraca tylko `.md`, pomija symlinki i `Work/` (bez wyjątku).
 - `resolveAgentProject` / DTO: `/home/u/proj-2` nie pasuje do `/home/u/proj`; agent bez projektu i agent `work` nie mają `where`; w DTO nigdy nie ma `cwd`.
 - `arcPoints` dla punktów antypodalnych nie zwraca `NaN`.
@@ -99,4 +97,11 @@ UI importuje z kontekstu tylko `schemas`. Karta zastępuje zaślepkę: `cards.ts
 - Wygląd globusa (CSS, płynność animacji) potwierdzą dopiero oczy w przeglądarce; testy sprawdzają matematykę, nie wrażenie.
 - Dane są skromne: 7 projektów i kilkanaście krawędzi. Globus ma być czytelny, nie imponujący; więcej węzłów (notatki) to osobny etap z osobną decyzją o technice (D3).
 - `hc ls` nie zawsze wypełnia `agent`; stąd etykieta „terminal”. Wszystkie trzy terminale pomocników mają dziś `cwd` w Monolith, więc mapują się na jeden projekt.
-- Odczyt poza Vault (Skille) jest świadomym wyjątkiem od zasady „aplikacja widzi tylko Vault”; ograniczony do liczenia plików w jednym katalogu, bez czytania treści.
+
+## 7. Odłożone do późniejszej weryfikacji
+
+Pozycje świadomie poza etapem 1; wracamy do nich po etapie 1, żeby nie zgubić wątku.
+
+1. **Mapowanie „skill → projekt” i krawędzie Skille (z D7).** Dziś AI-2030 i Skille nie mają krawędzi, bo dane nie niosą powiązań. Do rozstrzygnięcia: skąd brać mapowanie (frontmatter, osobny plik) i czy w ogóle jest potrzebne.
+2. **Prawdziwy rozmiar kontynentu Skille (z D13).** Wymaga odczytu poza Vault (`NEXUS/Superpower/`) albo przeniesienia/odbicia tych danych do Vaulta. To wyjątek od zasady „aplikacja widzi tylko Vault”, więc osobna decyzja z oceną prywatności.
+3. **Głębsza analiza prywatności agentów (D9).** Do wyjaśnienia i rozstrzygnięcia: co panel Herdr może pokazać o agencie (etykieta, stan, `where`, projekt) w zależności od tego, czy projekt jest `personal`, `work` czy nie da się go dopasować. Na etap 1 obowiązuje najostrożniejszy wariant z D9.
