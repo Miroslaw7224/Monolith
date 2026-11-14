@@ -33,10 +33,10 @@ export function approach(current: number, target: number, dt: number, rate: numb
 }
 
 /** „Oddech” całej kuli: względna zmiana jej rozmiaru (okres ok. 5,2 s). */
-export const GLOBE_BREATH_AMP = 0.01;
+export const GLOBE_BREATH_AMP = 0.02;
 const GLOBE_BREATH_OMEGA = 0.0012;
 /** Największe odchylenie brzegu kuli od okręgu (ułamek promienia). */
-export const RIM_MAX_WOBBLE = 0.016;
+export const RIM_MAX_WOBBLE = 0.032;
 
 /** Mnożnik rozmiaru kuli w chwili `now` (ms): 1 ± GLOBE_BREATH_AMP. */
 export function globeBreath(now: number): number {
@@ -47,8 +47,8 @@ export function globeBreath(now: number): number {
 export function rimFactor(theta: number, now: number): number {
   return (
     1 +
-    0.007 * Math.sin(2 * theta + now * 0.0009) +
-    0.005 * Math.sin(3 * theta - now * 0.0013) +
-    0.004 * Math.sin(5 * theta + now * 0.0017)
+    0.014 * Math.sin(2 * theta + now * 0.0009) +
+    0.01 * Math.sin(3 * theta - now * 0.0013) +
+    0.008 * Math.sin(5 * theta + now * 0.0017)
   );
 }
