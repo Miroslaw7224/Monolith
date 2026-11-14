@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import "./map.css";
+import { EDGE_CLASSES } from "./edgeColors";
 import { Globe } from "./Globe";
 import { MapAgentsPanel } from "./MapAgentsPanel";
 import { MapBlockersPanel } from "./MapBlockersPanel";
@@ -123,13 +124,18 @@ export function MapView({
               </div>
             ) : null}
           </div>
-          <ul className="map-legend" aria-label="Legenda">
-            <li className="map-legend-item">
-              <span className="map-legend-line map-legend-line--shared" />
-              linia: link między notatkami (po najechaniu lub kliknięciu jaśniejsza)
-            </li>
-            <li className="map-legend-item">Skille: wkrótce, bez powiązań</li>
+          <ul className="map-legend" aria-label="Legenda kolorów połączeń">
+            {EDGE_CLASSES.map((cls) => (
+              <li key={cls.id} className="map-legend-item">
+                <span className="map-legend-line" style={{ borderTopColor: cls.color }} />
+                {cls.label}
+              </li>
+            ))}
           </ul>
+          <p className="map-legend-note">
+            Najechanie lub klik na punkt albo skupisko podświetla jego połączenia. Skille: wkrótce,
+            bez powiązań.
+          </p>
           <MapNodeList
             clusters={data.clusters}
             selectedId={selection?.kind === "cluster" ? selection.id : null}

@@ -7,6 +7,7 @@ import type {
   MapEdgeDto,
   MapNodeDto,
 } from "@/contexts/bc_map/schemas";
+import { EDGE_CLASSES, buildEdgeMaps, groupEdges } from "./edgeColors";
 import { GlobeControls } from "./GlobeControls";
 import {
   POINT_LABEL_ZOOM,
@@ -148,7 +149,9 @@ export function Globe({
   const drawRef = useRef<() => void>(() => {});
   const pausedRef = useRef(paused);
   const onSelectRef = useRef(onSelect);
-  const dataRef = useRef({ geo, highlight, clusters, nodes, edges });
+  const edgeMaps = useMemo(() => buildEdgeMaps(nodes, clusters), [nodes, clusters]);
+  const baseByClass = useMemo(() => groupEdges(edges, edgeMaps), [edges, edgeMaps]);
+  const dataRef = useRef({ geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass });
 
   /** Zmiana zoomu (przyciski, kółko, klawisze, szczypanie); przy „ogranicz ruch” bez wygładzania. */
   const applyZoom = useCallback((next: number, immediate = false) => {
@@ -162,11 +165,11 @@ export function Globe({
   }, []);
 
   useEffect(() => {
-    dataRef.current = { geo, highlight, clusters, nodes, edges };
+    dataRef.current = { geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass };
     pausedRef.current = paused;
     onSelectRef.current = onSelect;
     drawRef.current();
-  }, [geo, highlight, clusters, nodes, edges, paused, onSelect]);
+  }, [geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass, paused, onSelect]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -187,7 +190,8 @@ export function Globe({
         highlight: sel,
         clusters: cls,
         nodes: nds,
-        edges: allEdges,
+        edgeMaps: maps,
+        baseByClass: byClass,
       } = dataRef.current;
       const hl = hoverHl ?? sel;
       const dpr = window.devicePixelRatio || 1;
@@ -271,8 +275,18 @@ export function Globe({
           ctx.stroke();
         }
       };
-      strokeArcs(allEdges, pal.accent, 1, selecting ? 0.1 : 0.3, selecting ? 0.03 : 0.08);
-      if (selecting) strokeArcs(hl.edges, pal.text, 1.5, 0.85, 0.25);
+      // Kolor wg klasy połączenia; podświetlone mają ten sam kolor, ale pełniejszy i grubszy.
+      for (const cls of EDGE_CLASSES) {
+        const list = byClass.get(cls.id);
+        if (list) strokeArcs(list, cls.color, 1, selecting ? 0.1 : 0.38, selecting ? 0.03 : 0.1);
+      }
+      if (selecting) {
+        const lit = groupEdges(hl.edges, maps);
+        for (const cls of EDGE_CLASSES) {
+          const list = lit.get(cls.id);
+          if (list) strokeArcs(list, cls.color, 1.8, 0.95, 0.3);
+        }
+      }
       ctx.globalAlpha = 1;
 
       // 5. Punkty-notatki (od tyłu do przodu).
