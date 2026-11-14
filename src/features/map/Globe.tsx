@@ -11,7 +11,6 @@ import { EDGE_CLASSES, buildEdgeMaps, groupEdges, type EdgeMaps } from "./edgeCo
 import { GlobeControls } from "./GlobeControls";
 import {
   POINT_LABEL_ZOOM,
-  arcPoints,
   capOutline,
   clampZoom,
   fitRadius,
@@ -30,7 +29,8 @@ import {
   type Vec3,
 } from "./globeMath";
 import { selectionHighlight, type MapSelection, type SelectionHighlight } from "./selection";
-import { approach, breathScale, slowPulse } from "./motion";
+import { approach, breathScale, idPhase, slowPulse } from "./motion";
+import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
 
 /** Liczba iskier płynących po łukach: w spoczynku i po zaznaczeniu (wtedy tylko po podświetlonych). */
@@ -41,6 +41,19 @@ const SPARK_TAIL = 0.14;
 const SPARK_TAIL_SEGMENTS = 4;
 
 type SparkEdge = { edge: MapEdgeDto; color: string };
+
+/** Węzły wyższe niż to dostają „łodygę” do powierzchni kuli. */
+const STEM_MIN_HEIGHT = 0.025;
+const edgePhases = new WeakMap<MapEdgeDto, number>();
+/** Stała faza falowania krawędzi (z jej końców), liczona raz. */
+function edgePhase(e: MapEdgeDto): number {
+  let p = edgePhases.get(e);
+  if (p === undefined) {
+    p = idPhase(`${e.from}>${e.to}`);
+    edgePhases.set(e, p);
+  }
+  return p;
+}
 
 /** Tempo (1/s) miękkiego włączania i wygaszania podświetlenia; ok. 0,25 s na przejście. */
 const HL_RATE = 10;
@@ -167,7 +180,20 @@ export function Globe({
   const onSelectRef = useRef(onSelect);
   const edgeMaps = useMemo(() => buildEdgeMaps(nodes, clusters), [nodes, clusters]);
   const baseByClass = useMemo(() => groupEdges(edges, edgeMaps), [edges, edgeMaps]);
-  const dataRef = useRef({ geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass });
+  const heights = useMemo(() => {
+    const max = nodes.reduce((m, n) => Math.max(m, n.links), 0);
+    return new Map(nodes.map((n) => [n.id, nodeHeight(n.links, max)]));
+  }, [nodes]);
+  const dataRef = useRef({
+    geo,
+    highlight,
+    clusters,
+    nodes,
+    edges,
+    edgeMaps,
+    baseByClass,
+    heights,
+  });
 
   /** Zmiana zoomu (przyciski, kółko, klawisze, szczypanie); przy „ogranicz ruch” bez wygładzania. */
   const applyZoom = useCallback((next: number, immediate = false) => {
@@ -181,11 +207,11 @@ export function Globe({
   }, []);
 
   useEffect(() => {
-    dataRef.current = { geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass };
+    dataRef.current = { geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass, heights };
     pausedRef.current = paused;
     onSelectRef.current = onSelect;
     drawRef.current();
-  }, [geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass, paused, onSelect]);
+  }, [geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass, heights, paused, onSelect]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -240,6 +266,7 @@ export function Globe({
         nodes: nds,
         edgeMaps: maps,
         baseByClass: byClass,
+        heights: hts,
       } = dataRef.current;
       const hl = hoverHl ?? sel;
       const dpr = window.devicePixelRatio || 1;
@@ -295,10 +322,14 @@ export function Globe({
       ctx.globalAlpha = 1;
 
       // 3. Wszystkie połączenia naraz (przygaszone), potem jaśniejsze dla najechania lub zaznaczenia.
+      // Łuk wznosi się nad kulą i łączy wzniesione węzły (szczyty); falowanie biegnie po nim w czasie.
       const arcFor = (e: MapEdgeDto): Vec3[] | null => {
         const from = g.notePos[e.from];
         const to = e.type === "link" ? g.notePos[e.to] : g.placement[e.to]?.center;
-        return from && to ? arcPoints(from, to, 6) : null;
+        if (!from || !to) return null;
+        const hTo = e.type === "link" ? (hts.get(e.to) ?? 0) : 0;
+        const ripple = live ? now * 0.0018 + edgePhase(e) : null;
+        return liftedArc(from, to, hts.get(e.from) ?? 0, hTo, 8, ripple);
       };
       const strokeArcs = (
         list: MapEdgeDto[],
@@ -390,10 +421,24 @@ export function Globe({
       const items = nds
         .flatMap((n) => {
           const p = g.notePos[n.id];
-          return p ? [{ n, pr: pj(p) }] : [];
+          const h = hts.get(n.id) ?? 0;
+          return p ? [{ n, pr: pj(elevate(p, h)), base: p, h }] : [];
         })
         .sort((a, b) => a.pr.z - b.pr.z);
       const pointScale = Math.sqrt(zoom);
+      // Szczyty: cienka „łodyga” od powierzchni kuli do wzniesionego węzła.
+      ctx.beginPath();
+      for (const { pr, base, h } of items) {
+        if (h < STEM_MIN_HEIGHT || pr.z < 0) continue;
+        const foot = pj(base);
+        ctx.moveTo(foot.x, foot.y);
+        ctx.lineTo(pr.x, pr.y);
+      }
+      ctx.globalAlpha = 0.45;
+      ctx.strokeStyle = pal.line;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
       projectedNotes.current = items.map(({ n, pr }) => ({
         id: n.id,
         x: pr.x,

@@ -10,7 +10,10 @@ function newSpeed(rand: () => number): number {
   return SPARK_SPEED_MIN + rand() * (SPARK_SPEED_MAX - SPARK_SPEED_MIN);
 }
 
-/** Punkt w odległości `t` (0..1, wg indeksu próbek) wzdłuż łamanej `points`, rzutowany z powrotem na kulę. */
+/**
+ * Punkt w odległości `t` (0..1, wg indeksu próbek) wzdłuż łamanej `points`. Kierunek jest rzutowany
+ * z powrotem na kulę, a promień interpolowany między próbkami (łuki wzniesione nad kulą zachowują wysokość).
+ */
 export function pointAlong(points: Vec3[], t: number): Vec3 {
   const last = points.length - 1;
   if (last <= 0) return { ...points[0] };
@@ -21,8 +24,10 @@ export function pointAlong(points: Vec3[], t: number): Vec3 {
   const b = points[i + 1];
   if (f === 0) return { ...a };
   const p = { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f };
-  const len = Math.hypot(p.x, p.y, p.z) || 1;
-  return { x: p.x / len, y: p.y / len, z: p.z / len };
+  const ra = Math.hypot(a.x, a.y, a.z);
+  const rb = Math.hypot(b.x, b.y, b.z);
+  const k = (ra + (rb - ra) * f) / (Math.hypot(p.x, p.y, p.z) || 1);
+  return { x: p.x * k, y: p.y * k, z: p.z * k };
 }
 
 /**

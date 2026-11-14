@@ -31,6 +31,15 @@ describe("pointAlong", () => {
     expect(p.x).toBeCloseTo(Math.SQRT1_2);
     expect(p.y).toBeCloseTo(Math.SQRT1_2);
   });
+  it("zachowuje wysokość nad kulą (promień interpolowany między próbkami)", () => {
+    const up = [
+      { x: 1.2, y: 0, z: 0 },
+      { x: 0, y: 1.4, z: 0 },
+    ];
+    const p = pointAlong(up, 0.5);
+    expect(Math.hypot(p.x, p.y, p.z)).toBeCloseTo(1.3);
+    expect(p.x / p.y).toBeCloseTo(0.6 / 0.7);
+  });
   it("t poza zakresem jest przycinane", () => {
     expect(pointAlong(pts, -3)).toEqual(pts[0]);
     expect(pointAlong(pts, 9).x).toBeCloseTo(-1);
