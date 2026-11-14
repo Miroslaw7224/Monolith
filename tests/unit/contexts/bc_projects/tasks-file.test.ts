@@ -98,21 +98,26 @@ describe("tasks-file: toggle, edit, remove", () => {
     expect(out).toBe(SAMPLE.replace("- [ ] Trzecie", "- [x] Trzecie — 2026-11-13"));
   });
 
-  it("toggle: ukończone → nieukończone, data znika", () => {
+  it("toggle: ukończone → nieukończone, data znika, linia wraca za ostatnie otwarte", () => {
     const out = applyTaskOp(
       SAMPLE,
       { op: "toggle", column: "icebox", index: 0, text: "Zrobione" },
       CTX
     );
-    expect(out).toBe(SAMPLE.replace("- [x] Zrobione — 2026-05-19", "- [ ] Zrobione"));
+    expect(out).toBe(`${SAMPLE.replace("- [x] Zrobione — 2026-05-19\n", "")}- [ ] Zrobione\n`);
   });
 
-  it("toggle zadania z Teraz zdejmuje znacznik i przenosi je do Następne", () => {
+  it("toggle zadania z Teraz zdejmuje znacznik i przenosi je za ostatnie otwarte Następne", () => {
     const out = applyTaskOp(SAMPLE, { op: "toggle", column: "now", index: 0, text: "Drugie" }, CTX);
-    expect(out).toBe(SAMPLE.replace("- [ ] Drugie [now::]", "- [x] Drugie — 2026-11-13"));
+    expect(out).toBe(
+      SAMPLE.replace("- [ ] Drugie [now::]\n", "").replace(
+        "- [ ] Trzecie\n",
+        "- [ ] Trzecie\n- [x] Drugie — 2026-11-13\n"
+      )
+    );
     const board = readBoardText(out);
     expect(board.now).toEqual([]);
-    expect(board.next[1]).toEqual({ text: "Drugie", done: true, doneDate: "2026-11-13" });
+    expect(board.next[2]).toEqual({ text: "Drugie", done: true, doneDate: "2026-11-13" });
   });
 
   it("toggle: [X] wielką literą", () => {
@@ -359,5 +364,158 @@ describe("tasks-file: move", () => {
         CTX
       )
     ).toThrow(/już w tej kolumnie/);
+  });
+});
+
+const orderFile = (next: string[], backlog: string[]) =>
+  `# Tasks — Demo\n\n## Next\n\n${next.join("\n")}\n\n## Backlog\n\n${backlog.join("\n")}\n`;
+
+const ORDER = orderFile(
+  ["- [ ] A", "- [x] B — 2026-11-01", "- [ ] C", "- [x] D — 2026-11-02"],
+  ["- [ ] F", "- [x] E — 2026-10-01"]
+);
+// Kolumna next: A(0) B(1) C(2) D(3); icebox: F(0) E(1).
+
+describe("tasks-file: otwarte przed ukończonymi", () => {
+  it("toggle otwartego: za ostatnim otwartym, na górze ogona ukończonych", () => {
+    const out = applyTaskOp(ORDER, { op: "toggle", column: "next", index: 0, text: "A" }, CTX);
+    expect(out).toBe(
+      orderFile(
+        ["- [x] B — 2026-11-01", "- [ ] C", "- [x] A — 2026-11-13", "- [x] D — 2026-11-02"],
+        ["- [ ] F", "- [x] E — 2026-10-01"]
+      )
+    );
+  });
+
+  it("toggle ukończonego (odznaczenie): wraca za ostatnie otwarte", () => {
+    const out = applyTaskOp(ORDER, { op: "toggle", column: "next", index: 1, text: "B" }, CTX);
+    expect(out).toBe(
+      orderFile(
+        ["- [ ] A", "- [ ] C", "- [ ] B", "- [x] D — 2026-11-02"],
+        ["- [ ] F", "- [x] E — 2026-10-01"]
+      )
+    );
+  });
+
+  it("toggle: cały blok z wciętymi liniami przenosi się razem", () => {
+    const text = orderFile(["- [ ] A", "  - sub", "- [ ] C", "- [x] B — 2026-11-01"], ["- [ ] F"]);
+    const out = applyTaskOp(text, { op: "toggle", column: "next", index: 0, text: "A" }, CTX);
+    expect(out).toBe(
+      orderFile(["- [ ] C", "- [x] A — 2026-11-13", "  - sub", "- [x] B — 2026-11-01"], ["- [ ] F"])
+    );
+  });
+
+  it("toggle zadania [now::] w Next: znika z now, ląduje za ostatnim otwartym", () => {
+    const text = orderFile(["- [ ] A [now::]", "- [ ] C", "- [x] B — 2026-11-01"], ["- [ ] F"]);
+    const out = applyTaskOp(text, { op: "toggle", column: "now", index: 0, text: "A" }, CTX);
+    expect(out).toBe(
+      orderFile(["- [ ] C", "- [x] A — 2026-11-13", "- [x] B — 2026-11-01"], ["- [ ] F"])
+    );
+    expect(readBoardText(out).now).toEqual([]);
+  });
+
+  it("sekcja z samymi ukończonymi: odznaczone zadanie ląduje przed pierwszym z nich", () => {
+    const text = "## Next\n\n- [x] A — 2026-11-01\n- [x] B — 2026-11-02\n";
+    const out = applyTaskOp(text, { op: "toggle", column: "next", index: 1, text: "B" }, CTX);
+    expect(out).toBe("## Next\n\n- [ ] B\n- [x] A — 2026-11-01\n");
+  });
+
+  it("jedyne zadanie sekcji: edycja w miejscu, proza i układ bajt w bajt", () => {
+    const out = applyTaskOp(
+      "## Next\n\n- [ ] A\n\nProza.\n\n## Backlog\n",
+      { op: "toggle", column: "next", index: 0, text: "A" },
+      CTX
+    );
+    expect(out).toBe("## Next\n\n- [x] A — 2026-11-13\n\nProza.\n\n## Backlog\n");
+  });
+
+  it("add: za ostatnim otwartym, przed ukończonymi", () => {
+    const out = applyTaskOp(ORDER, { op: "add", column: "next", text: "N" }, CTX);
+    expect(out).toBe(
+      orderFile(
+        ["- [ ] A", "- [x] B — 2026-11-01", "- [ ] C", "- [ ] N", "- [x] D — 2026-11-02"],
+        ["- [ ] F", "- [x] E — 2026-10-01"]
+      )
+    );
+  });
+
+  it("add do sekcji z samymi ukończonymi: przed pierwszym z nich", () => {
+    const out = applyTaskOp(
+      "## Backlog\n\n- [x] E — 2026-10-01\n",
+      { op: "add", column: "icebox", text: "N" },
+      CTX
+    );
+    expect(out).toBe("## Backlog\n\n- [ ] N\n- [x] E — 2026-10-01\n");
+  });
+
+  it("add do sekcji bez zadań: pod nagłówkiem, placeholder znika", () => {
+    const out = applyTaskOp(
+      "## Blokery\n\n_Brak aktywnych blokerów_\n\n## Next\n",
+      { op: "add", column: "blockers", text: "X" },
+      CTX
+    );
+    expect(out).toBe("## Blokery\n\n- [ ] X\n\n## Next\n");
+  });
+
+  it("move otwartego do sekcji z ogonem ukończonych: za ostatnim otwartym celu", () => {
+    const out = applyTaskOp(
+      ORDER,
+      { op: "move", column: "next", index: 0, text: "A", to: "icebox" },
+      CTX
+    );
+    expect(out).toBe(
+      orderFile(
+        ["- [x] B — 2026-11-01", "- [ ] C", "- [x] D — 2026-11-02"],
+        ["- [ ] F", "- [ ] A", "- [x] E — 2026-10-01"]
+      )
+    );
+  });
+
+  it("move ukończonego: na górę ogona ukończonych celu (data zostaje)", () => {
+    const out = applyTaskOp(
+      ORDER,
+      { op: "move", column: "next", index: 1, text: "B", to: "icebox" },
+      CTX
+    );
+    expect(out).toBe(
+      orderFile(
+        ["- [ ] A", "- [ ] C", "- [x] D — 2026-11-02"],
+        ["- [ ] F", "- [x] B — 2026-11-01", "- [x] E — 2026-10-01"]
+      )
+    );
+  });
+
+  it("move ukończonego do sekcji wymieszanej: za ostatnim otwartym (punkt po wycięciu bloku)", () => {
+    const out = applyTaskOp(
+      ORDER,
+      { op: "move", column: "icebox", index: 1, text: "E", to: "next" },
+      CTX
+    );
+    expect(out).toBe(
+      orderFile(
+        [
+          "- [ ] A",
+          "- [x] B — 2026-11-01",
+          "- [ ] C",
+          "- [x] E — 2026-10-01",
+          "- [x] D — 2026-11-02",
+        ],
+        ["- [ ] F"]
+      )
+    );
+  });
+
+  it("move next → now: bez zmiany pozycji (regresja)", () => {
+    const out = applyTaskOp(
+      ORDER,
+      { op: "move", column: "next", index: 2, text: "C", to: "now" },
+      CTX
+    );
+    expect(out).toBe(
+      orderFile(
+        ["- [ ] A", "- [x] B — 2026-11-01", "- [ ] C [now::]", "- [x] D — 2026-11-02"],
+        ["- [ ] F", "- [x] E — 2026-10-01"]
+      )
+    );
   });
 });
