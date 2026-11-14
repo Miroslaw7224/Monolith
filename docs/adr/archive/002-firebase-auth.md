@@ -2,7 +2,7 @@
 
 ## Status
 
-Zastąpiony przez [ADR-020](020-lokalne-pliki-zamiast-firestore.md)
+Zastąpiony przez [ADR-020](../020-lokalne-pliki-zamiast-firestore.md)
 
 ## Kontekst
 

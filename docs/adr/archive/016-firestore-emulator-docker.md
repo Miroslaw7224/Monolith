@@ -2,7 +2,7 @@
 
 ## Status
 
-Zastąpiony przez [ADR-020](020-lokalne-pliki-zamiast-firestore.md). Emulator i testy integracyjne usunięte w etapie 0e (2026-11-13).
+Zastąpiony przez [ADR-020](../020-lokalne-pliki-zamiast-firestore.md). Emulator i testy integracyjne usunięte w etapie 0e (2026-11-13).
 
 ## Kontekst
 
@@ -48,13 +48,13 @@ Wprowadzamy **uruchomienie emulatora Firestore w kontenerze Docker** jako zaleca
 **Zależności:**
 
 - ADR-015 (sekcja 7a) — emulator w Dockerze jako zalecana testowa baza.
-- Szczegóły procedury: [tests/integration/README.md](../../tests/integration/README.md).
+- Szczegóły procedury: [tests/integration/README.md](../../../tests/integration/README.md).
 
 ## Wdrożenie (wynik decyzji)
 
 - Plik `docker-compose-test.yml` — jedna usługa emulatora, port 8080.
 - Skrypty w `package.json`: `emulator:docker` (up -d), `test:integration:docker` (pełny cykl: up -d → wait-on → testy → down).
-- Sekcja „Emulator w Dockerze” w [tests/integration/README.md](../../tests/integration/README.md) i [tests/docs_tech/test_workflow.md](../../tests/docs_tech/test_workflow.md) z komendami dla Unix/Mac i PowerShell oraz znanym ograniczeniem (kontener przy błędzie testów).
+- Sekcja „Emulator w Dockerze” w [tests/integration/README.md](../../../tests/integration/README.md) i [tests/docs_tech/test_workflow.md](../../../tests/docs_tech/test_workflow.md) z komendami dla Unix/Mac i PowerShell oraz znanym ograniczeniem (kontener przy błędzie testów).
 - Wzmianka w ADR-015 (sekcja 7a).
 
 ```mermaid

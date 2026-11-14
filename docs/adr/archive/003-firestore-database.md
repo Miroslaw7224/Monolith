@@ -2,7 +2,7 @@
 
 ## Status
 
-Zastąpiony przez [ADR-020](020-lokalne-pliki-zamiast-firestore.md)
+Zastąpiony przez [ADR-020](../020-lokalne-pliki-zamiast-firestore.md)
 
 ## Kontekst
 
@@ -41,7 +41,7 @@ Przy przechowywaniu plików użytkowników (na MVP dokumenty tekstowe, w przysz�
 
 ### Firebase Functions (na przyszłość)
 
-W przyszłości możliwa jest konfiguracja **Firebase Functions** (Cloud Functions w ekosystemie Firebase) do automatyzacji po stronie serwera, webhooków lub zadań wyzwalanych zdarzeniami Firestore/Auth. Obecnie logika backendu realizowana jest w Next.js Route Handlers (`app/api/`); ewentualne wdrożenie Functions nie zmienia decyzji o Firestore ani Auth. Szczegóły planów na Etap 2 (w tym Cloud Functions): [ADR-017: Plany na Etap 2](017-plany-etap2.md).
+W przyszłości możliwa jest konfiguracja **Firebase Functions** (Cloud Functions w ekosystemie Firebase) do automatyzacji po stronie serwera, webhooków lub zadań wyzwalanych zdarzeniami Firestore/Auth. Obecnie logika backendu realizowana jest w Next.js Route Handlers (`app/api/`); ewentualne wdrożenie Functions nie zmienia decyzji o Firestore ani Auth. Szczegóły planów na Etap 2 (w tym Cloud Functions): [ADR-017: Plany na Etap 2](../017-plany-etap2.md).
 
 ## Rozważane alternatywy
 
