@@ -920,6 +920,7 @@ git commit -m "feat(mapa): globus ze skupiskami, łukami zagregowanymi, zoomem i
 **Pliki:** `src/features/map/core.ts` (nowy), `src/features/map/motion.ts`, `src/features/map/Globe.tsx`, testy `core.test.ts` i `motion.test.ts`. Opis i stałe: spec §5a. Commity: `766ed39` (jądro, aksony, pył), `659392e` (siatka r = 0,4), `b8a75ca`, `343b7e8` (oddech kuli i brzeg), `a74f10a` (amplitudy ±2% / 3,2%), potem kolor jądra jak lawa (`coreStops`).
 
 - [x] Jądro, aksony, pył, siatka wewnętrzna, oddech kuli, elastyczny brzeg, jądro w kolorach lawy.
+- [x] Losowe kierunki auto-obrotu (`pickSpin`, `spinHoldMs`, `spinPitchGuard` w `motion.ts`, dryf w pętli `Globe.tsx`).
 - [x] Testy czystej logiki (`vitest run tests/unit/features/map`), `tsc` czysty.
 - [ ] Przegląd wyglądu na żywo (krok 3 zadania 8 obejmuje też wnętrze): czy ±2% nie „pływa” węzłów i etykiet (wtedy cofnąć tylko `GLOBE_BREATH_AMP`), czy lawa nie zasłania tylnych łuków (wtedy obniżyć `CORE_MAX_ALPHA`).
 
