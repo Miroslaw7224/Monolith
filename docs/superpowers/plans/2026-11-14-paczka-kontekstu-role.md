@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-14-paczka-kontekstu-role-design.md`
 
-**Jeden commit implementacji (decyzja użytkownika):** Taski 1–5 NIE commitują; cały kod i testy trafiają do jednego commita w Tasku 6. Spec i plan są w osobnych commitach dokumentów, już zrobionych na gałęzi `feat/paczka-kontekstu-role`.
+**Commity (użytkownik zgodził się na podział):** każdy z Tasków 1–5 kończy się własnym commitem; po każdym testy dotknięte zmianą i `tsc` są zielone. Spec i plan są w osobnych commitach dokumentów, na gałęzi `feat/paczka-kontekstu-role`.
 
 **Zasady wykonania (CLAUDE.md):** testy, `tsc`, lint i build zleca się `cursor` (`scripts/ask-helper.sh --role task --tier light --approve-allowed cursor "<komendy>; odpowiedz: przeszło albo lista plik:linia + przyczyna"`); poniżej same komendy. Testu architektury nie zmieniamy. Commit kończy się linią `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 
@@ -111,6 +111,15 @@ export const PACK_ROLES: { key: ContextPackRole; label: string }[] = [
 
 Run: `npx vitest run tests/unit/contexts/bc_projects/schemas.pack-role.test.ts tests/unit/contexts/bc_projects/schemas.test.ts tests/unit/architecture.static.test.ts && npx tsc --noEmit`
 Expected: PASS (`schemas` robi tylko `import type` z `models`; wartości `CONTEXT_PACK_ROLES` importuje wyłącznie test).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add contexts/bc_projects/models.ts contexts/bc_projects/schemas.ts tests/unit/contexts/bc_projects/schemas.pack-role.test.ts
+git commit -m "feat(projekty): typ i schemat roli paczki kontekstu
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
 
 ---
 
@@ -551,6 +560,15 @@ Komentarz doc nad `composeContextPack` (blok „Składa paczkę kontekstu w bud�
 Run: `npx vitest run tests/unit/contexts/bc_projects/context-pack.roles.test.ts tests/unit/contexts/bc_projects/context-pack.compose.test.ts tests/unit/contexts/bc_projects/services.context-pack.test.ts && npx tsc --noEmit`
 Expected: PASS. Istniejące testy kompozytora są testem regresji dla `full`; gdyby któryś padł, napraw kod, nie test.
 
+- [ ] **Step 8: Commit**
+
+```bash
+git add contexts/bc_projects/services/context-pack.ts tests/unit/contexts/bc_projects/context-pack.roles.test.ts
+git commit -m "feat(projekty): paczka kontekstu: profile ról w kompozytorze (review, implementacja, debug)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
+
 ---
 
 ### Task 3: Serwis i trasa
@@ -642,6 +660,15 @@ export async function getContextPack(
 
 Run: `npx vitest run tests/unit/contexts/bc_projects tests/unit/architecture.static.test.ts && npx tsc --noEmit`
 Expected: PASS (istniejące wywołania `buildContextPack(id, today)` w testach działają bez zmian).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add contexts/bc_projects/services/index.ts contexts/bc_projects/router.ts tests/unit/contexts/bc_projects/router.test.ts
+git commit -m "feat(projekty): GET context-pack?role=: rola paczki w serwisie i trasie
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
 
 ---
 
@@ -940,6 +967,15 @@ Na końcu `src/features/projects/projects.css` dopisz:
 Run: `npx vitest run tests/unit/features/projects tests/unit/features/home && npx tsc --noEmit && npm run lint`
 Expected: PASS. (`ProjectsView` nie wymaga zmian: `useContextPack(detail?.id ?? null, loadContextPack)`; `loadContextPack` z opcjonalnym parametrem pasuje do `(role) => …`.)
 
+- [ ] **Step 8: Commit**
+
+```bash
+git add src/features/projects tests/unit/features/projects
+git commit -m "feat(projekty): wybór roli paczki kontekstu w karcie Projekty
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
+
 ---
 
 ### Task 5: Dokumentacja
@@ -970,9 +1006,18 @@ git diff --stat
 
 Expected: 1 plik, 2 linie zmienione.
 
+- [ ] **Step 2: Commit**
+
+```bash
+git add docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md
+git commit -m "docs(asystent): szablony per rola paczki kontekstu zrealizowane
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
+
 ---
 
-### Task 6: Weryfikacja i jeden commit
+### Task 6: Weryfikacja końcowa
 
 - [ ] **Step 1: Pełny przebieg** (przez `cursor`; odpowiedź: „przeszło” albo lista `plik:linia + przyczyna`)
 
@@ -987,16 +1032,7 @@ scripts/ask-helper.sh --role review --fresh agy "Review diffa (git diff main, ty
 
 - [ ] **Step 3: Ręcznie w przeglądarce** (spec §7): karta Projekty, projekt `monolith`: przełącz cztery role, porównaj „Podgląd Markdown” ze skopiowanym tekstem, sprawdź rozmiar w kaflu „Paczka kontekstu”.
 
-- [ ] **Step 4: Jeden commit**
-
-```bash
-git add contexts/bc_projects src/features/projects docs/superpowers/specs/2026-11-11-asystent-lokalny-nexus-design.md tests/unit
-git commit -m "feat(projekty): paczka kontekstu: szablony per rola (review, implementacja, debug)
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
-```
-
-- [ ] **Step 5: Po merge'u (NEXUS):** w `Vault/Projects/monolith/tasks.md` odhacz „Paczka kontekstu: szablony per rola …” (osobny commit w NEXUS).
+- [ ] **Step 4: Po merge'u (NEXUS):** w `Vault/Projects/monolith/tasks.md` odhacz „Paczka kontekstu: szablony per rola …” (osobny commit w NEXUS).
 
 ---
 
@@ -1011,7 +1047,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 | §5 hook, karta, kafel, `useProjects`, `mutation.ts`                                       | Task 4    |
 | §6 400 dla nieznanej roli                                                                 | Task 3    |
 | §7 testy (kompozytor, schematy, router, UI)                                               | Taski 1–4 |
-| §8 jeden commit                                                                           | Task 6    |
+| §8 commity: po jednym na task                                                             | Taski 1–5 |
 | zmiana dwóch zdań w spec asystenta                                                        | Task 5    |
 
 Spójność nazw: `ContextPackRole`/`CONTEXT_PACK_ROLES` (models), `ContextPackRoleSchema`/`PACK_ROLES` (schemas), `ROLE_PROFILES`/`SectionId` (context-pack), `role?` w `ContextPackInput`, `buildContextPack(id, today, role)`, `loadContextPack(role?)`, `useContextPack` zwraca `role`/`setRole`, `ContextPackModel` ma `role`/`setRole`.
