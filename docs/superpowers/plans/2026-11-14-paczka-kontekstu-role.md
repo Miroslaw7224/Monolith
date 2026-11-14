@@ -747,6 +747,11 @@ describe("paczka kontekstu: role", () => {
     rerender(<Harness load={load} id="b" />);
     await waitFor(() => expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "true"));
     expect(load).toHaveBeenLastCalledWith("full");
+    // powrót do poprzedniego projektu nie przywraca wybranej wcześniej roli
+    rerender(<Harness load={load} id="a" />);
+    await waitFor(() => expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "true"));
+    expect(roleButton("Review")).toHaveAttribute("aria-pressed", "false");
+    expect(load).toHaveBeenLastCalledWith("full");
   });
 });
 ```
@@ -866,6 +871,11 @@ export function useContextPack(
     (next: ContextPackRole) => setPick({ id: projectId, role: next }),
     [projectId]
   );
+  // Rola należy do projektu: po zmianie projektu `pick` wraca do `full`, więc powrót do poprzedniego
+  // projektu nie przywraca starej roli. `role` jest już wtedy `full`, więc bez dodatkowego pobrania.
+  useEffect(() => {
+    setPick((p) => (p.id === projectId ? p : { id: projectId, role: "full" }));
+  }, [projectId]);
   /** Numer bieżącego żądania (projekt, rola): spóźniona odpowiedź nie rusza stanu ani schowka. */
   const generation = useRef(0);
 
