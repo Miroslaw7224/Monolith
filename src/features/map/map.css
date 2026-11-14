@@ -14,6 +14,8 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --r-md: 10px;
   --r-lg: 16px;
+  /* Wysokość tego, co leży nad płótnem (nagłówek, kafle, odstępy); dostrój w przeglądarce. */
+  --map-above: 300px;
 
   flex: 1;
   min-height: 0;
@@ -75,8 +77,8 @@
 
 .map-canvas {
   position: relative;
-  height: min(60vh, 520px);
-  min-height: 320px;
+  height: max(420px, calc(100dvh - var(--map-above)));
+  min-height: 420px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -88,6 +90,44 @@
   height: 100%;
   cursor: grab;
   touch-action: none;
+}
+.map-globe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+.map-globe:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  border-radius: var(--r-lg);
+}
+.map-zoom {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.map-zoom button {
+  padding: 4px 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  font-size: 12px;
+  cursor: pointer;
+}
+.map-zoom button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+.map-zoom span {
+  min-width: 40px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
 }
 .map-caption {
   position: absolute;
@@ -140,6 +180,34 @@
 }
 .map-nodelist__item[aria-current="true"],
 .map-nodelist__item:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.map-cluster-panel {
+  max-height: 360px;
+  overflow: auto;
+}
+.map-cluster-panel ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.map-cluster-panel button {
+  width: 100%;
+  padding: 4px 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.map-cluster-panel button:focus-visible {
   border-color: var(--accent);
   outline: none;
 }

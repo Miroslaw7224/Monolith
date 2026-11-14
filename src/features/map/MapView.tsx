@@ -5,10 +5,12 @@ import "./map.css";
 import { Globe } from "./Globe";
 import { MapAgentsPanel } from "./MapAgentsPanel";
 import { MapBlockersPanel } from "./MapBlockersPanel";
+import { MapClusterPanel } from "./MapClusterPanel";
 import { MapNodeList } from "./MapNodeList";
 import { buildMapTiles } from "./mapTiles";
 import { useMapAgents } from "./useMapAgents";
 import { useMapGraph } from "./useMapGraph";
+import type { MapSelection } from "./selection";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -21,22 +23,28 @@ export function MapView({
 }) {
   const graph = useMapGraph(apiFetch);
   const agents = useMapAgents(apiFetch);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<MapSelection | null>(null);
   const [focus, setFocus] = useState<{ id: string; tick: number } | null>(null);
   const [listFocused, setListFocused] = useState(false);
 
-  const nodes = useMemo(() => graph.graph?.nodes ?? [], [graph.graph]);
+  const clusters = useMemo(() => graph.graph?.clusters ?? [], [graph.graph]);
   const projectNames = useMemo(
-    () => Object.fromEntries(nodes.filter((n) => n.kind === "project").map((n) => [n.id, n.label])),
-    [nodes]
+    () =>
+      Object.fromEntries(
+        clusters.flatMap((c) => (c.projectId ? [[c.projectId, c.label] as const] : []))
+      ),
+    [clusters]
   );
 
-  /** Globus i lista robią to samo: zaznacz, obróć; projekt dodatkowo otwiera kartę Projekty. */
+  /** Globus, panel i lista robią to samo: zaznacz, obróć; skupisko projektu dodatkowo otwiera kartę Projekty. */
   const activate = useCallback(
-    (id: string) => {
-      setSelectedId(id);
-      setFocus((f) => ({ id, tick: (f?.tick ?? 0) + 1 }));
-      if (graph.graph?.nodes.find((n) => n.id === id)?.kind === "project") onOpenProject(id);
+    (sel: MapSelection) => {
+      setSelection(sel);
+      setFocus((f) => ({ id: sel.id, tick: (f?.tick ?? 0) + 1 }));
+      if (sel.kind === "cluster") {
+        const projectId = graph.graph?.clusters.find((c) => c.id === sel.id)?.projectId;
+        if (projectId) onOpenProject(projectId);
+      }
     },
     [graph.graph, onOpenProject]
   );
@@ -60,17 +68,17 @@ export function MapView({
 
   const data = graph.graph;
   const tiles = buildMapTiles(data, { available: agents.available, count: agents.agents.length });
-  const selected = data.nodes.find((n) => n.id === selectedId) ?? null;
-  const projectsCount = data.nodes.filter((n) => n.kind === "project").length;
-  const continentsCount = data.nodes.length - projectsCount;
-  const caption =
-    selected === null
-      ? null
-      : selected.soon
-        ? `${selected.label}: wkrótce`
-        : selected.kind === "continent"
-          ? `${selected.label}: ${selected.size ?? 0} plików`
-          : selected.label;
+  const selectedCluster =
+    selection?.kind === "cluster"
+      ? (data.clusters.find((c) => c.id === selection.id) ?? null)
+      : null;
+  const selectedNote =
+    selection?.kind === "note" ? (data.nodes.find((n) => n.id === selection.id) ?? null) : null;
+  const caption = selectedCluster
+    ? selectedCluster.soon
+      ? `${selectedCluster.label}: wkrótce`
+      : `${selectedCluster.label}: ${selectedCluster.size} notatek`
+    : (selectedNote?.label ?? null);
 
   return (
     <section className="map" aria-labelledby="map-title">
@@ -99,13 +107,15 @@ export function MapView({
         >
           <div className="map-canvas">
             <Globe
+              clusters={data.clusters}
               nodes={data.nodes}
               edges={data.edges}
-              selectedId={selectedId}
+              clusterEdges={data.clusterEdges}
+              selection={selection}
               focus={focus}
               paused={listFocused}
               onSelect={activate}
-              ariaLabel={`Globus sieci NEXUS: ${projectsCount} projektów, ${continentsCount} kontynenty, ${data.edges.length} połączeń`}
+              ariaLabel={`Globus sieci NEXUS: ${data.clusters.length} skupisk, ${data.nodes.length} notatek, ${data.edges.length} połączeń`}
             />
             {caption ? (
               <div className="map-caption" aria-live="polite">
@@ -116,14 +126,26 @@ export function MapView({
           <ul className="map-legend" aria-label="Legenda">
             <li className="map-legend-item">
               <span className="map-legend-line map-legend-line--shared" />
-              współdzielenie (komponenty, wiedza)
+              łuk: powiązania między skupiskami (grubość = liczba)
             </li>
-            <li className="map-legend-item">Skille: bez powiązań (placeholder)</li>
+            <li className="map-legend-item">klik w skupisko lub punkt pokazuje jego linki</li>
+            <li className="map-legend-item">Skille: wkrótce, bez powiązań</li>
           </ul>
-          <MapNodeList nodes={data.nodes} selectedId={selectedId} onSelect={activate} />
+          <MapNodeList
+            clusters={data.clusters}
+            selectedId={selection?.kind === "cluster" ? selection.id : null}
+            onSelect={(id) => activate({ kind: "cluster", id })}
+          />
         </div>
 
         <aside className="map-sidebar">
+          <MapClusterPanel
+            clusters={data.clusters}
+            nodes={data.nodes}
+            edges={data.edges}
+            selection={selection}
+            onSelect={activate}
+          />
           <MapAgentsPanel
             available={agents.available}
             agents={agents.agents}
