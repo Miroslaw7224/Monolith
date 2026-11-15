@@ -4,6 +4,10 @@ import { localIsoDate } from "@/lib/schema/archive-date";
 import {
   SUMMARY_MAX,
   WORK_TARGET_NOTE,
+  type AgentRow,
+  type AgentsEntry,
+  type AgentsEntryInput,
+  type AgentsOverview,
   type ArsenalCatalog,
   type Course,
   type CourseEntry,
@@ -14,18 +18,24 @@ import {
   type DeployMode,
   type DeployTarget,
   type Deployment,
+  type PresetRow,
   type PromptEntry,
   type RawFile,
+  type ScriptRow,
   type SkillEntry,
 } from "./models";
 import {
   certificateExists,
+  deleteAgentEntry,
+  insertAgentEntry,
   insertCourse,
+  readAgentEntries,
   readCourses,
   readPromptFiles,
   readSkillFiles,
   readTemplates,
   removeCourse,
+  replaceAgentEntry,
   replaceCourse,
   writeDeployed,
 } from "./repositories";
@@ -330,4 +340,31 @@ export async function updateCourse(id: string, input: CourseInput): Promise<Cour
 
 export async function deleteCourse(id: string): Promise<void> {
   await removeCourse(id);
+}
+
+// ── agenci i polecenia ───────────────────────────────────────────────────────────
+
+export function listAgents(): AgentsOverview {
+  const { entries, skipped } = readAgentEntries();
+  return {
+    agents: entries.filter((e): e is AgentRow => e.kind === "agent"),
+    presets: entries.filter((e): e is PresetRow => e.kind === "preset"),
+    scripts: entries.filter((e): e is ScriptRow => e.kind === "script"),
+    skipped,
+  };
+}
+
+export async function createAgentEntry(input: AgentsEntryInput): Promise<AgentsEntry> {
+  return insertAgentEntry(input);
+}
+
+export async function updateAgentEntry(id: string, input: AgentsEntryInput): Promise<AgentsEntry> {
+  await replaceAgentEntry(id, input);
+  const found = readAgentEntries().entries.find((entry) => entry.id === id);
+  if (found === undefined) throw new DomainError("Wpis nie istnieje", 404);
+  return found;
+}
+
+export async function removeAgentEntry(id: string): Promise<void> {
+  await deleteAgentEntry(id);
 }
