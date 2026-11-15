@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/src/i18n/useT";
 
 /** Przyciski powiększenia w rogu płótna globusa. */
 export function GlobeControls(props: {
@@ -9,21 +10,32 @@ export function GlobeControls(props: {
   onZoomOut: () => void;
   onFit: () => void;
 }) {
+  const t = useT();
   return (
-    <div className="map-zoom" role="group" aria-label="Powiększenie">
-      <button type="button" aria-label="Oddal" title="Oddal (−)" onClick={props.onZoomOut}>
+    <div className="map-zoom" role="group" aria-label={t("map:mapZoomGroupAria")}>
+      <button
+        type="button"
+        aria-label={t("map:mapZoomOutAria")}
+        title={t("map:mapZoomOutTitle")}
+        onClick={props.onZoomOut}
+      >
         −
       </button>
-      <button type="button" aria-label="Przybliż" title="Przybliż (+)" onClick={props.onZoomIn}>
+      <button
+        type="button"
+        aria-label={t("map:mapZoomInAria")}
+        title={t("map:mapZoomInTitle")}
+        onClick={props.onZoomIn}
+      >
         +
       </button>
       <button
         type="button"
-        aria-label="Dopasuj do okna"
-        title="Dopasuj do okna (0)"
+        aria-label={t("map:mapFitAria")}
+        title={t("map:mapFitTitle")}
         onClick={props.onFit}
       >
-        Dopasuj
+        {t("map:mapFitButton")}
       </button>
       <span aria-live="polite">{Math.round(props.zoom * 100)}%</span>
     </div>

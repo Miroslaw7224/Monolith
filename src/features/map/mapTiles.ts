@@ -1,31 +1,46 @@
 import type { MapGraphDto } from "@/contexts/bc_map/schemas";
+import i18n, { currentLang, type Lang } from "@/src/i18n";
 
 export type MapTile = { id: string; label: string; value: string; meta: string };
 
 export function buildMapTiles(
   graph: MapGraphDto,
-  agents: { available: boolean; count: number }
+  agents: { available: boolean; count: number },
+  lang: Lang = currentLang()
 ): MapTile[] {
+  const lng = { lng: lang };
   const n = graph.tiles.neurons;
   return [
     {
       id: "neurons",
-      label: "Neurony NEXUS",
+      label: i18n.t("map:mapTileNeurons", lng),
       value: String(n.total),
-      meta: `${n.knowledge} Wiedza · ${n.ai2030} AI-2030 · ${n.projects} w projektach`,
+      meta: i18n.t("map:mapTileNeuronsMeta", {
+        ...lng,
+        knowledge: n.knowledge,
+        ai2030: n.ai2030,
+        projects: n.projects,
+      }),
     },
     {
       id: "deps",
-      label: "Zależności",
+      label: i18n.t("map:mapTileDeps", lng),
       value: String(graph.tiles.dependencies),
-      meta: "połączone skupiska (komponenty, linki, projekty)",
+      meta: i18n.t("map:mapTileDepsMeta", lng),
     },
-    { id: "blockers", label: "Aktywne blokery", value: "—", meta: "wkrótce" },
+    {
+      id: "blockers",
+      label: i18n.t("map:mapTileBlockers", lng),
+      value: "—",
+      meta: i18n.t("map:mapTileBlockersMeta", lng),
+    },
     {
       id: "agents",
-      label: "Agenci na żywo",
+      label: i18n.t("map:mapTileAgents", lng),
       value: agents.available ? String(agents.count) : "—",
-      meta: agents.available ? "Herdr" : "Herdr niedostępny",
+      meta: agents.available
+        ? i18n.t("map:mapTileAgentsMetaHerdr", lng)
+        : i18n.t("map:mapTileAgentsMetaUnavailable", lng),
     },
   ];
 }

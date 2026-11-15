@@ -60,6 +60,7 @@ if (!i18n.isInitialized) {
       "resources",
       "mindmaps",
       "arsenal",
+      "map",
     ],
     interpolation: { escapeValue: false },
     react: { useSuspense: false },

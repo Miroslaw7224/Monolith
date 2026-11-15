@@ -12,6 +12,7 @@ import { buildMapTiles } from "./mapTiles";
 import { useMapAgents } from "./useMapAgents";
 import { useMapGraph } from "./useMapGraph";
 import type { MapSelection } from "./selection";
+import { useT } from "@/src/i18n/useT";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -22,6 +23,7 @@ export function MapView({
   apiFetch: ApiFetch;
   onOpenProject: (id: string) => void;
 }) {
+  const t = useT();
   const graph = useMapGraph(apiFetch);
   const agents = useMapAgents(apiFetch);
   const [selection, setSelection] = useState<MapSelection | null>(null);
@@ -53,7 +55,7 @@ export function MapView({
   if (graph.status === "loading") {
     return (
       <section className="map" aria-busy="true">
-        <p className="map-panel__empty">Wczytywanie mapy…</p>
+        <p className="map-panel__empty">{t("map:mapLoading")}</p>
       </section>
     );
   }
@@ -61,7 +63,7 @@ export function MapView({
     return (
       <section className="map">
         <p role="alert" className="map-panel__empty">
-          Nie udało się wczytać mapy: {graph.error}
+          {t("map:mapLoadFailed", { error: graph.error })}
         </p>
       </section>
     );
@@ -77,25 +79,25 @@ export function MapView({
     selection?.kind === "note" ? (data.nodes.find((n) => n.id === selection.id) ?? null) : null;
   const caption = selectedCluster
     ? selectedCluster.soon
-      ? `${selectedCluster.label}: wkrótce`
-      : `${selectedCluster.label}: ${selectedCluster.size} notatek`
+      ? t("map:mapCaptionSoon", { label: selectedCluster.label })
+      : t("map:mapCaptionNotes", { label: selectedCluster.label, count: selectedCluster.size })
     : (selectedNote?.label ?? null);
 
   return (
     <section className="map" aria-labelledby="map-title">
       <header className="map-head">
         <h1 id="map-title" className="map-head__title">
-          Mapa
+          {t("map:mapTitle")}
         </h1>
-        <p className="map-head__sub">Sieć NEXUS: projekty, wiedza i agenci.</p>
+        <p className="map-head__sub">{t("map:mapSubtitle")}</p>
       </header>
 
       <div className="map-tiles">
-        {tiles.map((t) => (
-          <div key={t.id} className="map-tile">
-            <div className="map-tile__label">{t.label}</div>
-            <div className="map-tile__value">{t.value}</div>
-            <div className="map-tile__meta">{t.meta}</div>
+        {tiles.map((tile) => (
+          <div key={tile.id} className="map-tile">
+            <div className="map-tile__label">{tile.label}</div>
+            <div className="map-tile__value">{tile.value}</div>
+            <div className="map-tile__meta">{tile.meta}</div>
           </div>
         ))}
       </div>
@@ -116,7 +118,11 @@ export function MapView({
               focus={focus}
               paused={listFocused}
               onSelect={activate}
-              ariaLabel={`Globus sieci NEXUS: ${data.clusters.length} skupisk, ${data.nodes.length} notatek, ${data.edges.length} połączeń`}
+              ariaLabel={t("map:mapGlobeSummaryAria", {
+                clusters: data.clusters.length,
+                notes: data.nodes.length,
+                edges: data.edges.length,
+              })}
             />
             {caption ? (
               <div className="map-caption" aria-live="polite">
@@ -124,18 +130,15 @@ export function MapView({
               </div>
             ) : null}
           </div>
-          <ul className="map-legend" aria-label="Legenda kolorów połączeń">
+          <ul className="map-legend" aria-label={t("map:mapLegendAria")}>
             {EDGE_CLASSES.map((cls) => (
               <li key={cls.id} className="map-legend-item">
                 <span className="map-legend-line" style={{ borderTopColor: cls.color }} />
-                {cls.label}
+                {t(cls.labelKey)}
               </li>
             ))}
           </ul>
-          <p className="map-legend-note">
-            Najechanie lub klik na punkt albo skupisko podświetla jego połączenia. Skille: wkrótce,
-            bez powiązań.
-          </p>
+          <p className="map-legend-note">{t("map:mapLegendNote")}</p>
           <MapNodeList
             clusters={data.clusters}
             selectedId={selection?.kind === "cluster" ? selection.id : null}
@@ -163,7 +166,7 @@ export function MapView({
       </div>
 
       {data.warnings.length > 0 ? (
-        <ul className="map-warnings" aria-label="Ostrzeżenia">
+        <ul className="map-warnings" aria-label={t("map:mapWarningsAria")}>
           {data.warnings.map((w) => (
             <li key={w}>{w}</li>
           ))}
