@@ -40,7 +40,7 @@ describe("CARDS", () => {
   });
 
   test("Kodeks jest ostatnią kartą z etykietą Kodeks", () => {
-    expect(CARDS[CARDS.length - 1]).toMatchObject({ id: "kodeks", label: "Kodeks", hotkey: 9 });
+    expect(CARDS[CARDS.length - 1]).toMatchObject({ id: "kodeks", hotkey: 9 });
   });
 });
 

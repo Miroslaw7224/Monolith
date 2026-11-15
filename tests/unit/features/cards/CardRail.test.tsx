@@ -1,7 +1,8 @@
 import React from "react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { CardRail } from "@/src/features/cards/CardRail";
+import { setLanguage } from "@/src/i18n";
 
 beforeEach(() => cleanup());
 
@@ -40,5 +41,39 @@ describe("CardRail", () => {
     render(<CardRail activeCard="kokpit" onSelect={vi.fn()} onOpenPalette={onOpenPalette} />);
     fireEvent.click(screen.getByRole("button", { name: "Paleta poleceń (Ctrl+K)" }));
     expect(onOpenPalette).toHaveBeenCalledTimes(1);
+  });
+
+  test("po angielsku: aria-label „Cards” i angielskie etykiety kart", async () => {
+    await act(async () => {
+      await setLanguage("en");
+    });
+    render(<CardRail activeCard="kokpit" onSelect={vi.fn()} onOpenPalette={vi.fn()} />);
+    expect(screen.getByRole("navigation", { name: "Cards" })).toBeInTheDocument();
+    const labels = [...document.querySelectorAll(".card-rail__label")].map((n) => n.textContent);
+    expect(labels).toEqual([
+      "Cockpit",
+      "Calendar",
+      "Tasks",
+      "Projects",
+      "Notes",
+      "Canvas",
+      "Arsenal",
+      "Map",
+      "Codex",
+    ]);
+    expect(screen.getByRole("button", { name: /Canvas/ })).toHaveAttribute(
+      "title",
+      "Canvas (Alt+6)"
+    );
+    expect(screen.getByRole("button", { name: "Command palette (Ctrl+K)" })).toBeInTheDocument();
+  });
+
+  test("przycisk PL/EN przełącza język i zapisuje wybór", async () => {
+    render(<CardRail activeCard="kokpit" onSelect={vi.fn()} onOpenPalette={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Zmień język na angielski (EN)" }));
+    expect(await screen.findByRole("navigation", { name: "Cards" })).toBeInTheDocument();
+    expect(window.localStorage.getItem("monolith.lang")).toBe("en");
+    fireEvent.click(screen.getByRole("button", { name: "Switch language to Polish (PL)" }));
+    expect(await screen.findByRole("navigation", { name: "Karty" })).toBeInTheDocument();
   });
 });

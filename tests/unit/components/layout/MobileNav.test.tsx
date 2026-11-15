@@ -1,7 +1,8 @@
 import React from "react";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { vi, test, expect, beforeEach } from "vitest";
 import { MobileNav } from "@/src/components/layout/MobileNav";
+import { setLanguage } from "@/src/i18n";
 
 beforeEach(() => cleanup());
 
@@ -12,7 +13,6 @@ test("renders 5 nav tabs", () => {
       setAppMode={vi.fn()}
       planningTab="tasks"
       setPlanningTab={vi.fn()}
-      lang="pl"
       onMoreOpen={vi.fn()}
     />
   );
@@ -31,7 +31,6 @@ test("calls setAppMode with 'home' when Home tab clicked", () => {
       setAppMode={setAppMode}
       planningTab="tasks"
       setPlanningTab={vi.fn()}
-      lang="pl"
       onMoreOpen={vi.fn()}
     />
   );
@@ -48,11 +47,30 @@ test("navigates to notes tab", () => {
       setAppMode={setAppMode}
       planningTab="tasks"
       setPlanningTab={setPlanningTab}
-      lang="pl"
       onMoreOpen={vi.fn()}
     />
   );
   fireEvent.click(screen.getByLabelText("Notatki"));
   expect(setPlanningTab).toHaveBeenCalledWith("notes");
   expect(setAppMode).toHaveBeenCalledWith("planowanie");
+});
+
+test("po angielsku etykiety zakładek są angielskie", async () => {
+  await act(async () => {
+    await setLanguage("en");
+  });
+  render(
+    <MobileNav
+      appMode="home"
+      setAppMode={vi.fn()}
+      planningTab="tasks"
+      setPlanningTab={vi.fn()}
+      onMoreOpen={vi.fn()}
+    />
+  );
+  expect(screen.getByLabelText("Home")).toBeInTheDocument();
+  expect(screen.getByLabelText("Tasks")).toBeInTheDocument();
+  expect(screen.getByLabelText("Notes")).toBeInTheDocument();
+  expect(screen.getByLabelText("Calendar")).toBeInTheDocument();
+  expect(screen.getByLabelText("More")).toBeInTheDocument();
 });

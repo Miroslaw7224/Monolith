@@ -1,3 +1,4 @@
+import type { TFn } from "@/src/i18n";
 import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 
 export type CardId =
@@ -22,26 +23,24 @@ export type CardTarget =
 
 export interface CardDef {
   id: CardId;
-  label: string;
   hotkey: number;
   target: CardTarget;
 }
 
 export const CARDS: readonly CardDef[] = [
-  { id: "kokpit", label: "Kokpit", hotkey: 1, target: { kind: "home" } },
-  { id: "kalendarz", label: "Kalendarz", hotkey: 2, target: { kind: "planning", tab: "calendar" } },
-  { id: "zadania", label: "Zadania", hotkey: 3, target: { kind: "planning", tab: "tasks" } },
+  { id: "kokpit", hotkey: 1, target: { kind: "home" } },
+  { id: "kalendarz", hotkey: 2, target: { kind: "planning", tab: "calendar" } },
+  { id: "zadania", hotkey: 3, target: { kind: "planning", tab: "tasks" } },
   {
     id: "projekty",
-    label: "Projekty",
     hotkey: 4,
     target: { kind: "projects" },
   },
-  { id: "notatki", label: "Notatki", hotkey: 5, target: { kind: "planning", tab: "notes" } },
-  { id: "plotno", label: "Płótno", hotkey: 6, target: { kind: "planning", tab: "board" } },
-  { id: "arsenal", label: "Arsenał", hotkey: 7, target: { kind: "planning", tab: "skills" } },
-  { id: "mapa", label: "Mapa", hotkey: 8, target: { kind: "map" } },
-  { id: "kodeks", label: "Kodeks", hotkey: 9, target: { kind: "codex" } },
+  { id: "notatki", hotkey: 5, target: { kind: "planning", tab: "notes" } },
+  { id: "plotno", hotkey: 6, target: { kind: "planning", tab: "board" } },
+  { id: "arsenal", hotkey: 7, target: { kind: "planning", tab: "skills" } },
+  { id: "mapa", hotkey: 8, target: { kind: "map" } },
+  { id: "kodeks", hotkey: 9, target: { kind: "codex" } },
 ];
 
 const TAB_TO_CARD: Record<PlanningTab, CardId> = {
@@ -102,10 +101,10 @@ export function filterCommands(commands: PaletteCommand[], query: string): Palet
   return commands.filter((c) => fold(c.label).includes(q));
 }
 
-export function buildCardCommands(selectCard: (id: CardId) => void): PaletteCommand[] {
+export function buildCardCommands(selectCard: (id: CardId) => void, t: TFn): PaletteCommand[] {
   return CARDS.map((card) => ({
     id: `go-${card.id}`,
-    label: `Przejdź: ${card.label}`,
+    label: t("shell:palette.goTo", { card: t(`shell:cards.${card.id}`) }),
     hint: `Alt+${card.hotkey}`,
     run: () => selectCard(card.id),
   }));

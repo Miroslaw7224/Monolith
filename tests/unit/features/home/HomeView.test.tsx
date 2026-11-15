@@ -612,7 +612,7 @@ describe("K1: układ wg makiety", () => {
     unmount();
     respond(FULL);
     render(<HomeView {...defaultProps} />);
-    expect(await screen.findByText("1 ostrzeżeń")).toBeInTheDocument();
+    expect(await screen.findByText("1 ostrzeżenie")).toBeInTheDocument();
   });
 
   test("kafel „Commity dziś” i gałąź w pasku statusu (K7)", async () => {
@@ -732,7 +732,7 @@ describe("K1: układ wg makiety", () => {
     expect(screen.queryByText("stan spójny")).not.toBeInTheDocument();
     const labels = [...document.querySelectorAll(".kok-tile__label")].map((n) => n.textContent);
     expect(labels).not.toContain("Ostrzeżenia");
-    expect(screen.getByLabelText("Pasek statusu")).toHaveTextContent("1 ostrzeżeń");
+    expect(screen.getByLabelText("Pasek statusu")).toHaveTextContent("1 ostrzeżenie");
   });
 
   test("historia commitów: słupki dzień po dniu z sumą i podziałem na projekty (K8)", async () => {

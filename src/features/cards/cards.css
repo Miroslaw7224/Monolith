@@ -140,6 +140,31 @@
   color: var(--shell-text);
 }
 
+.card-rail__lang {
+  width: 44px;
+  height: 28px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--shell-line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--shell-muted);
+  font: 500 10px/1 var(--font-mono);
+  cursor: pointer;
+}
+
+.card-rail__lang:hover {
+  color: var(--shell-text);
+}
+
+.card-rail__lang .is-active {
+  color: var(--shell-text);
+  font-weight: 700;
+}
+
 .card-palette__overlay {
   position: fixed;
   inset: 0;

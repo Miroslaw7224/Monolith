@@ -2,6 +2,7 @@
 import React from "react";
 import { Home, CheckSquare, FileText, Calendar, MoreHorizontal } from "lucide-react";
 import { cn } from "@/src/lib/cn";
+import { useT } from "@/src/i18n/useT";
 import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 
 type AppMode = "home" | "planowanie";
@@ -11,15 +12,14 @@ interface MobileNavProps {
   setAppMode: (mode: AppMode) => void;
   planningTab: PlanningTab;
   setPlanningTab: (tab: PlanningTab) => void;
-  lang: "en" | "pl";
   onMoreOpen: () => void;
 }
 
+type NavTabId = "home" | "tasks" | "notes" | "calendar" | "more";
+
 interface NavTab {
-  id: string;
+  id: NavTabId;
   icon: React.ReactNode;
-  labelPl: string;
-  labelEn: string;
   action: () => void;
   active: boolean;
 }
@@ -29,9 +29,9 @@ export function MobileNav({
   setAppMode,
   planningTab,
   setPlanningTab,
-  lang,
   onMoreOpen,
 }: MobileNavProps) {
+  const t = useT();
   const goToTab = (tab: PlanningTab) => {
     setPlanningTab(tab);
     setAppMode("planowanie");
@@ -41,40 +41,30 @@ export function MobileNav({
     {
       id: "home",
       icon: <Home className="w-5 h-5" />,
-      labelPl: "Home",
-      labelEn: "Home",
       action: () => setAppMode("home"),
       active: appMode === "home",
     },
     {
       id: "tasks",
       icon: <CheckSquare className="w-5 h-5" />,
-      labelPl: "Zadania",
-      labelEn: "Tasks",
       action: () => goToTab("tasks"),
       active: appMode === "planowanie" && planningTab === "tasks",
     },
     {
       id: "notes",
       icon: <FileText className="w-5 h-5" />,
-      labelPl: "Notatki",
-      labelEn: "Notes",
       action: () => goToTab("notes"),
       active: appMode === "planowanie" && planningTab === "notes",
     },
     {
       id: "calendar",
       icon: <Calendar className="w-5 h-5" />,
-      labelPl: "Kalendarz",
-      labelEn: "Calendar",
       action: () => goToTab("calendar"),
       active: appMode === "planowanie" && planningTab === "calendar",
     },
     {
       id: "more",
       icon: <MoreHorizontal className="w-5 h-5" />,
-      labelPl: "Więcej",
-      labelEn: "More",
       action: onMoreOpen,
       active: false,
     },
@@ -83,7 +73,7 @@ export function MobileNav({
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden bg-[var(--bg2)] border-t border-[var(--border)] h-16 safe-area-inset-bottom">
       {tabs.map((tab) => {
-        const label = lang === "pl" ? tab.labelPl : tab.labelEn;
+        const label = t(`shell:mobileNav.${tab.id}`);
         return (
           <button
             key={tab.id}

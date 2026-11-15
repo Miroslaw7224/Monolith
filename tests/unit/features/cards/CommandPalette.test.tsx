@@ -1,8 +1,9 @@
 import React from "react";
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { CommandPalette } from "@/src/features/cards/CommandPalette";
 import type { PaletteCommand } from "@/src/features/cards/cards";
+import { setLanguage } from "@/src/i18n";
 
 beforeEach(() => cleanup());
 
@@ -72,6 +73,19 @@ describe("CommandPalette", () => {
     render(<CommandPalette commands={cmds()} onClose={onClose} />);
     fireEvent.click(screen.getByRole("dialog", { name: "Paleta poleceń" }));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  test("po angielsku: etykiety okna, pola i pustego wyniku", async () => {
+    await act(async () => {
+      await setLanguage("en");
+    });
+    render(<CommandPalette commands={cmds()} onClose={vi.fn()} />);
+    expect(screen.getByRole("dialog", { name: "Command palette" })).toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "Command" });
+    expect(input).toHaveAttribute("placeholder", "Type a command or name…");
+    expect(screen.getByRole("listbox", { name: "Commands" })).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: "zzzz" } });
+    expect(screen.getByText("No results")).toBeInTheDocument();
   });
 });
 
