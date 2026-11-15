@@ -1,4 +1,5 @@
 import React from "react";
+import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
 import type { ProjectStatusChangeDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
 import { isPaused, needsDecision } from "./projectTiles";
 
@@ -16,6 +17,7 @@ export function ProjectList(props: {
         const decide = needsDecision(project);
         const paused = isPaused(project);
         const classes = ["prj-item"];
+        if (project.kind) classes.push(`prj-item--kind-${project.kind}`);
         if (project.id === selectedId) classes.push("prj-item--sel");
         if (decide) classes.push("prj-item--stale");
         if (paused) classes.push("prj-item--paused");
@@ -34,6 +36,11 @@ export function ProjectList(props: {
                 <span className="prj-item__top">
                   <span className="prj-item__name">{project.name}</span>
                   <span className="prj-item__badges">
+                    {project.kind ? (
+                      <span className={`prj-badge prj-badge--kind-${project.kind}`}>
+                        {PROJECT_KIND_LABELS[project.kind]}
+                      </span>
+                    ) : null}
                     {project.owner === "work" ? (
                       <span className="prj-badge prj-badge--firm">Firma</span>
                     ) : null}

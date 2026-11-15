@@ -499,3 +499,59 @@ describe("ProjectsView: uśpienie i nowy projekt", () => {
     expect(screen.getByText("Gdzie skończyłem (z index.md)")).toBeInTheDocument();
   });
 });
+
+describe("ProjectsView: rodzaj projektu", () => {
+  it("lista: klasa i znacznik rodzaju; żółty „Firma” tylko przy owner work", async () => {
+    const list = [
+      summary({ id: "e", type: "etat" }),
+      summary({ id: "w" }),
+      summary({ id: "b", type: "biblioteka" }),
+      summary({ id: "ew", owner: "work" }),
+      summary({ id: "wf", owner: "work", type: "wlasny" }),
+    ];
+    const apiFetch = makeApiFetch(list, Object.fromEntries(list.map((p) => [p.id, detail(p)])));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByText("e", { selector: ".prj-item__name" });
+
+    expect(itemButton("e")).toHaveClass("prj-item--kind-etat");
+    expect(within(itemButton("e")).getByText("Etat")).toBeInTheDocument();
+    expect(within(itemButton("e")).queryByText("Firma")).not.toBeInTheDocument();
+
+    expect(itemButton("w")).toHaveClass("prj-item--kind-wlasny");
+    expect(within(itemButton("w")).getByText("Własny")).toBeInTheDocument();
+
+    expect(itemButton("b")).toHaveClass("prj-item--kind-biblioteka");
+    expect(within(itemButton("b")).getByText("Biblioteka")).toBeInTheDocument();
+
+    expect(itemButton("ew")).toHaveClass("prj-item--kind-etat");
+    expect(within(itemButton("ew")).getByText("Etat")).toBeInTheDocument();
+    expect(within(itemButton("ew")).getByText("Firma")).toBeInTheDocument();
+
+    expect(itemButton("wf")).toHaveClass("prj-item--kind-wlasny");
+    expect(within(itemButton("wf")).getByText("Własny")).toBeInTheDocument();
+    expect(within(itemButton("wf")).getByText("Firma")).toBeInTheDocument();
+  });
+
+  it("teczka: „Dane z firmy” z podpowiedzią wg powodu i pasek rodzaju", async () => {
+    const etat = summary({ id: "e", type: "etat" });
+    const work = summary({ id: "w", owner: "work" });
+    const apiFetch = makeApiFetch([etat, work], { e: detail(etat), w: detail(work) });
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByText("e", { selector: ".prj-item__name" });
+
+    await userEvent.click(itemMain("e"));
+    const etatCard = await screen.findByRole("region", { name: "Teczka projektu e" });
+    expect(within(etatCard).getByText("Dane z firmy")).toHaveAttribute(
+      "title",
+      expect.stringContaining("Etykieta")
+    );
+    expect(etatCard.querySelector(".prj-card--kind-etat")).not.toBeNull();
+
+    await userEvent.click(itemMain("w"));
+    const workCard = await screen.findByRole("region", { name: "Teczka projektu w" });
+    expect(within(workCard).getByText("Dane z firmy")).toHaveAttribute(
+      "title",
+      expect.stringContaining("Chronione")
+    );
+  });
+});

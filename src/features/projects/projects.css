@@ -302,9 +302,9 @@
 }
 
 .prj-item--sel {
-  border-color: var(--accent);
+  border-color: var(--prj-kind, var(--accent));
   box-shadow:
-    0 0 0 1px var(--accent),
+    0 0 0 1px var(--prj-kind, var(--accent)),
     0 0 18px -4px var(--glow);
   background: color-mix(in srgb, var(--surface-2) 90%, var(--accent-soft));
 }
@@ -316,6 +316,62 @@
 
 .prj-item--done {
   opacity: 0.55;
+}
+
+/* Rodzaj projektu: pasek po lewej (::before, żeby nie kolidował z ramką zaznaczenia i alertem „>14 dni”). */
+.prj-item {
+  position: relative;
+}
+
+.prj-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--prj-kind, transparent);
+}
+
+.prj-item--kind-etat,
+.prj-card--kind-etat {
+  --prj-kind: var(--kind-etat);
+}
+
+.prj-item--kind-wlasny,
+.prj-card--kind-wlasny {
+  --prj-kind: var(--kind-wlasny);
+}
+
+.prj-item--kind-biblioteka,
+.prj-card--kind-biblioteka {
+  --prj-kind: var(--kind-biblioteka);
+}
+
+.prj-card--kind {
+  border-left: 4px solid var(--prj-kind);
+}
+
+.prj-badge--kind-etat,
+.prj-badge--kind-wlasny,
+.prj-badge--kind-biblioteka {
+  font-weight: 700;
+}
+
+.prj-badge--kind-etat {
+  border-color: var(--kind-etat);
+  color: var(--kind-etat);
+}
+
+.prj-badge--kind-wlasny {
+  border-color: var(--kind-wlasny);
+  color: var(--kind-wlasny);
+}
+
+.prj-badge--kind-biblioteka {
+  border-color: var(--kind-biblioteka);
+  color: var(--kind-biblioteka);
 }
 
 .prj-item__top {
