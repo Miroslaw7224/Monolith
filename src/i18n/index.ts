@@ -60,6 +60,7 @@ if (!i18n.isInitialized) {
       "resources",
       "mindmaps",
       "arsenal",
+      "courses",
       "map",
       "codex",
       "notes",

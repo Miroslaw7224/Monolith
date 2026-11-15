@@ -50,6 +50,7 @@ export const shell = {
     tags: "Tagi",
     resources: "Zasoby",
     skills: "Skille i prompty",
+    courses: "Kursy",
     mindmaps: "Mapy myśli",
     board: "Tablica",
   },

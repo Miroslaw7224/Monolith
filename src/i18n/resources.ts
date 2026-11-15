@@ -7,6 +7,7 @@ import { tasks as plTasks } from "./locales/pl/tasks";
 import { resources as plResources } from "./locales/pl/resources";
 import { mindmaps as plMindmaps } from "./locales/pl/mindmaps";
 import { arsenal as plArsenal } from "./locales/pl/arsenal";
+import { courses as plCourses } from "./locales/pl/courses";
 import { map as plMap } from "./locales/pl/map";
 import { codex as plCodex } from "./locales/pl/codex";
 import { notes as plNotes } from "./locales/pl/notes";
@@ -19,6 +20,7 @@ import { tasks as enTasks } from "./locales/en/tasks";
 import { resources as enResources } from "./locales/en/resources";
 import { mindmaps as enMindmaps } from "./locales/en/mindmaps";
 import { arsenal as enArsenal } from "./locales/en/arsenal";
+import { courses as enCourses } from "./locales/en/courses";
 import { map as enMap } from "./locales/en/map";
 import { codex as enCodex } from "./locales/en/codex";
 import { notes as enNotes } from "./locales/en/notes";
@@ -34,6 +36,7 @@ export const resources = {
     resources: plResources,
     mindmaps: plMindmaps,
     arsenal: plArsenal,
+    courses: plCourses,
     map: plMap,
     codex: plCodex,
     notes: plNotes,
@@ -48,6 +51,7 @@ export const resources = {
     resources: enResources,
     mindmaps: enMindmaps,
     arsenal: enArsenal,
+    courses: enCourses,
     map: enMap,
     codex: enCodex,
     notes: enNotes,

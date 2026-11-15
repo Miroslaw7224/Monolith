@@ -48,6 +48,7 @@ export const shell = {
     tags: "Tags",
     resources: "Resources",
     skills: "Skills & prompts",
+    courses: "Courses",
     mindmaps: "Mind Maps",
     board: "Board",
   },
