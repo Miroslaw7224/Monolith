@@ -189,4 +189,29 @@ describe("CoursesView", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Awaria");
     expect(screen.getByRole("button", { name: "Dodaj kurs" })).toBeDisabled();
   });
+
+  it("udany zapis czyści stary komunikat błędu po nieudanym usunięciu", async () => {
+    const apiFetch = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "DELETE"
+        ? ({
+            ok: false,
+            status: 500,
+            json: async () => ({ error: "Nie można usunąć" }),
+          } as Response)
+        : json(init?.method ? {} : list)
+    );
+    render(<CoursesView apiFetch={apiFetch} />);
+    const card = (await screen.findByText("Plan na później")).closest("article")!;
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nie można usunąć");
+    await userEvent.click(screen.getByRole("button", { name: "Dodaj kurs" }));
+    await userEvent.type(screen.getByLabelText("Tytuł"), "Nowy");
+    await userEvent.type(
+      screen.getByLabelText("Adres kursu (http/https)"),
+      "https://n.example.com"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Zapisz" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
 });

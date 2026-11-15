@@ -116,6 +116,7 @@ export function CoursesView({ apiFetch }: { apiFetch: ApiFetch }) {
   ];
 
   const save = async (input: CourseInputDto, id?: string) => {
+    setActionError(null);
     await c.save(input, id);
     setEditing(null);
   };

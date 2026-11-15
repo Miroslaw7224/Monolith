@@ -42,6 +42,7 @@ export function AgentsView({ apiFetch }: { apiFetch: ApiFetch }) {
 
   const total = a.agents.length + a.presets.length + a.scripts.length;
   const save = async (input: AgentEntryInputDto, id?: string) => {
+    setActionError(null);
     await a.save(input, id);
     setEditing(null);
   };
