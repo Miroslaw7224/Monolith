@@ -46,7 +46,9 @@ Zadanie jest duże, więc ten spec opisuje **cały kierunek** (§2–§4) i **sz
 
 **Funkcje spoza Reacta** (np. `buildCardCommands`, `buildAppCommands` w `src/features/cards/`) dostają `t` jako argument albo wołają `i18n.t`; hook jest tylko w komponentach.
 
-**Ryzyko do rozstrzygnięcia w planie etapu 1:** pierwszy render z SSR jest po polsku, więc użytkownik EN mógłby widzieć krótkie mignięcie PL po F5. Warianty: skrypt jak `ThemeScript` ustawiający język przed hydracją, albo bramka „render po odczycie języka”. Plan wybiera jeden i go testuje.
+**Rozstrzygnięte w planie etapu 1:** bramka w `I18nProvider` (render dzieci dopiero po zastosowaniu zapisanego języka); skrypt jak `ThemeScript` odrzucony, bo nie zmieni zasobów i18next przed hydracją.
+
+**Typy kluczy a `strict: false`:** typy i18next 27 wymagają `strictNullChecks`; przy `strict: false` `t` z `useTranslation()` odrzuca klucze bez prefiksu i z interpolacją. Dlatego klucze są zawsze z prefiksem namespace'u (`t("shell:rail.aria")`), a komponenty biorą `t` z `useT()` (`src/i18n/useT.ts`, typ `TFn = typeof i18n.t`).
 
 ## 4. Etapy
 
@@ -65,9 +67,9 @@ Po etapie 4 plik `src/translations.ts` znika, a w repo nie zostaje drugi mechani
 **Wchodzi:**
 
 1. Zależności, `src/i18n/` (`index.ts`, `I18nProvider.tsx`, `format.ts`), namespace `common` i `shell`, setup w `tests/setup.ts` (i18n w PL), test zgodności kluczy PL/EN.
-2. Powłoka przepisana na `useTranslation`: `CardRail` (aria-label „Karty” / „Cards”, tytuły, `⌘K`), etykiety kart z `cards.ts`, `appCommands.ts` i `CommandPalette` (w tym `buildCardCommands`, „Przejdź: …”), `ShellStatusBar`, `MobileNav`, `MobileMoreDrawer`, `FeedbackModal`. Znikają ternarne `labelPl/labelEn` i prop `lang` w tych komponentach.
+2. Powłoka przepisana na `useTranslation`: `CardRail` (aria-label „Karty” / „Cards”, tytuły, `⌘K`), etykiety kart z `cards.ts`, `appCommands.ts` i `CommandPalette` (w tym `buildCardCommands`, „Przejdź: …”), `ShellStatusBar` (teksty leżą we wspólnym `StatusBar.tsx`), `MobileNav`, `MobileMoreDrawer`, `FeedbackModal`. Znikają ternarne `labelPl/labelEn` i prop `lang` w tych komponentach.
 3. Widoczny przycisk PL/EN w `CardRail`, tuż nad `⌘K`; przełączanie nadal działa też z Ctrl+K i szufladki „Więcej”.
-4. Daty w powłoce przez `format.ts`.
+4. Daty w powłoce przez `format.ts`. W powłoce nie ma dat (jest tylko godzina `hhmm`, bez zmian); `format.ts` ma w etapie 1 tylko `formatDate`, bez użytkownika do etapu 2.
 
 **Etykiety kart po angielsku (nowe, dziś karty mają tylko PL):** Kokpit → Cockpit, Kalendarz → Calendar, Zadania → Tasks, Projekty → Projects, Notatki → Notes, Płótno → Canvas, Arsenał → Arsenal, Mapa → Map, Kodeks → Codex. Zakładki w `MobileNav` mają już `labelEn`; przenosimy je do słownika.
 
@@ -95,5 +97,4 @@ Po etapie 4 plik `src/translations.ts` znika, a w repo nie zostaje drugi mechani
 
 ## 7. Otwarte punkty
 
-- Sposób uniknięcia mignięcia PL po F5 (§3), do rozstrzygnięcia w planie etapu 1.
-- Szczegółowa lista tekstów `ShellStatusBar` i `FeedbackModal`: inwentaryzacja w planie etapu 1 (odczyt plików, bez budowania kodu).
+Brak otwartych punktów etapu 1.
