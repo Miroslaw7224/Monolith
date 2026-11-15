@@ -24,9 +24,18 @@ import {
   clearActiveSession,
   type ActiveSession,
 } from "@/src/components/sessions/activeSession";
-import type { translations } from "@/src/translations";
+import { useT } from "@/src/i18n/useT";
+import { formatTime } from "@/src/i18n/format";
 
-type TranslationsEn = (typeof translations)["en"];
+const TAB_LABEL_KEY = {
+  calendar: "planning:tabCalendar",
+  activity: "planning:activityTitle",
+  board: "planning:tabBoard",
+  mindmaps: "planning:tabMindMaps",
+  resources: "planning:tabResources",
+  skills: "planning:tabSkills",
+  tags: "planning:tabTags",
+} as const;
 
 const ActivityLog = dynamic<
   ComponentProps<typeof import("@/src/components/sessions/ActivityLog").ActivityLog>
@@ -36,8 +45,6 @@ const ActivityLog = dynamic<
 
 export interface PlanowanieViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "en" | "pl";
-  t: TranslationsEn;
   appMode: "home" | "planowanie";
   setAppMode: (mode: "home" | "planowanie") => void;
   planningTab: PlanningTab;
@@ -46,13 +53,12 @@ export interface PlanowanieViewProps {
 
 export default function PlanowanieView({
   apiFetch,
-  lang,
-  t,
   appMode,
   setAppMode,
   planningTab,
   setPlanningTab,
 }: PlanowanieViewProps) {
+  const t = useT();
   const [calendarRefreshKey, setCalendarRefreshKey] = useState(0);
   const [userTags, setUserTags] = useState<UserTag[]>([]);
   const [activeSession, setActiveSessionState] = useState<ActiveSession | null>(null);
@@ -118,9 +124,9 @@ export default function PlanowanieView({
       clearActiveSession();
       setCalendarRefreshKey((k) => k + 1);
     } catch (err) {
-      setSessionEndError(err instanceof Error ? err.message : "Failed to save");
+      setSessionEndError(err instanceof Error ? err.message : t("planning:sessionSaveFailed"));
     }
-  }, [activeSession, apiFetch]);
+  }, [activeSession, apiFetch, t]);
 
   const fetchTags = useCallback(async () => {
     try {
@@ -176,22 +182,7 @@ export default function PlanowanieView({
   const cardSubtabs = subtabsForCard(currentCard);
   const subtabItems = cardSubtabs.map((tab) => ({
     id: tab,
-    label:
-      tab === "calendar"
-        ? ((t.tabCalendar as string) ?? "Kalendarz")
-        : tab === "activity"
-          ? ((t.activityTitle as string) ?? "Moja praca")
-          : tab === "board"
-            ? ((t.tabBoard as string) ?? "Tablica")
-            : tab === "mindmaps"
-              ? ((t.tabMindMaps as string) ?? "Mapy myśli")
-              : tab === "resources"
-                ? ((t.tabResources as string) ?? "Zasoby")
-                : tab === "skills"
-                  ? ((t.tabSkills as string) ?? "Skille i prompty")
-                  : tab === "tags"
-                    ? t.tabTags
-                    : tab,
+    label: tab in TAB_LABEL_KEY ? t(TAB_LABEL_KEY[tab as keyof typeof TAB_LABEL_KEY]) : tab,
   }));
 
   return (
@@ -204,24 +195,16 @@ export default function PlanowanieView({
         {activeSession && planningTab !== "calendar" && (
           <div className="flex-shrink-0 px-4 py-2 bg-[var(--accent-bg)] border-b border-[var(--accent)] flex items-center justify-between gap-2">
             <span className="text-sm font-medium text-[var(--text)]">
-              {(t.sessionInProgressSince as string)?.replace(
-                "{time}",
-                new Date(activeSession.startedAt).toLocaleTimeString(
-                  lang === "pl" ? "pl-PL" : "en-US",
-                  {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )
-              ) ??
-                `Work in progress since ${new Date(activeSession.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`}
+              {t("planning:sessionInProgressSince", {
+                time: formatTime(new Date(activeSession.startedAt)),
+              })}
             </span>
             <button
               type="button"
               onClick={handleEndSession}
               className="flex items-center gap-2 px-3 py-1.5 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:brightness-110"
             >
-              {t.sessionEndButton as string}
+              {t("planning:sessionEndButton")}
             </button>
           </div>
         )}
@@ -250,13 +233,13 @@ export default function PlanowanieView({
             setNoteEditMode={setNoteEditMode}
             onSaveNote={handleSaveNote}
             onDeleteNote={handleDeleteNote}
-            newNote={t.newNote}
-            noteTitlePlaceholder={t.noteTitlePlaceholder}
-            noteContentPlaceholder={t.noteContentPlaceholder}
-            noteCancelEdit={t.noteCancelEdit}
-            saveNote={t.saveNote}
-            noteEdit={t.noteEdit}
-            deleteNote={t.deleteNote}
+            newNote={t("planning:newNote")}
+            noteTitlePlaceholder={t("planning:noteTitlePlaceholder")}
+            noteContentPlaceholder={t("planning:noteContentPlaceholder")}
+            noteCancelEdit={t("planning:noteCancelEdit")}
+            saveNote={t("planning:saveNote")}
+            noteEdit={t("planning:noteEdit")}
+            deleteNote={t("planning:deleteNote")}
             inboxOpen={inboxOpen}
             apiFetch={apiFetch}
             initialNexusPath={pendingNexusPath}
@@ -278,31 +261,31 @@ export default function PlanowanieView({
           </div>
         ) : planningTab === "mindmaps" ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-            <MindMapsTab apiFetch={apiFetch} title={(t.tabMindMaps as string) ?? "Mapy myśli"} />
+            <MindMapsTab apiFetch={apiFetch} title={t("planning:tabMindMaps")} />
           </div>
         ) : planningTab === "board" ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
             <BoardTab
               apiFetch={apiFetch}
               labels={{
-                canvas: t.boardCanvas as string,
-                list: t.boardList as string,
-                saveFailed: t.boardSaveFailed as string,
-                loadFailed: t.boardLoadFailed as string,
-                retry: t.boardRetry as string,
-                outside: t.boardOutside as string,
-                tileTitle: t.boardTileTitle as string,
-                tileNote: t.boardTileNote as string,
-                close: t.boardClose as string,
+                canvas: t("planning:boardCanvas"),
+                list: t("planning:boardList"),
+                saveFailed: t("planning:boardSaveFailed"),
+                loadFailed: t("planning:boardLoadFailed"),
+                retry: t("planning:boardRetry"),
+                outside: t("planning:boardOutside"),
+                tileTitle: t("planning:boardTileTitle"),
+                tileNote: t("planning:boardTileNote"),
+                close: t("planning:boardClose"),
               }}
               canvasLabels={{
-                addTile: t.boardAddTile as string,
-                addFrame: t.boardAddFrame as string,
-                newTile: t.boardNewTile as string,
-                frameName: t.boardFrameName as string,
-                save: t.boardSave as string,
-                cancel: t.boardCancel as string,
-                delete: t.boardDelete as string,
+                addTile: t("planning:boardAddTile"),
+                addFrame: t("planning:boardAddFrame"),
+                newTile: t("planning:boardNewTile"),
+                frameName: t("planning:boardFrameName"),
+                save: t("planning:boardSave"),
+                cancel: t("planning:boardCancel"),
+                delete: t("planning:boardDelete"),
               }}
             />
           </div>

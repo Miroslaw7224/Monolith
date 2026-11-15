@@ -6,7 +6,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useT } from "@/src/i18n/useT";
 import { useLang } from "@/src/i18n/useLang";
-import { translations } from "@/src/translations";
 import { apiFetch } from "@/src/lib/apiFetch";
 import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
 import HomeView from "@/src/features/home/HomeView";
@@ -27,7 +26,6 @@ import { CodexView } from "@/src/features/codex/CodexView";
 
 export default function App() {
   const { lang, toggleLang } = useLang();
-  const t = translations[lang];
   const tShell = useT();
   const {
     appMode,
@@ -103,8 +101,6 @@ export default function App() {
           ) : (
             <PlanowanieView
               apiFetch={apiFetch}
-              lang={lang}
-              t={t}
               appMode={appMode}
               setAppMode={setAppMode}
               planningTab={planningTab}

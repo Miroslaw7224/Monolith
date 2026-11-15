@@ -4,7 +4,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { ResourceSection } from "@/src/features/resources/ResourceSection";
 import { setLanguage } from "@/src/i18n";
 import i18n from "@/src/i18n";
-import { translations } from "@/src/translations";
+import { resources as enResources } from "@/src/i18n/locales/en/resources";
+import { resources as plResources } from "@/src/i18n/locales/pl/resources";
 
 const data = [
   {
@@ -35,12 +36,12 @@ describe("ResourceSection po angielsku", () => {
     });
     render(<ResourceSection apiFetch={apiFetch()} />);
     const search = screen.getByRole("searchbox");
-    expect(search).toHaveAttribute("placeholder", translations.en.resourceSearchPlaceholder);
+    expect(search).toHaveAttribute("placeholder", enResources.resourceSearchPlaceholder);
 
     await act(async () => {
       await setLanguage("pl");
     });
-    expect(search).toHaveAttribute("placeholder", translations.pl.resourceSearchPlaceholder);
+    expect(search).toHaveAttribute("placeholder", plResources.resourceSearchPlaceholder);
   });
 });
 
