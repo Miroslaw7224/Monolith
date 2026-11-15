@@ -139,7 +139,7 @@ Reguły zgłoszone przez użytkownika do włączenia do rdzenia (rozdział „pr
   Weryfikacja kodu należy do wykonawcy planu (czerwony test, zielony test), nie do autora planu.
 ```
 
-Propozycja reguły z sesji 2026-11-14 (rozdział „bezpieczeństwo i dane”), do przeglądu przed włączeniem do rdzenia:
+Reguła z sesji 2026-11-14, **włączona do rdzenia 2026-11-15** (`kodeks.md`, rozdział 5 „Współpraca z agentami AI”, z pozycją w Definition of Done):
 
 ```
 - **[ZAPIS-1] MUST** Próbne zapisy (testowy POST, skrypt, eksperyment) nie trafiają do prawdziwych danych użytkownika (vault, baza). Używam tymczasowego vaulta albo kopii (w Monolith: `setupTempVault`).

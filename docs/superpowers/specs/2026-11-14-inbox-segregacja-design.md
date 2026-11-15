@@ -6,7 +6,7 @@ Data: 2026-11-14. Rozwija spec asystenta (`2026-11-11-asystent-lokalny-nexus-des
 
 Wpis z `Vault/Inbox/inbox.md` da się dziś tylko oznaczyć jako „Gotowe” (`[x]`) albo usunąć. Ten etap dodaje trzecią akcję: **przeniesienie wpisu** do zadania projektu, zadania ogólnego albo notatki. Robi to użytkownik w oknie wpisu albo agent CLI (np. Claude Code na subskrypcji) przez to samo API aplikacji.
 
-**Poza zakresem:** cel „kurs” (Arsenał etapy 3–4 jeszcze nie istnieją), cel „bug w `bugs.md`” (zapis powstanie razem z widokiem Bugów per projekt), pole propozycji w `inbox.md`, zlecenia z przycisku w UI, kolejka `Vault/Agent/queue/` i serwer MCP (G1), jakiekolwiek wywołanie modelu przez aplikację (G3, pilnuje tego `tests/unit/no-model-api.static.test.ts`).
+**Poza zakresem:** cel „kurs” (Arsenał etapy 3–4 jeszcze nie istnieją), cel „bug w `bugs.md`” (rozstrzygnięte 2026-11-15: bez zapisu z aplikacji, zob. spec bugów B1; bug z Inboxu zapisuje agent przez skill `bug-projektu`, a okno „Przenieś do…” tylko o tym przypomina), pole propozycji w `inbox.md`, zlecenia z przycisku w UI, kolejka `Vault/Agent/queue/` i serwer MCP (G1), jakiekolwiek wywołanie modelu przez aplikację (G3, pilnuje tego `tests/unit/no-model-api.static.test.ts`).
 
 ## 2. Decyzje
 
