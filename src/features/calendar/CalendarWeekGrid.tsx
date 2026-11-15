@@ -2,16 +2,21 @@ import React, { useEffect, useRef } from "react";
 import type { CalendarEvent, CalendarEventSegment } from "./calendarUtils";
 import {
   CALENDAR_MAX_STACK,
-  WEEKDAY_SHORT_PL,
   assignLanes,
   formatClock,
   getOverlapCounts,
   parseYmd,
+  weekdayKey,
+  type WeekdayKey,
   weekScrollTop,
 } from "./calendarUtils";
 import { eventModifier } from "./calendarEventStyle";
 import type { ActiveSession } from "@/src/components/sessions/activeSession";
 import type { DeepWindowDto } from "@/contexts/bc_cockpit/schemas";
+import { useT } from "@/src/i18n/useT";
+function calendarWeekdayShortKey(k: WeekdayKey): `planning:calendarWeekdayShort.${WeekdayKey}` {
+  return `planning:calendarWeekdayShort.${k}`;
+}
 
 const HOURS = 24;
 const SNAP_MINUTES = 30;
@@ -45,6 +50,7 @@ export function CalendarWeekGrid({
   onSelect,
   onAdd,
 }: CalendarWeekGridProps) {
+  const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
   // Pozycja startowa liczona raz, przy pierwszym renderze: kolejne tyknięcia zegara nie mogą
   // odsuwać przewiniętego widoku.
@@ -57,17 +63,17 @@ export function CalendarWeekGrid({
   }, []);
 
   return (
-    <section className="kal-week" aria-label="Tydzień">
+    <section className="kal-week" aria-label={t("planning:calendarWeekAria")}>
       <div className="kal-scroll" ref={scrollRef}>
         <div className="kal-days">
           <div />
-          {dates.map((date, i) => {
+          {dates.map((date) => {
             const isToday = date === todayStr;
             return (
               <div key={date} className={`kal-day-h ${isToday ? "kal-day-h--today" : ""}`}>
                 <span>
-                  {WEEKDAY_SHORT_PL[i]}
-                  {isToday ? " · dziś" : ""}
+                  {t(calendarWeekdayShortKey(weekdayKey(parseYmd(date))))}
+                  {isToday ? t("planning:calendarTodaySuffix") : ""}
                 </span>
                 <b>{parseYmd(date).getDate()}</b>
               </div>
@@ -107,7 +113,7 @@ export function CalendarWeekGrid({
                   <div
                     className="kal-now"
                     style={{ ["--start" as string]: nowMinutes / 60 }}
-                    aria-label={`Teraz ${formatClock(nowMinutes)}`}
+                    aria-label={t("planning:calendarNowAria", { time: formatClock(nowMinutes) })}
                   />
                 )}
                 {isToday &&
@@ -121,7 +127,11 @@ export function CalendarWeekGrid({
                       }}
                       title={`${formatClock(w.startMinutes)}–${formatClock(w.endMinutes)}`}
                     >
-                      <b>{w.energy === "deep" ? "Okno Deep Work" : "Okno Quick Win"}</b>
+                      <b>
+                        {w.energy === "deep"
+                          ? t("planning:calendarWindowDeep")
+                          : t("planning:calendarWindowQuick")}
+                      </b>
                       {w.title}
                     </div>
                   ))}
@@ -195,7 +205,7 @@ export function CalendarWeekGrid({
                           ["--start" as string]: startMin / 60,
                           ["--len" as string]: (nowMinutes - startMin) / 60,
                         }}
-                        title={`${activeSession.title} · w toku`}
+                        title={`${activeSession.title} · ${t("planning:calendarSessionInProgressSuffix")}`}
                       >
                         <b>{activeSession.title}</b>
                       </div>

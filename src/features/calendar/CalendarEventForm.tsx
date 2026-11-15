@@ -6,6 +6,7 @@ import {
   formatDuration,
 } from "@/src/lib/calendarConstants";
 import { addCalendarDays } from "./calendarUtils";
+import { useT } from "@/src/i18n/useT";
 
 export interface CalendarEventFormData {
   date: string;
@@ -40,8 +41,10 @@ export function CalendarEventForm({
   tagColors = {},
   onSubmit,
   onCancel,
-  submitLabel = "Add",
+  submitLabel,
 }: CalendarEventFormProps) {
+  const t = useT();
+  const resolvedSubmitLabel = submitLabel ?? t("planning:calendarAddEntry");
   const [date, setDate] = useState(initial?.date ?? "");
   const [eventType, setEventType] = useState<"work" | "meeting">(initial?.type ?? "work");
   const [startMinutes, setStartMinutes] = useState(
@@ -71,21 +74,21 @@ export function CalendarEventForm({
   }, [initial?.date, date]);
 
   const addTag = () => {
-    const t = tagInput.trim().replace(/^#/, "");
-    if (t && !tags.includes(t)) {
-      setTags([...tags, t]);
+    const tag = tagInput.trim().replace(/^#/, "");
+    if (tag && !tags.includes(tag)) {
+      setTags([...tags, tag]);
       setTagInput("");
     }
   };
 
-  const removeTag = (t: string) => {
-    setTags(tags.filter((x) => x !== t));
+  const removeTag = (tag: string) => {
+    setTags(tags.filter((x) => x !== tag));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!date || !title.trim()) return;
-    const firstTagWithColor = tags.find((t) => getColorForTag(t));
+    const firstTagWithColor = tags.find((tag) => getColorForTag(tag));
     const color = firstTagWithColor ? getColorForTag(firstTagWithColor)! : CALENDAR_COLORS[0];
     onSubmit({
       date,
@@ -106,60 +109,60 @@ export function CalendarEventForm({
   const crossesDayBoundary = spanEndTotal > MINS_PER_DAY;
   const tagInputNormalized = tagInput.trim().replace(/^#/, "").toLowerCase();
   const filteredExistingTags = existingTags
-    .filter((t) => {
-      if (tags.includes(t)) return false;
+    .filter((tag) => {
+      if (tags.includes(tag)) return false;
       if (!tagInputNormalized) return true;
-      return t.toLowerCase().includes(tagInputNormalized);
+      return tag.toLowerCase().includes(tagInputNormalized);
     })
     .slice(0, 10);
 
   return (
     <form onSubmit={handleSubmit} className="kal-form">
       <div className="kal-form-group">
-        <label className="kal-label">Title</label>
+        <label className="kal-label">{t("planning:calendarFormTitleLabel")}</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. QA testing, Learning"
+          placeholder={t("planning:calendarFormTitlePlaceholder")}
           className="kal-input"
           required
         />
       </div>
       <div className="kal-form-group">
         <label className="kal-label" htmlFor="kal-link">
-          Meeting link
+          {t("planning:calendarFormMeetingLink")}
         </label>
         <input
           id="kal-link"
           type="url"
           value={link}
           onChange={(e) => setLink(e.target.value)}
-          placeholder="https://meet.google.com/…"
+          placeholder={t("planning:calendarFormMeetingLinkPlaceholder")}
           className="kal-input"
         />
         {/^https?:\/\/\S+$/i.test(link.trim()) ? (
           <a href={link.trim()} target="_blank" rel="noopener noreferrer" className="kal-link-open">
-            Open meeting ↗
+            {t("planning:calendarFormOpenMeeting")}
           </a>
         ) : null}
       </div>
       <div className="kal-form-group">
         <label className="kal-label" htmlFor="kal-brief">
-          Brief
+          {t("planning:calendarFormBrief")}
         </label>
         <textarea
           id="kal-brief"
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
-          placeholder="Co omówić — jedna linia = jeden punkt"
+          placeholder={t("planning:calendarFormBriefPlaceholder")}
           maxLength={1000}
           rows={3}
           className="kal-input"
         />
       </div>
       <div className="kal-form-group">
-        <label className="kal-label">Event type</label>
+        <label className="kal-label">{t("planning:calendarFormEventType")}</label>
         <select
           value={eventType}
           onChange={(e) => {
@@ -169,13 +172,13 @@ export function CalendarEventForm({
           }}
           className="kal-select"
         >
-          <option value="work">Work session</option>
-          <option value="meeting">Meeting</option>
+          <option value="work">{t("planning:calendarFormTypeWork")}</option>
+          <option value="meeting">{t("planning:calendarFormTypeMeeting")}</option>
         </select>
       </div>
       <div className="kal-form-row">
         <div className="kal-form-group">
-          <label className="kal-label">Date</label>
+          <label className="kal-label">{t("planning:calendarFormDate")}</label>
           <input
             type="date"
             value={date}
@@ -184,7 +187,7 @@ export function CalendarEventForm({
           />
         </div>
         <div className="kal-form-group">
-          <label className="kal-label">Start time</label>
+          <label className="kal-label">{t("planning:calendarFormStartTime")}</label>
           <select
             value={startMinutes}
             onChange={(e) => setStartMinutes(Number(e.target.value))}
@@ -199,7 +202,7 @@ export function CalendarEventForm({
         </div>
       </div>
       <div className="kal-form-group">
-        <label className="kal-label">Duration (15 min steps)</label>
+        <label className="kal-label">{t("planning:calendarFormDuration")}</label>
         <select
           value={durationMinutes}
           onChange={(e) => setDurationMinutes(Number(e.target.value))}
@@ -219,21 +222,25 @@ export function CalendarEventForm({
             const endMinOfDay = spanEndTotal % MINS_PER_DAY;
             const endH = Math.floor(endMinOfDay / 60);
             const endM = endMinOfDay % 60;
-            const endStr = `${String(endH).padStart(2, "0")}:{String(endM).padStart(2, "0")}`;
+            const endStr = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
             const endDateStr = addCalendarDays(date, extraDays);
             return extraDays === 1
-              ? `Ends the next calendar day (${endDateStr}) at ${endStr}.`
-              : `Ends on ${endDateStr} at ${endStr} (${extraDays} days after start).`;
+              ? t("planning:calendarEndsNextDay", { date: endDateStr, time: endStr })
+              : t("planning:calendarEndsMultiDay", {
+                  date: endDateStr,
+                  time: endStr,
+                  days: extraDays,
+                });
           })()}
         </p>
       )}
       <div className="kal-form-group">
-        <label className="kal-label">Tags (#testy, #nauka…)</label>
+        <label className="kal-label">{t("planning:calendarFormTagsLabel")}</label>
         <div className="kal-tag-container">
-          {tags.map((t) => (
-            <span key={t} className="kal-tag-chip">
-              #{t}
-              <button type="button" onClick={() => removeTag(t)} className="kal-tag-chip__remove">
+          {tags.map((tag) => (
+            <span key={tag} className="kal-tag-chip">
+              #{tag}
+              <button type="button" onClick={() => removeTag(tag)} className="kal-tag-chip__remove">
                 ×
               </button>
             </span>
@@ -258,7 +265,7 @@ export function CalendarEventForm({
                 }, 180);
               }}
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-              placeholder="#tag lub wybierz poniżej"
+              placeholder={t("planning:sessionModalTagPlaceholder")}
               className="kal-input"
               style={{ flex: 1 }}
             />
@@ -267,23 +274,25 @@ export function CalendarEventForm({
             </button>
             {(tagInputFocused || tagInput) && filteredExistingTags.length > 0 && (
               <div className="kal-autocomplete">
-                <p className="kal-autocomplete__header">Propozycje</p>
-                {filteredExistingTags.map((t) => (
+                <p className="kal-autocomplete__header">
+                  {t("planning:sessionModalSuggestionsLabel")}
+                </p>
+                {filteredExistingTags.map((tag) => (
                   <button
-                    key={t}
+                    key={tag}
                     type="button"
                     tabIndex={-1}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      if (!tags.includes(t)) setTags([...tags, t]);
+                      if (!tags.includes(tag)) setTags([...tags, tag]);
                       setTagInput("");
-                      const assignedTitle = tagTitles[t];
+                      const assignedTitle = tagTitles[tag];
                       if (assignedTitle) setTitle(assignedTitle);
                     }}
                     className="kal-autocomplete__item"
                   >
                     <span style={{ color: "var(--accent-text)" }}>#</span>
-                    {t}
+                    {tag}
                   </button>
                 ))}
               </div>
@@ -293,10 +302,10 @@ export function CalendarEventForm({
       </div>
       <div className="kal-form-actions">
         <button type="button" onClick={onCancel} className="kal-btn kal-btn--ghost">
-          Cancel
+          {t("planning:calendarCancel")}
         </button>
         <button type="submit" className="kal-btn kal-btn--primary">
-          {submitLabel}
+          {resolvedSubmitLabel}
         </button>
       </div>
     </form>

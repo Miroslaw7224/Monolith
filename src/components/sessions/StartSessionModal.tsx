@@ -5,6 +5,7 @@
 
 import React, { useState, useRef } from "react";
 import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
+import { useT } from "@/src/i18n/useT";
 
 export interface StartSessionPayload {
   title: string;
@@ -46,6 +47,7 @@ export function StartSessionModal({
   tagPlaceholder,
   suggestionsLabel,
 }: StartSessionModalProps) {
+  const t = useT();
   const [title, setTitle] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
@@ -100,7 +102,7 @@ export function StartSessionModal({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. QA testing, Learning"
+          placeholder={t("planning:calendarFormTitlePlaceholder")}
           className="w-full px-4 py-2 bg-[var(--bg3)] border-none rounded-xl text-sm focus:ring-2 focus:ring-[var(--accent)]"
         />
       </div>

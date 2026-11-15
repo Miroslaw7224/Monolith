@@ -3,12 +3,27 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 import { CalendarView } from "@/src/features/calendar/CalendarView";
-import { MONTH_NAMES, monthGrid } from "@/src/features/calendar/calendarUtils";
+import { monthGrid } from "@/src/features/calendar/calendarUtils";
+
+const MONTH_NAMES_PL = [
+  "Styczeń",
+  "Luty",
+  "Marzec",
+  "Kwiecień",
+  "Maj",
+  "Czerwiec",
+  "Lipiec",
+  "Sierpień",
+  "Wrzesień",
+  "Październik",
+  "Listopad",
+  "Grudzień",
+];
 
 const apiFetch = vi.fn();
 
 function monthLabel(date: Date) {
-  return `${MONTH_NAMES.pl[date.getMonth()]} ${date.getFullYear()}`;
+  return `${MONTH_NAMES_PL[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function monthRange(date: Date) {
@@ -25,7 +40,7 @@ test("loads the visible month and the next month without posting", async () => {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  render(<CalendarView apiFetch={apiFetch} lang="pl" t={{}} />);
+  render(<CalendarView apiFetch={apiFetch} />);
 
   await waitFor(() => {
     expect(apiFetch).toHaveBeenCalledWith(

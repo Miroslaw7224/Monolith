@@ -1,7 +1,11 @@
 import React from "react";
 import type { CalendarEvent } from "./calendarUtils";
-import { WEEKDAY_SHORT_PL, formatClock, parseYmd } from "./calendarUtils";
+import { formatClock, parseYmd, weekdayKey, type WeekdayKey } from "./calendarUtils";
 import { isEtat } from "./calendarEventStyle";
+import { useT } from "@/src/i18n/useT";
+function calendarWeekdayShortKey(k: WeekdayKey): `planning:calendarWeekdayShort.${WeekdayKey}` {
+  return `planning:calendarWeekdayShort.${k}`;
+}
 
 const MAX_PILLS = 3;
 
@@ -22,12 +26,14 @@ export function CalendarMonthGrid({
   onPickDay,
   onSelect,
 }: CalendarMonthGridProps) {
+  const t = useT();
+  const headerWeek = weeks[0] ?? [];
   return (
-    <section className="kal-week" aria-label="Miesiąc">
+    <section className="kal-week" aria-label={t("planning:calendarMonthAria")}>
       <div className="kal-days kal-days--month">
-        {WEEKDAY_SHORT_PL.map((d) => (
-          <div key={d} className="kal-day-h">
-            <span>{d}</span>
+        {headerWeek.map((date) => (
+          <div key={date} className="kal-day-h">
+            <span>{t(calendarWeekdayShortKey(weekdayKey(parseYmd(date))))}</span>
           </div>
         ))}
       </div>

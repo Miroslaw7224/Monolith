@@ -27,7 +27,7 @@ const data = [
 
 function setup() {
   const apiFetch = vi.fn(async () => ({ ok: true, json: async () => data }) as Response);
-  render(<ResourceSection apiFetch={apiFetch} t={{}} />);
+  render(<ResourceSection apiFetch={apiFetch} />);
   return screen.findByText("Alfa");
 }
 
@@ -55,7 +55,7 @@ describe("ResourceSection", () => {
     await setup();
     const user = userEvent.setup();
     expect(screen.queryByPlaceholderText("URL")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /description/i }));
+    await user.click(screen.getByRole("button", { name: /opis/i }));
     expect(screen.getByPlaceholderText("URL")).toBeInTheDocument();
   });
 });

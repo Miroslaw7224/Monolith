@@ -4,15 +4,13 @@ import { useEffect, useRef, useState, type ComponentProps } from "react";
 import dynamic from "next/dynamic";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
 import { clamp } from "@/src/features/mind-maps/mindMapClamp";
-import type { translations } from "@/src/translations";
+import { useT } from "@/src/i18n/useT";
 
 const NoteEditor = dynamic<
   ComponentProps<typeof import("@/src/components/note-editor/NoteEditor").NoteEditor>
 >(() => import("@/src/components/note-editor/NoteEditor").then((mod) => mod.NoteEditor), {
   loading: () => <div className="h-full min-h-[8rem]" />,
 });
-
-type T = (typeof translations)["en"];
 
 const DEFAULT_NOTES_PANEL_H = 224; // tailwind h-56 (~14rem) -> 224px
 const MIN_NOTES_PANEL_H = 120;
@@ -21,12 +19,11 @@ const MAX_NOTES_PANEL_H = 520;
 export function MindMapNotesPanel({
   selectedNode,
   onContentChange,
-  t,
 }: {
   selectedNode: MindMapNode | null;
   onContentChange: (html: string) => void;
-  t: T;
 }) {
+  const t = useT();
   const [notesPanelH, setNotesPanelH] = useState<number>(DEFAULT_NOTES_PANEL_H);
   const notesResizingRef = useRef<null | { startY: number; startH: number }>(null);
 
@@ -91,21 +88,18 @@ export function MindMapNotesPanel({
       <div className="w-full sm:w-60 sm:flex-shrink-0 border-b sm:border-b-0 sm:border-r border-[var(--border)] p-4 min-h-0 max-h-28 sm:max-h-none overflow-y-auto overflow-x-hidden">
         {!selectedNode ? (
           <div className="h-full flex items-center justify-center text-sm text-[var(--text3)] font-semibold text-center">
-            {t.mindMapsClickNodeHint as string}
+            {t("mindmaps:mindMapsClickNodeHint")}
           </div>
         ) : (
           <div>
             <div className="text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
-              {t.mindMapsSelectedNode as string}
+              {t("mindmaps:mindMapsSelectedNode")}
             </div>
             <div className="font-bold whitespace-normal break-words" title={selectedNode.label}>
               {selectedNode.label}
             </div>
             <div className="text-xs text-[var(--text3)]">
-              {(t.mindMapsItemsCount as string).replace(
-                "{n}",
-                String(selectedNode.children.length)
-              )}
+              {t("mindmaps:mindMapsItemsCount", { count: selectedNode.children.length })}
             </div>
           </div>
         )}
@@ -113,7 +107,7 @@ export function MindMapNotesPanel({
 
       <div className="flex-1 min-w-0 p-4 overflow-hidden flex flex-col gap-2">
         <div className="text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
-          {t.mindMapsNotes as string}
+          {t("mindmaps:mindMapsNotes")}
         </div>
         <div className="flex-1 min-h-0 overflow-hidden">
           {selectedNode ? (
@@ -125,7 +119,7 @@ export function MindMapNotesPanel({
             />
           ) : (
             <div className="h-full border border-[var(--border)] rounded-xl bg-[var(--surface)] flex items-center justify-center text-sm text-[var(--text3)]">
-              {t.mindMapsSelectNodeToEditNote as string}
+              {t("mindmaps:mindMapsSelectNodeToEditNote")}
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import React from "react";
 import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import type { BoardTileDto as BoardTile } from "@/contexts/bc_board/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export type TileNodeData = {
   tile: BoardTile;
@@ -10,6 +11,7 @@ export type TileNodeData = {
 export type TileFlowNode = Node<TileNodeData, "tile">;
 
 export function TileNode({ id, data, selected }: NodeProps<TileFlowNode>) {
+  const t = useT();
   return (
     <>
       <NodeResizer
@@ -25,7 +27,7 @@ export function TileNode({ id, data, selected }: NodeProps<TileFlowNode>) {
           {selected ? (
             <button
               type="button"
-              aria-label="delete-tile"
+              aria-label={t("planning:boardDeleteTileAria")}
               className="plo-node-del"
               onClick={() => data.onDelete(id)}
             >

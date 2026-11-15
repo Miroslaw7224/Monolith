@@ -26,7 +26,7 @@ beforeEach(() => {
 });
 
 test("handleAdd posts the trimmed resource and prepends it", async () => {
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
 
   await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -59,7 +59,7 @@ test("handleAdd posts the trimmed resource and prepends it", async () => {
 });
 
 test("handleAdd does not post when the url is empty", async () => {
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
 
   await waitFor(() => expect(result.current.loading).toBe(false));
   act(() => {
@@ -81,7 +81,7 @@ test("tagCounts liczy tagi wczytanych zasobów", async () => {
       { id: "2", description: "", url: "https://b", title: "B", tags: ["x"] },
     ],
   }));
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.tagCounts).toEqual([
     { tag: "x", count: 2 },
@@ -111,7 +111,7 @@ test("toggleFixOnly zawęża listę do zasobów do poprawy", async () => {
       },
     ],
   }));
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.fixCount).toBe(1);
   act(() => result.current.toggleFixOnly());
@@ -123,19 +123,19 @@ test("toggleFixOnly zawęża listę do zasobów do poprawy", async () => {
 });
 
 test("formularz dodawania jest domyślnie zwinięty", async () => {
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.formExpanded).toBe(false);
 });
 
 test("dense zapamiętuje wybór w localStorage", async () => {
   localStorage.removeItem("monolith.resources.dense");
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.dense).toBe(false);
   act(() => result.current.setDense(true));
   expect(localStorage.getItem("monolith.resources.dense")).toBe("1");
-  const again = renderHook(() => useResources(apiFetch, {}));
+  const again = renderHook(() => useResources(apiFetch));
   await waitFor(() => expect(again.result.current.dense).toBe(true));
 });
 
@@ -163,7 +163,7 @@ test("handleSaveEdit: odpowiedź bez notePath usuwa stary notePath zasobu", asyn
     }
     return { ok: true, json: async () => [original] };
   });
-  const { result } = renderHook(() => useResources(apiFetch, {}));
+  const { result } = renderHook(() => useResources(apiFetch));
   await waitFor(() => expect(result.current.loading).toBe(false));
   expect(result.current.resources[0].notePath).toBe("Knowledge/a.md");
   act(() => result.current.openEditModal(result.current.resources[0]));

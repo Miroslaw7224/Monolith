@@ -1,4 +1,5 @@
 import React, { type KeyboardEvent } from "react";
+import { useT } from "@/src/i18n/useT";
 
 function keepFocusInDialog(event: KeyboardEvent<HTMLDivElement>) {
   if (event.key !== "Tab") return;
@@ -35,6 +36,7 @@ export function ConfirmDeleteDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   return (
     <div
       role="dialog"
@@ -48,7 +50,7 @@ export function ConfirmDeleteDialog({
           <h2 id="board-delete-title" className="panel__title plo-panel__title">
             <b>{title}</b>
           </h2>
-          <span className="chip chip--danger plo-chip">Usuwanie</span>
+          <span className="chip chip--danger plo-chip">{t("planning:boardDialogChipDelete")}</span>
         </div>
 
         <div className="plo-dialog__content">

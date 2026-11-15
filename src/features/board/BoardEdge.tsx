@@ -1,4 +1,5 @@
 import React from "react";
+import { useT } from "@/src/i18n/useT";
 import {
   BaseEdge,
   EdgeLabelRenderer,
@@ -21,6 +22,7 @@ export function BoardEdge({
   selected,
   data,
 }: EdgeProps<BoardFlowEdge>) {
+  const t = useT();
   const [path, labelX, labelY] = getSmoothStepPath({
     sourceX,
     sourceY,
@@ -36,7 +38,7 @@ export function BoardEdge({
         <EdgeLabelRenderer>
           <button
             type="button"
-            aria-label="delete-edge"
+            aria-label={t("planning:boardDeleteEdgeAria")}
             style={{
               transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
               pointerEvents: "all",

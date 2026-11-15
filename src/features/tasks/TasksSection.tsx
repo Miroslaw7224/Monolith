@@ -9,18 +9,19 @@ import { computeTaskTiles, getTaskDueState } from "./taskStatsUtils";
 import { getTaskEnergy, toggleTaskEnergy } from "./taskEnergyUtils";
 import { useTasksBoard } from "./useTasksBoard";
 import { TASK_STATUSES, tasksByStatus, type TaskStatus } from "./taskOrderUtils";
+import { useT } from "@/src/i18n/useT";
+import { useLang } from "@/src/i18n/useLang";
+import { formatShortDate, formatFullDate } from "@/src/i18n/format";
 
 export type { TaskDto as Task } from "@/contexts/bc_tasks/schemas";
 
-type TranslationDict = Record<string, string | string[]>;
-
 interface TasksSectionProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "en" | "pl";
-  t: TranslationDict;
 }
 
-export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
+export function TasksSection({ apiFetch }: TasksSectionProps) {
+  const t = useT();
+  const { lang } = useLang();
   const {
     tasks,
     loading,
@@ -75,31 +76,29 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     if (!iso) return "";
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";
-    return d.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US");
+    return formatShortDate(d, lang);
   };
 
   const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
-  const pl = lang === "pl";
-
   const labels = {
-    titlePlaceholder: (t.tasksNewTitlePlaceholder as string) ?? "Task name…",
-    titleField: (t.tasksDetailTitleFieldLabel as string) ?? "Title",
-    linkLabel: (t.tasksDetailLinkLabel as string) ?? "Link",
-    linkPlaceholder: (t.tasksDetailLinkPlaceholder as string) ?? "https://…",
-    templateLabel: (t.tasksTemplateLabel as string) ?? "Template",
-    templateNone: (t.tasksTemplateNone as string) ?? "No template",
-    manageTemplates: (t.tasksManageTemplates as string) ?? "Manage templates",
-    deferred: (t.tasksDeferred as string) ?? "Deferred",
-    todo: (t.tasksTodo as string) ?? "To do",
-    inProgress: (t.tasksInProgress as string) ?? "In progress",
-    toReview: (t.tasksToReview as string) ?? "To review",
-    done: (t.tasksDone as string) ?? "Done",
-    noTasks: (t.tasksNoTasks as string) ?? "No tasks. Add your first.",
-    startDateLabel: (t.tasksStartDateLabel as string) ?? "Start",
-    deadlineLabel: (t.tasksDeadlineLabel as string) ?? "Due",
-    searchPlaceholder: (t.tasksSearchPlaceholder as string) ?? "Search tasks…",
-    noSearchResults: (t.tasksNoSearchResults as string) ?? "No tasks match your search.",
+    titlePlaceholder: t("tasks:tasksNewTitlePlaceholder"),
+    titleField: t("tasks:tasksDetailTitleFieldLabel"),
+    linkLabel: t("tasks:tasksDetailLinkLabel"),
+    linkPlaceholder: t("tasks:tasksDetailLinkPlaceholder"),
+    templateLabel: t("tasks:tasksTemplateLabel"),
+    templateNone: t("tasks:tasksTemplateNone"),
+    manageTemplates: t("tasks:tasksManageTemplates"),
+    deferred: t("tasks:tasksDeferred"),
+    todo: t("tasks:tasksTodo"),
+    inProgress: t("tasks:tasksInProgress"),
+    toReview: t("tasks:tasksToReview"),
+    done: t("tasks:tasksDone"),
+    noTasks: t("tasks:tasksNoTasks"),
+    startDateLabel: t("tasks:tasksStartDateLabel"),
+    deadlineLabel: t("tasks:tasksDeadlineLabel"),
+    searchPlaceholder: t("tasks:tasksSearchPlaceholder"),
+    noSearchResults: t("tasks:tasksNoSearchResults"),
   };
 
   const columnLabels: Record<TaskStatus, string> = {
@@ -113,9 +112,8 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   const cardLabels = {
     startDateLabel: labels.startDateLabel,
     deadlineLabel: labels.deadlineLabel,
-    showMore: (count: number) =>
-      ((t.tasksShowMore as string) ?? "Show {count} more").replace("{count}", String(count)),
-    showLess: (t.tasksShowLess as string) ?? "Show less",
+    showMore: (count: number) => t("tasks:tasksShowMore", { count }),
+    showLess: t("tasks:tasksShowLess"),
   };
 
   const [dueOnly, setDueOnly] = useState(false);
@@ -127,29 +125,23 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     [dueOnly, filteredTasks, tilesNow]
   );
 
-  const dateSubtitle = useMemo(() => {
-    const activeCount = tasks.filter((x) => x.status !== "done" && x.status !== "deferred").length;
-    const doneCount = tasks.filter((x) => x.status === "done").length;
-    const today = new Date();
-    const dateFormatted = today.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const capitalizedDate = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
-    if (lang === "pl") {
-      return `${capitalizedDate} · ${activeCount} zadań aktywnych · ${doneCount} ukończonych`;
-    }
-    return `${capitalizedDate} · ${activeCount} active tasks · ${doneCount} completed`;
-  }, [tasks, lang]);
+  const activeCount = tasks.filter((x) => x.status !== "done" && x.status !== "deferred").length;
+  const doneCount = tasks.filter((x) => x.status === "done").length;
+  const today = new Date();
+  const dateFormatted = formatFullDate(today, lang);
+  const capitalizedDate = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
+  const dateSubtitle = t("tasks:tasksDateSubtitle", {
+    date: capitalizedDate,
+    active: activeCount,
+    done: doneCount,
+  });
 
   return (
     <div className="zad" data-card="zadania">
       <header className="zad-head">
         <div>
-          <p className="zad-eyebrow">{lang === "pl" ? "Alt+3 · Zadania" : "Alt+3 · Tasks"}</p>
-          <h1 className="zad-heading">{lang === "pl" ? "Zadania projektowe" : "Project Tasks"}</h1>
+          <p className="zad-eyebrow">{t("tasks:tasksEyebrow")}</p>
+          <h1 className="zad-heading">{t("tasks:tasksHeading")}</h1>
           <p className="zad-sub">{dateSubtitle}</p>
         </div>
         <div className="zad-head__actions">
@@ -166,7 +158,6 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
 
       <TaskTiles
         data={tilesData}
-        lang={lang}
         now={tilesNow}
         dueOnly={dueOnly}
         onToggleDueOnly={() => setDueOnly((v) => !v)}
@@ -231,12 +222,16 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
               type="button"
               className="zad-urgent-btn"
               aria-pressed={newTaskUrgent}
-              title={pl ? "Pilne: do zrobienia od ręki" : "Urgent: do right away"}
+              title={t("tasks:tasksCardUrgentTitle")}
               onClick={() => setNewTaskUrgent(!newTaskUrgent)}
             >
-              {pl ? "Pilne" : "Urgent"}
+              {t("tasks:tasksCardUrgent")}
             </button>
-            <span className="zad-energy zad-energy--bar" role="group" aria-label="Energia">
+            <span
+              className="zad-energy zad-energy--bar"
+              role="group"
+              aria-label={t("tasks:tasksEnergyAria")}
+            >
               {(["deep", "quick"] as const).map((value) => (
                 <button
                   key={value}
@@ -256,7 +251,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
               className="zad-btn zad-btn--primary zad-btn--sm"
             >
               <Plus className="w-3.5 h-3.5" />
-              {(t.tasksAdd as string) ?? "Add"}
+              {t("tasks:tasksAdd")}
             </button>
           </div>
         </div>
@@ -276,7 +271,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
 
       <div className="zad-board-container">
         {loading ? (
-          <p className="zad-state zad-state--loading">Loading…</p>
+          <p className="zad-state zad-state--loading">{t("tasks:tasksLoading")}</p>
         ) : tasks.length === 0 ? (
           <p className="zad-state">{labels.noTasks}</p>
         ) : boardTasks.length === 0 ? (
@@ -289,7 +284,6 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
                 status={status}
                 title={columnLabels[status]}
                 tasks={tasksByStatus(boardTasks, status)}
-                lang={lang}
                 collapseEnabled={!isSearching && !dueOnly}
                 isDragOverColumn={dragOverColumn === status && dragOverTaskId === null}
                 dragTaskId={dragTaskId}
@@ -334,7 +328,6 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
       <TaskDetailModal
         task={detailTaskId ? (tasks.find((x) => x.id === detailTaskId) ?? null) : null}
         isOpen={detailTaskId !== null}
-        t={t}
         projects={projects}
         onClose={() => setDetailTaskId(null)}
         onSave={saveTaskDetail}
@@ -343,7 +336,6 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
         isOpen={templatesModalOpen}
         onClose={() => setTemplatesModalOpen(false)}
         apiFetch={apiFetch}
-        t={t}
         onTemplatesChange={() => void fetchTemplates()}
       />
     </div>

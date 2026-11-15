@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Copy, Trash2, Star, Pencil } from "lucide-react";
 import type { NoteResource } from "./resourceTypes";
 import { getFaviconUrl } from "./resourceParsing";
+import { useT } from "@/src/i18n/useT";
 
 export interface ResourceListItemProps {
   resource: NoteResource;
@@ -29,6 +30,7 @@ export function ResourceListItem({
   dense = false,
   onOpenNote,
 }: ResourceListItemProps) {
+  const t = useT();
   const favicon = getFaviconUrl(r.url);
   const [showFavicon, setShowFavicon] = React.useState(true);
 
@@ -98,10 +100,10 @@ export function ResourceListItem({
               onOpenNote(r.notePath as string);
             }}
             className="btn btn--sm btn--ghost ars-action-btn"
-            title="Otwórz notatkę w Bazie wiedzy"
-            aria-label="Notatka"
+            title={t("resources:resourceOpenNoteTitle")}
+            aria-label={t("resources:resourceNoteButtonLabel")}
           >
-            notatka
+            {t("resources:resourceNoteButtonText")}
           </button>
         )}
         <button
@@ -138,8 +140,8 @@ export function ResourceListItem({
             onCopy(r.url);
           }}
           className="btn btn--sm btn--icon btn--ghost ars-action-btn"
-          title="Copy URL"
-          aria-label="Copy URL"
+          title={t("resources:resourceCopyUrl")}
+          aria-label={t("resources:resourceCopyUrl")}
         >
           <Copy className="w-4 h-4" />
         </button>
@@ -150,8 +152,8 @@ export function ResourceListItem({
             onDelete(r.id);
           }}
           className="btn btn--sm btn--icon btn--ghost ars-action-btn ars-btn--danger"
-          title="Delete"
-          aria-label="Delete"
+          title={t("resources:resourceDelete")}
+          aria-label={t("resources:resourceDelete")}
         >
           <Trash2 className="w-4 h-4" />
         </button>

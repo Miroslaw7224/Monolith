@@ -7,14 +7,11 @@ import { arrowAction } from "@/src/features/mind-maps/mindMapNav";
 import { TreeLevel } from "@/src/features/mind-maps/TreeLevel";
 import { mapNode } from "@/src/lib/mindMapUtils";
 import { clamp } from "@/src/features/mind-maps/mindMapClamp";
-import type { translations } from "@/src/translations";
-
 const EMPTY_MATCHES: ReadonlySet<string> = new Set();
 
 export type MindMapTreeEditableProps = {
   mode: "edit";
   rootNode: MindMapNode;
-  t: (typeof translations)["en"];
   getColW: (depth: number) => number;
   startResize: (e: React.MouseEvent, depth: number) => void;
   selId: string | null;
@@ -45,7 +42,6 @@ export type MindMapTreeEditableProps = {
 export type MindMapTreeReadOnlyProps = {
   mode: "readOnly";
   rootNode: MindMapNode;
-  t: (typeof translations)["en"];
   /** Optional fixed width for all depths in preview. */
   colW?: number;
   /** Allow collapsing/expanding branches in preview (local state only). */
@@ -59,7 +55,6 @@ export function MindMapTree(props: MindMapTreeProps) {
     return (
       <MindMapTreeReadOnly
         rootNode={props.rootNode}
-        t={props.t}
         colW={props.colW}
         allowCollapse={props.allowCollapse}
       />
@@ -155,7 +150,6 @@ function MindMapTreeEdit(props: MindMapTreeEditableProps) {
         node={props.rootNode}
         isRoot
         depth={0}
-        t={props.t}
         getColW={props.getColW}
         startResize={props.startResize}
         selId={props.selId}
@@ -187,12 +181,10 @@ function MindMapTreeEdit(props: MindMapTreeEditableProps) {
 
 function MindMapTreeReadOnly({
   rootNode,
-  t,
   colW,
   allowCollapse,
 }: {
   rootNode: MindMapNode;
-  t: (typeof translations)["en"];
   colW?: number;
   allowCollapse?: boolean;
 }) {
@@ -218,7 +210,6 @@ function MindMapTreeReadOnly({
       node={localRoot}
       isRoot
       depth={0}
-      t={t}
       getColW={getColW}
       startResize={() => {}}
       selId={null}

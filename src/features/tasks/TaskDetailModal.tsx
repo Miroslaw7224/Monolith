@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import type { Task } from "./TasksSection";
-
-type TranslationDict = Record<string, string | string[]>;
+import { useT } from "@/src/i18n/useT";
 
 export interface TaskDetailModalProps {
   task: Task | null;
   isOpen: boolean;
-  t: TranslationDict;
   /** Projekty z rejestru do wyboru; brak = sama opcja „Bez projektu”. */
   projects?: { id: string; name: string }[];
   onClose: () => void;
@@ -24,11 +22,11 @@ export interface TaskDetailModalProps {
 export function TaskDetailModal({
   task,
   isOpen,
-  t,
   projects = [],
   onClose,
   onSave,
 }: TaskDetailModalProps) {
+  const t = useT();
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
@@ -74,27 +72,15 @@ export function TaskDetailModal({
 
   if (!isOpen || !task) return null;
 
-  const closeLabel = (t.calendarCancel as string) ?? "Close";
-  const saveLabel = (t.tasksDetailSave as string) ?? "Save";
-  const linkLabel = (t.tasksDetailLinkLabel as string) ?? "Link";
-  const linkPlaceholder = (t.tasksDetailLinkPlaceholder as string) ?? "";
-  const noteLabel = (t.tasksDetailNoteLabel as string) ?? "Note";
-  const notePlaceholder = (t.tasksDetailNotePlaceholder as string) ?? "";
-  const titleLabel = (t.tasksDetailTitleFieldLabel as string) ?? "Title";
-  const modalTitle = (t.tasksDetailModalTitle as string) ?? "Task";
-  const statusLabel = (t.tasksDetailStatusLabel as string) ?? "Status";
-
+  const closeLabel = t("planning:calendarCancel");
   const statusOptions: { value: Task["status"]; label: string }[] = [
-    { value: "deferred", label: (t.tasksDeferred as string) ?? "Deferred" },
-    { value: "todo", label: (t.tasksTodo as string) ?? "To do" },
-    { value: "in_progress", label: (t.tasksInProgress as string) ?? "In progress" },
-    { value: "to_review", label: (t.tasksToReview as string) ?? "To review" },
-    { value: "done", label: (t.tasksDone as string) ?? "Done" },
+    { value: "deferred", label: t("tasks:tasksDeferred") },
+    { value: "todo", label: t("tasks:tasksTodo") },
+    { value: "in_progress", label: t("tasks:tasksInProgress") },
+    { value: "to_review", label: t("tasks:tasksToReview") },
+    { value: "done", label: t("tasks:tasksDone") },
   ];
 
-  const deadlineLabel = (t.tasksDeadlineLabel as string) ?? "Due";
-  const projectLabel = (t.tasksDetailProjectLabel as string) ?? "Project";
-  const noProjectLabel = (t.tasksNoProject as string) ?? "No project";
   // projekt usunięty z rejestru: zostaje wybrany (z samym id), żeby zapis go po cichu nie skasował
   const orphanProject = project !== "" && !projects.some((p) => p.id === project) ? project : null;
 
@@ -118,7 +104,7 @@ export function TaskDetailModal({
       >
         <div className="zad-modal__head">
           <h3 id="task-detail-title" className="zad-modal__title">
-            {modalTitle}
+            {t("tasks:tasksDetailModalTitle")}
           </h3>
           <button
             type="button"
@@ -133,7 +119,7 @@ export function TaskDetailModal({
         <div className="zad-modal__body">
           <div className="zad-field">
             <label htmlFor="task-detail-title-field" className="zad-label">
-              {titleLabel}
+              {t("tasks:tasksDetailTitleFieldLabel")}
             </label>
             <input
               id="task-detail-title-field"
@@ -146,20 +132,20 @@ export function TaskDetailModal({
 
           <div className="zad-field">
             <label htmlFor="task-detail-link" className="zad-label">
-              {linkLabel}
+              {t("tasks:tasksDetailLinkLabel")}
             </label>
             <input
               id="task-detail-link"
               type="url"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              placeholder={linkPlaceholder}
+              placeholder={t("tasks:tasksDetailLinkPlaceholder")}
               className="zad-input"
             />
           </div>
 
           <div className="zad-field">
-            <span className="zad-label">{statusLabel}</span>
+            <span className="zad-label">{t("tasks:tasksDetailStatusLabel")}</span>
             <div className="zad-status-group">
               {statusOptions.map((opt) => (
                 <button
@@ -182,7 +168,7 @@ export function TaskDetailModal({
 
           <div className="zad-field">
             <label htmlFor="task-detail-due" className="zad-label">
-              {deadlineLabel}
+              {t("tasks:tasksDeadlineLabel")}
             </label>
             <input
               id="task-detail-due"
@@ -195,7 +181,7 @@ export function TaskDetailModal({
 
           <div className="zad-field">
             <label htmlFor="task-detail-project" className="zad-label">
-              {projectLabel}
+              {t("tasks:tasksDetailProjectLabel")}
             </label>
             <select
               id="task-detail-project"
@@ -203,7 +189,7 @@ export function TaskDetailModal({
               onChange={(e) => setProject(e.target.value)}
               className="zad-input"
             >
-              <option value="">{noProjectLabel}</option>
+              <option value="">{t("tasks:tasksNoProject")}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -215,13 +201,13 @@ export function TaskDetailModal({
 
           <div className="zad-field">
             <label htmlFor="task-detail-note" className="zad-label">
-              {noteLabel}
+              {t("tasks:tasksDetailNoteLabel")}
             </label>
             <textarea
               id="task-detail-note"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={notePlaceholder}
+              placeholder={t("tasks:tasksDetailNotePlaceholder")}
               rows={6}
               className="zad-textarea"
             />
@@ -238,7 +224,7 @@ export function TaskDetailModal({
             disabled={saving || !title.trim()}
             className="zad-btn zad-btn--primary"
           >
-            {saving ? ((t.tasksDetailSaving as string) ?? "…") : saveLabel}
+            {saving ? t("tasks:tasksDetailSaving") : t("tasks:tasksDetailSave")}
           </button>
         </div>
       </div>

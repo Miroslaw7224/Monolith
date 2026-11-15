@@ -7,11 +7,10 @@ import { CALENDAR_COLORS } from "@/src/lib/calendarConstants";
 import {
   type CalendarEvent,
   type CalendarViewMode,
-  MONTH_NAMES,
   expandEventToSegments,
   toYmd,
   weekDates as weekDatesOf,
-  weekRangeLabel,
+  weekRangeLabelForLang,
 } from "./calendarUtils";
 import { CalendarWeekGrid } from "./CalendarWeekGrid";
 import { CalendarMonthGrid } from "./CalendarMonthGrid";
@@ -24,21 +23,14 @@ import { upcomingWindows, weekNumber } from "@/src/features/home/cockpitFormat";
 import type { DeepWindowDto } from "@/contexts/bc_cockpit/schemas";
 import type { UserTag } from "@/src/features/tags/TagsSection";
 import type { ActiveSession } from "@/src/components/sessions/activeSession";
+import { useT } from "@/src/i18n/useT";
+import { useLang } from "@/src/i18n/useLang";
+import { formatMonthLong, formatTime } from "@/src/i18n/format";
 
 export type { CalendarEvent } from "./calendarUtils";
 
-const VIEW_TABS: { id: CalendarViewMode; label: string }[] = [
-  { id: "month", label: "Miesiąc" },
-  { id: "week", label: "Tydzień" },
-  { id: "agenda", label: "Agenda" },
-];
-
-type TranslationDict = Record<string, string | string[]>;
-
 interface CalendarViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "en" | "pl";
-  t: TranslationDict;
   userTags?: UserTag[];
   refreshTrigger?: number;
   activeSession?: ActiveSession | null;
@@ -51,8 +43,6 @@ interface CalendarViewProps {
 
 export function CalendarView({
   apiFetch,
-  lang,
-  t,
   userTags = [],
   refreshTrigger,
   activeSession = null,
@@ -62,6 +52,8 @@ export function CalendarView({
   clearSessionEndError,
   onOpenTaskDeadline,
 }: CalendarViewProps) {
+  const t = useT();
+  const { lang } = useLang();
   const now = new Date();
   const {
     anchor,
@@ -88,6 +80,15 @@ export function CalendarView({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [windows, setWindows] = useState<DeepWindowDto[]>([]);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const viewTabs: { id: CalendarViewMode; label: string }[] = useMemo(
+    () => [
+      { id: "month", label: t("planning:calendarViewMonth") },
+      { id: "week", label: t("planning:calendarViewWeek") },
+      { id: "agenda", label: t("planning:calendarViewAgenda") },
+    ],
+    [t]
+  );
 
   const [nowMinutes, setNowMinutes] = useState(() => {
     const n = new Date();
@@ -119,7 +120,10 @@ export function CalendarView({
     };
   }, [apiFetch, refreshTrigger]);
 
-  const monthLabel = MONTH_NAMES[lang][viewMonth];
+  const monthLabel = useMemo(
+    () => formatMonthLong(new Date(viewYear, viewMonth, 1), lang),
+    [lang, viewYear, viewMonth]
+  );
 
   const eventSegments = useMemo(() => events.flatMap((e) => expandEventToSegments(e)), [events]);
 
@@ -197,7 +201,7 @@ export function CalendarView({
       setEvents(Array.isArray(data2) ? data2 : []);
     } catch (err) {
       console.error("Save calendar event failed", err);
-      setSaveError(err instanceof Error ? err.message : "Save failed");
+      setSaveError(err instanceof Error ? err.message : t("planning:calendarSaveFailed"));
     }
   };
 
@@ -247,34 +251,28 @@ export function CalendarView({
     };
   }, [events, eventsByDate, weekDates, upcoming, todayStr, nowMinutes, startDate, endDate]);
 
-  const formatSessionTime = (iso: string) => {
-    const d = new Date(iso);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  };
+  const sessionInProgressLabel = activeSession
+    ? t("planning:sessionInProgressSince", {
+        time: formatTime(new Date(activeSession.startedAt), lang),
+      })
+    : "";
 
-  const sessionInProgressLabel =
-    (t.sessionInProgressSince as string)?.replace(
-      "{time}",
-      activeSession ? formatSessionTime(activeSession.startedAt) : ""
-    ) ??
-    (activeSession ? `Work in progress since ${formatSessionTime(activeSession.startedAt)}` : "");
+  const weekRange = useMemo(() => weekRangeLabelForLang(weekDates, lang), [weekDates, lang]);
+  const weekNum = weekNumber(new Date(`${anchor}T12:00:00`));
 
   return (
     <div className="kal flex-1 min-w-0 flex flex-col overflow-y-auto" data-card="kalendarz">
       <header className="kal-head">
         <div>
-          <p className="kal-eyebrow">Alt+2 · Kalendarz</p>
+          <p className="kal-eyebrow">{t("planning:calendarEyebrow")}</p>
           <h1 className="kal-title">
             {monthLabel} {viewYear}
             <span className="kal-title__week">
-              · tydzień {weekNumber(new Date(`${anchor}T12:00:00`))}
+              {t("planning:calendarTitleWeek", { number: weekNum })}
             </span>
           </h1>
           <p className="kal-sub">
-            {weekRangeLabel(weekDates)} ·{" "}
-            {lang === "pl"
-              ? "etat i projekty w jednym planie"
-              : "full-time job and projects in one schedule"}
+            {weekRange} · {t("planning:calendarSubtitleTail")}
           </p>
         </div>
         <div className="kal-head__actions">
@@ -282,23 +280,27 @@ export function CalendarView({
             type="button"
             onClick={handlePrev}
             className="kal-btn kal-btn--icon kal-btn--ghost"
-            aria-label={view === "month" ? "Poprzedni miesiąc" : "Poprzedni tydzień"}
+            aria-label={
+              view === "month" ? t("planning:calendarPrevMonth") : t("planning:calendarPrevWeek")
+            }
           >
             ‹
           </button>
           <button type="button" onClick={goToday} className="kal-btn">
-            Dziś
+            {t("planning:calendarToday")}
           </button>
           <button
             type="button"
             onClick={handleNext}
             className="kal-btn kal-btn--icon kal-btn--ghost"
-            aria-label={view === "month" ? "Następny miesiąc" : "Następny tydzień"}
+            aria-label={
+              view === "month" ? t("planning:calendarNextMonth") : t("planning:calendarNextWeek")
+            }
           >
             ›
           </button>
-          <div className="kal-tabs" role="tablist" aria-label="Widok kalendarza">
-            {VIEW_TABS.map((tab) => (
+          <div className="kal-tabs" role="tablist" aria-label={t("planning:calendarViewTabsLabel")}>
+            {viewTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -320,7 +322,7 @@ export function CalendarView({
                 className="kal-btn kal-btn--accent"
               >
                 <Square className="w-3.5 h-3.5" />
-                {(t.sessionEndButton as string) ?? "End work"}
+                {t("planning:sessionEndButton")}
               </button>
             </div>
           ) : (
@@ -330,7 +332,7 @@ export function CalendarView({
               className="kal-btn kal-btn--ghost"
             >
               <Play className="w-3.5 h-3.5" />
-              {(t.sessionStartButton as string) ?? "Start work"}
+              {t("planning:sessionStartButton")}
             </button>
           )}
           <button
@@ -339,7 +341,7 @@ export function CalendarView({
             className="kal-btn kal-btn--primary"
           >
             <Plus className="w-3.5 h-3.5" />
-            {(t.calendarAddEntry as string) ?? "Add entry"}
+            {t("planning:calendarAddEntry")}
           </button>
         </div>
       </header>
@@ -349,7 +351,7 @@ export function CalendarView({
           <p role="alert">{sessionEndError}</p>
           {clearSessionEndError && (
             <button type="button" onClick={clearSessionEndError} className="kal-alert-dismiss">
-              Dismiss
+              {t("planning:calendarDismiss")}
             </button>
           )}
         </div>
@@ -360,7 +362,7 @@ export function CalendarView({
       <div className="kal-layout">
         <div className="kal-main">
           {loading ? (
-            <p className="kal-state">Loading…</p>
+            <p className="kal-state">{t("planning:calendarLoading")}</p>
           ) : view === "week" ? (
             <CalendarWeekGrid
               dates={weekDates}
@@ -413,9 +415,7 @@ export function CalendarView({
         <div className="kal-overlay">
           <div className="kal-modal" role="dialog" aria-modal="true">
             <h3 className="kal-modal__title">
-              {editingEvent
-                ? ((t.calendarEditEntry as string) ?? "Edit entry")
-                : ((t.calendarNewEntry as string) ?? "New entry")}
+              {editingEvent ? t("planning:calendarEditEntry") : t("planning:calendarNewEntry")}
             </h3>
             <CalendarEventForm
               initial={
@@ -452,9 +452,7 @@ export function CalendarView({
                 setSaveError(null);
               }}
               submitLabel={
-                editingEvent
-                  ? ((t.calendarSave as string) ?? "Save")
-                  : ((t.calendarAddEntry as string) ?? "Add")
+                editingEvent ? t("planning:calendarSave") : t("planning:calendarAddEntry")
               }
             />
             {saveError && (
@@ -470,7 +468,7 @@ export function CalendarView({
                   className="kal-btn kal-btn--danger"
                 >
                   <Trash2 className="w-4 h-4" />
-                  {(t.calendarDeleteEntry as string) ?? "Delete entry"}
+                  {t("planning:calendarDeleteEntry")}
                 </button>
               </div>
             )}
@@ -481,7 +479,7 @@ export function CalendarView({
       {startSessionModalOpen && (
         <div className="kal-overlay">
           <div className="kal-modal" role="dialog" aria-modal="true">
-            <h3 className="kal-modal__title">{(t.sessionModalTitle as string) ?? "Start work"}</h3>
+            <h3 className="kal-modal__title">{t("planning:sessionModalTitle")}</h3>
             <StartSessionModal
               existingTags={allTags}
               tagTitles={tagTitles}
@@ -491,12 +489,12 @@ export function CalendarView({
                 setStartSessionModalOpen(false);
               }}
               onCancel={() => setStartSessionModalOpen(false)}
-              submitLabel={(t.sessionSubmitStart as string) ?? "Start work"}
-              cancelLabel={(t.calendarCancel as string) ?? "Cancel"}
-              titleLabel={(t.sessionModalTitleLabel as string) ?? "Title"}
-              tagsLabel={(t.sessionModalTagsLabel as string) ?? "Tags"}
-              tagPlaceholder={(t.sessionModalTagPlaceholder as string) ?? "#tag or pick below"}
-              suggestionsLabel={(t.sessionModalSuggestionsLabel as string) ?? "Suggestions"}
+              submitLabel={t("planning:sessionSubmitStart")}
+              cancelLabel={t("planning:calendarCancel")}
+              titleLabel={t("planning:sessionModalTitleLabel")}
+              tagsLabel={t("planning:sessionModalTagsLabel")}
+              tagPlaceholder={t("planning:sessionModalTagPlaceholder")}
+              suggestionsLabel={t("planning:sessionModalSuggestionsLabel")}
             />
           </div>
         </div>

@@ -20,27 +20,6 @@ const fakeTask = {
   updated_at: new Date().toISOString(),
 };
 
-const fakeT = {
-  calendarCancel: "Zamknij",
-  tasksDetailSave: "Zapisz",
-  tasksDetailSaving: "…",
-  tasksDetailLinkLabel: "Link",
-  tasksDetailLinkPlaceholder: "https://…",
-  tasksDetailNoteLabel: "Notatka",
-  tasksDetailNotePlaceholder: "",
-  tasksDetailTitleFieldLabel: "Tytuł",
-  tasksDetailModalTitle: "Szczegóły zadania",
-  tasksDetailStatusLabel: "Status",
-  tasksDeferred: "Odłożone",
-  tasksTodo: "Do zrobienia",
-  tasksInProgress: "W trakcie",
-  tasksToReview: "Do sprawdzenia",
-  tasksDone: "Zrobione",
-  tasksDeadlineLabel: "Termin",
-  tasksDetailProjectLabel: "Projekt",
-  tasksNoProject: "Bez projektu",
-};
-
 const PROJECTS = [
   { id: "monolith", name: "Monolith" },
   { id: "career-guide", name: "Career Guide" },
@@ -57,35 +36,27 @@ describe("TaskDetailModal", () => {
   });
 
   it("renders task title, link and note", () => {
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
     expect(screen.getByDisplayValue("Napisać testy")).toBeInTheDocument();
     expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Opis zadania")).toBeInTheDocument();
   });
 
   it("does not render when isOpen is false", () => {
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={false} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={false} onClose={onClose} onSave={onSave} />);
     expect(screen.queryByDisplayValue("Napisać testy")).not.toBeInTheDocument();
   });
 
   it("does not render when task is null", () => {
-    render(
-      <TaskDetailModal task={null} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={null} isOpen={true} onClose={onClose} onSave={onSave} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("calls onClose when the X icon button is clicked", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
-    // There are two "Zamknij" buttons: the icon button (aria-label) and the footer text button
-    const closeBtns = screen.getAllByRole("button", { name: /zamknij/i });
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
+    // There are two "Anuluj" buttons: the icon button (aria-label) and the footer text button
+    const closeBtns = screen.getAllByRole("button", { name: /anuluj/i });
     // The first one is the icon button in the header
     await user.click(closeBtns[0]);
     expect(onClose).toHaveBeenCalled();
@@ -93,11 +64,9 @@ describe("TaskDetailModal", () => {
 
   it("calls onClose when the cancel text button in footer is clicked", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
-    // There are two "Zamknij" buttons: the icon button (aria-label) and the footer text button
-    const closeBtns = screen.getAllByRole("button", { name: /zamknij/i });
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
+    // There are two "Anuluj" buttons: the icon button (aria-label) and the footer text button
+    const closeBtns = screen.getAllByRole("button", { name: /anuluj/i });
     // The last one is the footer cancel button with text content
     await user.click(closeBtns[closeBtns.length - 1]);
     expect(onClose).toHaveBeenCalled();
@@ -105,9 +74,7 @@ describe("TaskDetailModal", () => {
 
   it("calls onSave with updated title when saved", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
 
     const titleInput = screen.getByDisplayValue("Napisać testy");
     await user.clear(titleInput);
@@ -121,9 +88,7 @@ describe("TaskDetailModal", () => {
 
   it("calls onSave with current link and note when saved", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
 
     const saveBtn = screen.getByRole("button", { name: /zapisz/i });
     await user.click(saveBtn);
@@ -141,9 +106,7 @@ describe("TaskDetailModal", () => {
 
   it("disables save button when title is empty", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
 
     const titleInput = screen.getByDisplayValue("Napisać testy");
     await user.clear(titleInput);
@@ -154,9 +117,7 @@ describe("TaskDetailModal", () => {
 
   it("disables save button when title is only whitespace", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
 
     const titleInput = screen.getByDisplayValue("Napisać testy");
     await user.clear(titleInput);
@@ -168,11 +129,9 @@ describe("TaskDetailModal", () => {
 
   it("allows changing status via status buttons", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
 
-    const inProgressBtn = screen.getByRole("button", { name: "W trakcie" });
+    const inProgressBtn = screen.getByRole("button", { name: "W toku" });
     await user.click(inProgressBtn);
 
     const saveBtn = screen.getByRole("button", { name: /zapisz/i });
@@ -183,9 +142,7 @@ describe("TaskDetailModal", () => {
 
   it("allows moving the task to deferred", async () => {
     const user = userEvent.setup();
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
 
     await user.click(screen.getByRole("button", { name: "Odłożone" }));
     await user.click(screen.getByRole("button", { name: /zapisz/i }));
@@ -194,10 +151,8 @@ describe("TaskDetailModal", () => {
   });
 
   it("renders the modal title from translations", () => {
-    render(
-      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
-    );
-    expect(screen.getByText("Szczegóły zadania")).toBeInTheDocument();
+    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
+    expect(screen.getByText("Zadanie")).toBeInTheDocument();
   });
   describe("projekt zadania", () => {
     it("zapisuje wybrany projekt", async () => {
@@ -206,7 +161,6 @@ describe("TaskDetailModal", () => {
         <TaskDetailModal
           task={fakeTask}
           isOpen={true}
-          t={fakeT}
           projects={PROJECTS}
           onClose={onClose}
           onSave={onSave}
@@ -225,7 +179,6 @@ describe("TaskDetailModal", () => {
         <TaskDetailModal
           task={{ ...fakeTask, project: "monolith" }}
           isOpen={true}
-          t={fakeT}
           projects={PROJECTS}
           onClose={onClose}
           onSave={onSave}
@@ -244,7 +197,6 @@ describe("TaskDetailModal", () => {
         <TaskDetailModal
           task={{ ...fakeTask, project: "usuniety-projekt" }}
           isOpen={true}
-          t={fakeT}
           projects={PROJECTS}
           onClose={onClose}
           onSave={onSave}

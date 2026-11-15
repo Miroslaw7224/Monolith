@@ -3,7 +3,6 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MindMapTree } from "@/src/features/mind-maps/MindMapTree";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
-import { translations } from "@/src/translations";
 
 afterEach(() => cleanup());
 
@@ -27,7 +26,6 @@ function Editor({
     <MindMapTree
       mode="edit"
       rootNode={root}
-      t={translations.pl}
       getColW={() => 150}
       startResize={() => {}}
       selId="child"
@@ -72,7 +70,6 @@ describe("MindMapTree label edit", () => {
       <MindMapTree
         mode="edit"
         rootNode={root}
-        t={translations.pl}
         getColW={() => 150}
         startResize={() => {}}
         selId="root"

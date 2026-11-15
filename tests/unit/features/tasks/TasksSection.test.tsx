@@ -2,10 +2,8 @@ import React from "react";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { TasksSection } from "@/src/features/tasks/TasksSection";
-import { translations } from "@/src/translations";
 
 const apiFetch = vi.fn();
-const t = translations.pl;
 
 afterEach(cleanup);
 
@@ -42,7 +40,7 @@ beforeEach(() => {
 });
 
 test("places each task in the column for its status", async () => {
-  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  render(<TasksSection apiFetch={apiFetch} />);
 
   const todo = await screen.findByRole("heading", { name: /Do zrobienia/ });
   const done = screen.getByRole("heading", { name: /Zrobione/ });
@@ -57,7 +55,7 @@ test("places each task in the column for its status", async () => {
 });
 
 test("przycisk „Pilne” na karcie ustawia i zdejmuje priorytet 1", async () => {
-  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  render(<TasksSection apiFetch={apiFetch} />);
   await screen.findByText("Alpha");
 
   const column = screen.getByRole("heading", { name: /Do zrobienia/ }).parentElement!;
@@ -88,15 +86,15 @@ test("przycisk „Pilne” na karcie ustawia i zdejmuje priorytet 1", async () =
 });
 
 test("„Pilne” w pasku dodawania tworzy zadanie z priorytetem 1", async () => {
-  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  render(<TasksSection apiFetch={apiFetch} />);
   await screen.findByText("Alpha");
 
-  fireEvent.change(screen.getByLabelText(t.tasksDetailTitleFieldLabel as string), {
+  fireEvent.change(screen.getByLabelText("Tytuł"), {
     target: { value: "Nowe" },
   });
   const barUrgent = document.querySelector<HTMLButtonElement>(".zad-cli .zad-urgent-btn")!;
   fireEvent.click(barUrgent);
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(t.tasksAdd as string) }));
+  fireEvent.click(screen.getByRole("button", { name: /Dodaj/ }));
 
   await waitFor(() => {
     const call = apiFetch.mock.calls.find(
@@ -136,7 +134,7 @@ test("odłożone zadanie trafia do pierwszej kolumny „Odłożone”", async ()
     }
     return { ok: true, json: async () => [] };
   });
-  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  render(<TasksSection apiFetch={apiFetch} />);
 
   const deferred = await screen.findByRole("heading", { name: /Odłożone/ });
   const todo = screen.getByRole("heading", { name: /Do zrobienia/ });
@@ -179,7 +177,7 @@ test("zadanie z znanym projektem ma kolor i znacznik rodzaju, bez projektu i z n
     }
     return { ok: true, json: async () => [] };
   });
-  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  render(<TasksSection apiFetch={apiFetch} />);
 
   const card = async (title: string) =>
     (await screen.findByText(title)).closest("li.zad-card") as HTMLElement;
@@ -194,10 +192,10 @@ test("zadanie z znanym projektem ma kolor i znacznik rodzaju, bez projektu i z n
 });
 
 test("zapis okna zadania nie wysyła pola project, gdy projekt się nie zmienił", async () => {
-  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  render(<TasksSection apiFetch={apiFetch} />);
   fireEvent.doubleClick(await screen.findByText("Alpha"));
   const dialog = await screen.findByRole("dialog");
-  fireEvent.click(within(dialog).getByRole("button", { name: t.tasksDetailSave as string }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
 
   await waitFor(() => {
     const call = apiFetch.mock.calls.find(

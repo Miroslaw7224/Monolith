@@ -1,6 +1,9 @@
 import React from "react";
 import type { CalendarEvent } from "./calendarUtils";
-import { WEEKDAY_LONG_PL, formatClock, parseYmd, weekdayIndex } from "./calendarUtils";
+import { formatClock, parseYmd } from "./calendarUtils";
+import { useT } from "@/src/i18n/useT";
+import { useLang } from "@/src/i18n/useLang";
+import { formatWeekdayLong } from "@/src/i18n/format";
 
 interface CalendarAgendaProps {
   dates: string[];
@@ -10,19 +13,21 @@ interface CalendarAgendaProps {
 }
 
 export function CalendarAgenda({ dates, todayStr, eventsByDate, onSelect }: CalendarAgendaProps) {
+  const t = useT();
+  const { lang } = useLang();
   const days = dates.filter((d) => (eventsByDate.get(d) ?? []).length > 0);
   return (
-    <section className="kal-week" aria-label="Agenda">
+    <section className="kal-week" aria-label={t("planning:calendarAgendaAria")}>
       {days.length === 0 ? (
-        <p className="kal-state">Brak wydarzeń w tym tygodniu.</p>
+        <p className="kal-state">{t("planning:calendarAgendaEmpty")}</p>
       ) : (
         <div className="kal-agenda">
           {days.map((date) => (
             <React.Fragment key={date}>
               <div className="kal-agenda__day">
                 <b>{parseYmd(date).getDate()}</b>
-                {WEEKDAY_LONG_PL[weekdayIndex(date)]}
-                {date === todayStr ? " · dziś" : ""}
+                {formatWeekdayLong(parseYmd(date), lang)}
+                {date === todayStr ? t("planning:calendarTodaySuffix") : ""}
               </div>
               <ul className="list kal-agenda__items">
                 {(eventsByDate.get(date) ?? []).map((ev) => (

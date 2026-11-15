@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useT } from "@/src/i18n/useT";
 import { EMPTY_BOARD, type BoardDto as Board } from "@/contexts/bc_board/schemas";
 import { updateTileText } from "@/src/features/board/boardActions";
 import { BoardCanvas, type BoardCanvasLabels } from "@/src/features/board/BoardCanvas";
@@ -22,15 +23,14 @@ export interface BoardTabLabels {
 
 export function BoardTab({
   apiFetch,
-  lang,
   labels,
   canvasLabels,
 }: {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "pl" | "en";
   labels: BoardTabLabels;
   canvasLabels: BoardCanvasLabels;
 }) {
+  const t = useT();
   const [board, setBoard] = useState<Board>(EMPTY_BOARD);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -84,25 +84,31 @@ export function BoardTab({
               </button>
             </>
           ) : (
-            <p className="plo-state">Ładowanie tablicy…</p>
+            <p className="plo-state">{t("planning:boardLoading")}</p>
           )}
         </div>
       </div>
     );
   }
 
-  const subText = `Format .canvas · ${board.tiles.length} ${
-    board.tiles.length === 1 ? "kafelek" : "kafelków"
-  } · ${board.frames.length} ${board.frames.length === 1 ? "ramka" : "ramek"} · ${
-    board.edges.length
-  } ${board.edges.length === 1 ? "połączenie" : "połączeń"}`;
+  const tilesNoun = t("planning:boardCountTile", { count: board.tiles.length });
+  const framesNoun = t("planning:boardCountFrame", { count: board.frames.length });
+  const edgesNoun = t("planning:boardCountEdge", { count: board.edges.length });
+  const subText = t("planning:boardStatsFormat", {
+    tiles: board.tiles.length,
+    tilesNoun,
+    frames: board.frames.length,
+    framesNoun,
+    edges: board.edges.length,
+    edgesNoun,
+  });
 
   return (
     <div className="plo" data-card="plotno">
       <header className="view-head plo-head">
         <div>
-          <p className="view-head__eyebrow plo-eyebrow">Alt+6 · Płótno</p>
-          <h1 className="view-head__title plo-title">Tablica i mapa myśli</h1>
+          <p className="view-head__eyebrow plo-eyebrow">{t("planning:boardEyebrow")}</p>
+          <h1 className="view-head__title plo-title">{t("planning:boardHeading")}</h1>
           <p className="view-head__sub plo-sub">{subText}</p>
         </div>
         <div className="view-head__actions plo-head__actions">
@@ -137,7 +143,6 @@ export function BoardTab({
         {view === "canvas" ? (
           <BoardCanvas
             board={board}
-            lang={lang}
             labels={canvasLabels}
             dialogOpen={Boolean(openTile) || canvasDialog}
             onChange={(next) => void persist(next)}

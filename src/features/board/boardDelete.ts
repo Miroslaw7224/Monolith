@@ -4,6 +4,7 @@ import type {
   BoardTileDto as BoardTile,
 } from "@/contexts/bc_board/schemas";
 import { frameAt } from "@/src/features/board/boardLayout";
+import i18n, { currentLang, type Lang } from "@/src/i18n";
 
 export interface DeletePlan {
   tiles: BoardTile[];
@@ -51,31 +52,43 @@ export function applyDelete(board: Board, ids: string[]): Board {
   };
 }
 
+type BoardDeleteKey =
+  | "boardDeleteMultiLine"
+  | "boardDeleteEdgesLine"
+  | "boardDeleteSelectionTitle"
+  | "boardDeleteFrameWillRemove"
+  | "boardDeleteTilesStayOutside"
+  | "boardDeletePartOutside"
+  | "boardDeletePartInFrame"
+  | "boardDeleteTilesStaySummary"
+  | "boardDeleteFrameTitle"
+  | "boardDeleteTileLeaves"
+  | "boardDeleteEdgesWithOne"
+  | "boardDeleteTileTitle";
+
+function boardT(key: BoardDeleteKey, lang: Lang, options?: Record<string, unknown>): string {
+  return i18n.t(`planning:${key}`, { lng: lang, ...options });
+}
+
 export function deleteCopy(
   plan: DeletePlan,
-  lang: "pl" | "en"
+  lang: Lang = currentLang()
 ): { title: string; lines: string[] } {
-  const pl = lang === "pl";
   if (plan.tiles.length + plan.frames.length > 1) {
     const lines = [
-      pl
-        ? `Kafelki: ${plan.tiles.length}, ramki: ${plan.frames.length}.`
-        : `Tiles: ${plan.tiles.length}, frames: ${plan.frames.length}.`,
+      boardT("boardDeleteMultiLine", lang, {
+        tiles: plan.tiles.length,
+        frames: plan.frames.length,
+      }),
     ];
     if (plan.edgeIds.length > 0) {
-      lines.push(
-        pl
-          ? `Razem z kafelkami znikną strzałki: ${plan.edgeIds.length}.`
-          : `Arrows removed with the tiles: ${plan.edgeIds.length}.`
-      );
+      lines.push(boardT("boardDeleteEdgesLine", lang, { count: plan.edgeIds.length }));
     }
-    return { title: pl ? "Usunąć zaznaczone?" : "Delete the selection?", lines };
+    return { title: boardT("boardDeleteSelectionTitle", lang), lines };
   }
   if (plan.frames.length === 1) {
     const frame = plan.frames[0];
-    const lines = [
-      pl ? `Ramka „${frame.title}” zniknie.` : `Frame “${frame.title}” will be removed.`,
-    ];
+    const lines = [boardT("boardDeleteFrameWillRemove", lang, { title: frame.title })];
     if (plan.landing.length > 0) {
       const outside = plan.landing.filter((item) => item.frame === null).length;
       const grouped = new Map<string, number>();
@@ -83,35 +96,30 @@ export function deleteCopy(
         if (item.frame) grouped.set(item.frame, (grouped.get(item.frame) ?? 0) + 1);
       }
       if (grouped.size === 0) {
-        lines.push(
-          pl
-            ? `Kafelki w ramce (${plan.landing.length}) zostaną na tablicy, poza ramkami.`
-            : `Tiles in the frame (${plan.landing.length}) stay on the board, outside frames.`
-        );
+        lines.push(boardT("boardDeleteTilesStayOutside", lang, { count: plan.landing.length }));
       } else {
         const parts = [];
-        if (outside > 0) parts.push(pl ? `${outside} poza ramkami` : `${outside} outside frames`);
+        if (outside > 0) {
+          parts.push(boardT("boardDeletePartOutside", lang, { count: outside }));
+        }
         for (const [frameId, count] of grouped) {
           const title = plan.landing.find((item) => item.frame === frameId)?.frameTitle ?? frameId;
-          parts.push(pl ? `${count} w ramce „${title}”` : `${count} in frame “${title}”`);
+          parts.push(boardT("boardDeletePartInFrame", lang, { count, title }));
         }
         lines.push(
-          pl
-            ? `Kafelki w ramce (${plan.landing.length}) zostaną na tablicy: ${parts.join(", ")}.`
-            : `Tiles in the frame (${plan.landing.length}) stay on the board: ${parts.join(", ")}.`
+          boardT("boardDeleteTilesStaySummary", lang, {
+            count: plan.landing.length,
+            detail: parts.join(", "),
+          })
         );
       }
     }
-    return { title: pl ? "Usunąć ramkę?" : "Delete the frame?", lines };
+    return { title: boardT("boardDeleteFrameTitle", lang), lines };
   }
   const title = plan.tiles[0]?.title ?? "";
-  const lines = [pl ? `„${title}” zniknie z tablicy.` : `“${title}” will leave the board.`];
+  const lines = [boardT("boardDeleteTileLeaves", lang, { title })];
   if (plan.edgeIds.length > 0) {
-    lines.push(
-      pl
-        ? `Razem z nim znikną strzałki: ${plan.edgeIds.length}.`
-        : `Arrows removed with it: ${plan.edgeIds.length}.`
-    );
+    lines.push(boardT("boardDeleteEdgesWithOne", lang, { count: plan.edgeIds.length }));
   }
-  return { title: pl ? "Usunąć kafelek?" : "Delete the tile?", lines };
+  return { title: boardT("boardDeleteTileTitle", lang), lines };
 }

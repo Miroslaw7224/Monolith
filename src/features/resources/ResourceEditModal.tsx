@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { UpdateResourceBodySchema } from "@/contexts/bc_resources/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export interface ResourceEditModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function ResourceEditModal({
   onClose,
   onSave,
 }: ResourceEditModalProps) {
+  const t = useT();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSave = async () => {
@@ -103,7 +105,7 @@ export function ResourceEditModal({
             type="button"
             onClick={onClose}
             className="btn btn--sm btn--icon btn--ghost"
-            aria-label="Close"
+            aria-label={t("resources:resourceClose")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -111,7 +113,7 @@ export function ResourceEditModal({
         <div className="ars-modal__body">
           <div className="ars-field">
             <label htmlFor="edit-res-title" className="ars-label">
-              Title
+              {t("resources:resourceEditTitleLabel")}
             </label>
             <input
               id="edit-res-title"
@@ -129,7 +131,7 @@ export function ResourceEditModal({
           </div>
           <div className="ars-field">
             <label htmlFor="edit-res-desc" className="ars-label">
-              Description
+              {t("resources:resourceEditDescriptionLabel")}
             </label>
             <input
               id="edit-res-desc"
@@ -165,7 +167,7 @@ export function ResourceEditModal({
           </div>
           <div className="ars-field">
             <label htmlFor="edit-res-tags" className="ars-label">
-              Tags
+              {t("resources:resourceEditTagsLabel")}
             </label>
             <input
               id="edit-res-tags"

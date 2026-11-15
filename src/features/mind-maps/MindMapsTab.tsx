@@ -1,23 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Loader2, Network, Plus, Trash2 } from "lucide-react";
 import type { MindMap } from "@/src/features/mind-maps/mindMapTypes";
 import { MindMapEditor } from "@/src/features/mind-maps/MindMapEditor";
 import { MindMapList } from "@/src/features/mind-maps/MindMapList";
-import type { translations } from "@/src/translations";
-
-type T = (typeof translations)["en"];
+import { useT } from "@/src/i18n/useT";
 
 export function MindMapsTab({
   apiFetch,
   title,
-  t,
 }: {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   title: string;
-  t: T;
 }) {
+  const t = useT();
   const [maps, setMaps] = useState<MindMap[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedMap, setSelectedMap] = useState<MindMap | null>(null);
@@ -71,7 +68,7 @@ export function MindMapsTab({
       const res = await apiFetch("/api/mind-maps", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "Nowa mapa" }),
+        body: JSON.stringify({ title: t("mindmaps:mindMapsDefaultNewMapTitle") }),
       });
       if (!res.ok) return;
       const created = (await res.json()) as MindMap;
@@ -80,7 +77,7 @@ export function MindMapsTab({
     } finally {
       setIsCreating(false);
     }
-  }, [apiFetch, refreshList]);
+  }, [apiFetch, refreshList, t]);
 
   const deleteMap = useCallback(async () => {
     if (!selectedId) return;
@@ -106,7 +103,7 @@ export function MindMapsTab({
               className="px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-[var(--text)] font-semibold text-sm hover:bg-[var(--bg3)] inline-flex items-center gap-2 flex-shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
-              {t.mindMapsList as string}
+              {t("mindmaps:mindMapsList")}
             </button>
           ) : null}
           <div className="w-10 h-10 bg-[var(--bg3)] rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -116,8 +113,8 @@ export function MindMapsTab({
             <h2 className="text-lg font-bold truncate">{title}</h2>
             <p className="text-xs text-[var(--text3)]">
               {selectedMap
-                ? (t.mindMapsHeaderSubtitleWithMap as string)
-                : (t.mindMapsHeaderSubtitleNoMap as string)}
+                ? t("mindmaps:mindMapsHeaderSubtitleWithMap")
+                : t("mindmaps:mindMapsHeaderSubtitleNoMap")}
             </p>
           </div>
         </div>
@@ -135,7 +132,7 @@ export function MindMapsTab({
               ) : (
                 <Plus className="w-4 h-4" />
               )}
-              {t.mindMapsNewMap as string}
+              {t("mindmaps:mindMapsNewMap")}
             </button>
           ) : (
             <>
@@ -144,14 +141,14 @@ export function MindMapsTab({
                 onClick={deleteMap}
                 disabled={isDeletingMap}
                 className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 font-semibold text-sm hover:bg-red-100 disabled:opacity-60 inline-flex items-center gap-2"
-                title={t.mindMapsDeleteMapTitle as string}
+                title={t("mindmaps:mindMapsDeleteMapTitle")}
               >
                 {isDeletingMap ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Trash2 className="w-4 h-4" />
                 )}
-                {t.mindMapsDelete as string}
+                {t("mindmaps:mindMapsDelete")}
               </button>
             </>
           )}
@@ -166,12 +163,11 @@ export function MindMapsTab({
             onCreate={createMap}
             isCreating={isCreating}
             onOpen={(id) => setSelectedId(id)}
-            t={t}
           />
         ) : isLoadingMap ? (
           <div className="h-full flex items-center justify-center text-[var(--text3)]">
             <Loader2 className="w-5 h-5 animate-spin mr-2" />
-            {t.mindMapsLoadingMap as string}
+            {t("mindmaps:mindMapsLoadingMap")}
           </div>
         ) : (
           <MindMapEditor
@@ -181,7 +177,6 @@ export function MindMapsTab({
               setSelectedMap((current) => (current?.id === next.id ? next : current));
             }}
             onRefreshList={refreshList}
-            t={t}
           />
         )}
       </div>
