@@ -10,12 +10,15 @@ afterEach(() => cleanup());
 function summary(
   partial: Partial<ProjectSummaryDto> & Pick<ProjectSummaryDto, "id">
 ): ProjectSummaryDto {
+  const owner = partial.owner ?? "personal";
   return {
     name: partial.id,
     status: "active",
     priority: "P2",
     localPath: `/tmp/${partial.id}`,
-    owner: "personal",
+    owner,
+    kind: partial.type ?? (owner === "work" ? "etat" : "wlasny"),
+    companyData: owner === "work" || partial.type === "etat",
     freshness: "fresh",
     ...partial,
   };

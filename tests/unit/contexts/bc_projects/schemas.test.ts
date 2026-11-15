@@ -18,6 +18,7 @@ import {
   toDetailDto,
   toSummaryDto,
 } from "@/contexts/bc_projects/schemas";
+import { PROJECT_KIND_CASES } from "./projectKindCases";
 
 const base: Project = {
   id: "a",
@@ -35,6 +36,15 @@ const base: Project = {
 };
 
 describe("bc_projects schemas", () => {
+  it.each(PROJECT_KIND_CASES)(
+    "toSummaryDto: owner=%s type=%s → kind=%s, companyData=%s",
+    (owner, type, kind, companyData) => {
+      const dto = toSummaryDto({ ...base, owner, ...(type ? { type } : {}) });
+      expect(dto.kind).toBe(kind);
+      expect(dto.companyData).toBe(companyData);
+    }
+  );
+
   it("toSummaryDto bez folder i whereIStopped", () => {
     const dto = toSummaryDto(base);
     expect("folder" in dto).toBe(false);
