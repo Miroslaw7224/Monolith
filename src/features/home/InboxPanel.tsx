@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { InboxDto, InboxItemDto, MoveInboxBody } from "@/contexts/bc_inbox/schemas";
 import i18n from "@/src/i18n";
 import { useT } from "@/src/i18n/useT";
+import { inboxTypeLabel } from "./inboxType";
 import { InboxItemDialog } from "./InboxItemDialog";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
@@ -184,7 +185,7 @@ export function InboxPanel({
       <ul className="kok-inbox__list">
         {inbox?.items.map((item, i) => (
           <li key={`${item.id}:${i}`} className="kok-inbox__item">
-            <span className="kok-inbox__type">{item.type}</span>
+            <span className="kok-inbox__type">{inboxTypeLabel(item.type)}</span>
             <button
               type="button"
               className="kok-inbox__text kok-inbox__open"

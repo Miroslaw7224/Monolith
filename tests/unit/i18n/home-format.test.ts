@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import { setLanguage } from "@/src/i18n";
 import { formatDayMonth, formatWeekdayShort } from "@/src/i18n/format";
 import { projectKindLabel } from "@/src/i18n/projectKind";
+import { inboxTypeLabel } from "@/src/features/home/inboxType";
 import {
   anchorLabel,
   commitsLabel,
@@ -79,5 +80,14 @@ describe("projectKindLabel", () => {
     expect(projectKindLabel("etat")).toBe("Day job");
     expect(projectKindLabel("wlasny")).toBe("Own");
     expect(projectKindLabel("biblioteka")).toBe("Library");
+  });
+});
+
+describe("inboxTypeLabel", () => {
+  test("typ wpisu Inboxu w obu językach", async () => {
+    expect(inboxTypeLabel("myśl")).toBe("myśl");
+    await setLanguage("en");
+    expect(inboxTypeLabel("myśl")).toBe("thought");
+    expect(inboxTypeLabel("bug")).toBe("bug");
   });
 });

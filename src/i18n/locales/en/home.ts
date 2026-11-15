@@ -158,6 +158,7 @@ export const home = {
     refreshFailed: "Couldn't refresh Home ({{error}}); showing last loaded data",
   },
   inbox: {
+    type: { thought: "thought", link: "link", bug: "bug", snippet: "snippet" },
     aria: "Inbox",
     title: "Inbox",
     placeholder: "Thought, link, snippet, or bug…",

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import type { InboxItemDto, MoveInboxBody } from "@/contexts/bc_inbox/schemas";
 import { useT } from "@/src/i18n/useT";
+import { inboxTypeLabel } from "./inboxType";
 import { InboxMoveForm } from "./InboxMoveForm";
 
 /**
@@ -35,7 +36,7 @@ export function InboxItemDialog({
         <div className="kok-modal__head">
           <h3 className="kok-modal__title">{t("home:inbox.itemTitle")}</h3>
           <p className="kok-modal__sub">
-            {item.type}
+            {inboxTypeLabel(item.type)}
             {item.at ? ` · ${item.at.replace("T", " ")}` : ""}
           </p>
         </div>

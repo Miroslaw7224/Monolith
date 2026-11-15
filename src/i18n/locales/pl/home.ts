@@ -168,6 +168,7 @@ export const home = {
     refreshFailed: "Nie udało się odświeżyć Kokpitu ({{error}}); widać ostatnie wczytane dane",
   },
   inbox: {
+    type: { thought: "myśl", link: "link", bug: "bug", snippet: "snippet" },
     aria: "Inbox",
     title: "Inbox",
     placeholder: "Myśl, link, snippet albo bug…",
