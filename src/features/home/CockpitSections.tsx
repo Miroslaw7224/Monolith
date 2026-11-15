@@ -171,14 +171,14 @@ const itemKindClass = (item: QueueGroupDto["items"][number]) =>
 function ItemProjectBadges({ item }: { item: QueueGroupDto["items"][number] }) {
   if (!item.project) return null;
   return (
-    <>
+    <small className="kok-list__sub kok-list__chips">
       <span className={`kok-badge kok-badge--kind-${item.project.kind}`}>
         {PROJECT_KIND_LABELS[item.project.kind]} · {item.project.name}
       </span>
       {item.project.companyData ? (
         <span className="kok-badge kok-badge--warn">Dane z firmy</span>
       ) : null}
-    </>
+    </small>
   );
 }
 
@@ -237,6 +237,7 @@ function QueueGroupCard({
                   {item.projectName} · {item.priority}
                 </small>
               ) : null}
+              <ItemProjectBadges item={item} />
             </span>
             <EnergySwitch
               title={item.title}
@@ -244,7 +245,6 @@ function QueueGroupCard({
               disabled={busyKey !== null}
               onChange={(energy) => onSetEnergy(item, energy)}
             />
-            <ItemProjectBadges item={item} />
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
@@ -520,6 +520,7 @@ export function CockpitSections({
                   >
                     {item.title}
                   </button>
+                  <ItemProjectBadges item={item} />
                 </span>
                 <EnergySwitch
                   title={item.title}
@@ -527,7 +528,6 @@ export function CockpitSections({
                   disabled={busyKey !== null}
                   onChange={(energy) => void setItemEnergy(item, energy)}
                 />
-                <ItemProjectBadges item={item} />
                 {item.kind === "overdue" && item.due ? (
                   <span className="kok-badge kok-badge--danger">{item.due}</span>
                 ) : null}

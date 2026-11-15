@@ -1344,4 +1344,20 @@
 /* Zadanie ogólne z projektem w kolejce (spec zadań ogólnych, P4): wewnętrzny pasek rodzaju przy pozycji. */
 .kok-list__item--kind {
   box-shadow: inset 3px 0 0 var(--kok-kind);
+  padding-left: var(--s-2);
+}
+
+/* znaczniki projektu zadania ogólnego pod tytułem pozycji (nie ściskają tytułu) */
+.kok-list__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-1);
+  white-space: normal;
+}
+
+.kok-list__chips .kok-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
