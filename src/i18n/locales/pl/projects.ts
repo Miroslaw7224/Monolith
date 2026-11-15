@@ -97,6 +97,23 @@ export const projects = {
   },
   errors: {
     clipboard: "Nie udało się skopiować do schowka",
+    noProjectSelected: "Nie wybrano projektu",
+  },
+  view: {
+    loading: "Ładowanie…",
+    loadingProject: "Ładowanie projektu…",
+    eyebrow: "Alt+4 · Projekty",
+    heading: "Teczka inżynierska projektów",
+    subRegistry: "{{label}} w rejestrze",
+    subSelected: " · wybrany: {{name}}",
+    newProject: "+ Nowy projekt",
+    tilesAria: "Statystyki projektów",
+    registryAria: "Rejestr projektów",
+    registryTitle: "Rejestr",
+    emptyRegistry: "Brak projektów w rejestrze",
+    searchPlaceholder: "Szukaj w rejestrze projektów…",
+    searchAria: "Filtruj projekty",
+    emptyFilter: "Brak projektów pasujących do filtra",
   },
   common: {
     save: "Zapisz",

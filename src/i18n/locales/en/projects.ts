@@ -87,6 +87,23 @@ export const projects = {
   },
   errors: {
     clipboard: "Failed to copy to clipboard",
+    noProjectSelected: "No project selected",
+  },
+  view: {
+    loading: "Loading…",
+    loadingProject: "Loading project…",
+    eyebrow: "Alt+4 · Projects",
+    heading: "Engineering project dossier",
+    subRegistry: "{{label}} in registry",
+    subSelected: " · selected: {{name}}",
+    newProject: "+ New project",
+    tilesAria: "Project statistics",
+    registryAria: "Project registry",
+    registryTitle: "Registry",
+    emptyRegistry: "No projects in registry",
+    searchPlaceholder: "Search project registry…",
+    searchAria: "Filter projects",
+    emptyFilter: "No projects matching filter",
   },
   common: {
     save: "Save",

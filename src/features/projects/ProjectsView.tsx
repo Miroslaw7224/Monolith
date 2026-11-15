@@ -9,21 +9,16 @@ import { ProjectList } from "./ProjectList";
 import { buildProjectTiles } from "./projectTiles";
 import { useContextPack } from "./useContextPack";
 import { useProjects } from "./useProjects";
+import { registryProjectsLabel } from "./projectsFormat";
+import { useT } from "@/src/i18n/useT";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
-
-/** Polska odmiana: 1 projekt, 2–4 projekty, 0/5+ projektów. */
-function projectsWord(n: number): string {
-  if (n === 1) return "projekt";
-  const lastTwo = n % 100;
-  const last = n % 10;
-  return last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14) ? "projekty" : "projektów";
-}
 
 export function ProjectsView(props: {
   apiFetch: ApiFetch;
   initialProjectId?: string | null;
 }): React.JSX.Element {
+  const t = useT();
   const {
     status,
     error,
@@ -68,7 +63,7 @@ export function ProjectsView(props: {
   if (status === "loading") {
     return (
       <div className="prj" data-card="projekty">
-        <p className="prj-state">Ładowanie…</p>
+        <p className="prj-state">{t("projects:view.loading")}</p>
       </div>
     );
   }
@@ -83,26 +78,28 @@ export function ProjectsView(props: {
     );
   }
 
+  const registryCount = registryProjectsLabel(projects.length);
+
   return (
     <div className="prj" data-card="projekty">
       <header className="prj-head">
         <div>
-          <p className="prj-eyebrow">Alt+4 · Projekty</p>
-          <h1 className="prj-heading">Teczka inżynierska projektów</h1>
+          <p className="prj-eyebrow">{t("projects:view.eyebrow")}</p>
+          <h1 className="prj-heading">{t("projects:view.heading")}</h1>
           <p className="prj-sub">
-            {projects.length} {projectsWord(projects.length)} w rejestrze
-            {detail ? ` · wybrany: ${detail.name}` : ""}
+            {t("projects:view.subRegistry", { label: registryCount })}
+            {detail ? t("projects:view.subSelected", { name: detail.name }) : ""}
           </p>
         </div>
         <div className="prj-head__actions">
           <button type="button" className="prj-btn" onClick={() => setCreating(true)}>
-            + Nowy projekt
+            {t("projects:view.newProject")}
           </button>
           {detail ? <ProjectContextPackButton pack={pack} /> : null}
         </div>
       </header>
 
-      <section className="prj-tiles" aria-label="Statystyki projektów">
+      <section className="prj-tiles" aria-label={t("projects:view.tilesAria")}>
         {tiles.map((tile) => (
           <div
             key={tile.id}
@@ -124,10 +121,10 @@ export function ProjectsView(props: {
       </section>
 
       <div className="prj-layout">
-        <aside className="prj-registry" aria-label="Rejestr projektów">
+        <aside className="prj-registry" aria-label={t("projects:view.registryAria")}>
           <div className="prj-registry__head">
             <h2 className="prj-registry__title">
-              <b>Rejestr</b> · {projects.length} {projectsWord(projects.length)}
+              <b>{t("projects:view.registryTitle")}</b> · {registryCount}
             </h2>
             <span className="prj-chip">NEXUS</span>
           </div>
@@ -142,19 +139,19 @@ export function ProjectsView(props: {
             </div>
           ) : null}
           {projects.length === 0 ? (
-            <p className="prj-state">Brak projektów w rejestrze</p>
+            <p className="prj-state">{t("projects:view.emptyRegistry")}</p>
           ) : (
             <>
               <input
                 className="prj-search"
                 type="search"
-                placeholder="Szukaj w rejestrze projektów…"
-                aria-label="Filtruj projekty"
+                placeholder={t("projects:view.searchPlaceholder")}
+                aria-label={t("projects:view.searchAria")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
               {visibleProjects.length === 0 ? (
-                <p className="prj-state">Brak projektów pasujących do filtra</p>
+                <p className="prj-state">{t("projects:view.emptyFilter")}</p>
               ) : (
                 <ProjectList
                   projects={visibleProjects}
@@ -169,7 +166,7 @@ export function ProjectsView(props: {
 
         <div className="prj-dossier-slot">
           {selectedId && detail === null && detailError === null ? (
-            <p className="prj-state">Ładowanie projektu…</p>
+            <p className="prj-state">{t("projects:view.loadingProject")}</p>
           ) : null}
           {detailError ? (
             <p className="prj-state prj-state--error" role="alert">

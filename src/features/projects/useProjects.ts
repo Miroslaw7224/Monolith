@@ -19,6 +19,7 @@ import type {
   MutationResult,
   ProjectActions,
 } from "./mutation";
+import i18n from "@/src/i18n";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -83,7 +84,8 @@ export function useProjects(
       suffix: string,
       body: unknown
     ): Promise<MutationResult> => {
-      if (id === null) return { ok: false, error: "Nie wybrano projektu", conflict: false };
+      if (id === null)
+        return { ok: false, error: i18n.t("projects:errors.noProjectSelected"), conflict: false };
       try {
         const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}${suffix}`, {
           method,
@@ -178,7 +180,7 @@ export function useProjects(
   const loadContextPack = useCallback(
     async (role: ContextPackRole = "full"): Promise<ContextPackResult> => {
       const id = selectedIdRef.current;
-      if (id === null) return { ok: false, error: "Nie wybrano projektu" };
+      if (id === null) return { ok: false, error: i18n.t("projects:errors.noProjectSelected") };
       try {
         const query = role === "full" ? "" : `?role=${role}`;
         const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}/context-pack${query}`);
