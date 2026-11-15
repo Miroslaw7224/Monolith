@@ -29,6 +29,23 @@ function summary(
   };
 }
 
+function detail(
+  partial: Partial<ProjectDetailDto> & Pick<ProjectDetailDto, "id">
+): ProjectDetailDto {
+  return {
+    ...summary(partial),
+    tasks: [],
+    board: { blockers: [], now: [], next: [], icebox: [], version: null },
+    bugs: [],
+    whereIStopped: null,
+    purpose: null,
+    state: null,
+    stateVersion: null,
+    devlog: [],
+    ...partial,
+  };
+}
+
 function listResponse(projects: ProjectSummaryDto[], warnings: string[] = []): Response {
   return new Response(JSON.stringify({ projects, warnings }), { status: 200 });
 }
@@ -86,6 +103,21 @@ describe("ProjectsView po angielsku", () => {
     render(<ProjectsView apiFetch={makeApiFetch(twoProjects)} />);
     expect(await screen.findByRole("button", { name: "+ New project" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Search project registry…")).toBeInTheDocument();
+  });
+
+  test("karta celu projektu po angielsku ma tytuł „Why this exists”", async () => {
+    await act(async () => {
+      await setLanguage("en");
+    });
+    const a = summary({ id: "a", name: "Alpha" });
+    const apiFetch = makeApiFetch([a], {
+      a: detail({ id: "a", name: "Alpha", purpose: "Application purpose text." }),
+    });
+    render(<ProjectsView apiFetch={apiFetch} />);
+
+    expect(await screen.findByText("Why this exists")).toBeInTheDocument();
+    expect(screen.getByText("Application purpose text.")).toBeInTheDocument();
+    expect(screen.queryByText("Po co i dlaczego")).toBeNull();
   });
 
   test("przełączenie na PL bez remountu: nagłówek i 2 projekty", async () => {

@@ -32,6 +32,7 @@ const base: Project = {
   lastWorked: "2026-11-05",
   stateConfidence: "verified",
   whereIStopped: "tu",
+  purpose: "Projekt demonstracyjny",
   freshness: "fresh",
 };
 
@@ -55,6 +56,7 @@ describe("bc_projects schemas", () => {
       lastWorked: "2026-11-05",
     });
     expect("whereIStopped" in dto).toBe(false);
+    expect("purpose" in dto).toBe(false);
   });
 
   it("toDetailDto z tasks, bugs, whereIStopped bez folder", () => {
@@ -70,6 +72,7 @@ describe("bc_projects schemas", () => {
     const dto = toDetailDto(full);
     expect("folder" in dto).toBe(false);
     expect(dto.whereIStopped).toBe("tu");
+    expect(dto.purpose).toBe("Projekt demonstracyjny");
     expect(dto.tasks).toEqual(full.tasks);
     expect(dto.bugs).toEqual(full.bugs);
   });

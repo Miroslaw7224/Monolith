@@ -38,6 +38,7 @@ function detail(b: TasksBoardDto): ProjectDetailDto {
     board: b,
     bugs: [],
     whereIStopped: null,
+    purpose: null,
     state: null,
     stateVersion: null,
     devlog: [],

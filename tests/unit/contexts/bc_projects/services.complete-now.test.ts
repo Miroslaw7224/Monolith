@@ -51,7 +51,11 @@ const board = (now: BoardTask[]): TasksBoard => ({
 beforeEach(() => {
   vi.resetAllMocks();
   mockReadRegistry.mockReturnValue({ entries: [entry], warnings: [] });
-  mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: null });
+  mockReadProjectIndex.mockReturnValue({
+    lastWorked: "2026-11-05",
+    whereIStopped: null,
+    purpose: null,
+  });
   mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
   mockReadProjectState.mockReturnValue({ state: null, version: null });
   mockReadDevlog.mockReturnValue([]);

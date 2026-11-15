@@ -44,7 +44,7 @@ describe("bc_projects services: archiveDone", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, purpose: null });
     mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
     mockReadProjectState.mockReturnValue({ state: null, version: null });
     mockReadDevlog.mockReturnValue([]);

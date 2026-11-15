@@ -201,6 +201,7 @@ export const projects = {
     typeAria: "Typ projektu",
     milestone: "Kamień milowy: {{text}}",
     milestoneDue: " · do {{date}}",
+    purposeTitle: "Po co i dlaczego",
     tasksTitle: "Tablica zadań · tasks.md",
     tasksCount: "{{count}} w projekcie",
   },

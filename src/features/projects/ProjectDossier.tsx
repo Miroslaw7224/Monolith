@@ -123,6 +123,15 @@ export function ProjectDossier(props: {
         ) : null}
       </article>
 
+      {project.purpose !== null ? (
+        <article className="prj-card prj-purpose">
+          <div className="prj-card__head">
+            <h3 className="prj-section-title">{t("projects:dossier.purposeTitle")}</h3>
+          </div>
+          <p className="prj-purpose__text">{project.purpose}</p>
+        </article>
+      ) : null}
+
       <ProjectCodeSync
         key={`${project.id}-code-sync`}
         sync={project.codeSync}

@@ -145,6 +145,7 @@ const listed = (over: Partial<Project> & Pick<Project, "id">): Project => ({
   owner: "personal",
   whereIStopped: null,
   freshness: "fresh",
+  purpose: null,
   ...over,
 });
 

@@ -90,6 +90,7 @@ export type ProjectIndex = {
   stateConfidence?: string;
   type?: ProjectType;
   whereIStopped: string | null;
+  purpose: string | null;
 };
 
 export type ChecklistItem = { text: string; done: boolean };

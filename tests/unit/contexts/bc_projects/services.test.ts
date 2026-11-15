@@ -75,6 +75,7 @@ function project(partial: Partial<Project> & Pick<Project, "id">): Project {
   return {
     ...e,
     whereIStopped: partial.whereIStopped ?? null,
+    purpose: partial.purpose ?? null,
     freshness: partial.freshness ?? "unknown",
     ...partial,
   };
@@ -189,7 +190,7 @@ describe("bc_projects services", () => {
     mockReadRegistry.mockReturnValue({ entries: [a, b], warnings: [] });
     mockReadProjectIndex.mockImplementation((e: RegistryEntry) => {
       if (e.id === "b") throw new Error("boom");
-      return { lastWorked: "2026-11-05", whereIStopped: "ok" };
+      return { lastWorked: "2026-11-05", whereIStopped: "ok", purpose: null };
     });
 
     const result = listProjects(TODAY);
@@ -229,6 +230,7 @@ describe("bc_projects services", () => {
     mockReadProjectIndex.mockReturnValue({
       lastWorked: "2026-11-05",
       whereIStopped: "tu",
+      purpose: null,
     });
     mockReadProjectContent.mockReturnValue({
       tasks: [{ heading: "Next", items: [{ text: "A", done: false }] }],
@@ -248,7 +250,11 @@ describe("bc_projects services", () => {
   it("getProject: bugi z wiekiem i powiązaniem z zadaniem", () => {
     const a = entry({ id: "a", name: "A" });
     mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: "tu" });
+    mockReadProjectIndex.mockReturnValue({
+      lastWorked: "2026-11-05",
+      whereIStopped: "tu",
+      purpose: null,
+    });
     mockReadProjectContent.mockReturnValue({
       tasks: [],
       bugs: [{ id: "B-1", title: "x", section: "Aktywne", opened: "2026-10-01" }],
@@ -279,7 +285,7 @@ describe("bc_projects services", () => {
   it("getProject błąd odczytu", () => {
     const a = entry({ id: "a" });
     mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, purpose: null });
     const err = new Error("content boom");
     mockReadProjectContent.mockImplementation(() => {
       throw err;
@@ -323,7 +329,11 @@ describe("bc_projects services: Save State, devlog, type", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({
+      lastWorked: "2026-11-05",
+      whereIStopped: null,
+      purpose: null,
+    });
     mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
     mockReadProjectState.mockReturnValue({ state: PREV, version: VERSION });
     mockReadDevlog.mockReturnValue([{ date: "2026-11-12", title: "T", why: "W" }]);
@@ -345,7 +355,11 @@ describe("bc_projects services: Save State, devlog, type", () => {
   });
 
   it("getProject: świeżość z nowszej daty (state.updated) i dane state/devlog", () => {
-    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-10-23", whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({
+      lastWorked: "2026-10-23",
+      whereIStopped: null,
+      purpose: null,
+    });
     mockReadProjectState.mockReturnValue({
       state: { ...PREV, updated: "2026-11-11T09:00" },
       version: VERSION,
@@ -365,7 +379,11 @@ describe("bc_projects services: Save State, devlog, type", () => {
   });
 
   it("listProjects: błąd state.md to ostrzeżenie, projekt zachowuje dane z indeksu", () => {
-    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: "tu" });
+    mockReadProjectIndex.mockReturnValue({
+      lastWorked: "2026-11-05",
+      whereIStopped: "tu",
+      purpose: null,
+    });
     mockReadProjectState.mockImplementation(() => {
       throw new Error("state boom");
     });
@@ -375,7 +393,11 @@ describe("bc_projects services: Save State, devlog, type", () => {
   });
 
   it("listProjects: świeżość uwzględnia state.updated", () => {
-    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-10-01", whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({
+      lastWorked: "2026-10-01",
+      whereIStopped: null,
+      purpose: null,
+    });
     mockReadProjectState.mockReturnValue({
       state: { ...PREV, updated: "2026-11-12T08:00" },
       version: VERSION,
@@ -469,7 +491,11 @@ describe("bc_projects services: zadania projektu (tablica)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({
+      lastWorked: "2026-11-05",
+      whereIStopped: null,
+      purpose: null,
+    });
     mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
     mockReadProjectState.mockReturnValue({ state: null, version: null });
     mockReadDevlog.mockReturnValue([]);
@@ -607,7 +633,7 @@ describe("listNowTasks", () => {
       ],
       warnings: [],
     });
-    mockReadProjectIndex.mockReturnValue({ whereIStopped: null });
+    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, purpose: null });
     mockReadProjectBoard.mockImplementation((e: RegistryEntry) =>
       e.id === "nexus"
         ? board([{ text: "Plan 2-1", done: false }])
@@ -643,7 +669,7 @@ describe("listNowTasks", () => {
 
   it("rodzaj zadania z `type` w index.md: personal + etat → etat i Dane z firmy", () => {
     mockReadRegistry.mockReturnValue({ entries: [entry({ id: "a" })], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, type: "etat" });
+    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, purpose: null, type: "etat" });
     mockReadProjectBoard.mockReturnValue(board([{ text: "Zadanie", done: false }]));
 
     const { tasks } = listNowTasks();

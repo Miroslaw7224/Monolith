@@ -154,6 +154,7 @@ export function listProjects(today: Date = new Date()): {
       projects.push({
         ...entry,
         whereIStopped: null,
+        purpose: null,
         freshness: "unknown",
       });
     }

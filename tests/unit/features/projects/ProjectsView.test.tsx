@@ -33,6 +33,7 @@ function detail(
     board: { blockers: [], now: [], next: [], icebox: [], version: null },
     bugs: [],
     whereIStopped: null,
+    purpose: null,
     state: null,
     stateVersion: null,
     devlog: [],
@@ -175,6 +176,69 @@ describe("ProjectsView", () => {
     await waitFor(() => {
       expect(screen.getByText("Koniec X.")).toBeInTheDocument();
     });
+  });
+
+  it("renderuje kartę „Po co i dlaczego”, gdy purpose !== null, przed kartą Save State", async () => {
+    const a = summary({ id: "a" });
+    const apiFetch = makeApiFetch([a], {
+      a: detail({
+        id: "a",
+        purpose: "Pierwsza linia celu.\nDruga linia motywacji.",
+      }),
+    });
+    const { container } = render(<ProjectsView apiFetch={apiFetch} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Po co i dlaczego")).toBeInTheDocument();
+    });
+
+    const purposeCard = container.querySelector("article.prj-purpose") as HTMLElement;
+    expect(purposeCard).not.toBeNull();
+    expect(within(purposeCard).getByText(/Pierwsza linia celu/)).toBeInTheDocument();
+    expect(within(purposeCard).getByText(/Druga linia motywacji/)).toBeInTheDocument();
+
+    const allCards = Array.from(container.querySelectorAll("article.prj-card")) as HTMLElement[];
+    const purposeIndex = allCards.findIndex((el) => el.classList.contains("prj-purpose"));
+    const saveStateIndex = allCards.findIndex(
+      (el) => within(el).queryByText("Save State") !== null
+    );
+    expect(purposeIndex).toBeGreaterThan(-1);
+    expect(saveStateIndex).toBeGreaterThan(-1);
+    expect(purposeIndex).toBeLessThan(saveStateIndex);
+  });
+
+  it("renderuje tekst z tagami HTML jako surowy tekst (bez parsowania HTML)", async () => {
+    const a = summary({ id: "a" });
+    const apiFetch = makeApiFetch([a], {
+      a: detail({
+        id: "a",
+        purpose: "Tekst z <b>tagiem HTML</b> i <script>alert(1)</script>",
+      }),
+    });
+    const { container } = render(<ProjectsView apiFetch={apiFetch} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Tekst z <b>tagiem HTML</b> i <script>alert(1)</script>")
+      ).toBeInTheDocument();
+    });
+    const purposeCard = container.querySelector("article.prj-purpose");
+    expect(purposeCard?.querySelector("b")).toBeNull();
+    expect(purposeCard?.querySelector("script")).toBeNull();
+  });
+
+  it("nie renderuje karty „Po co i dlaczego”, gdy purpose === null", async () => {
+    const a = summary({ id: "a" });
+    const apiFetch = makeApiFetch([a], {
+      a: detail({ id: "a", purpose: null }),
+    });
+    render(<ProjectsView apiFetch={apiFetch} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("region", { name: "Teczka projektu a" })).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Po co i dlaczego")).toBeNull();
+    expect(document.querySelector("article.prj-purpose")).toBeNull();
   });
 
   it("znacznik „Dane z firmy” przy owner work, bez niego przy zwykłym własnym projekcie", async () => {
