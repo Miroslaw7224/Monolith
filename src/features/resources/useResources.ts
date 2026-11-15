@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import type { NoteResource, TranslationDict } from "./resourceTypes";
+import type { NoteResource } from "./resourceTypes";
 import {
   collectResourceTags,
   countResourceTags,
@@ -10,6 +10,8 @@ import {
   type TagCount,
 } from "./resourceFilters";
 import { parseMultipleBlocks } from "./resourceParsing";
+import { useT } from "@/src/i18n/useT";
+import type { TFn } from "@/src/i18n";
 
 export interface UseResourcesLabels {
   resourceDescriptionPlaceholder: string;
@@ -36,45 +38,38 @@ export interface UseResourcesLabels {
   resourceSearchPlaceholder: string;
   resourceFavoritesSectionTitle: string;
   noteCancelEdit: string;
+  resourceFixLabel: string;
+  resourceLoading: string;
 }
 
-function resolveLabels(t: TranslationDict): UseResourcesLabels {
+function resolveLabels(t: TFn): UseResourcesLabels {
   return {
-    resourceDescriptionPlaceholder:
-      (t.resourceDescriptionPlaceholder as string) ?? "Description (e.g. Color picker for project)",
-    resourceUrlPlaceholder: (t.resourceUrlPlaceholder as string) ?? "URL",
-    resourceTagsPlaceholder:
-      (t.resourceTagsPlaceholder as string) ?? "Tags (comma-separated, optional)",
-    addResource: (t.addResource as string) ?? "Add resource",
-    resourceCopied: (t.resourceCopied as string) ?? "Copied!",
-    resourceTitleUnavailable: (t.resourceTitleUnavailable as string) ?? "(title unavailable)",
-    resourceDeleteConfirm: (t.resourceDeleteConfirm as string) ?? "Delete this resource?",
-    resourceNoResources:
-      (t.resourceNoResources as string) ?? "No resources yet. Add your first link.",
-    resourceBlockFormatLabel: (t.resourceBlockFormatLabel as string) ?? "Or paste in block format:",
-    resourceBlockFormatPlaceholder:
-      (t.resourceBlockFormatPlaceholder as string) ??
-      "Opis: Short description of the resource.\nURL: https://example.com\nTagi: tag1, tag2, tag3",
-    resourceBlockFormatHint:
-      (t.resourceBlockFormatHint as string) ??
-      'Multiple resources: start each new block on a new line with "Opis:" or "Description:".',
-    resourceAddFromBlock: (t.resourceAddFromBlock as string) ?? "Add from pasted block",
-    resourceBlockFormatError:
-      (t.resourceBlockFormatError as string) ??
-      "Could not parse. Required: URL: and Opis: (or Description:).",
-    resourceFilterByTags: (t.resourceFilterByTags as string) ?? "Filter by tags",
-    resourceClearFilters: (t.resourceClearFilters as string) ?? "Clear filters",
-    resourceNoMatchingTags:
-      (t.resourceNoMatchingTags as string) ?? "No resources match the selected tags.",
-    resourceFavorite: (t.resourceFavorite as string) ?? "Favorite",
-    resourceEdit: (t.resourceEdit as string) ?? "Edit",
-    resourceSaveEdit: (t.resourceSaveEdit as string) ?? "Save",
-    resourceEditModalTitle: (t.resourceEditModalTitle as string) ?? "Edit resource",
-    tabResources: (t.tabResources as string) ?? "Zasoby",
-    resourceSearchPlaceholder:
-      (t.resourceSearchPlaceholder as string) ?? "Search by title, description or URL",
-    resourceFavoritesSectionTitle: (t.resourceFavoritesSectionTitle as string) ?? "Favorite links",
-    noteCancelEdit: (t.noteCancelEdit as string) ?? "Cancel",
+    resourceDescriptionPlaceholder: t("resources:resourceDescriptionPlaceholder"),
+    resourceUrlPlaceholder: t("resources:resourceUrlPlaceholder"),
+    resourceTagsPlaceholder: t("resources:resourceTagsPlaceholder"),
+    addResource: t("resources:addResource"),
+    resourceCopied: t("resources:resourceCopied"),
+    resourceTitleUnavailable: t("resources:resourceTitleUnavailable"),
+    resourceDeleteConfirm: t("resources:resourceDeleteConfirm"),
+    resourceNoResources: t("resources:resourceNoResources"),
+    resourceBlockFormatLabel: t("resources:resourceBlockFormatLabel"),
+    resourceBlockFormatPlaceholder: t("resources:resourceBlockFormatPlaceholder"),
+    resourceBlockFormatHint: t("resources:resourceBlockFormatHint"),
+    resourceAddFromBlock: t("resources:resourceAddFromBlock"),
+    resourceBlockFormatError: t("resources:resourceBlockFormatError"),
+    resourceFilterByTags: t("resources:resourceFilterByTags"),
+    resourceClearFilters: t("resources:resourceClearFilters"),
+    resourceNoMatchingTags: t("resources:resourceNoMatchingTags"),
+    resourceFavorite: t("resources:resourceFavorite"),
+    resourceEdit: t("resources:resourceEdit"),
+    resourceSaveEdit: t("resources:resourceSaveEdit"),
+    resourceEditModalTitle: t("resources:resourceEditModalTitle"),
+    tabResources: t("resources:resourceArsenalTitle"),
+    resourceSearchPlaceholder: t("resources:resourceSearchPlaceholder"),
+    resourceFavoritesSectionTitle: t("resources:resourceFavoritesSectionTitle"),
+    noteCancelEdit: t("planning:calendarCancel"),
+    resourceFixLabel: t("resources:resourceFixLabel"),
+    resourceLoading: t("resources:resourceLoading"),
   };
 }
 
@@ -154,9 +149,9 @@ export interface UseResourcesResult {
 }
 
 export function useResources(
-  apiFetch: (url: string, options?: RequestInit) => Promise<Response>,
-  t: TranslationDict
+  apiFetch: (url: string, options?: RequestInit) => Promise<Response>
 ): UseResourcesResult {
+  const t = useT();
   const [resources, setResources] = useState<NoteResource[]>([]);
   const [loading, setLoading] = useState(true);
   const [addDescription, setAddDescription] = useState("");
@@ -305,15 +300,7 @@ export function useResources(
       if (added.length > 0) {
         setResources((prev) => [...added, ...prev]);
         setBlockFormatText("");
-        const count = added.length;
-        const msg =
-          count === 1
-            ? ((t.resourceAddedOne as string) ?? "Added 1 resource")
-            : ((t.resourceAddedCount as string) ?? `Added ${count} resources`).replace(
-                "{n}",
-                String(count)
-              );
-        setCopyMessage(msg);
+        setCopyMessage(t("resources:resourceAdded", { count: added.length }));
         setTimeout(() => setCopyMessage(null), 3000);
       }
       if (hadError && added.length === 0) {

@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-export type TranslationDict = Record<string, string | string[]>;
-
 export type { ResourceDto as NoteResource } from "@/contexts/bc_resources/schemas";
 
 /** Result of parsing a single block (Opis:/Description: ... URL: ... Tagi:/Tags: ...). */
@@ -20,6 +18,5 @@ export {
 
 export interface ResourceSectionProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  t: TranslationDict;
   onOpenNote?: (notePath: string) => void;
 }

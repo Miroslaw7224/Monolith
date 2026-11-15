@@ -266,7 +266,6 @@ export default function PlanowanieView({
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
             <ResourceSection
               apiFetch={apiFetch}
-              t={t as Record<string, string | string[]>}
               onOpenNote={(path) => {
                 setPendingNexusPath(path);
                 setPlanningTab("notes");

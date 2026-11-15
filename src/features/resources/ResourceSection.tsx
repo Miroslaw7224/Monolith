@@ -2,6 +2,7 @@ import React from "react";
 import { Loader2 } from "lucide-react";
 import type { ResourceSectionProps, NoteResource } from "./resourceTypes";
 import { useResources } from "./useResources";
+import { useT } from "@/src/i18n/useT";
 import { useResourceShortcuts } from "./useResourceShortcuts";
 import { ResourceFilterSidebar } from "./ResourceFilterSidebar";
 import { ResourceAddForm } from "./ResourceAddForm";
@@ -12,7 +13,8 @@ import "./resources.css";
 
 export type { NoteResource } from "./resourceTypes";
 
-export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProps) {
+export function ResourceSection({ apiFetch, onOpenNote }: ResourceSectionProps) {
+  const t = useT();
   const {
     resources,
     loading,
@@ -57,7 +59,7 @@ export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProp
     setEditForm,
     closeEditModal,
     handleSaveEdit,
-  } = useResources(apiFetch, t);
+  } = useResources(apiFetch);
 
   const searchRef = React.useRef<HTMLInputElement>(null);
   useResourceShortcuts({
@@ -72,12 +74,9 @@ export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProp
     <div className="ars" data-card="arsenal">
       <header className="ars-head">
         <div>
-          <p className="ars-eyebrow">Alt+7 · Arsenał</p>
+          <p className="ars-eyebrow">{t("resources:resourceEyebrow")}</p>
           <h1 className="ars-title">{labels.tabResources}</h1>
-          <p className="ars-sub">
-            {resources.length} {resources.length === 1 ? "zasób" : "zasobów"} · baza linków i
-            dokumentacji
-          </p>
+          <p className="ars-sub">{t("resources:resourceSubtitle", { count: resources.length })}</p>
         </div>
         <div className="ars-head__actions">
           <input
@@ -88,7 +87,7 @@ export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProp
             placeholder={labels.resourceSearchPlaceholder}
             className="input ars-search"
             aria-label={labels.resourceSearchPlaceholder}
-            title="/ — szukaj, Esc — wyczyść"
+            title={t("resources:resourceSearchShortcutTitle")}
           />
           <button
             type="button"
@@ -96,14 +95,14 @@ export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProp
             aria-pressed={dense}
             onClick={() => setDense(!dense)}
           >
-            Gęsto
+            {t("resources:resourceDenseButton")}
           </button>
         </div>
       </header>
 
       <div className="ars-layout">
         <div className="ars-col-main">
-          <aside className="ars-sidebar" aria-label="Dodawanie zasobów">
+          <aside className="ars-sidebar" aria-label={t("resources:resourceAddSidebarAria")}>
             <ResourceAddForm
               resourceDescriptionPlaceholder={labels.resourceDescriptionPlaceholder}
               resourceUrlPlaceholder={labels.resourceUrlPlaceholder}
@@ -148,7 +147,7 @@ export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProp
               fixOnly={fixOnly}
               fixCount={fixCount}
               onToggleFix={toggleFixOnly}
-              fixLabel="Do poprawy"
+              fixLabel={labels.resourceFixLabel}
               loading={loading}
               resourcesLength={resources.length}
               filterByTagsLabel={labels.resourceFilterByTags}
@@ -160,7 +159,7 @@ export function ResourceSection({ apiFetch, t, onOpenNote }: ResourceSectionProp
             {loading ? (
               <div className="ars-state ars-state--loading">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Loading...</span>
+                <span>{labels.resourceLoading}</span>
               </div>
             ) : resources.length === 0 ? (
               <p className="ars-state">{labels.resourceNoResources}</p>

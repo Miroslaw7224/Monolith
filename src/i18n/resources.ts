@@ -4,12 +4,14 @@ import { projects as plProjects } from "./locales/pl/projects";
 import { shell as plShell } from "./locales/pl/shell";
 import { planning as plPlanning } from "./locales/pl/planning";
 import { tasks as plTasks } from "./locales/pl/tasks";
+import { resources as plResources } from "./locales/pl/resources";
 import { common as enCommon } from "./locales/en/common";
 import { home as enHome } from "./locales/en/home";
 import { projects as enProjects } from "./locales/en/projects";
 import { shell as enShell } from "./locales/en/shell";
 import { planning as enPlanning } from "./locales/en/planning";
 import { tasks as enTasks } from "./locales/en/tasks";
+import { resources as enResources } from "./locales/en/resources";
 
 export const resources = {
   pl: {
@@ -19,6 +21,7 @@ export const resources = {
     projects: plProjects,
     planning: plPlanning,
     tasks: plTasks,
+    resources: plResources,
   },
   en: {
     common: enCommon,
@@ -27,5 +30,6 @@ export const resources = {
     projects: enProjects,
     planning: enPlanning,
     tasks: enTasks,
+    resources: enResources,
   },
 };

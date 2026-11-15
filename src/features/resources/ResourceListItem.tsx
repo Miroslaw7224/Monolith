@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Copy, Trash2, Star, Pencil } from "lucide-react";
 import type { NoteResource } from "./resourceTypes";
 import { getFaviconUrl } from "./resourceParsing";
+import { useT } from "@/src/i18n/useT";
 
 export interface ResourceListItemProps {
   resource: NoteResource;
@@ -29,6 +30,7 @@ export function ResourceListItem({
   dense = false,
   onOpenNote,
 }: ResourceListItemProps) {
+  const t = useT();
   const favicon = getFaviconUrl(r.url);
   const [showFavicon, setShowFavicon] = React.useState(true);
 
@@ -98,10 +100,10 @@ export function ResourceListItem({
               onOpenNote(r.notePath as string);
             }}
             className="btn btn--sm btn--ghost ars-action-btn"
-            title="Otwórz notatkę w Bazie wiedzy"
-            aria-label="Notatka"
+            title={t("resources:resourceOpenNoteTitle")}
+            aria-label={t("resources:resourceNoteButtonLabel")}
           >
-            notatka
+            {t("resources:resourceNoteButtonText")}
           </button>
         )}
         <button
