@@ -108,9 +108,9 @@ Wspólny szablon dla etatu i projektów własnych.
   4. sekcja „Teraz” z `tasks.md` i otwarte bugi z `bugs.md`,
   5. 2–3 ostatnie wpisy z `devlog.md`.
 
-  Zrealizowane w etapie 1-4 (spec `2026-11-13-etap-1-4-paczka-kontekstu-design.md`); szablony per rola i podgląd nadal odłożone.
+  Zrealizowane w etapie 1-4 (spec `2026-11-13-etap-1-4-paczka-kontekstu-design.md`); szablony per rola zrealizowane wg `2026-11-14-paczka-kontekstu-role-design.md` (podgląd Markdown jest w karcie paczki).
 
-  Git jest tylko odczytywany. Dla `owner: work` obowiązuje ostrzeżenie z sekcji 5. Później (koszt M): szablony per rola (review / implementacja / debug) z innym zestawem sekcji i podglądem przed skopiowaniem.
+  Git jest tylko odczytywany. Dla `owner: work` obowiązuje ostrzeżenie z sekcji 5. Szablony per rola (review / implementacja / debug): zrealizowane, zob. wyżej.
 
 - **Dziennik decyzji** (`devlog.md`): data, co ustalono i dlaczego.
 - **Świeżość danych:** karta pokazuje `last_worked` i `state_confidence`, aby stale dane (jak `focus.md` z maja) były widoczne.
