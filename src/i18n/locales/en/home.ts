@@ -1,0 +1,21 @@
+export const home = {
+  format: {
+    today: "today",
+    yesterday: "yesterday",
+    tomorrow: "tomorrow",
+    daysAgo: "{{count}} days ago",
+    anchor: "Anchor",
+    anchorYesterday: "Anchor from yesterday",
+    anchorDaysAgo: "Anchor from {{count}} days ago",
+    meetingsNone: "no meetings today",
+    meetings_one: "{{count}} meeting today",
+    meetings_other: "{{count}} meetings today",
+    commits_one: "{{count}} commit",
+    commits_other: "{{count}} commits",
+    projectsNone: "no commits yet",
+    projects_one: "{{count}} project",
+    projects_other: "{{count}} projects",
+    windows_one: "{{count}} Deep Work window",
+    windows_other: "{{count}} Deep Work windows",
+  },
+};
