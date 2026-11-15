@@ -5,6 +5,7 @@ import type { TaskStatus } from "./taskOrderUtils";
 import { getVisibleColumnTasks } from "./taskOrderUtils";
 import { TaskCard } from "./TaskCard";
 import type { TaskEnergy } from "./taskEnergyUtils";
+import type { TaskProject } from "./useTasksBoard";
 
 interface TaskColumnProps {
   status: TaskStatus;
@@ -24,6 +25,7 @@ interface TaskColumnProps {
     showMore: (count: number) => string;
     showLess: string;
   };
+  projectsById: ReadonlyMap<string, TaskProject>;
   formatDate: (iso: string | null | undefined) => string;
   onColumnDragOver: (status: TaskStatus) => void;
   onColumnDrop: (status: TaskStatus) => void;
@@ -56,6 +58,7 @@ export function TaskColumn({
   editingId,
   editTitle,
   labels,
+  projectsById,
   formatDate,
   onColumnDragOver,
   onColumnDrop,
@@ -115,6 +118,7 @@ export function TaskColumn({
             editingId={editingId}
             editTitle={editTitle}
             labels={labels}
+            project={task.project ? projectsById.get(task.project) : undefined}
             formatDate={formatDate}
             onDragStart={onDragStart}
             onDragOver={onDragOverTask}

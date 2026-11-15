@@ -37,7 +37,14 @@ const fakeT = {
   tasksToReview: "Do sprawdzenia",
   tasksDone: "Zrobione",
   tasksDeadlineLabel: "Termin",
+  tasksDetailProjectLabel: "Projekt",
+  tasksNoProject: "Bez projektu",
 };
+
+const PROJECTS = [
+  { id: "monolith", name: "Monolith" },
+  { id: "career-guide", name: "Career Guide" },
+];
 
 describe("TaskDetailModal", () => {
   let onSave: ReturnType<typeof vi.fn>;
@@ -191,5 +198,61 @@ describe("TaskDetailModal", () => {
       <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
     );
     expect(screen.getByText("Szczegóły zadania")).toBeInTheDocument();
+  });
+  describe("projekt zadania", () => {
+    it("zapisuje wybrany projekt", async () => {
+      const user = userEvent.setup();
+      render(
+        <TaskDetailModal
+          task={fakeTask}
+          isOpen={true}
+          t={fakeT}
+          projects={PROJECTS}
+          onClose={onClose}
+          onSave={onSave}
+        />
+      );
+      const select = screen.getByLabelText("Projekt");
+      expect(select).toHaveValue("");
+      await user.selectOptions(select, "monolith");
+      await user.click(screen.getByRole("button", { name: /zapisz/i }));
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ project: "monolith" }));
+    });
+
+    it("„Bez projektu” zdejmuje projekt (null)", async () => {
+      const user = userEvent.setup();
+      render(
+        <TaskDetailModal
+          task={{ ...fakeTask, project: "monolith" }}
+          isOpen={true}
+          t={fakeT}
+          projects={PROJECTS}
+          onClose={onClose}
+          onSave={onSave}
+        />
+      );
+      const select = screen.getByLabelText("Projekt");
+      expect(select).toHaveValue("monolith");
+      await user.selectOptions(select, "");
+      await user.click(screen.getByRole("button", { name: /zapisz/i }));
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ project: null }));
+    });
+
+    it("nieznane id projektu zostaje wybrane i nie jest po cichu kasowane przy zapisie", async () => {
+      const user = userEvent.setup();
+      render(
+        <TaskDetailModal
+          task={{ ...fakeTask, project: "usuniety-projekt" }}
+          isOpen={true}
+          t={fakeT}
+          projects={PROJECTS}
+          onClose={onClose}
+          onSave={onSave}
+        />
+      );
+      expect(screen.getByLabelText("Projekt")).toHaveValue("usuniety-projekt");
+      await user.click(screen.getByRole("button", { name: /zapisz/i }));
+      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ project: "usuniety-projekt" }));
+    });
   });
 });

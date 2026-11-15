@@ -151,3 +151,44 @@ test("odłożone zadanie trafia do pierwszej kolumny „Odłożone”", async ()
   // licznik aktywnych nie liczy odłożonych (D5): tylko „Alpha”
   expect(screen.getByText(/1 zadań aktywnych/)).toBeInTheDocument();
 });
+
+test("zadanie z znanym projektem ma kolor i znacznik rodzaju, bez projektu i z nieznanym id nie ma", async () => {
+  apiFetch.mockImplementation(async (url: string) => {
+    if (url === "/api/tasks") {
+      const base = { link: "", description: "", status: "todo", due_date: null, priority: null };
+      return {
+        ok: true,
+        json: async () => [
+          { ...base, id: "a", title: "Własne", project: "monolith" },
+          { ...base, id: "b", title: "Z firmy", project: "career-guide" },
+          { ...base, id: "c", title: "Osierocone", project: "usuniety" },
+          { ...base, id: "d", title: "Ogólne" },
+        ],
+      };
+    }
+    if (url === "/api/projects") {
+      return {
+        ok: true,
+        json: async () => ({
+          projects: [
+            { id: "monolith", name: "Monolith", kind: "wlasny" },
+            { id: "career-guide", name: "Career Guide", kind: "etat" },
+          ],
+        }),
+      };
+    }
+    return { ok: true, json: async () => [] };
+  });
+  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+
+  const card = async (title: string) =>
+    (await screen.findByText(title)).closest("li.zad-card") as HTMLElement;
+
+  await waitFor(async () => expect(await card("Własne")).toHaveClass("zad-card--kind-wlasny"));
+  expect(within(await card("Własne")).getByText(/Własny/)).toHaveClass("zad-kind--wlasny");
+  expect(within(await card("Własne")).getByText(/Monolith/)).toBeInTheDocument();
+  expect(await card("Z firmy")).toHaveClass("zad-card--kind-etat");
+  expect(within(await card("Z firmy")).getByText(/Etat/)).toBeInTheDocument();
+  expect((await card("Osierocone")).className).not.toMatch(/zad-card--kind/);
+  expect((await card("Ogólne")).className).not.toMatch(/zad-card--kind/);
+});

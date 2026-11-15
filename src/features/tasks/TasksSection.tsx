@@ -30,6 +30,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     setNewTaskLink,
     newTaskUrgent,
     setNewTaskUrgent,
+    projects,
     templates,
     selectedTemplateId,
     templatesModalOpen,
@@ -76,6 +77,8 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     if (Number.isNaN(d.getTime())) return "";
     return d.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US");
   };
+
+  const projectsById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
 
   const pl = lang === "pl";
 
@@ -295,6 +298,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
                 editingId={editingId}
                 editTitle={editTitle}
                 labels={cardLabels}
+                projectsById={projectsById}
                 formatDate={formatDate}
                 onColumnDragOver={(s) => {
                   setDragOverColumn(s);
@@ -331,6 +335,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
         task={detailTaskId ? (tasks.find((x) => x.id === detailTaskId) ?? null) : null}
         isOpen={detailTaskId !== null}
         t={t}
+        projects={projects}
         onClose={() => setDetailTaskId(null)}
         onSave={saveTaskDetail}
       />

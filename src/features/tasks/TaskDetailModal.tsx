@@ -8,6 +8,8 @@ export interface TaskDetailModalProps {
   task: Task | null;
   isOpen: boolean;
   t: TranslationDict;
+  /** Projekty z rejestru do wyboru; brak = sama opcja „Bez projektu”. */
+  projects?: { id: string; name: string }[];
   onClose: () => void;
   onSave: (payload: {
     title: string;
@@ -15,15 +17,24 @@ export interface TaskDetailModalProps {
     description: string;
     status: Task["status"];
     due_date: string | null;
+    project: string | null;
   }) => Promise<void>;
 }
 
-export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetailModalProps) {
+export function TaskDetailModal({
+  task,
+  isOpen,
+  t,
+  projects = [],
+  onClose,
+  onSave,
+}: TaskDetailModalProps) {
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<Task["status"]>("todo");
   const [dueDate, setDueDate] = useState("");
+  const [project, setProject] = useState("");
   const [saving, setSaving] = useState(false);
   const syncedIdRef = useRef<string | null>(null);
 
@@ -40,6 +51,7 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
     setDescription(task.description ?? "");
     setStatus(task.status);
     setDueDate(task.due_date ?? "");
+    setProject(task.project ?? "");
   }, [isOpen, task]);
 
   const handleSave = async () => {
@@ -53,6 +65,7 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
         description: description.trim(),
         status,
         due_date: dueDate.trim() === "" ? null : dueDate.trim(),
+        project: project === "" ? null : project,
       });
     } finally {
       setSaving(false);
@@ -80,6 +93,10 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
   ];
 
   const deadlineLabel = (t.tasksDeadlineLabel as string) ?? "Due";
+  const projectLabel = (t.tasksDetailProjectLabel as string) ?? "Project";
+  const noProjectLabel = (t.tasksNoProject as string) ?? "No project";
+  // projekt usunięty z rejestru: zostaje wybrany (z samym id), żeby zapis go po cichu nie skasował
+  const orphanProject = project !== "" && !projects.some((p) => p.id === project) ? project : null;
 
   return (
     <div
@@ -174,6 +191,26 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
               onChange={(e) => setDueDate(e.target.value)}
               className="zad-input zad-due-input--field"
             />
+          </div>
+
+          <div className="zad-field">
+            <label htmlFor="task-detail-project" className="zad-label">
+              {projectLabel}
+            </label>
+            <select
+              id="task-detail-project"
+              value={project}
+              onChange={(e) => setProject(e.target.value)}
+              className="zad-input"
+            >
+              <option value="">{noProjectLabel}</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+              {orphanProject !== null && <option value={orphanProject}>{orphanProject}</option>}
+            </select>
           </div>
 
           <div className="zad-field">

@@ -5,6 +5,10 @@ import { matchTaskSearch, normalizeTaskFields } from "./taskInputUtils";
 import { URGENT_PRIORITY } from "./taskPriorityUtils";
 import { toggleTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
 import { computeTaskOrderAfterDrop, type TaskStatus } from "./taskOrderUtils";
+import type { ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
+
+/** Projekt z rejestru w zakresie potrzebnym do wyboru i koloru zadania. */
+export type TaskProject = Pick<ProjectSummaryDto, "id" | "name" | "kind">;
 
 export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => Promise<Response>) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -12,6 +16,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskLink, setNewTaskLink] = useState("");
   const [newTaskUrgent, setNewTaskUrgent] = useState(false);
+  const [projects, setProjects] = useState<TaskProject[]>([]);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [templatesModalOpen, setTemplatesModalOpen] = useState(false);
@@ -69,6 +74,22 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     void fetchTemplates();
   }, [fetchTemplates]);
 
+  // lista projektów tylko do koloru i wyboru w oknie zadania; błąd = zadania bez koloru
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/api/projects")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((data: { projects?: TaskProject[] }) => {
+        if (!cancelled) setProjects(Array.isArray(data?.projects) ? data.projects : []);
+      })
+      .catch(() => {
+        if (!cancelled) setProjects([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiFetch]);
+
   useEffect(() => {
     return () => {
       const p = titleClickPendingRef.current;
@@ -113,6 +134,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     description: string;
     status: Task["status"];
     due_date: string | null;
+    project: string | null;
   }) => {
     if (!detailTaskId) return;
     try {
@@ -125,6 +147,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
           description: payload.description,
           status: payload.status,
           due_date: payload.due_date,
+          project: payload.project,
         }),
       });
       setTasks((prev) =>
@@ -137,6 +160,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
                 description: payload.description,
                 status: payload.status,
                 due_date: payload.due_date,
+                project: payload.project ?? undefined,
               }
             : x
         )
@@ -357,6 +381,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     setNewTaskLink,
     newTaskUrgent,
     setNewTaskUrgent,
+    projects,
     templates,
     selectedTemplateId,
     templatesModalOpen,

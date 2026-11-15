@@ -1319,3 +1319,37 @@
 .zad-card--urgent .zad-title {
   font-weight: 700;
 }
+
+/* ---------- Rodzaj projektu przy zadaniu (spec zadań ogólnych, P3): kolory z tokenów `--kind-*` ---------- */
+.zad-card--kind {
+  /* wewnętrzny pasek, żeby nie kolidował z lewą krawędzią zaległych i dzisiejszych */
+  box-shadow: inset 3px 0 0 var(--zad-kind);
+}
+
+.zad-card--kind-etat,
+.zad-kind--etat {
+  --zad-kind: var(--kind-etat);
+}
+
+.zad-card--kind-wlasny,
+.zad-kind--wlasny {
+  --zad-kind: var(--kind-wlasny);
+}
+
+.zad-card--kind-biblioteka,
+.zad-kind--biblioteka {
+  --zad-kind: var(--kind-biblioteka);
+}
+
+.zad-kind {
+  font: 600 10px / 1 var(--font-mono);
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--zad-kind);
+  color: var(--zad-kind);
+  background: color-mix(in srgb, var(--zad-kind) 12%, transparent);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
