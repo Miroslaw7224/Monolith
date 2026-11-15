@@ -3,6 +3,7 @@ import "./globals.css";
 import "@/src/features/cards/cards.css";
 import { ThemeScript } from "@/src/components/theme/ThemeScript";
 import { ThemeProvider } from "@/src/components/theme/ThemeProvider";
+import { I18nProvider } from "@/src/i18n/I18nProvider";
 
 export const metadata: Metadata = {
   title: "Monolith · Offline Nexus Core",
@@ -26,7 +27,9 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeScript />
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

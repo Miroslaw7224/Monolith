@@ -20,6 +20,7 @@
 4. **`format.ts` ma tylko `formatDate`.** W powłoce nie ma dat; jest wyłącznie godzina `hhmm` (24 h w obu językach, bez zmian). `formatTime` dopiszemy, gdy któraś karta go potrzebuje. `formatDate` powstaje teraz (spec §5 pkt 1 i test), jego pierwszy użytkownik to etap 2.
 5. **`label` znika z `CARDS`**: etykiety kart to klucze `shell:cards.<id>` (jedno źródło prawdy). Test `cards.test.ts:43` traci `label` w `toMatchObject`.
 6. **Typy kluczy** z PL przez `CustomTypeOptions`. EN nie jest typowany wobec PL, bo PL ma 4 formy plural (`_one/_few/_many/_other`), a EN 2; parytet pilnuje test uruchomieniowy (suffiksy plural są normalizowane).
+7. **Klucze zawsze z prefiksem namespace'u** (`t("shell:rail.aria")`, `useTranslation()` bez argumentu): typy i18next 27 wymagają `strictNullChecks`, a repo ma `strict: false`; bez niego klucze bez prefiksu nie przechodzą w `tsc` (sprawdzone w Task 2). Włączanie `strictNullChecks` jest poza zakresem. Wszędzie, gdzie poniższe kroki pokazują `useTranslation("shell")` i `t("…")` bez prefiksu, wykonawca używa `useTranslation()` i `t("shell:…")`.
 
 ---
 
