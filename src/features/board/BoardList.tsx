@@ -1,5 +1,6 @@
 import React from "react";
 import type { BoardDto as Board } from "@/contexts/bc_board/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export function BoardList({
   board,
@@ -10,6 +11,7 @@ export function BoardList({
   outsideLabel: string;
   onOpen: (tileId: string) => void;
 }) {
+  const t = useT();
   const frameIds = new Set(board.frames.map((frame) => frame.id));
   const sections = [
     ...board.frames.map((frame) => ({
@@ -33,7 +35,7 @@ export function BoardList({
               <b>{section.title}</b>
             </h3>
             <span className="chip plo-chip">
-              {section.tiles.length} {section.tiles.length === 1 ? "kafelek" : "kafelków"}
+              {section.tiles.length} {t("planning:boardCountTile", { count: section.tiles.length })}
             </span>
           </div>
           <ul className="plo-boards">

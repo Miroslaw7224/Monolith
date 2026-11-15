@@ -37,6 +37,7 @@ import { FrameNode, type FrameFlowNode } from "@/src/features/board/FrameNode";
 import { TileNode, type TileFlowNode } from "@/src/features/board/TileNode";
 import { ConfirmDeleteDialog } from "@/src/features/board/ConfirmDeleteDialog";
 import { FrameNameDialog } from "@/src/features/board/FrameNameDialog";
+import { useT } from "@/src/i18n/useT";
 
 export interface BoardCanvasLabels {
   addTile: string;
@@ -163,7 +164,6 @@ function persistDraggedNodes(board: Board, dragged: Node[]): Board | null {
 
 function CanvasInner({
   board,
-  lang,
   labels,
   dialogOpen,
   onChange,
@@ -172,7 +172,6 @@ function CanvasInner({
   onOpenTile,
 }: {
   board: Board;
-  lang: "pl" | "en";
   labels: BoardCanvasLabels;
   dialogOpen: boolean;
   onChange: (board: Board) => void;
@@ -180,6 +179,7 @@ function CanvasInner({
   onTileAdded: (tileId: string) => void;
   onOpenTile: (tileId: string) => void;
 }) {
+  const t = useT();
   const flow = useReactFlow();
   const paneRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef(board);
@@ -192,10 +192,10 @@ function CanvasInner({
   const stored = readViewport();
   const confirmDelete = useCallback(
     (ids: string[]) => {
-      const copy = deleteCopy(deletePlan(ids, board), lang);
+      const copy = deleteCopy(deletePlan(ids, board));
       return new Promise<boolean>((resolve) => setPending({ copy, resolve }));
     },
-    [board, lang]
+    [board, t]
   );
   const actions = {
     onDelete: (id: string) => {
@@ -287,7 +287,7 @@ function CanvasInner({
 
   return (
     <div className="plo-canvas-container">
-      <div className="plo-toolbar" role="toolbar" aria-label="Narzędzia tablicy">
+      <div className="plo-toolbar" role="toolbar" aria-label={t("planning:boardToolbarAria")}>
         <button
           type="button"
           className="btn btn--primary plo-btn plo-btn--primary"

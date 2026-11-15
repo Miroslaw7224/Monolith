@@ -67,7 +67,6 @@ describe("BoardCanvas", () => {
     render(
       <BoardCanvas
         board={EMPTY_BOARD}
-        lang="pl"
         labels={labels}
         dialogOpen={false}
         onChange={onChange}
@@ -90,7 +89,6 @@ describe("BoardCanvas", () => {
     const { rerender } = render(
       <BoardCanvas
         board={EMPTY_BOARD}
-        lang="pl"
         labels={labels}
         dialogOpen={false}
         onChange={vi.fn()}
@@ -103,7 +101,6 @@ describe("BoardCanvas", () => {
     rerender(
       <BoardCanvas
         board={EMPTY_BOARD}
-        lang="pl"
         labels={labels}
         dialogOpen
         onChange={vi.fn()}

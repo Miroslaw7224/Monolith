@@ -289,7 +289,6 @@ export default function PlanowanieView({
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
             <BoardTab
               apiFetch={apiFetch}
-              lang={lang}
               labels={{
                 canvas: t.boardCanvas as string,
                 list: t.boardList as string,
