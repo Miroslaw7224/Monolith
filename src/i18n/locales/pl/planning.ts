@@ -15,6 +15,7 @@ export const planning = {
   tabResources: "Zasoby",
   tabSkills: "Skille i prompty",
   tabCourses: "Kursy",
+  tabAgents: "Agenci i polecenia",
   tabTags: "Tagi",
   newNote: "Nowa notatka",
   noteTitlePlaceholder: "Tytuł notatki...",
