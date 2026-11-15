@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useT } from "@/src/i18n/useT";
 
 type Props = {
   text: string;
@@ -8,7 +9,9 @@ type Props = {
   primary?: boolean;
 };
 
-export function CopyButton({ text, label = "Kopiuj", ariaLabel, primary = false }: Props) {
+export function CopyButton({ text, label, ariaLabel, primary = false }: Props) {
+  const t = useT();
+  const copyLabel = label ?? t("arsenal:arsenalCopy");
   const [done, setDone] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -34,7 +37,7 @@ export function CopyButton({ text, label = "Kopiuj", ariaLabel, primary = false 
       aria-label={done ? undefined : ariaLabel}
       onClick={copy}
     >
-      {done ? "Skopiowano" : label}
+      {done ? t("arsenal:arsenalCopied") : copyLabel}
     </button>
   );
 }

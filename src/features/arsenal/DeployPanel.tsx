@@ -5,6 +5,8 @@ import type {
   DeployTargetDto,
   SkillEntryDto,
 } from "@/contexts/bc_arsenal/schemas";
+import i18n from "@/src/i18n";
+import { useT } from "@/src/i18n/useT";
 import { CopyButton } from "./CopyButton";
 
 type Props = {
@@ -18,9 +20,11 @@ type Props = {
   markDeployed: (slug: string, project: string, mode: DeployModeDto) => Promise<void>;
 };
 
-const message = (err: unknown): string => (err instanceof Error ? err.message : "Błąd");
+const message = (err: unknown): string =>
+  err instanceof Error ? err.message : i18n.t("arsenal:arsenalErrorGeneric");
 
 export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }: Props) {
+  const t = useT();
   const [project, setProject] = useState(targets[0]?.id ?? "");
   const [mode, setMode] = useState<DeployModeDto>("full");
   const [result, setResult] = useState<DeployInstructionsDto | null>(null);
@@ -30,7 +34,9 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
   /** Numer ostatniego żądania; zmiana projektu/trybu unieważnia żądania w locie. */
   const request = useRef(0);
 
-  if (targets.length === 0) return <p className="asv-empty">Brak projektów w rejestrze.</p>;
+  if (targets.length === 0) {
+    return <p className="asv-empty">{t("arsenal:arsenalNoProjects")}</p>;
+  }
 
   const reset = () => {
     request.current += 1;
@@ -69,10 +75,10 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
   };
 
   return (
-    <section className="asv-deploy" aria-label="Wdrażanie do projektu">
-      <h3>Wdrażanie do projektu</h3>
+    <section className="asv-deploy" aria-label={t("arsenal:arsenalDeployAria")}>
+      <h3>{t("arsenal:arsenalDeployTitle")}</h3>
       <label>
-        Projekt docelowy
+        {t("arsenal:arsenalDeployTarget")}
         <select
           value={project}
           onChange={(e) => {
@@ -80,16 +86,16 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
             reset();
           }}
         >
-          {targets.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-              {t.companyData ? " (etat)" : ""}
+          {targets.map((target) => (
+            <option key={target.id} value={target.id}>
+              {target.name}
+              {target.companyData ? " (etat)" : ""}
             </option>
           ))}
         </select>
       </label>
       <fieldset className="asv-modes">
-        <legend>Tryb</legend>
+        <legend>{t("arsenal:arsenalDeployMode")}</legend>
         <label>
           <input
             type="radio"
@@ -100,7 +106,7 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
               reset();
             }}
           />
-          W całości (polecenie skryptu)
+          {t("arsenal:arsenalModeFull")}
         </label>
         <label>
           <input
@@ -112,11 +118,11 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
               reset();
             }}
           />
-          Zredagowany (prompt dla agenta)
+          {t("arsenal:arsenalModeAdapted")}
         </label>
       </fieldset>
       <button type="button" className="asv-btn" disabled={busy} onClick={generate}>
-        Generuj
+        {t("arsenal:arsenalDeployGenerate")}
       </button>
       {error !== null && (
         <p role="alert" className="asv-error">
@@ -127,15 +133,15 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
         <div className="asv-result">
           {result.note !== undefined && <p className="asv-note">{result.note}</p>}
           {result.mode === "full" && (
-            <p className="asv-hint">Uruchom z katalogu Monolith. Aplikacja niczego nie wykonuje.</p>
+            <p className="asv-hint">{t("arsenal:arsenalDeployFullHint")}</p>
           )}
           <pre className="asv-body">{result.text}</pre>
           <div className="asv-actions">
             <CopyButton text={result.text} />
             <button type="button" className="asv-btn" disabled={busy} onClick={mark}>
-              Oznacz jako wdrożone
+              {t("arsenal:arsenalDeployMark")}
             </button>
-            {marked && <span className="asv-ok">Zapisano w skill.md</span>}
+            {marked && <span className="asv-ok">{t("arsenal:arsenalDeployMarked")}</span>}
           </div>
         </div>
       )}

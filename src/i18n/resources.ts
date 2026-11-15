@@ -6,6 +6,7 @@ import { planning as plPlanning } from "./locales/pl/planning";
 import { tasks as plTasks } from "./locales/pl/tasks";
 import { resources as plResources } from "./locales/pl/resources";
 import { mindmaps as plMindmaps } from "./locales/pl/mindmaps";
+import { arsenal as plArsenal } from "./locales/pl/arsenal";
 import { common as enCommon } from "./locales/en/common";
 import { home as enHome } from "./locales/en/home";
 import { projects as enProjects } from "./locales/en/projects";
@@ -14,6 +15,7 @@ import { planning as enPlanning } from "./locales/en/planning";
 import { tasks as enTasks } from "./locales/en/tasks";
 import { resources as enResources } from "./locales/en/resources";
 import { mindmaps as enMindmaps } from "./locales/en/mindmaps";
+import { arsenal as enArsenal } from "./locales/en/arsenal";
 
 export const resources = {
   pl: {
@@ -25,6 +27,7 @@ export const resources = {
     tasks: plTasks,
     resources: plResources,
     mindmaps: plMindmaps,
+    arsenal: plArsenal,
   },
   en: {
     common: enCommon,
@@ -35,5 +38,6 @@ export const resources = {
     tasks: enTasks,
     resources: enResources,
     mindmaps: enMindmaps,
+    arsenal: enArsenal,
   },
 };
