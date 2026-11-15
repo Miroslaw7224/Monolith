@@ -20,3 +20,32 @@ export function formatDayMonth(date: Date, lang: Lang = currentLang()): string {
 export function formatWeekdayShort(date: Date, lang: Lang = currentLang()): string {
   return new Intl.DateTimeFormat(LOCALE[lang], { weekday: "short" }).format(date);
 }
+
+/** Godzina i minuty: „09:05” / „09:05 AM”. */
+export function formatTime(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], { hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
+/** Godzina z sekundami: „09:05:30” / „09:05:30 AM”. */
+export function formatTimeSeconds(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+}
+
+/** Data numeryczna: „15.11.2026” / „11/15/2026”. */
+export function formatShortDate(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang]).format(date);
+}
+
+/** Pełna data z rokiem: „niedziela, 15 listopada 2026” / „Sunday, November 15, 2026”. */
+export function formatFullDate(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
