@@ -177,7 +177,7 @@ describe("ProjectsView", () => {
     });
   });
 
-  it("znacznik „Dane z firmy” tylko dla owner work", async () => {
+  it("znacznik „Dane z firmy” przy owner work, bez niego przy zwykłym własnym projekcie", async () => {
     const w = summary({ id: "w", owner: "work" });
     const p = summary({ id: "p" });
     const apiFetch = makeApiFetch([w, p], {

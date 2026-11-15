@@ -343,6 +343,20 @@ describe("useProjects: zapisy", () => {
     expect(result.current.projects[0].type).toBe("wlasny");
   });
 
+  it("setType: zmiana rodzaju kopiuje kind i companyData z odpowiedzi do listy", async () => {
+    const { result } = setup((_url, options) =>
+      json(detail({ id: "a", type: JSON.parse(String(options.body)).type }))
+    );
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+    expect(result.current.projects[0]).toMatchObject({ kind: "wlasny", companyData: false });
+
+    await act(async () => {
+      await result.current.setType("etat");
+    });
+
+    expect(result.current.projects[0]).toMatchObject({ kind: "etat", companyData: true });
+  });
+
   it("reloadDetail nie czyści detail w trakcie przeładowania (szkice w teczce nie znikają)", async () => {
     let resolveSecond!: (r: Response) => void;
     let calls = 0;
