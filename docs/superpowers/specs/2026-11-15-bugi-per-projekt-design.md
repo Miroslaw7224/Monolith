@@ -47,7 +47,7 @@ Zgodny wstecz; wszystko poza nagłówkiem opcjonalne.
 
 Reguły parsera:
 
-- Bugiem jest `### <ID> — <tytuł>` (myślnik zwykły, półpauza lub pauza) **tylko** pod `## Aktywne` albo `## Zamknięte`. Nagłówki `###` pod innymi sekcjami (np. „Ostrzeżenia z builda”) są ignorowane (wzmocnienie; dziś w danych takich nie ma).
+- Bugiem jest `### <ID> — <tytuł>` (myślnik zwykły, półpauza lub pauza) pod `## Aktywne`, pod `## Zamknięte` **albo przed pierwszym nagłówkiem `##`** (sekcja `""`, zgodnie z dotychczasowym testem). Nagłówki `###` pod innymi sekcjami (np. „Ostrzeżenia z builda”) są ignorowane (wzmocnienie; dziś w danych takich nie ma).
 - Pole to linia `- **Etykieta:** wartość`. Linie ciągu dalszego (wcięte, bez etykiety) są doklejane do poprzedniego pola.
 - Etykiety: `Priorytet`, `Plik`, `Otwarto`, `Opis`, `Naprawa`, `Rozwiązanie` (z opcjonalną datą w nawiasie = data zamknięcia), `Status`. Nieznane etykiety ignorowane.
 - Data w złym formacie (inny niż `RRRR-MM-DD`) jest ignorowana bez błędu; pole dostaje `undefined`.
@@ -69,7 +69,7 @@ Sekcja „Bugi” wychodzi z `ProjectDossier.tsx` do nowego komponentu (UI impor
 - Znacznik powiązania: „w zadaniach: <kolumna>” gdy `task` niezakończone; **„zadanie zrobione, bug nadal otwarty”** gdy `task.done`; brak znacznika, gdy `task === null`.
 - Zamknięte pod przełącznikiem „Zamknięte (N)”: tytuł, rozwiązanie, data zamknięcia; **„bug zamknięty, zadanie nadal otwarte”** gdy `task` niezakończone.
 - Brak wpisów: „Brak bugów”.
-- Makieta: sekcja bugów w `docs/mockups/karty/cards/04-projekty.html` (klasy `prj-bugs`), styl w `projects.css`.
+- Makieta `04-projekty.html` zostaje bez zmian (klasy `prj-bugs` już istnieją); nowe elementy używają istniejących klas `prj-badge`.
 
 ## 6. Paczka kontekstu
 
@@ -88,7 +88,7 @@ Sekcja „Bugi” wychodzi z `ProjectDossier.tsx` do nowego komponentu (UI impor
 
 **b) `NEXUS/CLAUDE.md`** (repo NEXUS, **osobny commit**): reguły „Dodaj buga do X” i „Zamknij buga X w projekcie Y” (linie ok. 140–141) odsyłają do przepisu z (a) i dopisują `Otwarto`, zadanie i odhaczenie. `docs/_template/bugs.md` dostaje wzorcowy wpis z `Otwarto`.
 
-**c) Skill `segreguj-inbox`** (`.claude/skills/segreguj-inbox/SKILL.md`, linia o typie `bug`): wpis `bug` trafia do `bugs.md` projektu (przepis „Dodaj bug”), nie tylko jako zadanie.
+**c) Nowy skill `bug-projektu`** (`.claude/skills/bug-projektu/SKILL.md`): przepis „Dodaj bug” i „Zamknij bug” z (a) w formie skilla, w tym tryb „wpis z Inboxu”. Skill sam zapisuje tylko `Projects/<p>/bugs.md` i `dashboard.md`; zadanie `[ID]` tworzy i zamyka wpis Inboxu istniejące `POST /api/inbox/<id>/move` (`target: project`, `column: next`, tekst z `(patrz <ID>)`), więc `tasks.md` nadal zapisuje wyłącznie aplikacja. `segreguj-inbox` **nie dostaje wyjątku** od reguły „nie edytujesz vaulta ręcznie”: przy wpisie `bug` ma tylko odnośnik do skilla `bug-projektu` (decyzja użytkownika 2026-11-15: osobny skill, żeby nie mieszać reguł).
 
 ## 8. Testy (Vitest, `tests/unit/...`)
 
@@ -112,7 +112,7 @@ Aplikacja niczego nie zapisuje (B1). Zawartość bugów projektów `owner: work`
 2. Serwis: wiek i powiązanie z zadaniami.
 3. DTO i `ProjectBugs.tsx`, makieta, CSS.
 4. Paczka debug.
-5. Instrukcje agenta: sekcja w `docs/nexus-vault-formaty-yaml.md` i `segreguj-inbox` w Monolith; `NEXUS/CLAUDE.md` i szablon w repo NEXUS osobnym commitem.
+5. Instrukcje agenta: sekcja w `docs/nexus-vault-formaty-yaml.md` i skill `bug-projektu` i odnośnik w `segreguj-inbox` w Monolith; `NEXUS/CLAUDE.md` i szablon w repo NEXUS osobnym commitem.
 
 ## 11. Poza zakresem (przekazane dalej)
 
