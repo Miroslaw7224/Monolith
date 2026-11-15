@@ -1,5 +1,6 @@
 // src/features/home/CloseDayDialog.tsx
 import React, { useEffect, useState } from "react";
+import { useT } from "@/src/i18n/useT";
 
 type ProjectOption = { id: string; name: string };
 
@@ -22,6 +23,7 @@ export function CloseDayDialog({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [text, setText] = useState(initialText);
   const [projectId, setProjectId] = useState(initialProjectId ?? "");
   const [projects, setProjects] = useState<ProjectOption[]>([]);
@@ -54,7 +56,7 @@ export function CloseDayDialog({
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się zapisać");
+      setError(err instanceof Error ? err.message : t("home:closeDay.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -62,16 +64,16 @@ export function CloseDayDialog({
 
   return (
     <div className="kok-overlay">
-      <div role="dialog" aria-label="Zamknij dzień" className="kok-modal">
+      <div role="dialog" aria-label={t("home:closeDay.aria")} className="kok-modal">
         <div className="kok-modal__head">
-          <h3 className="kok-modal__title">Zamknij dzień</h3>
+          <h3 className="kok-modal__title">{t("home:closeDay.title")}</h3>
           <p className="kok-modal__sub">
-            Jutro zobaczysz to zdanie na górze Kokpitu
-            {commitsToday !== null ? ` · dziś ${commitsToday} commitów` : ""}
+            {t("home:closeDay.sub")}
+            {commitsToday !== null ? t("home:closeDay.subCommits", { count: commitsToday }) : ""}
           </p>
         </div>
         <label className="kok-field">
-          <span>Od czego zacząć jutro?</span>
+          <span>{t("home:closeDay.prompt")}</span>
           <textarea
             className="kok-input"
             rows={3}
@@ -82,13 +84,13 @@ export function CloseDayDialog({
           />
         </label>
         <label className="kok-field">
-          <span>Temat (opcjonalnie)</span>
+          <span>{t("home:closeDay.topic")}</span>
           <select
             className="kok-input"
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
           >
-            <option value="">— bez tematu —</option>
+            <option value="">{t("home:closeDay.noTopic")}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -99,7 +101,7 @@ export function CloseDayDialog({
         {error ? <p className="kok-state kok-state--error">{error}</p> : null}
         <div className="kok-modal__actions">
           <button type="button" onClick={onCancel} className="kok-btn kok-btn--ghost">
-            Anuluj
+            {t("home:common.cancel")}
           </button>
           <button
             type="button"
@@ -107,7 +109,7 @@ export function CloseDayDialog({
             disabled={saving || trimmed === ""}
             className="kok-btn kok-btn--primary"
           >
-            Zapisz
+            {t("home:common.save")}
           </button>
         </div>
       </div>
