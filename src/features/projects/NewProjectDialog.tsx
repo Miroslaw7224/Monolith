@@ -2,19 +2,27 @@
 
 import React, { useEffect, useState } from "react";
 import type { NewProjectInputDto } from "@/contexts/bc_projects/schemas";
+import { projectKindLabel } from "@/src/i18n/projectKind";
+import { useT } from "@/src/i18n/useT";
 import type { CreateProject } from "./mutation";
 
-const PRIORITIES: { value: NewProjectInputDto["priority"]; label: string }[] = [
-  { value: "high", label: "Wysoki" },
-  { value: "medium", label: "Średni" },
-  { value: "low", label: "Niski" },
+const PRIORITIES: {
+  value: NewProjectInputDto["priority"];
+  labelKey:
+    | "projects:dialog.priorityHigh"
+    | "projects:dialog.priorityMedium"
+    | "projects:dialog.priorityLow";
+}[] = [
+  { value: "high", labelKey: "projects:dialog.priorityHigh" },
+  { value: "medium", labelKey: "projects:dialog.priorityMedium" },
+  { value: "low", labelKey: "projects:dialog.priorityLow" },
 ];
 
-const TYPES: { value: "" | NonNullable<NewProjectInputDto["type"]>; label: string }[] = [
-  { value: "", label: "Nie ustawiono" },
-  { value: "wlasny", label: "Własny" },
-  { value: "biblioteka", label: "Biblioteka" },
-  { value: "etat", label: "Etat" },
+const TYPES: { value: "" | NonNullable<NewProjectInputDto["type"]> }[] = [
+  { value: "" },
+  { value: "wlasny" },
+  { value: "biblioteka" },
+  { value: "etat" },
 ];
 
 /** Okno „Nowy projekt”: wpis w rejestrze NEXUS i szkielet plików w `Projects/<id>/`; kodu projektu nie dotyka. */
@@ -23,6 +31,7 @@ export function NewProjectDialog(props: {
   onClose: () => void;
 }): React.JSX.Element {
   const { onCreate, onClose } = props;
+  const t = useT();
   const [name, setName] = useState("");
   const [priority, setPriority] = useState<NewProjectInputDto["priority"]>("medium");
   const [type, setType] = useState<(typeof TYPES)[number]["value"]>("");
@@ -40,6 +49,9 @@ export function NewProjectDialog(props: {
   }, [onClose]);
 
   const canSubmit = name.trim() !== "" && !saving;
+
+  const typeLabel = (value: (typeof TYPES)[number]["value"]) =>
+    value === "" ? t("projects:common.notSet") : projectKindLabel(value);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,48 +84,48 @@ export function NewProjectDialog(props: {
         className="prj-modal__panel prj-form"
         role="dialog"
         aria-modal="true"
-        aria-label="Nowy projekt"
+        aria-label={t("projects:dialog.aria")}
         onSubmit={submit}
       >
-        <h2 className="prj-section-title prj-field--wide">Nowy projekt</h2>
+        <h2 className="prj-section-title prj-field--wide">{t("projects:dialog.title")}</h2>
         <label className="prj-field prj-field--wide">
-          <span>Nazwa</span>
+          <span>{t("projects:dialog.name")}</span>
           <input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoFocus />
         </label>
         <label className="prj-field">
-          <span>Priorytet</span>
+          <span>{t("projects:dialog.priority")}</span>
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value as NewProjectInputDto["priority"])}
           >
             {PRIORITIES.map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {t(o.labelKey)}
               </option>
             ))}
           </select>
         </label>
         <label className="prj-field">
-          <span>Typ</span>
+          <span>{t("projects:dialog.type")}</span>
           <select value={type} onChange={(e) => setType(e.target.value as typeof type)}>
             {TYPES.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+              <option key={o.value || "__empty"} value={o.value}>
+                {typeLabel(o.value)}
               </option>
             ))}
           </select>
         </label>
         <label className="prj-field prj-field--wide">
-          <span>Ścieżka lokalna (opcjonalnie)</span>
+          <span>{t("projects:dialog.localPath")}</span>
           <input
             value={localPath}
             onChange={(e) => setLocalPath(e.target.value)}
-            placeholder="~/projects/nazwa"
+            placeholder={t("projects:dialog.localPathPlaceholder")}
             maxLength={300}
           />
         </label>
         <label className="prj-field prj-field--wide">
-          <span>GitHub (opcjonalnie)</span>
+          <span>{t("projects:dialog.github")}</span>
           <input
             value={github}
             onChange={(e) => setGithub(e.target.value)}
@@ -121,10 +133,7 @@ export function NewProjectDialog(props: {
             maxLength={300}
           />
         </label>
-        <p className="prj-modal__hint prj-field--wide">
-          Dopisuje projekt do rejestru NEXUS i zakłada w vaulcie index.md, tasks.md i bugs.md. Kodu
-          projektu nie zmienia.
-        </p>
+        <p className="prj-modal__hint prj-field--wide">{t("projects:dialog.hint")}</p>
         {error ? (
           <p className="prj-alert prj-field--wide" role="alert">
             {error}
@@ -132,10 +141,10 @@ export function NewProjectDialog(props: {
         ) : null}
         <div className="prj-form__actions">
           <button type="submit" className="prj-btn prj-btn--primary" disabled={!canSubmit}>
-            Utwórz projekt
+            {t("projects:dialog.create")}
           </button>
           <button type="button" className="prj-btn" onClick={onClose} disabled={saving}>
-            Anuluj
+            {t("projects:common.cancel")}
           </button>
         </div>
       </form>

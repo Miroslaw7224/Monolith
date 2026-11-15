@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
-import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
 import type { ProjectStatusChangeDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
+import { projectKindLabel } from "@/src/i18n/projectKind";
+import { useT } from "@/src/i18n/useT";
 import { isPaused, needsDecision } from "./projectTiles";
 
 export function ProjectList(props: {
@@ -10,6 +13,7 @@ export function ProjectList(props: {
   onSetStatus: (id: string, status: ProjectStatusChangeDto) => void;
 }): React.JSX.Element {
   const { projects, selectedId, onSelect, onSetStatus } = props;
+  const t = useT();
 
   return (
     <ul className="prj-list">
@@ -38,11 +42,13 @@ export function ProjectList(props: {
                   <span className="prj-item__badges">
                     {project.kind ? (
                       <span className={`prj-badge prj-badge--kind-${project.kind}`}>
-                        {PROJECT_KIND_LABELS[project.kind]}
+                        {projectKindLabel(project.kind)}
                       </span>
                     ) : null}
                     {project.owner === "work" ? (
-                      <span className="prj-badge prj-badge--firm">Firma</span>
+                      <span className="prj-badge prj-badge--firm">
+                        {t("projects:list.firmBadge")}
+                      </span>
                     ) : null}
                     <span className="prj-badge">{project.status}</span>
                     <span className="prj-badge">{project.priority}</span>
@@ -57,27 +63,27 @@ export function ProjectList(props: {
               </button>
               {decide ? (
                 <div className="prj-item__alert">
-                  <span>Brak zmian od ponad 14 dni. Podejmij decyzję.</span>
+                  <span>{t("projects:list.staleAlert")}</span>
                   <button
                     type="button"
                     className="prj-btn prj-btn--sm"
-                    aria-label={`Uśpij projekt ${project.name}`}
+                    aria-label={t("projects:list.sleepAria", { name: project.name })}
                     onClick={() => onSetStatus(project.id, "paused")}
                   >
-                    Uśpij
+                    {t("projects:list.sleepBtn")}
                   </button>
                 </div>
               ) : null}
               {paused ? (
                 <div className="prj-item__sleep">
-                  <span>Uśpiony: nie wymaga decyzji.</span>
+                  <span>{t("projects:list.sleep")}</span>
                   <button
                     type="button"
                     className="prj-btn prj-btn--sm"
-                    aria-label={`Wznów projekt ${project.name}`}
+                    aria-label={t("projects:list.wakeAria", { name: project.name })}
                     onClick={() => onSetStatus(project.id, "active")}
                   >
-                    Wznów
+                    {t("projects:list.wakeBtn")}
                   </button>
                 </div>
               ) : null}
