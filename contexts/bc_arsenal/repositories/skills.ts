@@ -12,7 +12,7 @@ import {
   type Deployment,
   type RawFile,
   type TemplateFile,
-} from "./models";
+} from "../models";
 
 const SKILL_FILE = /^Arsenal\/Skills\/([^/]+)\/skill\.md$/;
 
