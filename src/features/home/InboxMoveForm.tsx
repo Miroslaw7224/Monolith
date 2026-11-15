@@ -10,7 +10,12 @@ import {
 } from "./inboxMove";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
-type ProjectOption = { id: string; name: string; owner?: "personal" | "work" };
+type ProjectOption = {
+  id: string;
+  name: string;
+  owner?: "personal" | "work";
+  companyData?: boolean;
+};
 
 const TARGETS: { value: MoveTarget; label: string }[] = [
   { value: "project", label: "Zadanie w projekcie" },
@@ -91,7 +96,7 @@ export function InboxMoveForm({
               ))}
             </select>
           </label>
-          {selected?.owner === "work" ? (
+          {selected?.companyData ? (
             <span className="kok-badge kok-badge--warn">Dane z firmy</span>
           ) : null}
           <label className="kok-field">

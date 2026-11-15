@@ -240,7 +240,20 @@ function respond(cockpit: CockpitDto | "fail") {
         json: async () => ({
           projects: [
             { id: "nexus", name: "NEXUS", status: "active", owner: "personal" },
-            { id: "firma", name: "Projekt firmowy", status: "active", owner: "work" },
+            {
+              id: "firma",
+              name: "Projekt firmowy",
+              status: "active",
+              owner: "work",
+              companyData: true,
+            },
+            {
+              id: "etatowy",
+              name: "Projekt etatowy",
+              status: "active",
+              owner: "personal",
+              companyData: true,
+            },
             { id: "monolith", name: "Monolith", status: "active", owner: "personal" },
             { id: "inny", name: "Inny", status: "active", owner: "personal" },
           ],
@@ -904,6 +917,14 @@ describe("K1: układ wg makiety", () => {
           before
         )
       );
+    });
+
+    test("projekt z type: etat przy owner personal też pokazuje „Dane z firmy”", async () => {
+      const dialog = await openEntry("Code Sensei: pusty stan listy");
+      const select = await within(dialog).findByLabelText("Projekt");
+      await within(dialog).findByRole("option", { name: "Projekt etatowy" });
+      fireEvent.change(select, { target: { value: "etatowy" } });
+      expect(within(dialog).getByText("Dane z firmy")).toBeInTheDocument();
     });
 
     test("bug: domyślny cel to zadanie w projekcie; bez wybranego projektu „Przenieś” jest zablokowane", async () => {
