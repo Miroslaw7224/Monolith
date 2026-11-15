@@ -24,6 +24,13 @@ Spec: `docs/superpowers/specs/2026-11-14-karta-arsenal-design.md` (§4.2, §6, �
 | G6  | Presety i przykłady skryptów tylko kopiowane do schowka (`CopyButton`); nigdzie nie ma przycisku „uruchom”. Test to pilnuje.                                                                                                                                 |
 | G7  | Test architektury nie zmienia się (nowy plik w już dozwolonym folderze `repositories/`).                                                                                                                                                                     |
 
+## Wnioski z etapu 3 obowiązujące w tym planie
+
+- Test architektury pilnuje, że `schemas` importuje z `models` tylko `import type`; runtime (np. lista rodzajów) trzymaj w `schemas.ts` albo `lib/schema/`. `DomainError` ma pole `statusCode`.
+- `VAULT_FS_IMPORTERS` zawiera nazwy plików. `repositories/agents.ts` nie importuje `vault-fs` (tylko `yaml-store` i `record-helpers`), więc test architektury się **nie zmienia**; gdyby plik zaczął importować `vault-fs`, dopisz wpis osobnym commitem testu przed kodem.
+- `errorText` w `apiError.ts` składa komunikat z `details` odpowiedzi 400, a po udanym zapisie błąd odświeżenia nie może rzucać z `save`/`remove` (inaczej ponowny zapis robi duplikat): `useAgents` ma to robić tak samo jak `useCourses`. Przycisk dodawania wyłączony, gdy lista się nie załadowała.
+- Po zapisie w teście hooka asercja `rejects` przecieka do nazwy kolejnego testu; to znana cecha `act`, nie błąd testu.
+
 ## Struktura plików
 
 | Plik                                                                                        | Zmiana      | Odpowiedzialność                                                         |

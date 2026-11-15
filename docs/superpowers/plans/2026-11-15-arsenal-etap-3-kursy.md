@@ -22,6 +22,16 @@ Spec: `docs/superpowers/specs/2026-11-14-karta-arsenal-design.md` (§4.1, §6, �
 | K6  | `certificateMissing` liczy serwer (`services`), UI tylko pokazuje ostrzeżenie. Aplikacja nie serwuje PDF-ów, więc przy certyfikacie-pliku pokazuje samą ścieżkę.                                                                |
 | K7  | Test architektury **nie zmienia się**: wpis `contexts/bc_arsenal/repositories` w `VAULT_FS_IMPORTERS` obejmuje folder (regex `repositories(?:\.ts\|\/)`). Jeśli test mimo to pęknie, naprawiamy kodem, nie testem (CLAUDE.md).  |
 
+## Korekty po wykonaniu (2026-11-15)
+
+Plan był pisany bez uruchamiania kodu; wykonanie wykazało to, co poniżej. Kod na gałęzi jest źródłem prawdy, a tam, gdzie fragmenty planu niżej się różnią, obowiązuje ta lista.
+
+1. **K7 był błędny.** `VAULT_FS_IMPORTERS` w teście architektury zawiera nazwy plików, nie folderów. Dwa osobne commity testu przed kodem: wpis `contexts/bc_arsenal/repositories` → `…/repositories/skills` (Task 1) oraz nowy `…/repositories/courses` (Task 3).
+2. **Reguła R3:** `schemas` importuje z `models` wyłącznie `import type`. Dlatego `isHttpUrl` i `isSafeCertificatePath` leżą w `lib/schema/course-fields.ts` (importują je `schemas` i `repositories`), a `COURSE_STATUSES` jest zdefiniowane w `schemas.ts` osobno od `models.ts` (zgodność typów wymusza przypisanie `parsed.data` → `CourseInput` w routerze).
+3. **`DomainError` ma pole `statusCode`**, nie `status` (testy używają `toMatchObject({ statusCode: 404 })`).
+4. **Po review `agy`:** `errorText` dokłada pierwszy komunikat pola z `details` odpowiedzi 400; `save` i `remove` nie rzucają, gdy zapis się udał, a odświeżenie padło (błąd ląduje w `error`, brak duplikatu przy ponownym zapisie); przycisk „Dodaj kurs” jest nieaktywny przy ładowaniu i błędzie; `completed` z pliku liczy się tylko przy `ukonczony`; usunięte martwe klucze i18n `errorGeneric`, `errorStatus`, `open`.
+5. **Znane, nienaprawiane:** `certificateExists` zwraca `true` także dla katalogu o tej nazwie w `Documents/` (skrajny przypadek ręcznej pomyłki).
+
 ## Struktura plików
 
 | Plik                                                                                                                       | Zmiana      | Odpowiedzialność                                                             |
