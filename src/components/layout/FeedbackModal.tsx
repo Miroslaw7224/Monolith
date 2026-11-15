@@ -2,8 +2,11 @@
 
 import React from "react";
 import { X } from "lucide-react";
+import { useT } from "@/src/i18n/useT";
 
-export function FeedbackModal({ title, onClose }: { title: string; onClose: () => void }) {
+export function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
+  const title = t("common:feedback");
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
@@ -21,7 +24,7 @@ export function FeedbackModal({ title, onClose }: { title: string; onClose: () =
           <button
             type="button"
             onClick={onClose}
-            aria-label="Zamknij"
+            aria-label={t("common:close")}
             className="p-2 hover:bg-[var(--bg3)] rounded-lg transition-colors text-[var(--text2)]"
           >
             <X className="w-5 h-5" />
@@ -30,7 +33,7 @@ export function FeedbackModal({ title, onClose }: { title: string; onClose: () =
         <div className="flex-1 min-h-0">
           <iframe
             src="https://tally.so/embed/81dpVO"
-            title="Feedback – Monolith BETA"
+            title={t("common:feedbackFrameTitle")}
             className="w-full h-[70vh] min-h-[400px] border-0"
           />
         </div>

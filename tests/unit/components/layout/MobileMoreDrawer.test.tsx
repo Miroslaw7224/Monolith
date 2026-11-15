@@ -1,8 +1,9 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { vi, test, expect, beforeEach } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { MobileMoreDrawer } from "@/src/components/layout/MobileMoreDrawer";
+import { setLanguage } from "@/src/i18n";
 
 vi.mock("motion/react", () => ({
   motion: {
@@ -19,40 +20,40 @@ vi.mock("motion/react", () => ({
 beforeEach(() => cleanup());
 
 test("does not render a logout button when open", () => {
-  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} lang="pl" onSelectTab={vi.fn()} />);
+  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} onSelectTab={vi.fn()} />);
   expect(screen.queryByText("Wyloguj")).not.toBeInTheDocument();
   expect(screen.getByText("Zasoby")).toBeInTheDocument();
 });
 
 test("calls onClose when backdrop clicked", () => {
   const onClose = vi.fn();
-  render(<MobileMoreDrawer isOpen={true} onClose={onClose} lang="pl" onSelectTab={vi.fn()} />);
+  render(<MobileMoreDrawer isOpen={true} onClose={onClose} onSelectTab={vi.fn()} />);
   fireEvent.click(screen.getByTestId("drawer-backdrop"));
   expect(onClose).toHaveBeenCalled();
 });
 
 test("does not render content when closed", () => {
-  render(<MobileMoreDrawer isOpen={false} onClose={vi.fn()} lang="pl" onSelectTab={vi.fn()} />);
+  render(<MobileMoreDrawer isOpen={false} onClose={vi.fn()} onSelectTab={vi.fn()} />);
   expect(screen.queryByText("Wyloguj")).not.toBeInTheDocument();
 });
 
 test("calls onSelectTab for resources", () => {
   const onSelectTab = vi.fn();
-  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} lang="pl" onSelectTab={onSelectTab} />);
+  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} onSelectTab={onSelectTab} />);
   fireEvent.click(screen.getByText("Zasoby"));
   expect(onSelectTab).toHaveBeenCalledWith("resources");
 });
 
 test("calls onSelectTab for the board", () => {
   const onSelectTab = vi.fn();
-  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} lang="pl" onSelectTab={onSelectTab} />);
+  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} onSelectTab={onSelectTab} />);
   fireEvent.click(screen.getByText("Tablica"));
   expect(onSelectTab).toHaveBeenCalledWith("board");
 });
 
 test("ustawienia (język, motyw, feedback) pojawiają się tylko, gdy podano akcje", () => {
   const { rerender } = render(
-    <MobileMoreDrawer isOpen={true} onClose={vi.fn()} lang="pl" onSelectTab={vi.fn()} />
+    <MobileMoreDrawer isOpen={true} onClose={vi.fn()} onSelectTab={vi.fn()} />
   );
   expect(screen.queryByRole("button", { name: "Feedback" })).toBeNull();
 
@@ -63,7 +64,6 @@ test("ustawienia (język, motyw, feedback) pojawiają się tylko, gdy podano akc
     <MobileMoreDrawer
       isOpen={true}
       onClose={vi.fn()}
-      lang="pl"
       onSelectTab={vi.fn()}
       onToggleLang={onToggleLang}
       onToggleTheme={onToggleTheme}
@@ -76,4 +76,28 @@ test("ustawienia (język, motyw, feedback) pojawiają się tylko, gdy podano akc
   expect(onToggleLang).toHaveBeenCalledTimes(1);
   expect(onToggleTheme).toHaveBeenCalledTimes(1);
   expect(onFeedback).toHaveBeenCalledTimes(1);
+});
+
+test("po angielsku: pozycje menu i przyciski ustawień są angielskie", async () => {
+  await act(async () => {
+    await setLanguage("en");
+  });
+  render(
+    <MobileMoreDrawer
+      isOpen={true}
+      onClose={vi.fn()}
+      onSelectTab={vi.fn()}
+      onToggleLang={vi.fn()}
+      onToggleTheme={vi.fn()}
+      onFeedback={vi.fn()}
+    />
+  );
+  expect(screen.getByText("My Work")).toBeInTheDocument();
+  expect(screen.getByText("Resources")).toBeInTheDocument();
+  expect(screen.getByText("Skills & prompts")).toBeInTheDocument();
+  expect(screen.getByText("Mind Maps")).toBeInTheDocument();
+  expect(screen.getByText("Board")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "PL" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Theme" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Feedback" })).toBeInTheDocument();
 });

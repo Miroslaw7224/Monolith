@@ -3,11 +3,13 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Link, Briefcase, Tag, Map, LayoutDashboard, Sparkles } from "lucide-react";
 import type { PlanningTab } from "@/src/features/planowanie/planningTab";
+import { useT } from "@/src/i18n/useT";
+
+type DrawerTab = "activity" | "tags" | "resources" | "skills" | "mindmaps" | "board";
 
 interface MobileMoreDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  lang: "en" | "pl";
   onSelectTab: (tab: PlanningTab) => void;
   /** Ustawienia dawnego górnego paska; na telefonie nie ma palety Ctrl+K. */
   onToggleLang?: () => void;
@@ -18,59 +20,24 @@ interface MobileMoreDrawerProps {
 export function MobileMoreDrawer({
   isOpen,
   onClose,
-  lang,
   onSelectTab,
   onToggleLang,
   onToggleTheme,
   onFeedback,
 }: MobileMoreDrawerProps) {
+  const t = useT();
   const settings = [
-    { id: "lang", label: lang === "pl" ? "EN" : "PL", run: onToggleLang },
-    { id: "theme", label: lang === "pl" ? "Motyw" : "Theme", run: onToggleTheme },
-    { id: "feedback", label: "Feedback", run: onFeedback },
+    { id: "lang", label: t("common:lang.nextCode"), run: onToggleLang },
+    { id: "theme", label: t("common:theme"), run: onToggleTheme },
+    { id: "feedback", label: t("common:feedback"), run: onFeedback },
   ].filter((s) => s.run);
-  const items: Array<{
-    id: PlanningTab;
-    icon: React.ReactNode;
-    labelPl: string;
-    labelEn: string;
-  }> = [
-    {
-      id: "activity",
-      icon: <Briefcase className="w-5 h-5" />,
-      labelPl: "Moja praca",
-      labelEn: "My Work",
-    },
-    {
-      id: "tags",
-      icon: <Tag className="w-5 h-5" />,
-      labelPl: "Tagi",
-      labelEn: "Tags",
-    },
-    {
-      id: "resources",
-      icon: <Link className="w-5 h-5" />,
-      labelPl: "Zasoby",
-      labelEn: "Resources",
-    },
-    {
-      id: "skills",
-      icon: <Sparkles className="w-5 h-5" />,
-      labelPl: "Skille i prompty",
-      labelEn: "Skills & prompts",
-    },
-    {
-      id: "mindmaps",
-      icon: <Map className="w-5 h-5" />,
-      labelPl: "Mapy myśli",
-      labelEn: "Mind Maps",
-    },
-    {
-      id: "board",
-      icon: <LayoutDashboard className="w-5 h-5" />,
-      labelPl: "Tablica",
-      labelEn: "Board",
-    },
+  const items: Array<{ id: DrawerTab; icon: React.ReactNode }> = [
+    { id: "activity", icon: <Briefcase className="w-5 h-5" /> },
+    { id: "tags", icon: <Tag className="w-5 h-5" /> },
+    { id: "resources", icon: <Link className="w-5 h-5" /> },
+    { id: "skills", icon: <Sparkles className="w-5 h-5" /> },
+    { id: "mindmaps", icon: <Map className="w-5 h-5" /> },
+    { id: "board", icon: <LayoutDashboard className="w-5 h-5" /> },
   ];
 
   return (
@@ -95,7 +62,7 @@ export function MobileMoreDrawer({
             <div className="w-10 h-1 bg-[var(--border)] rounded-full mx-auto mt-3 mb-4" />
             <div className="px-4 space-y-1">
               {items.map((item) => {
-                const label = lang === "pl" ? item.labelPl : item.labelEn;
+                const label = t(`shell:drawer.${item.id}`);
                 return (
                   <button
                     key={item.id}

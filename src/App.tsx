@@ -5,6 +5,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useT } from "@/src/i18n/useT";
+import { useLang } from "@/src/i18n/useLang";
 import { translations } from "@/src/translations";
 import { apiFetch } from "@/src/lib/apiFetch";
 import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
@@ -25,7 +26,7 @@ import { MapView } from "@/src/features/map/MapView";
 import { CodexView } from "@/src/features/codex/CodexView";
 
 export default function App() {
-  const [lang, setLang] = useState<"en" | "pl">("pl");
+  const { lang, toggleLang } = useLang();
   const t = translations[lang];
   const tShell = useT();
   const {
@@ -44,7 +45,6 @@ export default function App() {
   const closePalette = useCallback(() => setPaletteOpen(false), []);
   const { toggleTheme } = useTheme();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const toggleLang = useCallback(() => setLang((l) => (l === "en" ? "pl" : "en")), []);
   const openFeedback = useCallback(() => setFeedbackOpen(true), []);
   const paletteCommands = useMemo(
     () => [
@@ -119,13 +119,11 @@ export default function App() {
         setAppMode={setAppMode}
         planningTab={planningTab}
         setPlanningTab={setPlanningTab}
-        lang={lang}
         onMoreOpen={() => setMoreDrawerOpen(true)}
       />
       <MobileMoreDrawer
         isOpen={moreDrawerOpen}
         onClose={() => setMoreDrawerOpen(false)}
-        lang={lang}
         onToggleLang={toggleLang}
         onToggleTheme={toggleTheme}
         onFeedback={() => {
@@ -139,7 +137,7 @@ export default function App() {
         }}
       />
       {paletteOpen && <CommandPalette commands={paletteCommands} onClose={closePalette} />}
-      {feedbackOpen && <FeedbackModal title={t.feedback} onClose={() => setFeedbackOpen(false)} />}
+      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} />}
     </div>
   );
 }
