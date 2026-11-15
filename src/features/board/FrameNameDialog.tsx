@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useT } from "@/src/i18n/useT";
 
 function keepFocusInDialog(event: KeyboardEvent<HTMLDivElement>) {
   if (event.key !== "Tab") return;
@@ -35,6 +36,7 @@ export function FrameNameDialog({
   onSubmit: (title: string) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [value, setValue] = useState(initialTitle);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,7 +65,7 @@ export function FrameNameDialog({
           <h2 id="board-frame-title" className="panel__title plo-panel__title">
             <b>{title}</b>
           </h2>
-          <span className="chip chip--accent plo-chip">Ramka</span>
+          <span className="chip chip--accent plo-chip">{t("planning:boardDialogChipFrame")}</span>
         </div>
 
         <label className="plo-field">

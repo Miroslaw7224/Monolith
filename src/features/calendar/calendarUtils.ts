@@ -175,11 +175,6 @@ export function monthGrid(
   return { start: weeks[0][0], end: weeks[weeks.length - 1][6], weeks };
 }
 
-/** Indeks 0 = poniedziałek. */
-export function weekdayIndex(ymd: string): number {
-  return (parseYmd(ymd).getDay() + 6) % 7;
-}
-
 /** Zakres tygodnia wg języka (Intl). */
 export function weekRangeLabelForLang(dates: string[], lang: Lang): string {
   const a = parseYmd(dates[0]);

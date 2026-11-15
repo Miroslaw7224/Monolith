@@ -60,3 +60,14 @@ describe("resources:resourceAdded plural", () => {
     expect(translate("resources:resourceAdded", { count: 2, lng: "en" })).toBe("Added 2 resources");
   });
 });
+
+describe("resources:resourceSubtitle plural PL", () => {
+  const translate = i18n.t as unknown as (key: string, options: object) => string;
+
+  test("odmienia zasób / zasoby / zasobów", () => {
+    const sub = (count: number) => translate("resources:resourceSubtitle", { count, lng: "pl" });
+    expect(sub(1)).toBe("1 zasób · baza linków i dokumentacji");
+    expect(sub(2)).toBe("2 zasoby · baza linków i dokumentacji");
+    expect(sub(5)).toBe("5 zasobów · baza linków i dokumentacji");
+  });
+});

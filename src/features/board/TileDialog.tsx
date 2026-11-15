@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useT } from "@/src/i18n/useT";
 import type { BoardTileDto as BoardTile } from "@/contexts/bc_board/schemas";
 
 function keepFocusInDialog(event: KeyboardEvent<HTMLDivElement>) {
@@ -34,6 +35,7 @@ export function TileDialog({
   closeLabel: string;
   onSave: (patch: { title: string; note: string }) => void;
 }) {
+  const t = useT();
   const [title, setTitle] = useState(tile.title);
   const [note, setNote] = useState(tile.note);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +57,7 @@ export function TileDialog({
           <h2 className="panel__title plo-panel__title">
             <b>{titleLabel}</b>
           </h2>
-          <span className="chip chip--accent plo-chip">Kafelek</span>
+          <span className="chip chip--accent plo-chip">{t("planning:boardDialogChipTile")}</span>
         </div>
 
         <label className="plo-field">

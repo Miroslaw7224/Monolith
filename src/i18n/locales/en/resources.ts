@@ -40,4 +40,7 @@ export const resources = {
   resourceClose: "Close",
   resourceCopyUrl: "Copy URL",
   resourceDelete: "Delete",
+  resourceEditTitleLabel: "Title",
+  resourceEditDescriptionLabel: "Description",
+  resourceEditTagsLabel: "Tags",
 };

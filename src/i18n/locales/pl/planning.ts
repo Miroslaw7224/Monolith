@@ -179,4 +179,7 @@ export const planning = {
   boardDeleteEdgeAria: "Usuń strzałkę",
   activityHours: "Godziny",
   calendarSaveFailed: "Nie udało się zapisać",
+  boardDialogChipDelete: "Usuwanie",
+  boardDialogChipFrame: "Ramka",
+  boardDialogChipTile: "Kafelek",
 };

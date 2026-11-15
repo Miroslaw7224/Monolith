@@ -171,4 +171,7 @@ export const planning = {
   boardDeleteEdgeAria: "Delete arrow",
   activityHours: "Hours",
   calendarSaveFailed: "Save failed",
+  boardDialogChipDelete: "Deleting",
+  boardDialogChipFrame: "Frame",
+  boardDialogChipTile: "Tile",
 };

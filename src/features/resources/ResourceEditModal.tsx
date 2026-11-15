@@ -113,7 +113,7 @@ export function ResourceEditModal({
         <div className="ars-modal__body">
           <div className="ars-field">
             <label htmlFor="edit-res-title" className="ars-label">
-              Title
+              {t("resources:resourceEditTitleLabel")}
             </label>
             <input
               id="edit-res-title"
@@ -131,7 +131,7 @@ export function ResourceEditModal({
           </div>
           <div className="ars-field">
             <label htmlFor="edit-res-desc" className="ars-label">
-              Description
+              {t("resources:resourceEditDescriptionLabel")}
             </label>
             <input
               id="edit-res-desc"
@@ -167,7 +167,7 @@ export function ResourceEditModal({
           </div>
           <div className="ars-field">
             <label htmlFor="edit-res-tags" className="ars-label">
-              Tags
+              {t("resources:resourceEditTagsLabel")}
             </label>
             <input
               id="edit-res-tags"
