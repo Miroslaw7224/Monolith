@@ -413,6 +413,27 @@ describe("kolejka na dziś", () => {
     expect(titles).toEqual(["W toku pilne"]);
   });
 
+  it("zadania ogólne „odłożone” znikają z kolejki, także zaległe, na dziś i pilne", async () => {
+    mockGetTasks.mockResolvedValue([
+      task({ id: "d1", title: "Kurs Playwright", status: "deferred" }),
+      task({ id: "d2", title: "Odłożone na dziś", due_date: "2026-11-13", status: "deferred" }),
+      task({
+        id: "d3",
+        title: "Odłożone zaległe pilne",
+        due_date: "2026-11-01",
+        priority: 1,
+        status: "deferred",
+      }),
+      task({ id: "a", title: "Aktualne", status: "todo" }),
+    ]);
+
+    const { queue, warnings } = await getCockpit(TODAY);
+    const titles = queue.flatMap((g) => g.items.map((i) => i.title));
+
+    expect(titles).toEqual(["Aktualne"]);
+    expect(warnings.filter((w) => w.includes("Zadania ogólne"))).toEqual([]);
+  });
+
   it("kolejność: dzisiejsze due, zaległe (najświeższe pierwsze), potem [now::], na końcu bez terminu; grupy per projekt, ogólne jako „Ogólne”", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
