@@ -50,7 +50,7 @@ if (!i18n.isInitialized) {
     lng: DEFAULT_LANG,
     fallbackLng: DEFAULT_LANG,
     defaultNS: "common",
-    ns: ["common", "shell", "home", "projects", "planning"],
+    ns: ["common", "shell", "home", "projects", "planning", "tasks"],
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
     initAsync: false,

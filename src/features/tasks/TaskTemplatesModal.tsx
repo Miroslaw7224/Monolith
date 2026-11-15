@@ -1,16 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import type { TaskTemplateDto } from "@/contexts/bc_tasks/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export type TaskTemplate = TaskTemplateDto;
-
-type TranslationDict = Record<string, string | string[]>;
 
 export interface TaskTemplatesModalProps {
   isOpen: boolean;
   onClose: () => void;
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  t: TranslationDict;
   onTemplatesChange: () => void;
 }
 
@@ -18,9 +16,9 @@ export function TaskTemplatesModal({
   isOpen,
   onClose,
   apiFetch,
-  t,
   onTemplatesChange,
 }: TaskTemplatesModalProps) {
+  const t = useT();
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,18 +30,7 @@ export function TaskTemplatesModal({
   const [editTitle, setEditTitle] = useState("");
   const [editLink, setEditLink] = useState("");
 
-  const labels = {
-    modalTitle: (t.tasksTemplatesModalTitle as string) ?? "Task templates",
-    subtitle:
-      (t.tasksTemplatesSubtitle as string) ?? "Save frequently used tasks for quick create.",
-    labelField: (t.tasksTemplateLabelField as string) ?? "Template name",
-    titleField: (t.tasksTemplateTitleField as string) ?? "Default task name",
-    linkLabel: (t.tasksDetailLinkLabel as string) ?? "Link",
-    linkPlaceholder: (t.tasksDetailLinkPlaceholder as string) ?? "https://…",
-    add: (t.tasksTemplatesAdd as string) ?? "Add template",
-    noItems: (t.tasksTemplatesNoItems as string) ?? "No templates yet. Add your first.",
-    close: (t.calendarCancel as string) ?? "Close",
-  };
+  const closeLabel = t("planning:calendarCancel");
 
   const fetchTemplates = useCallback(async () => {
     setLoading(true);
@@ -167,15 +154,15 @@ export function TaskTemplatesModal({
         <div className="zad-modal__head">
           <div>
             <h3 id="task-templates-modal-title" className="zad-modal__title">
-              {labels.modalTitle}
+              {t("tasks:tasksTemplatesModalTitle")}
             </h3>
-            <p className="zad-modal__sub">{labels.subtitle}</p>
+            <p className="zad-modal__sub">{t("tasks:tasksTemplatesSubtitle")}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="zad-btn zad-btn--ghost zad-btn--sm"
-            aria-label={labels.close}
+            aria-label={closeLabel}
           >
             <X className="w-4 h-4" />
           </button>
@@ -188,8 +175,8 @@ export function TaskTemplatesModal({
                 type="text"
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
-                placeholder={labels.labelField}
-                aria-label={labels.labelField}
+                placeholder={t("tasks:tasksTemplateLabelField")}
+                aria-label={t("tasks:tasksTemplateLabelField")}
                 className="zad-input"
               />
               <input
@@ -197,8 +184,8 @@ export function TaskTemplatesModal({
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void addTemplate()}
-                placeholder={labels.titleField}
-                aria-label={labels.titleField}
+                placeholder={t("tasks:tasksTemplateTitleField")}
+                aria-label={t("tasks:tasksTemplateTitleField")}
                 className="zad-input"
               />
             </div>
@@ -208,8 +195,8 @@ export function TaskTemplatesModal({
                 value={newLink}
                 onChange={(e) => setNewLink(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && void addTemplate()}
-                placeholder={labels.linkPlaceholder}
-                aria-label={labels.linkLabel}
+                placeholder={t("tasks:tasksDetailLinkPlaceholder")}
+                aria-label={t("tasks:tasksDetailLinkLabel")}
                 className="zad-input zad-input--flex"
               />
               <button
@@ -219,16 +206,16 @@ export function TaskTemplatesModal({
                 className="zad-btn zad-btn--primary"
               >
                 <Plus className="w-4 h-4" />
-                {labels.add}
+                {t("tasks:tasksTemplatesAdd")}
               </button>
             </div>
           </div>
 
           <div className="zad-templates-list-container">
             {loading ? (
-              <p className="zad-state zad-state--loading">Loading…</p>
+              <p className="zad-state zad-state--loading">{t("tasks:tasksLoading")}</p>
             ) : templates.length === 0 ? (
-              <div className="zad-empty-box">{labels.noItems}</div>
+              <div className="zad-empty-box">{t("tasks:tasksTemplatesNoItems")}</div>
             ) : (
               <ul className="zad-templates-list">
                 {templates.map((item) => (
@@ -241,7 +228,7 @@ export function TaskTemplatesModal({
                             value={editLabel}
                             onChange={(e) => setEditLabel(e.target.value)}
                             className="zad-input"
-                            placeholder={labels.labelField}
+                            placeholder={t("tasks:tasksTemplateLabelField")}
                           />
                           <input
                             type="text"
@@ -249,7 +236,7 @@ export function TaskTemplatesModal({
                             onChange={(e) => setEditTitle(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && void saveEdit(item.id)}
                             className="zad-input"
-                            placeholder={labels.titleField}
+                            placeholder={t("tasks:tasksTemplateTitleField")}
                           />
                         </div>
                         <input
@@ -258,7 +245,7 @@ export function TaskTemplatesModal({
                           onChange={(e) => setEditLink(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && void saveEdit(item.id)}
                           className="zad-input"
-                          placeholder={labels.linkPlaceholder}
+                          placeholder={t("tasks:tasksDetailLinkPlaceholder")}
                         />
                         <div className="zad-template-edit__actions">
                           <button
@@ -266,7 +253,7 @@ export function TaskTemplatesModal({
                             onClick={cancelEdit}
                             className="zad-btn zad-btn--ghost zad-btn--sm"
                           >
-                            {labels.close}
+                            {closeLabel}
                           </button>
                           <button
                             type="button"
@@ -275,7 +262,7 @@ export function TaskTemplatesModal({
                             className="zad-btn zad-btn--primary zad-btn--sm"
                           >
                             <Pencil className="w-3.5 h-3.5" />
-                            {(t.tasksDetailSave as string) ?? "Save"}
+                            {t("tasks:tasksDetailSave")}
                           </button>
                         </div>
                       </div>
@@ -293,8 +280,8 @@ export function TaskTemplatesModal({
                             type="button"
                             onClick={() => startEdit(item)}
                             className="zad-btn zad-btn--ghost zad-btn--sm"
-                            title="Edit"
-                            aria-label="Edit"
+                            title={t("tasks:tasksTemplateEdit")}
+                            aria-label={t("tasks:tasksTemplateEdit")}
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -302,8 +289,8 @@ export function TaskTemplatesModal({
                             type="button"
                             onClick={() => void deleteTemplate(item.id)}
                             className="zad-btn zad-btn--ghost zad-btn--sm zad-btn--danger"
-                            title="Delete"
-                            aria-label="Delete"
+                            title={t("tasks:tasksCardDelete")}
+                            aria-label={t("tasks:tasksCardDelete")}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

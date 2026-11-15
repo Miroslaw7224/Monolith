@@ -11,7 +11,6 @@ interface TaskColumnProps {
   status: TaskStatus;
   title: string;
   tasks: Task[];
-  lang: "en" | "pl";
   collapseEnabled: boolean;
   isDragOverColumn: boolean;
   dragTaskId: string | null;
@@ -49,7 +48,6 @@ export function TaskColumn({
   status,
   title,
   tasks,
-  lang,
   collapseEnabled,
   isDragOverColumn,
   dragTaskId,
@@ -110,7 +108,6 @@ export function TaskColumn({
           <TaskCard
             key={task.id}
             task={task}
-            lang={lang}
             isDragging={dragTaskId === task.id}
             isDragOver={dragOverTaskId === task.id && dragTaskId !== task.id}
             draggable={draggable}

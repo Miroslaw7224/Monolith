@@ -1,12 +1,14 @@
 import React from "react";
 import type { TaskTilesData } from "./taskStatsUtils";
+import i18n, { currentLang, type Lang } from "@/src/i18n";
+import { useT } from "@/src/i18n/useT";
 
-function dueLabel(iso: string, now: Date, lang: "en" | "pl"): string {
+export function dueLabel(iso: string, now: Date, lang: Lang = currentLang()): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const key = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  if (iso === key(now)) return lang === "pl" ? "dziś" : "today";
-  if (iso === key(tomorrow)) return lang === "pl" ? "jutro" : "tomorrow";
+  if (iso === key(now)) return i18n.t("tasks:tasksTileToday", { lng: lang });
+  if (iso === key(tomorrow)) return i18n.t("tasks:tasksTileTomorrow", { lng: lang });
   const [, month, day] = iso.split("-");
   return `${day}.${month}`;
 }
@@ -14,48 +16,44 @@ function dueLabel(iso: string, now: Date, lang: "en" | "pl"): string {
 /** Kafle liczb karty Zadania (makieta 03: `.zad-tiles`). */
 export function TaskTiles({
   data,
-  lang,
   now,
   dueOnly,
   onToggleDueOnly,
 }: {
   data: TaskTilesData;
-  lang: "en" | "pl";
   now: Date;
   dueOnly: boolean;
   onToggleDueOnly: () => void;
 }) {
-  const pl = lang === "pl";
+  const t = useT();
   const { inProgress, todo, deadlines, doneWeek } = data;
   const dueNow = deadlines.overdue + deadlines.today;
   const delta = doneWeek.count - doneWeek.prevCount;
+  const deltaStr = `${delta >= 0 ? "+" : "−"}${Math.abs(delta)}`;
 
   const todoMeta = todo.nextDue
-    ? `${pl ? "najbliższy termin" : "next due"}: ${dueLabel(todo.nextDue, now, lang)}`
-    : pl
-      ? "bez terminów"
-      : "no due dates";
+    ? t("tasks:tasksTileNextDueMeta", {
+        label: t("tasks:tasksTileNextDue"),
+        date: dueLabel(todo.nextDue, now),
+      })
+    : t("tasks:tasksTileNoDueDates");
   const deadlinesMeta =
     deadlines.overdue > 0
-      ? pl
-        ? `${deadlines.overdue} po terminie`
-        : `${deadlines.overdue} overdue`
-      : `${pl ? "w 7 dni" : "next 7 days"}: ${deadlines.week}`;
-  const doneMeta = `${delta >= 0 ? "+" : "−"}${Math.abs(delta)} ${
-    pl ? "vs ubiegły tydzień" : "vs last week"
-  }`;
+      ? t("tasks:tasksTileOverdueMeta", { count: deadlines.overdue })
+      : t("tasks:tasksTileWeekMeta", { week: deadlines.week });
+  const doneMeta = t("tasks:tasksTileVsLastWeek", { delta: deltaStr });
 
   return (
-    <section className="zad-tiles" aria-label={pl ? "Liczby zadań" : "Task numbers"}>
+    <section className="zad-tiles" aria-label={t("tasks:tasksTileAriaLabel")}>
       <div className="zad-tile zad-tile--accent">
-        <span className="zad-tile__label">{pl ? "W toku" : "In progress"}</span>
+        <span className="zad-tile__label">{t("tasks:tasksInProgress")}</span>
         <span className="zad-tile__value">{inProgress.count}</span>
         <span className="zad-tile__meta">
           {inProgress.deep} deep · {inProgress.quick} quick
         </span>
       </div>
       <div className="zad-tile">
-        <span className="zad-tile__label">{pl ? "Do zrobienia" : "To do"}</span>
+        <span className="zad-tile__label">{t("tasks:tasksTodo")}</span>
         <span className="zad-tile__value">{todo.count}</span>
         <span className="zad-tile__meta">{todoMeta}</span>
       </div>
@@ -67,17 +65,9 @@ export function TaskTiles({
         aria-pressed={dueOnly}
         disabled={dueNow === 0 && !dueOnly}
         onClick={onToggleDueOnly}
-        title={
-          dueOnly
-            ? pl
-              ? "Pokaż wszystkie zadania"
-              : "Show all tasks"
-            : pl
-              ? "Pokaż tylko zadania na dziś i po terminie"
-              : "Show only tasks due today or overdue"
-        }
+        title={dueOnly ? t("tasks:tasksTileShowAllTitle") : t("tasks:tasksTileDueOnlyTitle")}
       >
-        <span className="zad-tile__label">{pl ? "Terminy" : "Deadlines"}</span>
+        <span className="zad-tile__label">{t("tasks:tasksTileDeadlines")}</span>
         <span className="zad-tile__value">{dueNow}</span>
         <span
           className={[
@@ -87,11 +77,11 @@ export function TaskTiles({
             .filter(Boolean)
             .join(" ")}
         >
-          {dueOnly ? (pl ? "kliknij, by pokazać wszystkie" : "click to show all") : deadlinesMeta}
+          {dueOnly ? t("tasks:tasksTileClickShowAll") : deadlinesMeta}
         </span>
       </button>
       <div className="zad-tile">
-        <span className="zad-tile__label">{pl ? "Zrobione w tym tygodniu" : "Done this week"}</span>
+        <span className="zad-tile__label">{t("tasks:tasksTileDoneThisWeek")}</span>
         <span className="zad-tile__value">{doneWeek.count}</span>
         <span className="zad-tile__meta">{doneMeta}</span>
       </div>

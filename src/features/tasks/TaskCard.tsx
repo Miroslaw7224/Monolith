@@ -7,10 +7,10 @@ import { getTaskDueState } from "./taskStatsUtils";
 import { getTaskEnergy, setTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
 import type { TaskProject } from "./useTasksBoard";
 import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
+import { useT } from "@/src/i18n/useT";
 
 interface TaskCardProps {
   task: Task;
-  lang: "en" | "pl";
   isDragging: boolean;
   isDragOver: boolean;
   draggable: boolean;
@@ -42,7 +42,6 @@ interface TaskCardProps {
 
 export function TaskCard({
   task,
-  lang,
   isDragging,
   isDragOver,
   draggable,
@@ -67,6 +66,7 @@ export function TaskCard({
   now,
   onDelete,
 }: TaskCardProps) {
+  const t = useT();
   const isUrgent = task.priority === URGENT_PRIORITY;
   const dueState = getTaskDueState(task, now);
   const energy = getTaskEnergy(task.title);
@@ -107,7 +107,7 @@ export function TaskCard({
           "zad-card__grip",
           draggable ? "zad-card__grip--draggable" : "zad-card__grip--disabled",
         ].join(" ")}
-        title={lang === "pl" ? "Przeciągnij" : "Drag"}
+        title={t("tasks:tasksCardDrag")}
         aria-hidden={!draggable}
       >
         <GripVertical className="w-3.5 h-3.5" />
@@ -149,19 +149,23 @@ export function TaskCard({
                   {setTaskEnergy(task.title, null)}
                 </span>
                 {Boolean(task.link?.trim()) && (
-                  <span className="zad-link-dot" title="Link" aria-hidden="true" />
+                  <span
+                    className="zad-link-dot"
+                    title={t("tasks:tasksDetailLinkLabel")}
+                    aria-hidden="true"
+                  />
                 )}
               </button>
               <button
                 type="button"
                 className="zad-urgent-btn"
                 aria-pressed={isUrgent}
-                title={lang === "pl" ? "Pilne: do zrobienia od ręki" : "Urgent: do right away"}
+                title={t("tasks:tasksCardUrgentTitle")}
                 onClick={() => onToggleUrgent(task.id)}
               >
-                {lang === "pl" ? "Pilne" : "Urgent"}
+                {t("tasks:tasksCardUrgent")}
               </button>
-              <span className="zad-energy" role="group" aria-label="Energia">
+              <span className="zad-energy" role="group" aria-label={t("tasks:tasksEnergyAria")}>
                 {(["deep", "quick"] as const).map((value) => (
                   <button
                     key={value}
@@ -197,13 +201,7 @@ export function TaskCard({
             />
             {dueState && (
               <span className={`zad-due-flag zad-due-flag--${dueState}`}>
-                {dueState === "overdue"
-                  ? lang === "pl"
-                    ? "po terminie"
-                    : "overdue"
-                  : lang === "pl"
-                    ? "dziś"
-                    : "today"}
+                {dueState === "overdue" ? t("tasks:tasksCardOverdue") : t("tasks:tasksTileToday")}
               </span>
             )}
           </label>
@@ -224,7 +222,7 @@ export function TaskCard({
         type="button"
         onClick={() => onDelete(task.id)}
         className="zad-card__delete-btn"
-        aria-label={lang === "pl" ? "Usuń" : "Delete"}
+        aria-label={t("tasks:tasksCardDelete")}
       >
         <Trash2 className="w-3.5 h-3.5" />
       </button>

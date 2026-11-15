@@ -312,7 +312,7 @@ export default function PlanowanieView({
             />
           </div>
         ) : (
-          <TasksSection apiFetch={apiFetch} lang={lang} t={t} />
+          <TasksSection apiFetch={apiFetch} />
         )}
       </div>
     </main>
