@@ -125,7 +125,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   );
 
   const dateSubtitle = useMemo(() => {
-    const activeCount = tasks.filter((x) => x.status !== "done").length;
+    const activeCount = tasks.filter((x) => x.status !== "done" && x.status !== "deferred").length;
     const doneCount = tasks.filter((x) => x.status === "done").length;
     const today = new Date();
     const dateFormatted = today.toLocaleDateString(lang === "pl" ? "pl-PL" : "en-US", {

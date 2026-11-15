@@ -2,7 +2,7 @@ import type { Task } from "./TasksSection";
 
 export type TaskStatus = Task["status"];
 
-export const TASK_STATUSES: TaskStatus[] = ["todo", "in_progress", "to_review", "done"];
+export const TASK_STATUSES: TaskStatus[] = ["deferred", "todo", "in_progress", "to_review", "done"];
 export const TASK_COLUMN_VISIBLE_LIMIT = 15;
 
 export function sortTasksByNewest(tasks: Task[]): Task[] {

@@ -43,10 +43,17 @@ describe("computeTaskOrderAfterDrop", () => {
     expect(statusChanged).toBe(true);
     expect(orderedIds).toEqual(["a", "b", "c", "d"]);
   });
+
+  it("puts the deferred column first and moves a task there", () => {
+    const { orderedIds, statusChanged } = computeTaskOrderAfterDrop(tasks, "d", "deferred", null);
+    expect(statusChanged).toBe(true);
+    expect(orderedIds).toEqual(["d", "a", "b", "c"]);
+  });
 });
 
 describe("tasksByStatus", () => {
   const tasks = [
+    makeTask("0", "deferred"),
     makeTask("1", "todo"),
     makeTask("2", "in_progress"),
     makeTask("3", "to_review"),
@@ -54,6 +61,7 @@ describe("tasksByStatus", () => {
   ];
 
   it("filters by status", () => {
+    expect(tasksByStatus(tasks, "deferred").map((t) => t.id)).toEqual(["0"]);
     expect(tasksByStatus(tasks, "todo").map((t) => t.id)).toEqual(["1"]);
     expect(tasksByStatus(tasks, "in_progress").map((t) => t.id)).toEqual(["2"]);
     expect(tasksByStatus(tasks, "to_review").map((t) => t.id)).toEqual(["3"]);

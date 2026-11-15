@@ -106,3 +106,48 @@ test("„Pilne” w pasku dodawania tworzy zadanie z priorytetem 1", async () =>
     expect(JSON.parse(call![1].body)).toMatchObject({ title: "Nowe", priority: 1 });
   });
 });
+
+test("odłożone zadanie trafia do pierwszej kolumny „Odłożone”", async () => {
+  apiFetch.mockImplementation(async (url: string) => {
+    if (url === "/api/tasks") {
+      return {
+        ok: true,
+        json: async () => [
+          {
+            id: "a",
+            title: "Alpha",
+            link: "",
+            description: "",
+            status: "todo",
+            due_date: null,
+            priority: null,
+          },
+          {
+            id: "p",
+            title: "Kurs Playwright",
+            link: "",
+            description: "",
+            status: "deferred",
+            due_date: null,
+            priority: null,
+          },
+        ],
+      };
+    }
+    return { ok: true, json: async () => [] };
+  });
+  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+
+  const deferred = await screen.findByRole("heading", { name: /Odłożone/ });
+  const todo = screen.getByRole("heading", { name: /Do zrobienia/ });
+
+  expect(deferred.parentElement).toHaveTextContent("Kurs Playwright");
+  expect(deferred.parentElement).not.toHaveTextContent("Alpha");
+  expect(todo.parentElement).not.toHaveTextContent("Kurs Playwright");
+  const headings = screen.getAllByRole("heading").map((h) => h.textContent ?? "");
+  expect(headings.findIndex((h) => /Odłożone/.test(h))).toBeLessThan(
+    headings.findIndex((h) => /Do zrobienia/.test(h))
+  );
+  // licznik aktywnych nie liczy odłożonych (D5): tylko „Alpha”
+  expect(screen.getByText(/1 zadań aktywnych/)).toBeInTheDocument();
+});
