@@ -155,13 +155,14 @@ describe("CoursesView", () => {
   it("usuwanie: po potwierdzeniu wysyła DELETE, po odmowie nic", async () => {
     const apiFetch = setup();
     const card = (await screen.findByText("Plan na później")).closest("article")!;
-    const confirm = vi
-      .spyOn(window, "confirm")
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
-    await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    const delBtn = () => within(card).getByRole("button", { name: "Usuń" });
+    await userEvent.click(delBtn());
+    const dialog = screen.getByRole("dialog", { name: "Usunąć kurs „Plan na później”?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anuluj" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(apiFetch.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
-    await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    await userEvent.click(delBtn());
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Usuń" }));
     await waitFor(() =>
       expect(
         apiFetch.mock.calls.some(
@@ -169,7 +170,7 @@ describe("CoursesView", () => {
         )
       ).toBe(true)
     );
-    expect(confirm).toHaveBeenCalledWith("Usunąć kurs „Plan na później”?");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("po angielsku: etykiety EN", async () => {
@@ -202,8 +203,8 @@ describe("CoursesView", () => {
     );
     render(<CoursesView apiFetch={apiFetch} />);
     const card = (await screen.findByText("Plan na później")).closest("article")!;
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Usuń" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Nie można usunąć");
     await userEvent.click(screen.getByRole("button", { name: "Dodaj kurs" }));
     await userEvent.type(screen.getByLabelText("Tytuł"), "Nowy");

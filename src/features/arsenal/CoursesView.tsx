@@ -5,6 +5,7 @@ import { formatDate } from "@/src/i18n/format";
 import { useT } from "@/src/i18n/useT";
 import "@/src/features/resources/resources.css";
 import "./arsenal.css";
+import { ArsenalConfirmDialog } from "./ArsenalConfirmDialog";
 import { CourseForm } from "./CourseForm";
 import { messageOf } from "./apiError";
 import { useCourses } from "./useCourses";
@@ -120,8 +121,9 @@ export function CoursesView({ apiFetch }: { apiFetch: ApiFetch }) {
     await c.save(input, id);
     setEditing(null);
   };
+  const [pendingDelete, setPendingDelete] = useState<CourseDto | null>(null);
   const remove = async (course: CourseDto) => {
-    if (!window.confirm(t("courses:deleteConfirm", { title: course.title }))) return;
+    setPendingDelete(null);
     setActionError(null);
     try {
       await c.remove(course.id);
@@ -220,13 +222,22 @@ export function CoursesView({ apiFetch }: { apiFetch: ApiFetch }) {
                     key={course.id}
                     course={course}
                     onEdit={() => setEditing(course.id)}
-                    onDelete={() => void remove(course)}
+                    onDelete={() => setPendingDelete(course)}
                   />
                 )
               )}
             </div>
           )}
         </>
+      )}
+      {pendingDelete && (
+        <ArsenalConfirmDialog
+          title={t("courses:deleteConfirm", { title: pendingDelete.title })}
+          confirmLabel={t("common:delete")}
+          cancelLabel={t("common:cancel")}
+          onConfirm={() => void remove(pendingDelete)}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );

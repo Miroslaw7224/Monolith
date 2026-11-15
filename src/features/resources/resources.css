@@ -155,6 +155,16 @@
 }
 
 .ars .btn--sm,
+.ars-modal-overlay .btn--danger {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.ars-modal-overlay .btn--danger:hover {
+  background: color-mix(in srgb, var(--danger) 25%, transparent);
+}
+
 .ars-modal-overlay .btn--sm {
   padding: 5px 10px;
   font-size: var(--fs-xs);

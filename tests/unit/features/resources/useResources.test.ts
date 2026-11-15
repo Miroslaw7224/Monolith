@@ -173,3 +173,31 @@ test("handleSaveEdit: odpowiedź bez notePath usuwa stary notePath zasobu", asyn
   expect(result.current.resources[0].url).toBe("https://b.example");
   expect(result.current.resources[0].notePath).toBeUndefined();
 });
+
+test("usuwanie zasobu: prośba otwiera potwierdzenie, odmowa nic nie wysyła, potwierdzenie wysyła DELETE", async () => {
+  const resource = { id: "r9", title: "Do usunięcia", url: "https://example.com", tags: [] };
+  apiFetch.mockImplementation(async (url: string, options?: RequestInit) => {
+    if (url === "/api/resources" && !options?.method) {
+      return { ok: true, json: async () => [resource] };
+    }
+    return { ok: true, json: async () => ({}) };
+  });
+  const confirmSpy = vi.spyOn(window, "confirm");
+  const { result } = renderHook(() => useResources(apiFetch));
+  await waitFor(() => expect(result.current.resources).toHaveLength(1));
+
+  act(() => result.current.requestDelete("r9"));
+  expect(result.current.pendingDelete).toBe(true);
+  act(() => result.current.cancelDelete());
+  expect(result.current.pendingDelete).toBe(false);
+  expect(apiFetch.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
+
+  act(() => result.current.requestDelete("r9"));
+  await act(async () => {
+    await result.current.confirmDelete();
+  });
+  expect(apiFetch).toHaveBeenCalledWith("/api/resources/r9", { method: "DELETE" });
+  expect(result.current.resources).toHaveLength(0);
+  expect(result.current.pendingDelete).toBe(false);
+  expect(confirmSpy).not.toHaveBeenCalled();
+});

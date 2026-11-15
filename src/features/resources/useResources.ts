@@ -123,7 +123,11 @@ export interface UseResourcesResult {
   copyMessage: string | null;
   // List item actions
   handleCopy: (url: string) => Promise<void>;
-  handleDelete: (resourceId: string) => Promise<void>;
+  /** Otwiera potwierdzenie usunięcia (samo usunięcie: `confirmDelete`). */
+  requestDelete: (resourceId: string) => void;
+  pendingDelete: boolean;
+  confirmDelete: () => Promise<void>;
+  cancelDelete: () => void;
   openEditModal: (r: NoteResource) => void;
   handleToggleFavorite: (r: NoteResource) => Promise<void>;
   // Edit modal
@@ -154,6 +158,7 @@ export function useResources(
   const t = useT();
   const [resources, setResources] = useState<NoteResource[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [addDescription, setAddDescription] = useState("");
   const [addUrl, setAddUrl] = useState("");
   const [addTags, setAddTags] = useState("");
@@ -324,8 +329,12 @@ export function useResources(
     }
   };
 
-  const handleDelete = async (resourceId: string) => {
-    if (!window.confirm(labels.resourceDeleteConfirm)) return;
+  const requestDelete = (resourceId: string) => setPendingDeleteId(resourceId);
+  const cancelDelete = () => setPendingDeleteId(null);
+  const confirmDelete = async () => {
+    const resourceId = pendingDeleteId;
+    if (!resourceId) return;
+    setPendingDeleteId(null);
     try {
       await apiFetch(`/api/resources/${resourceId}`, {
         method: "DELETE",
@@ -446,7 +455,10 @@ export function useResources(
     handleAddFromBlock,
     copyMessage,
     handleCopy,
-    handleDelete,
+    requestDelete,
+    pendingDelete: pendingDeleteId != null,
+    confirmDelete,
+    cancelDelete,
     openEditModal,
     handleToggleFavorite,
     editingResource,

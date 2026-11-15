@@ -11,6 +11,7 @@ import { useT } from "@/src/i18n/useT";
 import "@/src/features/resources/resources.css";
 import "./arsenal.css";
 import { AgentEntryForm } from "./AgentEntryForm";
+import { ArsenalConfirmDialog } from "./ArsenalConfirmDialog";
 import { CopyButton } from "./CopyButton";
 import { messageOf } from "./apiError";
 import type { ApiFetch } from "./useArsenal";
@@ -46,8 +47,9 @@ export function AgentsView({ apiFetch }: { apiFetch: ApiFetch }) {
     await a.save(input, id);
     setEditing(null);
   };
+  const [pendingDelete, setPendingDelete] = useState<AgentEntryDto | null>(null);
   const remove = async (entry: AgentEntryDto) => {
-    if (!window.confirm(t("agents:deleteConfirm", { name: entry.name }))) return;
+    setPendingDelete(null);
     setActionError(null);
     try {
       await a.remove(entry.id);
@@ -100,7 +102,7 @@ export function AgentsView({ apiFetch }: { apiFetch: ApiFetch }) {
         </div>
         <p className="crs-card__meta">{e.role}</p>
         {e.when !== undefined && <p className="crs-card__note">{e.when}</p>}
-        <RowActions onEdit={() => setEditing(e.id)} onDelete={() => void remove(e)} />
+        <RowActions onEdit={() => setEditing(e.id)} onDelete={() => setPendingDelete(e)} />
       </article>
     );
 
@@ -115,7 +117,7 @@ export function AgentsView({ apiFetch }: { apiFetch: ApiFetch }) {
         <pre className="ag-code">{e.command}</pre>
         <div className="crs-card__actions">
           <CopyButton text={e.command} label={t("agents:copyCommand")} primary />
-          <RowActions onEdit={() => setEditing(e.id)} onDelete={() => void remove(e)} />
+          <RowActions onEdit={() => setEditing(e.id)} onDelete={() => setPendingDelete(e)} />
         </div>
       </article>
     );
@@ -134,7 +136,7 @@ export function AgentsView({ apiFetch }: { apiFetch: ApiFetch }) {
           {e.example !== undefined && (
             <CopyButton text={e.example} label={t("agents:copyExample")} primary />
           )}
-          <RowActions onEdit={() => setEditing(e.id)} onDelete={() => void remove(e)} />
+          <RowActions onEdit={() => setEditing(e.id)} onDelete={() => setPendingDelete(e)} />
         </div>
       </article>
     );
@@ -188,6 +190,15 @@ export function AgentsView({ apiFetch }: { apiFetch: ApiFetch }) {
             a.scripts.map(scriptRow)
           )}
         </>
+      )}
+      {pendingDelete && (
+        <ArsenalConfirmDialog
+          title={t("agents:deleteConfirm", { name: pendingDelete.name })}
+          confirmLabel={t("common:delete")}
+          cancelLabel={t("common:cancel")}
+          onConfirm={() => void remove(pendingDelete)}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </div>
   );
