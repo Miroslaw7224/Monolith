@@ -366,7 +366,7 @@ export function buildContextPack(
 ): ContextPack {
   const entry = findEntry(id);
   const project = getProject(id, today);
-  const warnings: string[] = isWorkProject(entry) ? [OWNER_WORK_WARNING] : [];
+  const warnings: string[] = hasCompanyData(entry.owner, project.type) ? [OWNER_WORK_WARNING] : [];
 
   const git = readGitSnapshot(entry);
   if (git.ok === false) {
