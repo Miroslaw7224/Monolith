@@ -104,4 +104,4 @@ Pozycje świadomie poza etapem 1; wracamy do nich po etapie 1, żeby nie zgubić
 
 1. **Mapowanie „skill → projekt” i krawędzie Skille (z D7).** Dziś AI-2030 i Skille nie mają krawędzi, bo dane nie niosą powiązań. Do rozstrzygnięcia: skąd brać mapowanie (frontmatter, osobny plik) i czy w ogóle jest potrzebne.
 2. **Prawdziwy rozmiar kontynentu Skille (z D13).** Wymaga odczytu poza Vault (`NEXUS/Superpower/`) albo przeniesienia/odbicia tych danych do Vaulta. To wyjątek od zasady „aplikacja widzi tylko Vault”, więc osobna decyzja z oceną prywatności.
-3. **Głębsza analiza prywatności agentów (D9).** Do wyjaśnienia i rozstrzygnięcia: co panel Herdr może pokazać o agencie (etykieta, stan, `where`, projekt) w zależności od tego, czy projekt jest `personal`, `work` czy nie da się go dopasować. Na etap 1 obowiązuje najostrożniejszy wariant z D9.
+3. **Prywatność agentów (D9): rozstrzygnięte 2026-11-15.** Zostaje wariant z D9 bez zmian: dla `work` i agenta bez dopasowanego projektu panel pokazuje tylko etykietę i stan; status, projekt i `where` tylko dla `personal`.
