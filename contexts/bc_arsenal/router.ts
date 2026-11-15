@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
+  AgentEntryInputSchema,
   CourseInputSchema,
   DeployQuerySchema,
   MarkDeployedBodySchema,
+  toAgentEntryDto,
+  toAgentsDto,
   toCatalogDto,
   toCourseDto,
   toCoursesDto,
@@ -94,6 +97,54 @@ export async function removeCourse(_request: Request, ctx: CourseContext): Promi
   try {
     const { courseId } = await ctx.params;
     await services.deleteCourse(courseId);
+    return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+type EntryContext = { params: Promise<{ entryId: string }> };
+
+export async function getAgents(): Promise<NextResponse> {
+  try {
+    return NextResponse.json(toAgentsDto(services.listAgents()));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function postAgentEntry(request: Request): Promise<NextResponse> {
+  const parsed = await parseBody(request, AgentEntryInputSchema);
+  if (parsed.success === false) return parsed.response;
+  try {
+    return NextResponse.json(toAgentEntryDto(await services.createAgentEntry(parsed.data)), {
+      status: 201,
+    });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function putAgentEntry(request: Request, ctx: EntryContext): Promise<NextResponse> {
+  const parsed = await parseBody(request, AgentEntryInputSchema);
+  if (parsed.success === false) return parsed.response;
+  try {
+    const { entryId } = await ctx.params;
+    return NextResponse.json(
+      toAgentEntryDto(await services.updateAgentEntry(entryId, parsed.data))
+    );
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function deleteAgentEntry(
+  _request: Request,
+  ctx: EntryContext
+): Promise<NextResponse> {
+  try {
+    const { entryId } = await ctx.params;
+    await services.removeAgentEntry(entryId);
     return new NextResponse(null, { status: 204 });
   } catch (err) {
     return handleServiceError(err);
