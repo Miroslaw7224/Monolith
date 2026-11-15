@@ -51,6 +51,7 @@ export const DeployTargetDtoSchema = z.object({
   name: z.string(),
   localPath: z.string(),
   owner: z.enum(["personal", "work"]),
+  companyData: z.boolean(),
 });
 
 export const CatalogDtoSchema = z.object({

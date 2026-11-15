@@ -31,8 +31,8 @@ const catalog = {
     },
   ],
   targets: [
-    { id: "p", name: "Projekt P", localPath: "~/p", owner: "personal" },
-    { id: "w", name: "Projekt W", localPath: "~/w", owner: "work" },
+    { id: "p", name: "Projekt P", localPath: "~/p", owner: "personal", companyData: false },
+    { id: "w", name: "Projekt W", localPath: "~/w", owner: "work", companyData: true },
   ],
   skipped: 2,
 };

@@ -1,4 +1,4 @@
-import { listProjects } from "@/contexts/bc_projects/services";
+import { hasCompanyData, listProjects } from "@/contexts/bc_projects/services";
 import { DomainError } from "@/lib/errors";
 import {
   SUMMARY_MAX,
@@ -144,6 +144,7 @@ export function listArsenal(): ArsenalCatalog {
     name: p.name,
     localPath: p.localPath,
     owner: p.owner,
+    companyData: hasCompanyData(p.owner, p.type),
   }));
   const known = new Set(targets.map((t) => t.id));
 
