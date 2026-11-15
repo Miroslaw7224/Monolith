@@ -6,12 +6,7 @@ import { URGENT_PRIORITY } from "./taskPriorityUtils";
 import { getTaskDueState } from "./taskStatsUtils";
 import { getTaskEnergy, setTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
 import type { TaskProject } from "./useTasksBoard";
-
-const KIND_LABELS: Record<TaskProject["kind"], string> = {
-  etat: "Etat",
-  wlasny: "Własny",
-  biblioteka: "Biblioteka",
-};
+import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
 
 interface TaskCardProps {
   task: Task;
@@ -215,9 +210,9 @@ export function TaskCard({
           {project && (
             <span
               className={`zad-kind zad-kind--${project.kind}`}
-              title={`${KIND_LABELS[project.kind]}: ${project.name}`}
+              title={`${PROJECT_KIND_LABELS[project.kind]}: ${project.name}`}
             >
-              {KIND_LABELS[project.kind]} · {project.name}
+              {PROJECT_KIND_LABELS[project.kind]} · {project.name}
             </span>
           )}
           {task.priority != null && task.priority !== URGENT_PRIORITY && (

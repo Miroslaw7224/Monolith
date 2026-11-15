@@ -42,7 +42,8 @@ function toRecord(t: TaskLine): Task {
     status: t.status,
     due_date: t.due_date,
     priority: t.priority,
-    project: t.project ?? undefined,
+    // ręcznie wpisane puste `[project:: ]` = brak projektu
+    project: t.project || undefined,
     order: t.order ?? undefined,
     created_at: t.created_at ?? undefined,
     updated_at: t.updated_at ?? undefined,

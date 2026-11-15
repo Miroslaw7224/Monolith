@@ -1353,3 +1353,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* upuszczane zadanie z rodzajem projektu: pasek rodzaju + poświata celu upuszczenia (ta sama specyficzność co `.zad-card--dragover`) */
+.zad-card--kind.zad-card--dragover {
+  box-shadow:
+    inset 3px 0 0 var(--zad-kind),
+    0 0 0 1px var(--accent),
+    0 0 14px -4px var(--glow);
+}

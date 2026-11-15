@@ -137,6 +137,9 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     project: string | null;
   }) => {
     if (!detailTaskId) return;
+    // projekt wysyłamy tylko po zmianie: ręcznie wpisane, niepoprawne id nie może blokować zapisu reszty pól (400)
+    const current = tasks.find((x) => x.id === detailTaskId)?.project ?? null;
+    const projectChanged = payload.project !== current;
     try {
       await apiFetch(`/api/tasks/${detailTaskId}`, {
         method: "PUT",
@@ -147,7 +150,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
           description: payload.description,
           status: payload.status,
           due_date: payload.due_date,
-          project: payload.project,
+          ...(projectChanged ? { project: payload.project } : {}),
         }),
       });
       setTasks((prev) =>
@@ -160,7 +163,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
                 description: payload.description,
                 status: payload.status,
                 due_date: payload.due_date,
-                project: payload.project ?? undefined,
+                ...(projectChanged ? { project: payload.project ?? undefined } : {}),
               }
             : x
         )

@@ -192,3 +192,18 @@ test("zadanie z znanym projektem ma kolor i znacznik rodzaju, bez projektu i z n
   expect((await card("Osierocone")).className).not.toMatch(/zad-card--kind/);
   expect((await card("Ogólne")).className).not.toMatch(/zad-card--kind/);
 });
+
+test("zapis okna zadania nie wysyła pola project, gdy projekt się nie zmienił", async () => {
+  render(<TasksSection apiFetch={apiFetch} lang="pl" t={t} />);
+  fireEvent.doubleClick(await screen.findByText("Alpha"));
+  const dialog = await screen.findByRole("dialog");
+  fireEvent.click(within(dialog).getByRole("button", { name: t.tasksDetailSave as string }));
+
+  await waitFor(() => {
+    const call = apiFetch.mock.calls.find(
+      ([url, opts]) => url === "/api/tasks/a" && opts?.method === "PUT"
+    );
+    expect(call).toBeTruthy();
+    expect(JSON.parse(call![1].body)).not.toHaveProperty("project");
+  });
+});

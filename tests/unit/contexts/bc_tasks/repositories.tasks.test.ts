@@ -241,6 +241,11 @@ describe("project (zadanie ogólne powiązane z projektem)", () => {
     expect(byId.get("t1")?.project).toBeUndefined();
   });
 
+  it("12a2. a hand-written empty [project:: ] reads as no project", async () => {
+    vault.write(FILE, `${GEN}# Zadania\n\n- [ ] Puste [id:: e1] [status:: todo] [project:: ]\n`);
+    expect((await getTasks())[0].project).toBeUndefined();
+  });
+
   it("12b. createTask writes [project:: …] and returns it", async () => {
     vault.write(FILE, SEED);
     const created = await createTask({ title: "Nowe", project: "gen-podsum-ai" });
