@@ -101,3 +101,10 @@ test("po angielsku: pozycje menu i przyciski ustawień są angielskie", async ()
   expect(screen.getByRole("button", { name: "Theme" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Feedback" })).toBeInTheDocument();
 });
+
+test("calls onSelectTab for courses", () => {
+  const onSelectTab = vi.fn();
+  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} onSelectTab={onSelectTab} />);
+  fireEvent.click(screen.getByText("Kursy"));
+  expect(onSelectTab).toHaveBeenCalledWith("courses");
+});

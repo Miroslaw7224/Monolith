@@ -10,6 +10,7 @@ import { TasksSection } from "@/src/features/tasks/TasksSection";
 import { TagsSection, type UserTag } from "@/src/features/tags/TagsSection";
 import { ResourceSection } from "@/src/features/resources/ResourceSection";
 import { ArsenalSkillsView } from "@/src/features/arsenal/ArsenalSkillsView";
+import { CoursesView } from "@/src/features/arsenal/CoursesView";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
@@ -34,6 +35,7 @@ const TAB_LABEL_KEY = {
   mindmaps: "planning:tabMindMaps",
   resources: "planning:tabResources",
   skills: "planning:tabSkills",
+  courses: "planning:tabCourses",
   tags: "planning:tabTags",
 } as const;
 
@@ -254,6 +256,10 @@ export default function PlanowanieView({
                 setPlanningTab("notes");
               }}
             />
+          </div>
+        ) : planningTab === "courses" ? (
+          <div className="flex-1 flex flex-col overflow-auto bg-[var(--bg)]">
+            <CoursesView apiFetch={apiFetch} />
           </div>
         ) : planningTab === "skills" ? (
           <div className="flex-1 flex flex-col overflow-auto bg-[var(--bg)]">
