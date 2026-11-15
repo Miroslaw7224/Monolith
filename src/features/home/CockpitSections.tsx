@@ -21,6 +21,7 @@ import {
   relativeDays,
   upcomingWindows,
 } from "./cockpitFormat";
+import { useT } from "@/src/i18n/useT";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -49,6 +50,7 @@ function TopicCard({
   apiFetch: ApiFetch;
   onOpenProject: (id: string) => void;
 }) {
+  const t = useT();
   const [copy, setCopy] = useState<CopyState>("idle");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -74,14 +76,16 @@ function TopicCard({
       className={`kok-topic kok-panel${lead ? " kok-topic--lead" : ""}${
         topic.kind ? ` kok-topic--kind kok-topic--kind-${topic.kind}` : ""
       }`}
-      aria-label={`Temat ${topic.name}`}
+      aria-label={t("home:cockpit.topicAria", { name: topic.name })}
     >
       <div className="kok-topic__head">
         <h4 className="kok-topic__name">{topic.name}</h4>
         <div className="kok-topic__badges">
-          {hasBlocker ? <span className="kok-badge kok-badge--danger">bloker</span> : null}
+          {hasBlocker ? (
+            <span className="kok-badge kok-badge--danger">{t("home:cockpit.blockerBadge")}</span>
+          ) : null}
           {!hasBlocker && topic.confidence === "sure" && topic.source === "state" ? (
-            <span className="kok-badge kok-badge--ok">aktywny</span>
+            <span className="kok-badge kok-badge--ok">{t("home:cockpit.activeBadge")}</span>
           ) : null}
           {topic.kind ? (
             <span className={`kok-badge kok-badge--kind-${topic.kind}`}>
@@ -89,7 +93,7 @@ function TopicCard({
             </span>
           ) : null}
           {topic.companyData ? (
-            <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+            <span className="kok-badge kok-badge--warn">{t("home:inbox.companyData")}</span>
           ) : null}
         </div>
       </div>
@@ -99,24 +103,28 @@ function TopicCard({
           <span>{topic.nextStep}</span>
         </p>
       ) : null}
-      {topic.source === "none" ? <p className="kok-topic__empty">Brak zapisanego stanu</p> : null}
+      {topic.source === "none" ? (
+        <p className="kok-topic__empty">{t("home:cockpit.noSavedState")}</p>
+      ) : null}
 
       <dl className="kok-kv">
         {topic.source === "index" ? (
-          <Line label="Gdzie skończyłem" value={topic.whereIStopped} />
+          <Line label={t("home:cockpit.whereIStopped")} value={topic.whereIStopped} />
         ) : null}
-        <Line label="Branch" value={topic.branch} />
-        <Line label="Bloker" value={hasBlocker ? topic.blocker : null} />
+        <Line label={t("home:cockpit.branch")} value={topic.branch} />
+        <Line label={t("home:cockpit.blockerLabel")} value={hasBlocker ? topic.blocker : null} />
         {last ? (
           <Line
-            label="Ostatnio"
+            label={t("home:cockpit.lastActivity")}
             value={
               <>
                 {last}{" "}
                 <span
                   className={`kok-chip ${topic.confidence === "sure" ? "kok-chip--ok" : "kok-chip--warn"}`}
                 >
-                  {topic.confidence === "sure" ? "pewne" : "do sprawdzenia"}
+                  {topic.confidence === "sure"
+                    ? t("home:cockpit.confidenceSure")
+                    : t("home:cockpit.confidenceCheck")}
                 </span>
               </>
             }
@@ -126,23 +134,29 @@ function TopicCard({
 
       <div className="kok-topic__foot">
         <span className="kok-topic__chips">
-          {topic.nowCount > 0 ? <span className="kok-chip">Teraz: {topic.nowCount}</span> : null}
-          {topic.bugCount > 0 ? <span className="kok-chip">bugi: {topic.bugCount}</span> : null}
+          {topic.nowCount > 0 ? (
+            <span className="kok-chip">{t("home:cockpit.nowChip", { count: topic.nowCount })}</span>
+          ) : null}
+          {topic.bugCount > 0 ? (
+            <span className="kok-chip">
+              {t("home:cockpit.bugsChip", { count: topic.bugCount })}
+            </span>
+          ) : null}
         </span>
         <span className="kok-topic__actions">
           <button type="button" className="kok-btn kok-btn--sm" onClick={copyContext}>
             {copy === "ok"
-              ? "Skopiowano"
+              ? t("home:cockpit.copyOk")
               : copy === "error"
-                ? "Nie udało się skopiować"
-                : "Kopiuj kontekst"}
+                ? t("home:cockpit.copyError")
+                : t("home:cockpit.copyContext")}
           </button>
           <button
             type="button"
             className="kok-btn kok-btn--sm kok-btn--primary"
             onClick={() => onOpenProject(topic.id)}
           >
-            Wejdź
+            {t("home:cockpit.enter")}
           </button>
         </span>
       </div>
@@ -153,10 +167,14 @@ function TopicCard({
 const QUEUE_LIMIT = 8;
 
 type EnergyFilter = "all" | "deep" | "quick";
-const ENERGY_FILTERS: { value: EnergyFilter; label: string }[] = [
-  { value: "all", label: "wszystko" },
-  { value: "deep", label: "deep" },
-  { value: "quick", label: "quick" },
+type EnergyFilterLabelKey =
+  | "home:cockpit.energyFilterAll"
+  | "home:cockpit.energyFilterDeep"
+  | "home:cockpit.energyFilterQuick";
+const ENERGY_FILTERS: { value: EnergyFilter; labelKey: EnergyFilterLabelKey }[] = [
+  { value: "all", labelKey: "home:cockpit.energyFilterAll" },
+  { value: "deep", labelKey: "home:cockpit.energyFilterDeep" },
+  { value: "quick", labelKey: "home:cockpit.energyFilterQuick" },
 ];
 
 const sourceKey = (item: QueueGroupDto["items"][number]) =>
@@ -169,6 +187,7 @@ const itemKindClass = (item: QueueGroupDto["items"][number]) =>
   item.project ? ` kok-list__item--kind kok-list__item--kind-${item.project.kind}` : "";
 
 function ItemProjectBadges({ item }: { item: QueueGroupDto["items"][number] }) {
+  const t = useT();
   if (!item.project) return null;
   return (
     <small className="kok-list__sub kok-list__chips">
@@ -176,7 +195,7 @@ function ItemProjectBadges({ item }: { item: QueueGroupDto["items"][number] }) {
         {PROJECT_KIND_LABELS[item.project.kind]} · {item.project.name}
       </span>
       {item.project.companyData ? (
-        <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+        <span className="kok-badge kok-badge--warn">{t("home:inbox.companyData")}</span>
       ) : null}
     </small>
   );
@@ -195,10 +214,11 @@ function QueueGroupCard({
   onSetEnergy: (item: QueueGroupDto["items"][number], energy: "deep" | "quick" | null) => void;
   onPreview: (item: QueueGroupDto["items"][number], group: QueueGroupDto) => void;
 }) {
+  const t = useT();
   return (
     <section
       className={`kok-group${group.kind ? ` kok-group--kind kok-group--kind-${group.kind}` : ""}`}
-      aria-label={`Kolejka: ${group.name}`}
+      aria-label={t("home:cockpit.queueGroupAria", { name: group.name })}
     >
       <div className="kok-group__head">
         <h4 className="kok-group__title">{group.name}</h4>
@@ -209,7 +229,7 @@ function QueueGroupCard({
             </span>
           ) : null}
           {group.companyData ? (
-            <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+            <span className="kok-badge kok-badge--warn">{t("home:inbox.companyData")}</span>
           ) : null}
         </span>
       </div>
@@ -219,7 +239,7 @@ function QueueGroupCard({
             <input
               className="kok-check"
               type="checkbox"
-              aria-label="zrobione"
+              aria-label={t("home:cockpit.doneCheckbox")}
               checked={busyKey === sourceKey(item)}
               disabled={busyKey !== null}
               onChange={() => onComplete(item)}
@@ -249,11 +269,13 @@ function QueueGroupCard({
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
             {item.kind === "upcoming" && item.due ? (
-              <span className="kok-badge">do {item.due}</span>
+              <span className="kok-badge">{t("home:cockpit.dueBy", { due: item.due })}</span>
             ) : null}
-            {item.kind === "undated" ? <span className="kok-badge">bez terminu</span> : null}
+            {item.kind === "undated" ? (
+              <span className="kok-badge">{t("home:queue.kindUndated")}</span>
+            ) : null}
             {item.kind === "today" ? (
-              <span className="kok-badge kok-badge--accent">dziś</span>
+              <span className="kok-badge kok-badge--accent">{t("home:format.today")}</span>
             ) : null}
           </li>
         ))}
@@ -271,6 +293,7 @@ function EventRow({
   current: boolean;
   nowMinutes: number;
 }) {
+  const t = useT();
   // brief tylko przy wydarzeniach, które się jeszcze nie skończyły (zakończone zostają zwarte)
   const brief =
     event.startMinutes + event.durationMinutes > nowMinutes ? briefLines(event.brief) : [];
@@ -281,7 +304,9 @@ function EventRow({
       <div className="kok-tl__body">
         <div className="kok-tl__title">{event.title}</div>
         <div className="kok-tl__meta">
-          <span className="kok-chip">{event.durationMinutes} min</span>
+          <span className="kok-chip">
+            {t("home:cockpit.durationMin", { count: event.durationMinutes })}
+          </span>
           {event.type ? <span className="kok-chip">{event.type}</span> : null}
           {event.link ? (
             <a
@@ -289,15 +314,15 @@ function EventRow({
               href={event.link}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`Dołącz do spotkania: ${event.title}`}
+              aria-label={t("home:cockpit.joinMeetingAria", { title: event.title })}
             >
-              Dołącz ↗
+              {t("home:cockpit.joinMeeting")}
             </a>
           ) : null}
         </div>
         {brief.length > 0 ? (
-          <div className="kok-brief" role="group" aria-label="Brief">
-            <div className="kok-brief__label">Brief</div>
+          <div className="kok-brief" role="group" aria-label={t("home:cockpit.briefAria")}>
+            <div className="kok-brief__label">{t("home:cockpit.briefLabel")}</div>
             <ul>
               {brief.map((line, i) => (
                 <li key={i}>{line}</li>
@@ -311,25 +336,29 @@ function EventRow({
 }
 
 function NowMarker({ nowMinutes }: { nowMinutes: number }) {
+  const t = useT();
+  const time = hhmm(nowMinutes);
   return (
-    <li className="kok-tl__now" aria-label={`Teraz ${hhmm(nowMinutes)}`}>
-      <span>teraz</span>
+    <li className="kok-tl__now" aria-label={t("home:cockpit.nowMarkerAria", { time })}>
+      <span>{t("home:cockpit.nowMarker")}</span>
       <i />
     </li>
   );
 }
 
 function WindowSlot({ window: w }: { window: DeepWindowDto }) {
+  const t = useT();
   return (
     <li className="kok-tl__item" data-testid="window-slot">
       <span />
       <span />
       <div className="kok-tl__slot">
-        Okno{" "}
+        {t("home:cockpit.windowLabel")}{" "}
         <b>
           {hhmm(w.startMinutes)}–{hhmm(w.endMinutes)}
         </b>{" "}
-        · proponowane: <span className={`kok-energy kok-energy--${w.energy}`}>{w.energy}</span>{" "}
+        · {t("home:cockpit.windowSuggested")}{" "}
+        <span className={`kok-energy kok-energy--${w.energy}`}>{w.energy}</span>{" "}
         {w.projectName ? `${w.title} · ${w.projectName}` : w.title}
       </div>
     </li>
@@ -398,6 +427,7 @@ export function CockpitSections({
   focusInbox?: boolean;
   onInboxFocused?: () => void;
 }) {
+  const t = useT();
   const [energyFilter, setEnergyFilter] = useState<EnergyFilter>("all");
   const allItems = data.queue.flatMap((g) => g.items);
   const totalQueueTasks = allItems.length;
@@ -683,7 +713,7 @@ export function CockpitSections({
                         aria-pressed={energyFilter === f.value}
                         onClick={() => setEnergyFilter(f.value)}
                       >
-                        {f.label}
+                        {t(f.labelKey)}
                       </button>
                     ))
                   : null}
