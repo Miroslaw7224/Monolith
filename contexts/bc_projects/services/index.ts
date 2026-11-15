@@ -40,6 +40,7 @@ import {
   writeProjectType,
 } from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
+import { enrichBugs } from "./bugs";
 import {
   composeContextPack,
   OWNER_WORK_WARNING,
@@ -302,6 +303,7 @@ export function getProject(id: string, today: Date = new Date()): ProjectWithCon
     ...entry,
     ...index,
     ...content,
+    bugs: enrichBugs(content.bugs, board, today),
     board,
     state,
     stateVersion: version,
