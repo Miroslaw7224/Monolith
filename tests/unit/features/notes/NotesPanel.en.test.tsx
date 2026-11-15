@@ -85,4 +85,18 @@ describe("NotesPanel po angielsku", () => {
       screen.getByText(`(${countWords("single")} word)`, { exact: false })
     ).toBeInTheDocument();
   });
+
+  it("notatka bez tytułu: „Untitled” w EN, „Bez tytułu” w PL", async () => {
+    const untitled = [{ id: "u", title: "", content: "x", created_at: "2026-03-02T10:00:00.000Z" }];
+    await act(async () => {
+      await setLanguage("en");
+    });
+    const { container } = render(<NotesPanel {...props({ notes: untitled })} />);
+    expect(container.textContent).toContain("Untitled");
+    await act(async () => {
+      await setLanguage("pl");
+    });
+    expect(container.textContent).toContain("Bez tytułu");
+    expect(container.textContent).not.toContain("Untitled");
+  });
 });

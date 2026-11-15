@@ -35,6 +35,7 @@ export const notes = {
   notesWordCount_many: "{{count}} słów",
   notesWordCount_other: "{{count}} słów",
   notesSelectNote: "Wybierz notatkę",
+  notesUntitled: "Bez tytułu",
   notesBacklinksBold: "Linki zwrotne",
   notesBacklinksSoon: "Wkrótce: indeks linków [[wiki]] między notatkami",
   notesChipBacklinks: "backlinks",

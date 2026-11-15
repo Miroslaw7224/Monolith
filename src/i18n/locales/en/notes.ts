@@ -31,6 +31,7 @@ export const notes = {
   notesWordCount_one: "{{count}} word",
   notesWordCount_other: "{{count}} words",
   notesSelectNote: "Select a note",
+  notesUntitled: "Untitled",
   notesBacklinksBold: "Backlinks",
   notesBacklinksSoon: "Coming soon: [[wiki]] link index between notes",
   notesChipBacklinks: "backlinks",

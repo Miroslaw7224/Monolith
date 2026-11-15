@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { markdownToHtml } from "@/lib/markdown/html-markdown";
 import { cn } from "@/src/lib/cn";
 import { formatShortDate, formatShortDateTime } from "@/src/i18n/format";
-import { currentLang } from "@/src/i18n";
+import { useLang } from "@/src/i18n/useLang";
 import { useT } from "@/src/i18n/useT";
 import { NexusDocsSection } from "./NexusDocsSection";
 import { NexusDocView } from "./NexusDocView";
@@ -77,6 +77,7 @@ export function NotesPanel({
   onInitialNexusPathConsumed,
 }: NotesPanelProps) {
   const t = useT();
+  const { lang } = useLang();
   const [filter, setFilter] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [split, setSplit] = useState(false);
@@ -113,7 +114,7 @@ export function NotesPanel({
     setNoteEditMode(true);
   };
 
-  const activeTitle = selectedNote ? selectedNote.title || "Untitled" : null;
+  const activeTitle = selectedNote ? selectedNote.title || t("notes:notesUntitled") : null;
   const countLabel = t("notes:notesPanelCount", { count: notes.length });
   const subText = activeTitle
     ? t("notes:notesPanelSubtitleActive", { count: countLabel, title: activeTitle })
@@ -124,8 +125,8 @@ export function NotesPanel({
   const showSplit = split && editing;
 
   const tiles = useMemo(
-    () => computeNoteTiles(notes, new Date(), inboxOpen, currentLang()),
-    [notes, inboxOpen, t]
+    () => computeNoteTiles(notes, new Date(), inboxOpen, lang),
+    [notes, inboxOpen, lang]
   );
   const popularTags = useMemo(() => collectPopularTags(notes), [notes]);
   const visibleNotes = useMemo(() => {
@@ -273,7 +274,9 @@ export function NotesPanel({
                           className={cn("not-file", isActive && "not-file--active")}
                           aria-current={isActive ? "page" : undefined}
                         >
-                          <span className="not-file__name">{note.title || "Untitled"}</span>
+                          <span className="not-file__name">
+                            {note.title || t("notes:notesUntitled")}
+                          </span>
                           {note.created_at ? (
                             <span className="not-file__meta">
                               {formatShortDate(new Date(note.created_at))}
@@ -332,7 +335,7 @@ export function NotesPanel({
               <div className="not-toolbar">
                 <div className="not-toolbar__path">
                   <span>Notatki/</span>
-                  <b>{selectedNote.title || "Untitled"}</b>
+                  <b>{selectedNote.title || t("notes:notesUntitled")}</b>
                 </div>
                 <div className="not-toolbar__tools">
                   <span className={cn("chip not-chip", editing ? "chip--warn" : "chip--ok")}>
