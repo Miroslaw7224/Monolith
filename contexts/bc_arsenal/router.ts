@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
+  CourseInputSchema,
   DeployQuerySchema,
   MarkDeployedBodySchema,
   toCatalogDto,
+  toCourseDto,
+  toCoursesDto,
   toEntryDto,
   toInstructionsDto,
 } from "./schemas";
@@ -49,6 +52,49 @@ export async function postDeployed(request: Request, ctx: SlugContext): Promise<
     const { slug } = await ctx.params;
     const skill = await services.markDeployed(slug, parsed.data.project, parsed.data.mode);
     return NextResponse.json(toEntryDto(skill));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+type CourseContext = { params: Promise<{ courseId: string }> };
+
+export async function getCourses(): Promise<NextResponse> {
+  try {
+    return NextResponse.json(toCoursesDto(services.listCourses()));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function postCourse(request: Request): Promise<NextResponse> {
+  const parsed = await parseBody(request, CourseInputSchema);
+  if (parsed.success === false) return parsed.response;
+  try {
+    return NextResponse.json(toCourseDto(await services.createCourse(parsed.data)), {
+      status: 201,
+    });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function putCourse(request: Request, ctx: CourseContext): Promise<NextResponse> {
+  const parsed = await parseBody(request, CourseInputSchema);
+  if (parsed.success === false) return parsed.response;
+  try {
+    const { courseId } = await ctx.params;
+    return NextResponse.json(toCourseDto(await services.updateCourse(courseId, parsed.data)));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function removeCourse(_request: Request, ctx: CourseContext): Promise<NextResponse> {
+  try {
+    const { courseId } = await ctx.params;
+    await services.deleteCourse(courseId);
+    return new NextResponse(null, { status: 204 });
   } catch (err) {
     return handleServiceError(err);
   }
