@@ -1003,6 +1003,19 @@ describe("K1: układ wg makiety", () => {
       expect(within(dialog).getByText("Dane z firmy")).toBeInTheDocument();
     });
 
+    test("bug: formularz przypomina, że wpis w bugs.md dodaje agent, a tu powstanie tylko zadanie; link bez tej uwagi", async () => {
+      const dialog = await openEntry("Code Sensei: pusty stan listy");
+      expect(within(dialog).getByRole("note")).toHaveTextContent("/segreguj-inbox");
+      expect(within(dialog).getByRole("note")).toHaveTextContent("bugs.md");
+      fireEvent.click(within(dialog).getByRole("button", { name: "Anuluj" }));
+      fireEvent.click(within(dialog).getByRole("button", { name: "Zamknij" }));
+      const panel = await screen.findByRole("region", { name: "Inbox" });
+      fireEvent.click(await within(panel).findByRole("button", { name: "Artykuł o vitest" }));
+      const linkDialog = await screen.findByRole("dialog", { name: "Wpis z inboxu" });
+      fireEvent.click(within(linkDialog).getByRole("button", { name: "Przenieś do…" }));
+      expect(within(linkDialog).queryByRole("note")).not.toBeInTheDocument();
+    });
+
     test("bug: domyślny cel to zadanie w projekcie; bez wybranego projektu „Przenieś” jest zablokowane", async () => {
       const dialog = await openEntry("Code Sensei: pusty stan listy");
       expect(within(dialog).getByRole("radio", { name: "Zadanie w projekcie" })).toBeChecked();
