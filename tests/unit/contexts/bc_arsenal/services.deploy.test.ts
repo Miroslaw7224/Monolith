@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupTempVault } from "../../helpers/tempVault";
 
 const mockListProjects = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({ listProjects: mockListProjects }));
+vi.mock("@/contexts/bc_projects/services", () => ({
+  listProjects: mockListProjects,
+  hasCompanyData: (owner: string, type?: string) => owner === "work" || type === "etat",
+}));
 
 import { WORK_TARGET_NOTE, type SkillEntry } from "@/contexts/bc_arsenal/models";
 import * as services from "@/contexts/bc_arsenal/services";
@@ -70,6 +73,7 @@ describe("buildAdaptPrompt", () => {
       name: "Projekt P",
       localPath: "~/p",
       owner: "personal",
+      companyData: false,
     });
     expect(text).toContain("Projekt P");
     expect(text).toContain("~/p/CLAUDE.md");
@@ -79,7 +83,13 @@ describe("buildAdaptPrompt", () => {
     expect(text).toContain("treść szablonu");
   });
 
-  const target = { id: "p", name: "Projekt P", localPath: "~/p", owner: "personal" } as const;
+  const target = {
+    id: "p",
+    name: "Projekt P",
+    localPath: "~/p",
+    owner: "personal",
+    companyData: false,
+  } as const;
   const base = {
     kind: "skill",
     id: "skill:tdd",

@@ -34,7 +34,14 @@ export type PromptEntry = EntryBase & {
 
 export type ArsenalEntry = SkillEntry | PromptEntry;
 
-export type DeployTarget = { id: string; name: string; localPath: string; owner: Owner };
+export type DeployTarget = {
+  id: string;
+  name: string;
+  localPath: string;
+  owner: Owner;
+  /** Jak `ProjectSummaryDto.companyData` (spec rodzajów). */
+  companyData: boolean;
+};
 
 export type ArsenalCatalog = {
   entries: ArsenalEntry[];

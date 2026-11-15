@@ -17,6 +17,9 @@
       :root {
         --prj-stale: #ff7272;
         --prj-firm: #ffc857;
+        --kind-etat: #34d399;
+        --kind-wlasny: #3d95ff;
+        --kind-biblioteka: #a78bfa;
       }
 
       /* kafle statusu u góry */
@@ -74,6 +77,7 @@
 
       /* pojedynczy projekt na liście */
       .prj-item {
+        position: relative;
         background: var(--surface-2);
         border: 1px solid var(--line);
         border-radius: var(--r-md);
@@ -87,6 +91,53 @@
         transition:
           border-color 0.15s var(--ease),
           background 0.15s var(--ease);
+      }
+      .prj-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 0 2px 2px 0;
+        background: var(--prj-kind, transparent);
+      }
+      .prj-item--kind-etat,
+      .prj-card--kind-etat {
+        --prj-kind: var(--kind-etat);
+      }
+      .prj-item--kind-wlasny,
+      .prj-card--kind-wlasny {
+        --prj-kind: var(--kind-wlasny);
+      }
+      .prj-item--kind-biblioteka,
+      .prj-card--kind-biblioteka {
+        --prj-kind: var(--kind-biblioteka);
+      }
+      .prj-badge {
+        font: 600 10px/1 var(--font-mono);
+        padding: 2px 6px;
+        border-radius: var(--r-sm);
+        border: 1px solid var(--line);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .prj-badge--kind-etat,
+      .prj-badge--kind-wlasny,
+      .prj-badge--kind-biblioteka {
+        font-weight: 700;
+      }
+      .prj-badge--kind-etat {
+        border-color: var(--kind-etat);
+        color: var(--kind-etat);
+      }
+      .prj-badge--kind-wlasny {
+        border-color: var(--kind-wlasny);
+        color: var(--kind-wlasny);
+      }
+      .prj-badge--kind-biblioteka {
+        border-color: var(--kind-biblioteka);
+        color: var(--kind-biblioteka);
       }
       .prj-item:hover {
         border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
@@ -157,6 +208,9 @@
         border: 1px solid var(--line);
         border-radius: var(--r-lg);
         padding: var(--s-4);
+      }
+      .prj-card--kind {
+        border-left: 4px solid var(--prj-kind);
       }
       .prj-card__head {
         display: flex;
@@ -503,13 +557,14 @@
               <!-- 1. gen-podsum-ai (wybrany) -->
               <li>
                 <article
-                  class="prj-item prj-item--sel"
+                  class="prj-item prj-item--sel prj-item--kind-wlasny"
                   tabindex="0"
                   data-src="Projects/gen-podsum-ai/index.md"
                 >
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">gen-podsum-ai</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-wlasny">Własny</span>
                       <span class="dot dot--accent"></span>
                       <span class="chip chip--accent">Active</span>
                     </div>
@@ -526,7 +581,7 @@
               <!-- 2. code-sensei -->
               <li>
                 <article
-                  class="prj-item"
+                  class="prj-item prj-item--kind-wlasny"
                   tabindex="0"
                   data-toast="Przełączono widok na code-sensei"
                   data-src="Projects/code-sensei/index.md"
@@ -534,6 +589,7 @@
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">code-sensei</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-wlasny">Własny</span>
                       <span class="dot dot--ok"></span>
                       <span class="chip">Active</span>
                     </div>
@@ -550,7 +606,7 @@
               <!-- 3. portfolio -->
               <li>
                 <article
-                  class="prj-item"
+                  class="prj-item prj-item--kind-wlasny"
                   tabindex="0"
                   data-toast="Przełączono widok na portfolio"
                   data-src="Projects/portfolio/index.md"
@@ -558,6 +614,7 @@
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">portfolio</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-wlasny">Własny</span>
                       <span class="dot dot--ok"></span>
                       <span class="chip">Active</span>
                     </div>
@@ -574,7 +631,7 @@
               <!-- 4. tester-ai -->
               <li>
                 <article
-                  class="prj-item"
+                  class="prj-item prj-item--kind-wlasny"
                   tabindex="0"
                   data-toast="Przełączono widok na tester-ai"
                   data-src="Projects/tester-ai/index.md"
@@ -582,6 +639,7 @@
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">tester-ai</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-wlasny">Własny</span>
                       <span class="dot dot--ok"></span>
                       <span class="chip">Active</span>
                     </div>
@@ -598,7 +656,7 @@
               <!-- 5. nexus -->
               <li>
                 <article
-                  class="prj-item"
+                  class="prj-item prj-item--kind-biblioteka"
                   tabindex="0"
                   data-toast="Przełączono widok na nexus"
                   data-src="Projects/nexus/index.md"
@@ -606,6 +664,7 @@
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">nexus</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-biblioteka">Biblioteka</span>
                       <span class="dot dot--ok"></span>
                       <span class="chip">Maintenance</span>
                     </div>
@@ -622,7 +681,7 @@
               <!-- 6. second-brain -->
               <li>
                 <article
-                  class="prj-item"
+                  class="prj-item prj-item--kind-wlasny"
                   tabindex="0"
                   data-toast="Przełączono widok na second-brain"
                   data-src="Projects/second-brain/index.md"
@@ -630,6 +689,7 @@
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">second-brain</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-wlasny">Własny</span>
                       <span class="dot dot--ok"></span>
                       <span class="chip">Active</span>
                     </div>
@@ -646,13 +706,14 @@
               <!-- 7. english-agent (PORZUCONY >14 DNI: decyzja Icebox / domknij) -->
               <li>
                 <article
-                  class="prj-item prj-item--stale"
+                  class="prj-item prj-item--stale prj-item--kind-wlasny"
                   tabindex="0"
                   data-src="Projects/english-agent/index.md · alert_stale"
                 >
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">english-agent</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-wlasny">Własny</span>
                       <span class="dot dot--danger"></span>
                       <span class="chip chip--warn">On Hold</span>
                     </div>
@@ -686,7 +747,7 @@
               <!-- 8. Projekt etatu (z etykietą Firma, bez szczegółów) -->
               <li>
                 <article
-                  class="prj-item"
+                  class="prj-item prj-item--kind-etat"
                   tabindex="0"
                   data-toast="Projekty etatu nie zawierają szczegółów w makiecie"
                   data-src="Projects/work-system-a/index.md · etykieta Firma"
@@ -694,6 +755,7 @@
                   <div class="prj-item__top">
                     <h3 class="prj-item__name">Etat · system A</h3>
                     <div class="prj-item__badges">
+                      <span class="prj-badge prj-badge--kind-etat">Etat</span>
                       <span class="chip chip--warn" style="font-weight: 700">Firma</span>
                       <span class="chip">Active</span>
                     </div>
@@ -712,11 +774,17 @@
           <!-- PRAWA STRONA: TECZKA INŻYNIERSKA WYBRANEGO PROJEKTU -->
           <section class="prj-main" aria-label="Teczka projektu Gen Podsum AI">
             <!-- 1. METRYCZKA PROJEKTU I KAMIEŃ MILOWY -->
-            <article class="prj-card" data-src="Projects/gen-podsum-ai/index.md · metryczka">
+            <article
+              class="prj-card prj-card--kind prj-card--kind-wlasny"
+              data-src="Projects/gen-podsum-ai/index.md · metryczka"
+            >
               <div class="prj-card__head">
                 <div>
                   <h2 class="prj-card__title">Gen Podsum AI</h2>
-                  <p class="prj-card__type">Projekt własny · Aplikacja webowa i podsumowania AI</p>
+                  <p class="prj-card__type">
+                    <span class="prj-badge prj-badge--kind-wlasny">Własny</span> · Aplikacja webowa i
+                    podsumowania AI
+                  </p>
                 </div>
                 <div class="row" style="--gap: var(--s-2)">
                   <span class="chip chip--accent">Active · Etap V2</span>

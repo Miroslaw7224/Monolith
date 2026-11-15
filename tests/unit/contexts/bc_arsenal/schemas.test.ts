@@ -30,7 +30,7 @@ const catalog: ArsenalCatalog = {
       projects: ["p"],
     },
   ],
-  targets: [{ id: "p", name: "P", localPath: "~/p", owner: "personal" }],
+  targets: [{ id: "p", name: "P", localPath: "~/p", owner: "personal", companyData: false }],
   skipped: 2,
 };
 

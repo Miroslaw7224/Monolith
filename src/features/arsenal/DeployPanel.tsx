@@ -83,7 +83,7 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
           {targets.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
-              {t.owner === "work" ? " (etat)" : ""}
+              {t.companyData ? " (etat)" : ""}
             </option>
           ))}
         </select>

@@ -4,7 +4,10 @@ import { parseFrontmatter } from "@/lib/nexus/frontmatter";
 import { setupTempVault } from "../../helpers/tempVault";
 
 const mockListProjects = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({ listProjects: mockListProjects }));
+vi.mock("@/contexts/bc_projects/services", () => ({
+  listProjects: mockListProjects,
+  hasCompanyData: (owner: string, type?: string) => owner === "work" || type === "etat",
+}));
 
 import * as services from "@/contexts/bc_arsenal/services";
 

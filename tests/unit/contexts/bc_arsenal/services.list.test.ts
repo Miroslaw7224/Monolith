@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setupTempVault } from "../../helpers/tempVault";
 
 const mockListProjects = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({ listProjects: mockListProjects }));
+vi.mock("@/contexts/bc_projects/services", () => ({
+  listProjects: mockListProjects,
+  hasCompanyData: (owner: string, type?: string) => owner === "work" || type === "etat",
+}));
 
 import * as services from "@/contexts/bc_arsenal/services";
 
@@ -149,8 +152,8 @@ describe("listArsenal: prompty", () => {
 describe("listArsenal: cele i kolejność", () => {
   it("targets to wszystkie projekty z rejestru, także z owner: work", () => {
     expect(services.listArsenal().targets).toEqual([
-      { id: "p", name: "Projekt P", localPath: "~/p", owner: "personal" },
-      { id: "w", name: "Projekt W", localPath: "~/w", owner: "work" },
+      { id: "p", name: "Projekt P", localPath: "~/p", owner: "personal", companyData: false },
+      { id: "w", name: "Projekt W", localPath: "~/w", owner: "work", companyData: true },
     ]);
   });
 
