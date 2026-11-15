@@ -2,11 +2,13 @@
 
 Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH`). Kod: `lib/nexus/yaml-store.ts`, repozytoria w `contexts/*/repositories*`.
 
-| Plik                       | Klucz listy | Pola rekordu (kolejność)                                                                                      |
-| -------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
-| `Resources/tags.yaml`      | `tags`      | `id`, `tag`, `title`, `color` (opcjonalne), `created`                                                         |
-| `Tasks/templates.yaml`     | `templates` | `id`, `label`, `title`, `link`, `created`                                                                     |
-| `Resources/resources.yaml` | `resources` | `id`, `title`, `url`, `description`, `tags`, `favorite`, `thumbnail_url`\*, `note_id`\*, `created`, `updated` |
+| Plik                       | Klucz listy | Pola rekordu (kolejność)                                                                                         |
+| -------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| `Resources/tags.yaml`      | `tags`      | `id`, `tag`, `title`, `color` (opcjonalne), `created`                                                            |
+| `Tasks/templates.yaml`     | `templates` | `id`, `label`, `title`, `link`, `created`                                                                        |
+| `Resources/resources.yaml` | `resources` | `id`, `title`, `url`, `description`, `tags`, `favorite`, `thumbnail_url`\*, `note_id`\*, `created`, `updated`    |
+| `Arsenal/courses.yaml`     | `courses`   | `id`, `title`, `url`, `provider`\*, `status`, `completed`\*, `certificate_url`\*, `certificate_file`\*, `note`\* |
+| `Arsenal/agents.yaml`      | `items`     | `id`, `kind`, `name`, potem pola rodzaju (niżej)                                                                 |
 
 \* opcjonalne: klucz jest pomijany, gdy brak wartości (nigdy `null`).
 
@@ -21,6 +23,31 @@ Struktura pliku: `version: 1`, lista rekordów pod kluczem. Czas to tekst ISO 86
 - Odczyt jest posortowany niezależnie od kolejności w pliku: tagi i szablony rosnąco po `created`, zasoby malejąco po `created`; remisy po `id`.
 - Vault jest jednoużytkownikowy; `userId` nie istnieje (usunięty w 0d-1).
 - Ręcznie wpisane `favorite: yes` jest czytane jako tekst (YAML 1.2), czyli nie jako „ulubiony”. Używaj `true`/`false`.
+
+## Kursy: `Arsenal/courses.yaml`
+
+Karta Arsenał, zakładka Kursy. Zapis z aplikacji (`lib/nexus/yaml-store.ts`), plik można też edytować ręcznie.
+
+- `status`: `plan`, `w-trakcie` albo `ukonczony`. `completed` (RRRR-MM-DD) ma sens tylko przy `ukonczony`; aplikacja dopisuje dzisiejszą datę, gdy jej brak, i kasuje ją przy innym statusie.
+- `url` i `certificate_url`: tylko `http://` lub `https://`.
+- `certificate_file`: ścieżka względem `Vault/Documents/` (np. `certyfikaty/mcp.pdf`), bez `..`, bez `/` na początku. PDF wrzucasz ręcznie; brak pliku to ostrzeżenie w UI, nie błąd.
+- Wpis bez `id`, `title`, poprawnego `status`, poprawnego `url` albo z niedozwoloną ścieżką certyfikatu jest pomijany (licznik „pominięto N” w nagłówku zakładki); reszta listy się ładuje.
+- Kolejność w UI: `w-trakcie`, `plan`, `ukonczony`, w grupie po tytule. Kolejność w pliku nie ma znaczenia.
+
+## Agenci i polecenia: `Arsenal/agents.yaml`
+
+Karta Arsenał, zakładka „Agenci i polecenia”. Zapis z aplikacji (`lib/nexus/yaml-store.ts`), plik można też edytować ręcznie. Jedna lista `items`; rodzaj wpisu w polu `kind`:
+
+| `kind`   | Wymagane          | Opcjonalne               | Znaczenie                                                  |
+| -------- | ----------------- | ------------------------ | ---------------------------------------------------------- |
+| `agent`  | `name`, `role`    | `model`, `when`          | kto do czego: rola, model lub tier, kiedy używać           |
+| `preset` | `name`, `command` | `description`            | szablon polecenia `ask-helper`; tylko do kopiowania        |
+| `script` | `name`, `path`    | `description`, `example` | skrypt z `scripts/` i przykład użycia; tylko do kopiowania |
+
+- Kolejność w UI: sekcje agenci, presety, skrypty; w sekcji kolejność z pliku (lista jest redagowana ręcznie).
+- Wpis bez `id`, `name`, z nieznanym `kind` albo bez pola wymaganego jest pomijany (licznik „pominięto N”); reszta się ładuje.
+- Aplikacja niczego nie uruchamia: `command` i `example` tylko trafiają do schowka.
+- Dane początkowe pochodzą z `CLAUDE.md` (tabela agentów, `ask-helper`) i `scripts/`; aplikacja nie parsuje `CLAUDE.md`, więc przy zmianie tamtych reguł zaktualizuj wpisy tu.
 
 ## Zadania: `Tasks/tasks.md`
 

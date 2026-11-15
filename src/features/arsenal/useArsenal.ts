@@ -8,19 +8,10 @@ import {
   type DeployModeDto,
 } from "@/contexts/bc_arsenal/schemas";
 import i18n from "@/src/i18n";
+import { errorText, messageOf } from "./apiError";
 import { EMPTY_FILTERS, filterEntries, type ArsenalFilters } from "./arsenalFilters";
 
 export type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
-
-const messageOf = (err: unknown): string =>
-  err instanceof Error ? err.message : i18n.t("arsenal:arsenalErrorGeneric");
-
-async function errorText(res: Response): Promise<string> {
-  const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
-  return typeof body?.error === "string"
-    ? body.error
-    : i18n.t("arsenal:arsenalErrorStatus", { status: res.status });
-}
 
 export function useArsenal(apiFetch: ApiFetch) {
   const [catalog, setCatalog] = useState<CatalogDto | null>(null);

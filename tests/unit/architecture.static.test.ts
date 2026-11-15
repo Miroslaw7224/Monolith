@@ -489,7 +489,8 @@ const IO_LAYER = ["lib/nexus/vault-fs.ts", "lib/nexus/vault-path.ts"];
  * piszą przez `yaml-store` / `markdown-dir`. Nowy wpis = świadoma decyzja, osobny commit testu.
  */
 const VAULT_FS_IMPORTERS = [
-  "contexts/bc_arsenal/repositories",
+  "contexts/bc_arsenal/repositories/courses",
+  "contexts/bc_arsenal/repositories/skills",
   "contexts/bc_board/repositories",
   "contexts/bc_calendar/repositories",
   "contexts/bc_codex/repositories",

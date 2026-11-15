@@ -457,3 +457,114 @@
   font-size: var(--fs-sm);
   color: var(--muted);
 }
+
+/* Kursy */
+.crs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.crs-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.crs-card[data-status="ukonczony"] {
+  opacity: 0.85;
+}
+.crs-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.crs-card__title {
+  font: 600 var(--fs-md) / 1.3 var(--font-display);
+  color: var(--text);
+}
+.crs-card__meta,
+.crs-card__cert,
+.crs-card__note {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.crs-card__cert {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.crs-warn {
+  color: var(--warn, #e5a50a);
+}
+.crs-card__actions,
+.crs-form__actions {
+  display: flex;
+  gap: var(--s-2);
+}
+.crs-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  margin-bottom: var(--s-3);
+}
+.crs-form__title {
+  margin: 0;
+  font: 600 var(--fs-md) / 1.3 var(--font-display);
+}
+.crs-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.crs-field input,
+.crs-field select,
+.crs-field textarea {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--s-2);
+  font: inherit;
+}
+.crs-hint {
+  color: var(--muted);
+}
+
+/* Agenci i polecenia */
+.ag-section {
+  margin-bottom: var(--s-5);
+}
+.ag-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+}
+.ag-section__title {
+  margin: 0;
+  font: 600 var(--fs-md) / 1.3 var(--font-display);
+}
+.ag-code {
+  margin: 0;
+  padding: var(--s-3);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font: var(--fs-xs) / 1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ag-path {
+  font: var(--fs-xs) / 1 var(--font-mono);
+  color: var(--muted);
+}
