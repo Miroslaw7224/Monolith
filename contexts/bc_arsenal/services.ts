@@ -1,9 +1,15 @@
 import { hasCompanyData, listProjects } from "@/contexts/bc_projects/services";
 import { DomainError } from "@/lib/errors";
+import { localIsoDate } from "@/lib/schema/archive-date";
 import {
   SUMMARY_MAX,
   WORK_TARGET_NOTE,
   type ArsenalCatalog,
+  type Course,
+  type CourseEntry,
+  type CourseInput,
+  type CourseList,
+  type CourseStatus,
   type DeployInstructions,
   type DeployMode,
   type DeployTarget,
@@ -12,7 +18,17 @@ import {
   type RawFile,
   type SkillEntry,
 } from "./models";
-import { readPromptFiles, readSkillFiles, readTemplates, writeDeployed } from "./repositories";
+import {
+  certificateExists,
+  insertCourse,
+  readCourses,
+  readPromptFiles,
+  readSkillFiles,
+  readTemplates,
+  removeCourse,
+  replaceCourse,
+  writeDeployed,
+} from "./repositories";
 
 const cmp = (a: string, b: string): number => a.localeCompare(b, "pl");
 
@@ -269,4 +285,49 @@ export async function markDeployed(
     entry,
   ]);
   return findSkill(listArsenal(), slug);
+}
+
+// ── kursy ────────────────────────────────────────────────────────────────────────
+
+const STATUS_RANK: Record<CourseStatus, number> = { "w-trakcie": 0, plan: 1, ukonczony: 2 };
+
+function withWarning(course: Course): CourseEntry {
+  let missing = false;
+  if (course.certificateFile !== undefined) {
+    try {
+      missing = !certificateExists(course.certificateFile);
+    } catch {
+      missing = true; // błąd odczytu nie psuje listy, tylko pokazuje ostrzeżenie
+    }
+  }
+  return { ...course, certificateMissing: missing };
+}
+
+/** `completed` tylko dla `ukonczony`; brak daty = dziś (K3). */
+function applyStatusRules(input: CourseInput): CourseInput {
+  if (input.status !== "ukonczony") return { ...input, completed: undefined };
+  return { ...input, completed: input.completed ?? localIsoDate(new Date()) };
+}
+
+export function listCourses(): CourseList {
+  const { courses, skipped } = readCourses();
+  const entries = courses
+    .map(withWarning)
+    .sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status] || cmp(a.title, b.title));
+  return { courses: entries, skipped };
+}
+
+export async function createCourse(input: CourseInput): Promise<CourseEntry> {
+  return withWarning(await insertCourse(applyStatusRules(input)));
+}
+
+export async function updateCourse(id: string, input: CourseInput): Promise<CourseEntry> {
+  await replaceCourse(id, applyStatusRules(input));
+  const found = readCourses().courses.find((course) => course.id === id);
+  if (found === undefined) throw new DomainError("Kurs nie istnieje", 404);
+  return withWarning(found);
+}
+
+export async function deleteCourse(id: string): Promise<void> {
+  await removeCourse(id);
 }
