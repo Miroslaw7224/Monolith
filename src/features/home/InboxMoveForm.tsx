@@ -66,8 +66,8 @@ export function InboxMoveForm({
     <div className="kok-move">
       {item.type === "bug" ? (
         <p role="note" className="kok-modal__sub">
-          Bug: wpis w <code>bugs.md</code> dodaje agent (<code>/segreguj-inbox</code>). Tu powstanie
-          tylko zwykłe zadanie.
+          Bug: wpis w <code>bugs.md</code> dodaje agent (<code>/segreguj-inbox</code>). To okno nie
+          zapisuje <code>bugs.md</code>.
         </p>
       ) : null}
       <fieldset className="kok-field">

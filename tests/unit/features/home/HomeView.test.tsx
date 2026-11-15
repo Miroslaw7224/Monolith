@@ -1003,7 +1003,7 @@ describe("K1: układ wg makiety", () => {
       expect(within(dialog).getByText("Dane z firmy")).toBeInTheDocument();
     });
 
-    test("bug: formularz przypomina, że wpis w bugs.md dodaje agent, a tu powstanie tylko zadanie; link bez tej uwagi", async () => {
+    test("bug: formularz przypomina, że bugs.md dodaje agent, a okno go nie zapisuje; link bez tej uwagi", async () => {
       const dialog = await openEntry("Code Sensei: pusty stan listy");
       expect(within(dialog).getByRole("note")).toHaveTextContent("/segreguj-inbox");
       expect(within(dialog).getByRole("note")).toHaveTextContent("bugs.md");
