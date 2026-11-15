@@ -1,22 +1,24 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/src/i18n/useT";
 import { CODEX_TEMPLATE } from "./codexTemplate";
 
 export function CodexMissing({ onCopy, path }: { onCopy: (text: string) => void; path: string }) {
+  const t = useT();
   return (
     <div className="kod-state-view is-visible">
       <div className="kod-empty-box">
-        <h2 className="kod-empty-box__title">Brak pliku kodeksu inżynierskiego</h2>
+        <h2 className="kod-empty-box__title">{t("codex:codexMissingTitle")}</h2>
         <p className="kod-empty-box__desc">
-          Aplikacja oczekuje pliku w ścieżce <code>Vault/{path}</code> w prywatnym repozytorium
-          NEXUS. Plik nie został odnaleziony na dysku. Aby uruchomić czytnik, utwórz plik w vault za
-          pomocą poniższego szablonu.
+          {t("codex:codexMissingDescLead")}
+          <code>Vault/{path}</code>
+          {t("codex:codexMissingDescTrail")}
         </p>
         <pre className="kod-codeblock">{CODEX_TEMPLATE}</pre>
         <div className="row" style={{ gap: "var(--s-3)" }}>
           <button type="button" className="btn btn--primary" onClick={() => onCopy(CODEX_TEMPLATE)}>
-            Kopiuj instrukcję utworzenia
+            {t("codex:codexCopyCreateInstruction")}
           </button>
         </div>
       </div>
@@ -25,11 +27,12 @@ export function CodexMissing({ onCopy, path }: { onCopy: (text: string) => void;
 }
 
 export function CodexConfigError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const t = useT();
   return (
     <div className="kod-state-view is-visible">
       <div className="kod-empty-box kod-error-box">
         <h2 className="kod-empty-box__title" style={{ color: "var(--danger)" }}>
-          Błąd konfiguracji: brak NEXUS_VAULT_PATH
+          {t("codex:codexConfigErrorTitle")}
         </h2>
         <p className="kod-empty-box__desc">{message}</p>
         <pre className="kod-codeblock">
@@ -39,7 +42,7 @@ export function CodexConfigError({ message, onRetry }: { message: string; onRetr
         </pre>
         <div className="row" style={{ gap: "var(--s-3)" }}>
           <button type="button" className="btn btn--primary" onClick={onRetry}>
-            Sprawdź połączenie ponownie
+            {t("codex:codexRetryConnection")}
           </button>
         </div>
       </div>

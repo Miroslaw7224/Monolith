@@ -61,6 +61,7 @@ if (!i18n.isInitialized) {
       "mindmaps",
       "arsenal",
       "map",
+      "codex",
     ],
     interpolation: { escapeValue: false },
     react: { useSuspense: false },

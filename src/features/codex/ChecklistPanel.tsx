@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/src/i18n/useT";
 import type { CodexOk } from "./codexFilters";
 import { CheckIcon } from "./CodexIcons";
 import { ruleElementId } from "./CodexRules";
@@ -27,10 +28,12 @@ function ItemLabel({
   text,
   ruleIds,
   onJump,
+  missingTitle,
 }: {
   text: string;
   ruleIds: Set<string>;
   onJump: (ruleId: string) => void;
+  missingTitle: string;
 }) {
   return (
     <>
@@ -39,11 +42,7 @@ function ItemLabel({
         if (!ref) return part;
         if (!ruleIds.has(ref)) {
           return (
-            <span
-              key={index}
-              className="kod-rule-ref kod-rule-ref--missing"
-              title="Brak reguły w rejestrze"
-            >
+            <span key={index} className="kod-rule-ref kod-rule-ref--missing" title={missingTitle}>
               {part}
             </span>
           );
@@ -71,6 +70,7 @@ function NoteInput({
   identity,
   saved,
   disabled,
+  placeholder,
   onSave,
 }: {
   label: string;
@@ -78,6 +78,7 @@ function NoteInput({
   identity: string;
   saved: string;
   disabled: boolean;
+  placeholder: string;
   onSave: (text: string) => void;
 }) {
   return (
@@ -87,7 +88,7 @@ function NoteInput({
       className="input kod-note"
       defaultValue={saved}
       maxLength={300}
-      placeholder="Dodaj jednolinijkową notatkę..."
+      placeholder={placeholder}
       aria-label={label}
       disabled={disabled}
       onKeyDown={(event) => {
@@ -113,6 +114,7 @@ export function ChecklistPanel({
   onJump,
   onToast,
 }: Props) {
+  const t = useT();
   const checklist = data.checklists.find((c) => c.id === selectedId) ?? data.checklists[0];
   const ruleIds = new Set(data.rules.map((rule) => rule.id));
   const { run, progress, month, workBlocked, error } = runApi;
@@ -124,17 +126,17 @@ export function ChecklistPanel({
     <section
       id="sec-checklisty"
       className="kod-checklists"
-      aria-label="Sekcja checklist operacyjnych"
+      aria-label={t("codex:codexChecklistAria")}
     >
       <div className="kod-run">
         <div className="kod-run__head">
           <div>
             <h2 className="kod-run__title">{checklist.title}</h2>
             <p className="kod-run__sub">
-              Rejestracja zdarzeń w formacie append-only <code>.jsonl</code>
+              {t("codex:codexChecklistEventLogSub")} <code>.jsonl</code>
             </p>
           </div>
-          <div className="tabs" role="tablist" aria-label="Wybór checklisty">
+          <div className="tabs" role="tablist" aria-label={t("codex:codexChecklistTabAria")}>
             {data.checklists.map((item) => (
               <button
                 key={item.id}
@@ -152,8 +154,12 @@ export function ChecklistPanel({
 
         <div className="kod-owner-box">
           <div className="kod-owner-box__top">
-            <span className="kod-owner-box__label">Kontekst zadania i prywatność:</span>
-            <div className="kod-owner-selector" role="radiogroup" aria-label="Strefa zapisu owner">
+            <span className="kod-owner-box__label">{t("codex:codexOwnerContext")}</span>
+            <div
+              className="kod-owner-selector"
+              role="radiogroup"
+              aria-label={t("codex:codexOwnerZoneAria")}
+            >
               {(["personal", "work"] as const).map((zone) => (
                 <button
                   key={zone}
@@ -170,28 +176,32 @@ export function ChecklistPanel({
           </div>
           {owner === "personal" ? (
             <div className="kod-owner-info kod-owner-info--personal is-active">
-              Zapis: <code>{file}</code> (repozytorium prywatne).
+              {t("codex:codexSavePersonalBefore")}
+              <code>{file}</code>
+              {t("codex:codexSavePersonalAfter")}
             </div>
           ) : (
             <div className="kod-owner-info kod-owner-info--work is-active">
               <div>
-                <b>[Dane z firmy]</b> Zapis kierowany wyłącznie do strefy <code>{file}</code>{" "}
-                ignorowanej przez git (§4.3 specu). Notatki i opisy nie trafią do repozytorium.
+                <b>{t("codex:codexSaveWorkCompany")}</b>
+                {t("codex:codexSaveWorkBefore")}
+                <code>{file}</code>
+                {t("codex:codexSaveWorkAfter")}
               </div>
               {workBlocked ? <p className="kod-error-inline">{workBlocked}</p> : null}
             </div>
           )}
           <label style={{ fontSize: "var(--fs-xs)", color: "var(--muted)" }}>
-            Zadanie:{" "}
+            {t("codex:codexTaskLabel")}{" "}
             {run ? (
-              <b style={{ color: "var(--text)" }}>{run.task || "(bez opisu)"}</b>
+              <b style={{ color: "var(--text)" }}>{run.task || t("codex:codexTaskEmpty")}</b>
             ) : (
               <input
                 type="text"
                 className="input kod-task-input"
                 maxLength={300}
-                aria-label="Opis zadania"
-                placeholder="Opis zadania (zapisany przy pierwszej interakcji)"
+                aria-label={t("codex:codexTaskAria")}
+                placeholder={t("codex:codexTaskPlaceholder")}
                 value={task}
                 disabled={readOnly}
                 onChange={(event) => onTask(event.target.value)}
@@ -203,7 +213,8 @@ export function ChecklistPanel({
         <div className="kod-progress-box">
           <div className="kod-progress-box__top">
             <span className="kod-progress-box__count">
-              Postęp: <b>{`${progress.done} z ${progress.total} odhaczone`}</b>
+              {t("codex:codexProgressLabel")}{" "}
+              <b>{t("codex:codexProgressValue", { done: progress.done, total: progress.total })}</b>
             </span>
             <span className="kod-progress-box__pct mono" style={{ color: "var(--accent-text)" }}>
               {progress.pct}%
@@ -242,50 +253,52 @@ export function ChecklistPanel({
                     id={checkboxId}
                     checked={checked}
                     disabled={readOnly}
-                    aria-label={`Punkt ${index + 1}: ${plain}`}
+                    aria-label={t("codex:codexItemPoint", { n: index + 1, text: plain })}
                     onChange={(event) => {
                       const next = event.target.checked;
                       void runApi.toggle(item.id, next).then((ok) => {
                         if (ok) {
-                          onToast(
-                            next
-                              ? "Zarejestrowano zdarzenie toggle: ukończono punkt"
-                              : "Zarejestrowano zdarzenie toggle: cofnięto punkt"
-                          );
+                          onToast(next ? t("codex:codexToggleDone") : t("codex:codexToggleUndone"));
                         }
                       });
                     }}
                   />
                   <div className="kod-item__body">
                     <label htmlFor={checkboxId} className="kod-item__label">
-                      <ItemLabel text={item.text} ruleIds={ruleIds} onJump={onJump} />
+                      <ItemLabel
+                        text={item.text}
+                        ruleIds={ruleIds}
+                        onJump={onJump}
+                        missingTitle={t("codex:codexMissingRuleTitle")}
+                      />
                     </label>
                     {missing ? (
                       <span
                         className="chip chip--warn"
                         style={{ fontSize: 10, height: 18, marginLeft: "auto" }}
                       >
-                        Brak definicji ID
+                        {t("codex:codexMissingId")}
                       </span>
                     ) : (
                       <span
                         className={`kod-item__status-tag kod-item__status-tag--${checked ? "done" : "todo"}`}
                       >
                         {checked ? <CheckIcon /> : null}
-                        {checked ? "Odhaczone" : "Do zrobienia"}
+                        {checked ? t("codex:codexItemDone") : t("codex:codexItemTodo")}
                       </span>
                     )}
                   </div>
                 </div>
                 <NoteInput
-                  label={`Notatka do punktu ${index + 1}`}
+                  label={t("codex:codexNotePoint", { n: index + 1 })}
                   identity={`${owner}|${run?.run ?? "new"}|${item.id}`}
                   saved={state?.note ?? ""}
                   disabled={readOnly}
+                  placeholder={t("codex:codexNotePlaceholder")}
                   onSave={(text) => {
                     void runApi.setNote(item.id, text).then((ok) => {
                       if (ok) {
-                        onToast("Dopisano notatkę punktu do dziennika zdarzeń (append-only)");
+                        onToast(t("codex:codexNoteAppended"));
                       }
                     });
                   }}
@@ -307,7 +320,7 @@ export function ChecklistPanel({
           }}
         >
           <span>
-            Dziennik: <code>{folder}</code>
+            {t("codex:codexJournalFolder")} <code>{folder}</code>
           </span>
           <button
             className="btn btn--sm"
@@ -317,12 +330,12 @@ export function ChecklistPanel({
               void runApi.end().then((ok) => {
                 if (ok) {
                   onTask("");
-                  onToast("Zapisano sesję: uruchomienie zamknięte w dzienniku .jsonl");
+                  onToast(t("codex:codexSessionSaved"));
                 }
               });
             }}
           >
-            Zapisz sesję
+            {t("codex:codexSaveSession")}
           </button>
         </div>
       </div>

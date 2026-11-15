@@ -135,4 +135,17 @@ describe("alertItems", () => {
     expect(items[0].text).toContain("1 uszkodzoną linię");
     expect(items[1].text).toContain("nie jest dokończona");
   });
+
+  it("liczba pojedyncza i mnoga uszkodzonych linii po polsku", () => {
+    expect(alertItems([], 1, false, "2026-11.jsonl", "pl")[0].text).toContain("1 uszkodzoną linię");
+    expect(alertItems([], 2, false, "2026-11.jsonl", "pl")[0].text).toContain("2 uszkodzone linie");
+    expect(alertItems([], 5, false, "2026-11.jsonl", "pl")[0].text).toContain(
+      "5 uszkodzonych linii"
+    );
+  });
+
+  it("liczba pojedyncza i mnoga uszkodzonych linii po angielsku", () => {
+    expect(alertItems([], 1, false, "2026-11.jsonl", "en")[0].text).toContain("1 corrupted line");
+    expect(alertItems([], 2, false, "2026-11.jsonl", "en")[0].text).toContain("2 corrupted lines");
+  });
 });
