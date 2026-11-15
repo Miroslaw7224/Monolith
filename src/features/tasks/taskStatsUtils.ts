@@ -46,6 +46,9 @@ export function computeTaskTiles(tasks: Task[], now: Date): TaskTilesData {
       continue;
     }
 
+    // odłożone nie wchodzą do żadnego licznika (ani statusu, ani terminów)
+    if (task.status === "deferred") continue;
+
     if (task.status === "in_progress") {
       data.inProgress.count += 1;
       const energy = getTaskEnergy(task.title);
@@ -67,9 +70,9 @@ export function computeTaskTiles(tasks: Task[], now: Date): TaskTilesData {
   return data;
 }
 
-/** Zaległe (termin przed dziś) albo na dziś; zadania zrobione i bez terminu → `null`. */
+/** Zaległe (termin przed dziś) albo na dziś; zadania zrobione, odłożone i bez terminu → `null`. */
 export function getTaskDueState(task: Task, now: Date): "overdue" | "today" | null {
-  if (task.status === "done" || !task.due_date) return null;
+  if (task.status === "done" || task.status === "deferred" || !task.due_date) return null;
   const today = isoDate(now);
   if (task.due_date < today) return "overdue";
   return task.due_date === today ? "today" : null;

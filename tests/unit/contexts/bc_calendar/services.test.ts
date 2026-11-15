@@ -132,6 +132,27 @@ describe("calendarService", () => {
       expect(result).toEqual([]);
     });
 
+    it("given a deferred task with a due_date in range, when getCalendarEvents is called, then does not add a task_deadline pseudo-event", async () => {
+      mockGetCalendarEvents.mockResolvedValue([]);
+      mockGetTasks.mockResolvedValue([
+        {
+          id: "t1",
+          title: "Kurs Playwright",
+          description: "",
+          status: "deferred",
+          due_date: "2025-02-20",
+          priority: null,
+        },
+      ]);
+
+      const result = await getCalendarEvents({
+        startDate: "2025-02-01",
+        endDate: "2025-02-28",
+      });
+
+      expect(result).toEqual([]);
+    });
+
     it("given stored events and task deadlines, when getCalendarEvents is called, then sorts by date and start_minutes", async () => {
       mockGetCalendarEvents.mockResolvedValue([
         {

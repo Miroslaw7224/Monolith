@@ -84,6 +84,20 @@ describe("computeTaskTiles", () => {
     );
     expect(tiles.doneWeek).toEqual({ count: 2, prevCount: 2 });
   });
+
+  it("nie liczy odłożonych zadań: ani w statusach, ani w terminach", () => {
+    const tiles = computeTaskTiles(
+      [
+        task("a", "deferred", { due_date: "2026-11-10" }),
+        task("b", "deferred", { due_date: "2026-11-14" }),
+        task("c", "deferred", { due_date: "2026-11-16" }),
+        task("d", "todo", { due_date: "2026-11-14" }),
+      ],
+      NOW
+    );
+    expect(tiles.deadlines).toEqual({ overdue: 0, today: 1, week: 0 });
+    expect(tiles.todo).toEqual({ count: 1, nextDue: "2026-11-14" });
+  });
 });
 
 describe("getTaskDueState", () => {
@@ -95,5 +109,10 @@ describe("getTaskDueState", () => {
     expect(getTaskDueState(task("c", "todo", { due_date: "2026-11-15" }), NOW)).toBeNull();
     expect(getTaskDueState(task("d", "todo"), NOW)).toBeNull();
     expect(getTaskDueState(task("e", "done", { due_date: "2026-11-01" }), NOW)).toBeNull();
+  });
+
+  it("zwraca null dla odłożonego zadania, także zaległego i na dziś", () => {
+    expect(getTaskDueState(task("a", "deferred", { due_date: "2026-11-01" }), NOW)).toBeNull();
+    expect(getTaskDueState(task("b", "deferred", { due_date: "2026-11-14" }), NOW)).toBeNull();
   });
 });

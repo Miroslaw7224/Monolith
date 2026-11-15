@@ -213,8 +213,8 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
 
   try {
     for (const t of await tasksServices.getTasks()) {
-      // w kolejce tylko „do zrobienia” i „w toku”; „do sprawdzenia” (wysłane komuś) i „zrobione” nie wracają do kokpitu
-      if (t.status === "done" || t.status === "to_review") continue;
+      // w kolejce tylko „do zrobienia” i „w toku”; „do sprawdzenia” (wysłane komuś), „odłożone” (świadomie nie teraz) i „zrobione” nie wracają do kokpitu
+      if (t.status === "done" || t.status === "to_review" || t.status === "deferred") continue;
       if (t.due_date && !isPlausibleDate(t.due_date)) {
         warnings.push(`Zadanie "${t.title}": pominięto błędny termin ${t.due_date}`);
         continue;

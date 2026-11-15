@@ -409,7 +409,7 @@
 
 @media (min-width: 1024px) {
   .zad-board {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
@@ -489,6 +489,10 @@
 
 .zad-dot--todo {
   background: var(--muted);
+}
+
+.zad-dot--deferred {
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
 }
 
 /* akcent z poświatą tylko dla kolumny „w toku” (jak „Teraz” w makiecie) */

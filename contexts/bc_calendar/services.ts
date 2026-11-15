@@ -58,7 +58,7 @@ export async function getCalendarEvents(options?: {
   const events = await repositories.getCalendarEvents(options);
   const tasks = await taskService.getTasks();
   const deadlineEvents: CalendarEntry[] = tasks
-    .filter((task) => task.due_date && task.status !== "done")
+    .filter((task) => task.due_date && task.status !== "done" && task.status !== "deferred")
     .filter((task) => taskDueDateInRange(task.due_date!, options))
     .map((task) => ({
       id: `task:${task.id}`,

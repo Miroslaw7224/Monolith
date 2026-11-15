@@ -31,6 +31,7 @@ const fakeT = {
   tasksDetailTitleFieldLabel: "Tytuł",
   tasksDetailModalTitle: "Szczegóły zadania",
   tasksDetailStatusLabel: "Status",
+  tasksDeferred: "Odłożone",
   tasksTodo: "Do zrobienia",
   tasksInProgress: "W trakcie",
   tasksToReview: "Do sprawdzenia",
@@ -171,6 +172,18 @@ describe("TaskDetailModal", () => {
     await user.click(saveBtn);
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ status: "in_progress" }));
+  });
+
+  it("allows moving the task to deferred", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskDetailModal task={fakeTask} isOpen={true} t={fakeT} onClose={onClose} onSave={onSave} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Odłożone" }));
+    await user.click(screen.getByRole("button", { name: /zapisz/i }));
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ status: "deferred" }));
   });
 
   it("renders the modal title from translations", () => {

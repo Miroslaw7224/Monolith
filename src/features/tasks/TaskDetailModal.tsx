@@ -72,6 +72,7 @@ export function TaskDetailModal({ task, isOpen, t, onClose, onSave }: TaskDetail
   const statusLabel = (t.tasksDetailStatusLabel as string) ?? "Status";
 
   const statusOptions: { value: Task["status"]; label: string }[] = [
+    { value: "deferred", label: (t.tasksDeferred as string) ?? "Deferred" },
     { value: "todo", label: (t.tasksTodo as string) ?? "To do" },
     { value: "in_progress", label: (t.tasksInProgress as string) ?? "In progress" },
     { value: "to_review", label: (t.tasksToReview as string) ?? "To review" },

@@ -40,6 +40,12 @@ describe("formatTaskLine", () => {
     );
   });
 
+  it("writes deferred with an empty checkbox and the status field", () => {
+    expect(formatTaskLine(task({ status: "deferred" }))).toBe(
+      "- [ ] Zadanie [id:: t1] [status:: deferred]"
+    );
+  });
+
   it("writes optional fields in a fixed order and omits empty ones", () => {
     const line = formatTaskLine(
       task({
@@ -77,6 +83,12 @@ describe("parseTaskLine", () => {
     expect(parseTaskLine("- [ ] Kupić mleko")?.status).toBe("todo");
     expect(parseTaskLine("- [x] Kupić mleko")?.status).toBe("done");
     expect(parseTaskLine("- [x] Kupić mleko")?.id).toBe("");
+  });
+
+  it("reads status deferred from the field while the checkbox stays empty", () => {
+    const parsed = parseTaskLine("- [ ] Kurs Playwright [id:: t9] [status:: deferred]");
+    expect(parsed?.status).toBe("deferred");
+    expect(parsed?.title).toBe("Kurs Playwright");
   });
 
   it("keeps square brackets that do not start a field as literal text", () => {
