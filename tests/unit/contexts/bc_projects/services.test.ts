@@ -572,6 +572,7 @@ describe("listNowTasks", () => {
   beforeEach(() => {
     mockReadRegistry.mockReset();
     mockReadProjectBoard.mockReset();
+    mockReadProjectIndex.mockReset();
   });
 
   const board = (now: BoardTask[]): TasksBoard => ({ ...EMPTY_BOARD, now });
@@ -593,7 +594,7 @@ describe("listNowTasks", () => {
     ]);
   });
 
-  it("zbiera niezakończone zadania Teraz ze wszystkich projektów razem z nazwą i owner", () => {
+  it("zbiera niezakończone zadania Teraz ze wszystkich projektów razem z nazwą, owner i rodzajem", () => {
     mockReadRegistry.mockReturnValue({
       entries: [
         entry({ id: "nexus", name: "NEXUS" }),
@@ -601,6 +602,7 @@ describe("listNowTasks", () => {
       ],
       warnings: [],
     });
+    mockReadProjectIndex.mockReturnValue({ whereIStopped: null });
     mockReadProjectBoard.mockImplementation((e: RegistryEntry) =>
       e.id === "nexus"
         ? board([{ text: "Plan 2-1", done: false }])
@@ -614,6 +616,8 @@ describe("listNowTasks", () => {
         projectId: "nexus",
         projectName: "NEXUS",
         owner: "personal",
+        kind: "wlasny",
+        companyData: false,
         priority: "medium",
         text: "Plan 2-1",
         occurrence: 0,
@@ -622,11 +626,39 @@ describe("listNowTasks", () => {
         projectId: "firma",
         projectName: "Firma",
         owner: "work",
+        kind: "etat",
+        companyData: true,
         priority: "medium",
         text: "Raport",
         occurrence: 0,
       },
     ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it("rodzaj zadania z `type` w index.md: personal + etat → etat i Dane z firmy", () => {
+    mockReadRegistry.mockReturnValue({ entries: [entry({ id: "a" })], warnings: [] });
+    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, type: "etat" });
+    mockReadProjectBoard.mockReturnValue(board([{ text: "Zadanie", done: false }]));
+
+    const { tasks } = listNowTasks();
+
+    expect(tasks[0]).toMatchObject({ kind: "etat", companyData: true, owner: "personal" });
+  });
+
+  it("uszkodzony index.md nie przerywa listy: rodzaj z samego owner", () => {
+    mockReadRegistry.mockReturnValue({
+      entries: [entry({ id: "a", owner: "work" })],
+      warnings: [],
+    });
+    mockReadProjectIndex.mockImplementation(() => {
+      throw new Error("zepsuty frontmatter");
+    });
+    mockReadProjectBoard.mockReturnValue(board([{ text: "Zadanie", done: false }]));
+
+    const { tasks, warnings } = listNowTasks();
+
+    expect(tasks[0]).toMatchObject({ kind: "etat", companyData: true });
     expect(warnings).toEqual([]);
   });
 

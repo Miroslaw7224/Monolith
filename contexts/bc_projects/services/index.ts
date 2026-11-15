@@ -158,6 +158,15 @@ export function listProjects(today: Date = new Date()): {
  * Niezakończone zadania `[now::]` ze wszystkich projektów rejestru (bez limitu 3: ten dotyczy
  * tablicy jednego projektu). Błąd jednego `tasks.md` to ostrzeżenie; błąd rejestru leci wyżej.
  */
+/** `type` z `index.md` projektu; błąd odczytu indeksu nie przerywa listy zadań (rodzaj wtedy z samego `owner`). */
+function typeOf(entry: RegistryEntry): ProjectType | undefined {
+  try {
+    return readProjectIndex(entry).type;
+  } catch {
+    return undefined;
+  }
+}
+
 export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
   const { entries, warnings: registryWarnings } = readRegistry();
   const warnings = [...registryWarnings];
@@ -165,6 +174,7 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
   for (const entry of entries) {
     try {
       const seen = new Map<string, number>();
+      const type = typeOf(entry);
       for (const task of readProjectBoard(entry).now) {
         if (task.done) continue;
         const occurrence = seen.get(task.text) ?? 0;
@@ -173,6 +183,8 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
           projectId: entry.id,
           projectName: entry.name,
           owner: entry.owner,
+          kind: projectKind(entry.owner, type),
+          companyData: hasCompanyData(entry.owner, type),
           priority: entry.priority,
           text: task.text,
           occurrence,
