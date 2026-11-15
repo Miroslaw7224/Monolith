@@ -1,11 +1,28 @@
 "use client";
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Link, Briefcase, Tag, Map, LayoutDashboard, Sparkles, GraduationCap } from "lucide-react";
+import {
+  Link,
+  Briefcase,
+  Tag,
+  Map,
+  LayoutDashboard,
+  Sparkles,
+  GraduationCap,
+  Bot,
+} from "lucide-react";
 import type { PlanningTab } from "@/src/features/planowanie/planningTab";
 import { useT } from "@/src/i18n/useT";
 
-type DrawerTab = "activity" | "tags" | "resources" | "skills" | "courses" | "mindmaps" | "board";
+type DrawerTab =
+  | "activity"
+  | "tags"
+  | "resources"
+  | "skills"
+  | "courses"
+  | "agents"
+  | "mindmaps"
+  | "board";
 
 interface MobileMoreDrawerProps {
   isOpen: boolean;
@@ -37,6 +54,7 @@ export function MobileMoreDrawer({
     { id: "resources", icon: <Link className="w-5 h-5" /> },
     { id: "skills", icon: <Sparkles className="w-5 h-5" /> },
     { id: "courses", icon: <GraduationCap className="w-5 h-5" /> },
+    { id: "agents", icon: <Bot className="w-5 h-5" /> },
     { id: "mindmaps", icon: <Map className="w-5 h-5" /> },
     { id: "board", icon: <LayoutDashboard className="w-5 h-5" /> },
   ];

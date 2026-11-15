@@ -11,6 +11,7 @@ import { TagsSection, type UserTag } from "@/src/features/tags/TagsSection";
 import { ResourceSection } from "@/src/features/resources/ResourceSection";
 import { ArsenalSkillsView } from "@/src/features/arsenal/ArsenalSkillsView";
 import { CoursesView } from "@/src/features/arsenal/CoursesView";
+import { AgentsView } from "@/src/features/arsenal/AgentsView";
 import { MindMapsTab } from "@/src/features/mind-maps/MindMapsTab";
 import { BoardTab } from "@/src/features/board/BoardTab";
 import { NotesPanel } from "@/src/features/notes/NotesPanel";
@@ -36,6 +37,7 @@ const TAB_LABEL_KEY = {
   resources: "planning:tabResources",
   skills: "planning:tabSkills",
   courses: "planning:tabCourses",
+  agents: "planning:tabAgents",
   tags: "planning:tabTags",
 } as const;
 
@@ -260,6 +262,10 @@ export default function PlanowanieView({
         ) : planningTab === "courses" ? (
           <div className="flex-1 flex flex-col overflow-auto bg-[var(--bg)]">
             <CoursesView apiFetch={apiFetch} />
+          </div>
+        ) : planningTab === "agents" ? (
+          <div className="flex-1 flex flex-col overflow-auto bg-[var(--bg)]">
+            <AgentsView apiFetch={apiFetch} />
           </div>
         ) : planningTab === "skills" ? (
           <div className="flex-1 flex flex-col overflow-auto bg-[var(--bg)]">

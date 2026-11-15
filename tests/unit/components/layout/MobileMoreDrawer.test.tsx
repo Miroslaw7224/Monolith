@@ -108,3 +108,10 @@ test("calls onSelectTab for courses", () => {
   fireEvent.click(screen.getByText("Kursy"));
   expect(onSelectTab).toHaveBeenCalledWith("courses");
 });
+
+test("calls onSelectTab for agents", () => {
+  const onSelectTab = vi.fn();
+  render(<MobileMoreDrawer isOpen={true} onClose={vi.fn()} onSelectTab={onSelectTab} />);
+  fireEvent.click(screen.getByText("Agenci i polecenia"));
+  expect(onSelectTab).toHaveBeenCalledWith("agents");
+});
