@@ -2,6 +2,8 @@
 export const MAX_PINNED = 3;
 
 export type Owner = "personal" | "work";
+/** Rodzaj projektu (etykieta z `index.md` albo z `owner`), do koloru w Kokpicie; zob. spec rodzajów projektów. */
+export type ProjectKind = "etat" | "wlasny" | "biblioteka";
 export type Freshness = "fresh" | "stale" | "unknown";
 /** `check`: temat zalegający lub z niezweryfikowanym stanem („do sprawdzenia”); `sure`: „pewne”. */
 export type Confidence = "sure" | "check";
@@ -15,6 +17,8 @@ export type Topic = {
   id: string;
   name: string;
   owner: Owner;
+  kind: ProjectKind;
+  companyData: boolean;
   freshness: Freshness;
   source: TopicSource;
   nextStep: string | null;
@@ -60,6 +64,9 @@ export type QueueGroup = {
   projectId: string | null;
   name: string;
   owner: Owner;
+  /** Tylko grupy projektowe; grupa ogólna (`projectId: null`) nie ma rodzaju (brak koloru). */
+  kind?: ProjectKind;
+  companyData?: boolean;
   items: QueueItem[];
 };
 

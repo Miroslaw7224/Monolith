@@ -17,6 +17,7 @@ import {
   type NextMeeting,
   type Owner,
   type Pinned,
+  type ProjectKind,
   type QueueGroup,
   type QueueSource,
   type QueueItem,
@@ -66,6 +67,8 @@ function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
     id: p.id,
     name: p.name,
     owner: p.owner,
+    kind: projectsServices.projectKind(p.owner, p.type),
+    companyData: projectsServices.hasCompanyData(p.owner, p.type),
     freshness: p.freshness,
     source,
     nextStep: source === "state" ? nextStep : null,
@@ -126,7 +129,14 @@ export function extractEnergy(raw: string): { energy: Energy | null; title: stri
 /** Priorytet zadania ogólnego oznaczający „Pilne” (ten sam co przycisk w karcie Zadania). */
 const URGENT_TASK_PRIORITY = 1;
 
-type QueueEntry = { projectId: string | null; name: string; owner: Owner; item: QueueItem };
+type QueueEntry = {
+  projectId: string | null;
+  name: string;
+  owner: Owner;
+  kind?: ProjectKind;
+  companyData?: boolean;
+  item: QueueItem;
+};
 
 const KIND_RANK: Record<QueueItem["kind"], number> = {
   today: 0,
@@ -152,7 +162,15 @@ function groupQueue(entries: QueueEntry[]): QueueGroup[] {
     const key = entry.projectId === null ? "general:" : `project:${entry.projectId}`;
     let group = groups.get(key);
     if (!group) {
-      group = { projectId: entry.projectId, name: entry.name, owner: entry.owner, items: [] };
+      group = {
+        projectId: entry.projectId,
+        name: entry.name,
+        owner: entry.owner,
+        ...(entry.kind !== undefined
+          ? { kind: entry.kind, companyData: entry.companyData ?? false }
+          : {}),
+        items: [],
+      };
       groups.set(key, group);
     }
     group.items.push(entry.item);
@@ -171,6 +189,8 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         projectId: t.projectId,
         name: t.projectName,
         owner: t.owner,
+        kind: t.kind,
+        companyData: t.companyData,
         item: {
           kind: "now",
           title: extractEnergy(t.text).title,
