@@ -179,6 +179,27 @@ describe("composeContextPack: role", () => {
     expect(full.markdown).not.toContain(LAST);
   });
 
+  it("debug: krok redukcji, który nic nie zmienia w markdownie, nie ustawia truncated", () => {
+    // Zasady już po cięciu roli (1200 znaków po granicy akapitu) mają ~700 znaków: dalsze cięcie
+    // do 800 daje ten sam tekst. Brak devlogu, logu i diffu: żaden inny krok nic nie zmieni.
+    const rules = `${"a".repeat(700)}\n\n${"b".repeat(1500)}`;
+    const input = makeInput({
+      project: { ...project, devlog: [] },
+      rules: { source: "CLAUDE.md", text: rules },
+      git: { ok: true, snapshot: { status: "## main", log: "", diffStat: "" } },
+      role: "debug",
+    });
+    const full = composeContextPack(input, BIG);
+    expect(full.truncated).toBe(false);
+    expect(full.markdown).toContain("a".repeat(700));
+    expect(full.markdown).not.toContain("b".repeat(50));
+
+    const tight = composeContextPack(input, estimateTokens(full.markdown) - 1);
+    expect(tight.markdown).toBe(full.markdown);
+    expect(tight.truncated).toBe(false);
+    expect(tight.warnings.some((w) => w.startsWith("Paczka ponad budżet"))).toBe(true);
+  });
+
   it("implementation nie ma kroków diff: przy małym budżecie tnie log i zasady, nie diff", () => {
     const size = estimateTokens(pack("implementation").markdown);
     const result = pack("implementation", size - 100);

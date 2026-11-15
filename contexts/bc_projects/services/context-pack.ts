@@ -276,10 +276,14 @@ export function composeContextPack(
   let markdown = renderPack(input, k, profile);
   let truncated = false;
   const over = () => estimateTokens(markdown) > budgetTokens;
+  // `truncated` tylko wtedy, gdy krok faktycznie coś skrócił (limit zasad z roli bywa już ciaśniejszy niż krok).
   const step = (next: Knobs) => {
     k = next;
-    truncated = true;
-    markdown = renderPack(input, k, profile);
+    const rendered = renderPack(input, k, profile);
+    if (rendered !== markdown) {
+      truncated = true;
+      markdown = rendered;
+    }
   };
 
   if (over() && stat > 10 && k.diffLines > 10) step({ ...k, diffLines: 10 });
