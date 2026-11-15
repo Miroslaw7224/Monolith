@@ -37,4 +37,7 @@ export const resources = {
   resourceOpenNoteTitle: "Open note in Knowledge base",
   resourceNoteButtonLabel: "Note",
   resourceNoteButtonText: "note",
+  resourceClose: "Close",
+  resourceCopyUrl: "Copy URL",
+  resourceDelete: "Delete",
 };

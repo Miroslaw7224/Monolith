@@ -113,37 +113,6 @@ export function getOverlapCounts(events: IntervalForLanes[]): Map<string, number
   return counts;
 }
 
-export const MONTH_NAMES: Record<"pl" | "en", string[]> = {
-  pl: [
-    "Styczeń",
-    "Luty",
-    "Marzec",
-    "Kwiecień",
-    "Maj",
-    "Czerwiec",
-    "Lipiec",
-    "Sierpień",
-    "Wrzesień",
-    "Październik",
-    "Listopad",
-    "Grudzień",
-  ],
-  en: [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ],
-};
-
 export const CALENDAR_MAX_STACK = MAX_STACK;
 
 export type WeekdayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";

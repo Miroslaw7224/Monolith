@@ -140,8 +140,8 @@ export function ResourceListItem({
             onCopy(r.url);
           }}
           className="btn btn--sm btn--icon btn--ghost ars-action-btn"
-          title="Copy URL"
-          aria-label="Copy URL"
+          title={t("resources:resourceCopyUrl")}
+          aria-label={t("resources:resourceCopyUrl")}
         >
           <Copy className="w-4 h-4" />
         </button>
@@ -152,8 +152,8 @@ export function ResourceListItem({
             onDelete(r.id);
           }}
           className="btn btn--sm btn--icon btn--ghost ars-action-btn ars-btn--danger"
-          title="Delete"
-          aria-label="Delete"
+          title={t("resources:resourceDelete")}
+          aria-label={t("resources:resourceDelete")}
         >
           <Trash2 className="w-4 h-4" />
         </button>

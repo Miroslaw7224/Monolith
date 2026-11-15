@@ -40,4 +40,7 @@ export const resources = {
   resourceOpenNoteTitle: "Otwórz notatkę w Bazie wiedzy",
   resourceNoteButtonLabel: "Notatka",
   resourceNoteButtonText: "notatka",
+  resourceClose: "Zamknij",
+  resourceCopyUrl: "Kopiuj URL",
+  resourceDelete: "Usuń",
 };

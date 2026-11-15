@@ -1,6 +1,7 @@
 import React from "react";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import type { BoardFrameDto as BoardFrame } from "@/contexts/bc_board/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export type FrameNodeData = {
   frame: BoardFrame;
@@ -11,6 +12,7 @@ export type FrameNodeData = {
 export type FrameFlowNode = Node<FrameNodeData, "frame">;
 
 export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
+  const t = useT();
   return (
     <>
       <NodeResizer
@@ -31,7 +33,7 @@ export function FrameNode({ id, data, selected }: NodeProps<FrameFlowNode>) {
           {selected ? (
             <button
               type="button"
-              aria-label="delete-frame"
+              aria-label={t("planning:boardDeleteFrameAria")}
               className="plo-node-del"
               onClick={() => data.onDelete(id)}
             >

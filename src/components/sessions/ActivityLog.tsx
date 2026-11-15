@@ -234,7 +234,7 @@ export function ActivityLog({
                         fontSize={12}
                       />
                       <Tooltip
-                        formatter={(value: number) => [`${value} h`, "Godziny"]}
+                        formatter={(value: number) => [`${value} h`, t("planning:activityHours")]}
                         labelFormatter={(label) => `#${label}`}
                       />
                       <Bar dataKey="hours" radius={[0, 4, 4, 0]} barSize={24}>

@@ -174,4 +174,9 @@ export const planning = {
   boardDeleteTileLeaves: "„{{title}}” zniknie z tablicy.",
   boardDeleteEdgesWithOne: "Razem z nim znikną strzałki: {{count}}.",
   boardDeleteTileTitle: "Usunąć kafelek?",
+  boardDeleteTileAria: "Usuń kafelek",
+  boardDeleteFrameAria: "Usuń ramkę",
+  boardDeleteEdgeAria: "Usuń strzałkę",
+  activityHours: "Godziny",
+  calendarSaveFailed: "Nie udało się zapisać",
 };

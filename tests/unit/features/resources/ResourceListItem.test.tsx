@@ -85,7 +85,7 @@ describe("ResourceListItem", () => {
       </ul>
     );
 
-    const deleteButton = within(container).getByRole("button", { name: /delete/i });
+    const deleteButton = within(container).getByRole("button", { name: /usuń/i });
     await user.click(deleteButton);
 
     expect(onDelete).toHaveBeenCalledTimes(1);
@@ -112,7 +112,7 @@ describe("ResourceListItem", () => {
       </ul>
     );
 
-    const copyButton = within(container).getByRole("button", { name: /copy url/i });
+    const copyButton = within(container).getByRole("button", { name: /kopiuj url/i });
     await user.click(copyButton);
 
     expect(onCopy).toHaveBeenCalledTimes(1);

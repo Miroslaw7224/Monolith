@@ -201,7 +201,7 @@ export function CalendarView({
       setEvents(Array.isArray(data2) ? data2 : []);
     } catch (err) {
       console.error("Save calendar event failed", err);
-      setSaveError(err instanceof Error ? err.message : "Save failed");
+      setSaveError(err instanceof Error ? err.message : t("planning:calendarSaveFailed"));
     }
   };
 

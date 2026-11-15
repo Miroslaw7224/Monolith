@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { UpdateResourceBodySchema } from "@/contexts/bc_resources/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export interface ResourceEditModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function ResourceEditModal({
   onClose,
   onSave,
 }: ResourceEditModalProps) {
+  const t = useT();
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const handleSave = async () => {
@@ -103,7 +105,7 @@ export function ResourceEditModal({
             type="button"
             onClick={onClose}
             className="btn btn--sm btn--icon btn--ghost"
-            aria-label="Close"
+            aria-label={t("resources:resourceClose")}
           >
             <X className="w-4 h-4" />
           </button>

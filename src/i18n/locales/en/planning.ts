@@ -166,4 +166,9 @@ export const planning = {
   boardDeleteTileLeaves: "“{{title}}” will leave the board.",
   boardDeleteEdgesWithOne: "Arrows removed with it: {{count}}.",
   boardDeleteTileTitle: "Delete the tile?",
+  boardDeleteTileAria: "Delete tile",
+  boardDeleteFrameAria: "Delete frame",
+  boardDeleteEdgeAria: "Delete arrow",
+  activityHours: "Hours",
+  calendarSaveFailed: "Save failed",
 };
