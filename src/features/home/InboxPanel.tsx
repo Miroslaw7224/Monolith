@@ -1,17 +1,10 @@
 // src/features/home/InboxPanel.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { InboxDto, InboxItemDto, MoveInboxBody } from "@/contexts/bc_inbox/schemas";
+import { useT } from "@/src/i18n/useT";
 import { InboxItemDialog } from "./InboxItemDialog";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
-
-/** „1 zamknięty wpis”, „3 zamknięte wpisy”, „5 zamkniętych wpisów” (polska odmiana). */
-function closedNoun(n: number): string {
-  if (n === 1) return "zamknięty wpis";
-  const last = n % 10;
-  const teen = n % 100 >= 12 && n % 100 <= 14;
-  return last >= 2 && last <= 4 && !teen ? "zamknięte wpisy" : "zamkniętych wpisów";
-}
 
 /** Szybki zapis do `Inbox/inbox.md` (Alt+I) i lista otwartych wpisów do wieczornej segregacji. */
 export function InboxPanel({
@@ -26,6 +19,7 @@ export function InboxPanel({
   focusRequest?: boolean;
   onFocused?: () => void;
 }) {
+  const t = useT();
   const [inbox, setInbox] = useState<InboxDto | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -42,10 +36,10 @@ export function InboxPanel({
       if (Array.isArray(data.items)) setInbox(data);
       return true;
     } catch {
-      setError("Nie udało się wczytać inboxu");
+      setError(t("home:inbox.loadFailed"));
       return false;
     }
-  }, [apiFetch]);
+  }, [apiFetch, t]);
 
   useEffect(() => {
     void load();
@@ -67,11 +61,11 @@ export function InboxPanel({
         throw new Error(body.error ?? `HTTP ${res.status}`);
       }
       // zapis się udał; gdy lista się nie odświeży, mówimy to wprost (pole i tak się czyści)
-      if (!(await load())) setError("Zapisano, ale nie udało się odświeżyć listy");
+      if (!(await load())) setError(t("home:inbox.savedRefreshFailed"));
       onChanged();
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się zapisać");
+      setError(err instanceof Error ? err.message : t("home:inbox.saveFailed"));
       return false;
     } finally {
       setBusy(false);
@@ -103,7 +97,7 @@ export function InboxPanel({
         const payload = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(
           res.status === 409
-            ? "Plik zadań zmienił się, spróbuj ponownie"
+            ? t("home:inbox.tasksFileChanged")
             : (payload.error ?? `HTTP ${res.status}`)
         );
       }
@@ -112,19 +106,19 @@ export function InboxPanel({
       onChanged();
       setOpen(null);
       if (result.warning) setError(result.warning);
-      else if (!refreshed) setError("Przeniesiono, ale nie udało się odświeżyć listy");
+      else if (!refreshed) setError(t("home:inbox.movedRefreshFailed"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się przenieść");
+      setError(err instanceof Error ? err.message : t("home:inbox.moveFailed"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section className="kok-panel kok-inbox" aria-label="Inbox">
+    <section className="kok-panel kok-inbox" aria-label={t("home:inbox.aria")}>
       <div className="kok-panel__head">
         <h3 className="kok-panel__title">
-          <b>Inbox</b>
+          <b>{t("home:inbox.title")}</b>
         </h3>
         <kbd className="kok-kbd">Alt+I</kbd>
       </div>
@@ -132,8 +126,8 @@ export function InboxPanel({
         <input
           ref={inputRef}
           className="kok-input"
-          placeholder="Myśl, link, snippet albo bug…"
-          aria-label="Szybki zapis"
+          placeholder={t("home:inbox.placeholder")}
+          aria-label={t("home:inbox.captureAria")}
           value={text}
           maxLength={500}
           onChange={(e) => setText(e.target.value)}
@@ -143,7 +137,7 @@ export function InboxPanel({
           className="kok-btn kok-btn--primary"
           disabled={busy || text.trim() === ""}
         >
-          Dodaj
+          {t("home:inbox.add")}
         </button>
       </form>
       {error ? <p className="kok-state kok-state--error">{error}</p> : null}
@@ -151,9 +145,7 @@ export function InboxPanel({
         <div className="kok-inbox__clear">
           {confirmClear ? (
             <>
-              <span>
-                Usunąć {inbox.closed} {closedNoun(inbox.closed)} na stałe?
-              </span>
+              <span>{t("home:inbox.deleteClosed", { count: inbox.closed })}</span>
               <button
                 type="button"
                 className="kok-btn kok-btn--sm kok-btn--danger"
@@ -162,7 +154,7 @@ export function InboxPanel({
                   void call("/api/inbox", { method: "DELETE" }).then(() => setConfirmClear(false))
                 }
               >
-                Usuń zamknięte
+                {t("home:inbox.clearClosedConfirm")}
               </button>
               <button
                 type="button"
@@ -170,7 +162,7 @@ export function InboxPanel({
                 disabled={busy}
                 onClick={() => setConfirmClear(false)}
               >
-                Anuluj
+                {t("home:common.cancel")}
               </button>
             </>
           ) : (
@@ -180,12 +172,14 @@ export function InboxPanel({
               disabled={busy}
               onClick={() => setConfirmClear(true)}
             >
-              Wyczyść zamknięte ({inbox.closed})
+              {t("home:inbox.clearClosed", { count: inbox.closed })}
             </button>
           )}
         </div>
       ) : null}
-      {inbox && inbox.items.length === 0 ? <p className="kok-empty-msg">Inbox jest pusty</p> : null}
+      {inbox && inbox.items.length === 0 ? (
+        <p className="kok-empty-msg">{t("home:inbox.empty")}</p>
+      ) : null}
       <ul className="kok-inbox__list">
         {inbox?.items.map((item, i) => (
           <li key={`${item.id}:${i}`} className="kok-inbox__item">
@@ -193,7 +187,7 @@ export function InboxPanel({
             <button
               type="button"
               className="kok-inbox__text kok-inbox__open"
-              title="Otwórz wpis"
+              title={t("home:inbox.openEntryTitle")}
               onClick={() => {
                 setError(null);
                 setOpen(item);
@@ -209,7 +203,7 @@ export function InboxPanel({
                 void call(`/api/inbox/${encodeURIComponent(item.id)}`, { method: "PATCH" })
               }
             >
-              Gotowe
+              {t("home:inbox.done")}
             </button>
           </li>
         ))}

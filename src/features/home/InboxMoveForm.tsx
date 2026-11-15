@@ -1,6 +1,7 @@
 // src/features/home/InboxMoveForm.tsx
 import React, { useEffect, useState } from "react";
 import type { InboxItemDto, MoveInboxBody } from "@/contexts/bc_inbox/schemas";
+import { useT } from "@/src/i18n/useT";
 import {
   defaultNoteTitle,
   defaultTarget,
@@ -17,10 +18,10 @@ type ProjectOption = {
   companyData?: boolean;
 };
 
-const TARGETS: { value: MoveTarget; label: string }[] = [
-  { value: "project", label: "Zadanie w projekcie" },
-  { value: "task", label: "Zadanie ogólne" },
-  { value: "note", label: "Notatka" },
+const TARGETS: { value: MoveTarget; labelKey: `home:inbox.target${Capitalize<MoveTarget>}` }[] = [
+  { value: "project", labelKey: "home:inbox.targetProject" },
+  { value: "task", labelKey: "home:inbox.targetTask" },
+  { value: "note", labelKey: "home:inbox.targetNote" },
 ];
 
 /** Formularz „Przenieś do…”: cel, projekt i kolumna, tytuł notatki i tekst (domyślnie treść wpisu). */
@@ -39,6 +40,7 @@ export function InboxMoveForm({
   onSubmit: (body: MoveInboxBody) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [chosen, setChosen] = useState<MoveTarget>(defaultTarget(item.type));
   const [text, setText] = useState(item.text);
   const [title, setTitle] = useState(defaultNoteTitle(item.text));
@@ -66,35 +68,39 @@ export function InboxMoveForm({
     <div className="kok-move">
       {item.type === "bug" ? (
         <p role="note" className="kok-modal__sub">
-          Bug: wpis w <code>bugs.md</code> dodaje agent (<code>/segreguj-inbox</code>). To okno nie
-          zapisuje <code>bugs.md</code>.
+          {t("home:inbox.bugNoteIntro")}
+          <code>bugs.md</code>
+          {t("home:inbox.bugNoteAgent")}
+          <code>/segreguj-inbox</code>
+          {t("home:inbox.bugNoteOutro")}
+          <code>bugs.md</code>.
         </p>
       ) : null}
       <fieldset className="kok-field">
-        <legend>Cel</legend>
-        {TARGETS.map((t) => (
-          <label key={t.value}>
+        <legend>{t("home:inbox.targetLegend")}</legend>
+        {TARGETS.map((opt) => (
+          <label key={opt.value}>
             <input
               type="radio"
               name="inbox-move-target"
-              checked={target === t.value}
-              disabled={t.value === "project" && noProjects}
-              onChange={() => setChosen(t.value)}
+              checked={target === opt.value}
+              disabled={opt.value === "project" && noProjects}
+              onChange={() => setChosen(opt.value)}
             />{" "}
-            {t.label}
+            {t(opt.labelKey)}
           </label>
         ))}
       </fieldset>
       {target === "project" ? (
         <>
           <label className="kok-field">
-            <span>Projekt</span>
+            <span>{t("home:inbox.project")}</span>
             <select
               className="kok-input"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
             >
-              <option value="">— wybierz projekt —</option>
+              <option value="">{t("home:inbox.chooseProject")}</option>
               {(projects ?? []).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -103,24 +109,24 @@ export function InboxMoveForm({
             </select>
           </label>
           {selected?.companyData ? (
-            <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+            <span className="kok-badge kok-badge--warn">{t("home:inbox.companyData")}</span>
           ) : null}
           <label className="kok-field">
-            <span>Kolumna</span>
+            <span>{t("home:inbox.column")}</span>
             <select
               className="kok-input"
               value={column}
               onChange={(e) => setColumn(e.target.value === "icebox" ? "icebox" : "next")}
             >
-              <option value="next">Next</option>
-              <option value="icebox">Backlog</option>
+              <option value="next">{t("home:inbox.columnNext")}</option>
+              <option value="icebox">{t("home:inbox.columnIcebox")}</option>
             </select>
           </label>
         </>
       ) : null}
       {target === "note" ? (
         <label className="kok-field">
-          <span>Tytuł notatki</span>
+          <span>{t("home:inbox.noteTitle")}</span>
           <input
             className="kok-input"
             maxLength={120}
@@ -130,7 +136,7 @@ export function InboxMoveForm({
         </label>
       ) : null}
       <label className="kok-field">
-        <span>Tekst</span>
+        <span>{t("home:inbox.textLabel")}</span>
         <input
           className="kok-input"
           maxLength={target === "project" ? 300 : 500}
@@ -145,7 +151,7 @@ export function InboxMoveForm({
       ) : null}
       <div className="kok-modal__actions">
         <button type="button" className="kok-btn kok-btn--ghost" onClick={onCancel}>
-          Anuluj
+          {t("home:common.cancel")}
         </button>
         <button
           type="button"
@@ -153,7 +159,7 @@ export function InboxMoveForm({
           disabled={busy || body === null}
           onClick={() => body && onSubmit(body)}
         >
-          Przenieś
+          {t("home:inbox.moveSubmit")}
         </button>
       </div>
     </div>
