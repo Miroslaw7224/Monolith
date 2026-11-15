@@ -1,7 +1,8 @@
 import React from "react";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ContextPackRole } from "@/contexts/bc_projects/schemas";
 import type { ContextPackResult } from "@/src/features/projects/mutation";
 import {
   ProjectContextPack,
@@ -18,7 +19,10 @@ const PACK = {
   warnings: [] as string[],
 };
 
-function Harness(props: { load: () => Promise<ContextPackResult>; id?: string | null }) {
+function Harness(props: {
+  load: (role: ContextPackRole) => Promise<ContextPackResult>;
+  id?: string | null;
+}) {
   const pack = useContextPack(props.id === undefined ? "a" : props.id, props.load);
   return (
     <>
@@ -29,7 +33,7 @@ function Harness(props: { load: () => Promise<ContextPackResult>; id?: string | 
 }
 
 function renderIt(
-  load: () => Promise<ContextPackResult>,
+  load: (role: ContextPackRole) => Promise<ContextPackResult>,
   writeText: (text: string) => Promise<void> = vi.fn(async () => {})
 ) {
   const user = userEvent.setup();
@@ -173,5 +177,67 @@ describe("paczka kontekstu", () => {
     expect(document.querySelector(".prj-pack-card__preview")).toHaveTextContent("## Save State");
     await user.click(screen.getByRole("button", { name: "Ukryj podgląd" }));
     expect(document.querySelector(".prj-pack-card__preview")).toBeNull();
+  });
+});
+
+describe("paczka kontekstu: role", () => {
+  const packFor = (role: string) => ({ ...PACK, markdown: `# P ${role}\n\n## Save State\n\nx` });
+  const roleLoad = () =>
+    vi.fn(
+      async (role: ContextPackRole): Promise<ContextPackResult> => ({
+        ok: true,
+        pack: packFor(role),
+      })
+    );
+  const roleButton = (name: string) => screen.getByRole("button", { name });
+
+  it("pokazuje cztery role, „Pełna” wciśnięta", async () => {
+    renderIt(roleLoad());
+    await screen.findByText("3 200 / 4 000 tokenów");
+    const group = screen.getByRole("group", { name: "Rola paczki" });
+    expect(
+      within(group)
+        .getAllByRole("button")
+        .map((b) => b.textContent)
+    ).toEqual(["Pełna", "Review", "Implementacja", "Debug"]);
+    expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("wybór „Review” pobiera paczkę tej roli i przestawia przycisk", async () => {
+    const load = roleLoad();
+    const { user } = renderIt(load);
+    await screen.findByText("3 200 / 4 000 tokenów");
+    expect(load).toHaveBeenNthCalledWith(1, "full");
+    await user.click(roleButton("Review"));
+    await waitFor(() => expect(load).toHaveBeenLastCalledWith("review"));
+    expect(roleButton("Review")).toHaveAttribute("aria-pressed", "true");
+    expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("kopiowanie po wyborze „Debug” składa i kopiuje paczkę tej roli", async () => {
+    const load = roleLoad();
+    const { user, writeText } = renderIt(load);
+    await screen.findByText("3 200 / 4 000 tokenów");
+    await user.click(roleButton("Debug"));
+    await waitFor(() => expect(load).toHaveBeenLastCalledWith("debug"));
+    await user.click(copyButtons()[0]);
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(packFor("debug").markdown));
+    expect(load).toHaveBeenLastCalledWith("debug");
+  });
+
+  it("zmiana projektu przywraca rolę „Pełna”", async () => {
+    const load = roleLoad();
+    const { user, rerender } = renderIt(load);
+    await screen.findByText("3 200 / 4 000 tokenów");
+    await user.click(roleButton("Review"));
+    await waitFor(() => expect(roleButton("Review")).toHaveAttribute("aria-pressed", "true"));
+    rerender(<Harness load={load} id="b" />);
+    await waitFor(() => expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "true"));
+    expect(load).toHaveBeenLastCalledWith("full");
+    // powrót do poprzedniego projektu nie przywraca wybranej wcześniej roli
+    rerender(<Harness load={load} id="a" />);
+    await waitFor(() => expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "true"));
+    expect(roleButton("Review")).toHaveAttribute("aria-pressed", "false");
+    expect(load).toHaveBeenLastCalledWith("full");
   });
 });

@@ -416,6 +416,34 @@ describe("useProjects: zapisy", () => {
     expect(apiFetch).toHaveBeenCalledWith("/api/projects/a/context-pack");
   });
 
+  it("loadContextPack(role): ?role= tylko dla ról innych niż full", async () => {
+    const a = summary({ id: "a" });
+    const pack = { markdown: "# A", approxTokens: 1, truncated: false, warnings: [] };
+    const apiFetch = vi.fn(async (url: string) => {
+      if (url === "/api/projects") {
+        return new Response(JSON.stringify({ projects: [a], warnings: [] }), { status: 200 });
+      }
+      if (url === "/api/projects/a") {
+        return new Response(JSON.stringify(detail({ id: "a" })), { status: 200 });
+      }
+      if (url.startsWith("/api/projects/a/context-pack")) {
+        return new Response(JSON.stringify(pack), { status: 200 });
+      }
+      return new Response("{}", { status: 404 });
+    });
+
+    const { result } = renderHook(() => useProjects(apiFetch));
+    await waitFor(() => expect(result.current.detail?.id).toBe("a"));
+
+    await act(async () => {
+      await result.current.loadContextPack("review");
+      await result.current.loadContextPack("full");
+    });
+
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a/context-pack?role=review");
+    expect(apiFetch).toHaveBeenCalledWith("/api/projects/a/context-pack");
+  });
+
   it("loadContextPack: błąd serwera", async () => {
     const a = summary({ id: "a" });
     const apiFetch = vi.fn(async (url: string) => {

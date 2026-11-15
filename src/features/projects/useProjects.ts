@@ -12,7 +12,7 @@ import type {
   StateInputDto,
   TaskOpInputDto,
 } from "@/contexts/bc_projects/schemas";
-import type { ContextPackDto } from "@/contexts/bc_projects/schemas";
+import type { ContextPackDto, ContextPackRole } from "@/contexts/bc_projects/schemas";
 import type {
   ContextPackResult,
   CreateProjectResult,
@@ -172,18 +172,22 @@ export function useProjects(
     [apiFetch]
   );
 
-  /** Odczyt, nie zapis: poza `mutate`, nie zmienia `detail`. */
-  const loadContextPack = useCallback(async (): Promise<ContextPackResult> => {
-    const id = selectedIdRef.current;
-    if (id === null) return { ok: false, error: "Nie wybrano projektu" };
-    try {
-      const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}/context-pack`);
-      if (!res.ok) return { ok: false, error: await readError(res) };
-      return { ok: true, pack: (await res.json()) as ContextPackDto };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  }, [apiFetch]);
+  /** Odczyt, nie zapis: poza `mutate`, nie zmienia `detail`. Rola `full` bez zapytania (URL jak dotąd). */
+  const loadContextPack = useCallback(
+    async (role: ContextPackRole = "full"): Promise<ContextPackResult> => {
+      const id = selectedIdRef.current;
+      if (id === null) return { ok: false, error: "Nie wybrano projektu" };
+      try {
+        const query = role === "full" ? "" : `?role=${role}`;
+        const res = await apiFetch(`/api/projects/${encodeURIComponent(id)}/context-pack${query}`);
+        if (!res.ok) return { ok: false, error: await readError(res) };
+        return { ok: true, pack: (await res.json()) as ContextPackDto };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+    [apiFetch]
+  );
 
   useEffect(() => {
     let cancelled = false;

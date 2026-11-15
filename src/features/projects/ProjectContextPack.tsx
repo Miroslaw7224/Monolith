@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { PACK_BUDGET_TOKENS } from "@/contexts/bc_projects/schemas";
+import {
+  PACK_BUDGET_TOKENS,
+  PACK_ROLES,
+  type ContextPackRole,
+} from "@/contexts/bc_projects/schemas";
 import { formatTokens, packSections } from "./packSections";
 import type { CopyNotice, PackState } from "./useContextPack";
 
@@ -11,6 +15,8 @@ export type ContextPackModel = {
   busy: boolean;
   notice: CopyNotice | null;
   copy: () => Promise<void>;
+  role: ContextPackRole;
+  setRole: (role: ContextPackRole) => void;
 };
 
 /** Wynik kopiowania: sukces (z liczbą tokenów i ostrzeżeniami) albo błąd. */
@@ -59,7 +65,7 @@ export function ProjectContextPackButton(props: { pack: ContextPackModel }): Rea
 
 /** Karta „Paczka kontekstu” (makieta 04): budżet tokenów, skład sekcji, kopiowanie i podgląd Markdown. */
 export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX.Element {
-  const { state, busy, notice, copy } = props.pack;
+  const { state, busy, notice, copy, role, setRole } = props.pack;
   const [preview, setPreview] = useState(false);
 
   return (
@@ -82,6 +88,20 @@ export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX
             </small>
           </div>
         ) : null}
+      </div>
+
+      <div className="prj-pack-card__roles" role="group" aria-label="Rola paczki">
+        {PACK_ROLES.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={role === key ? "prj-btn prj-btn--primary" : "prj-btn"}
+            aria-pressed={role === key}
+            onClick={() => setRole(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {state.status === "loading" ? <p className="prj-state">Składam paczkę…</p> : null}
