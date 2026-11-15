@@ -24,10 +24,10 @@
 | `contexts/bc_calendar/services.ts`                            | terminy zadań: pomija też `deferred`                                                                                                                                                                                                             |
 | `src/features/tasks/taskOrderUtils.ts`                        | `TASK_STATUSES` z `deferred` pierwszym                                                                                                                                                                                                           |
 | `src/features/tasks/taskStatsUtils.ts`                        | `computeTaskTiles` i `getTaskDueState` pomijają `deferred`                                                                                                                                                                                       |
-| `src/features/tasks/TasksSection.tsx`                         | etykieta kolumny, `activeCount` bez odłożonych                                                                                                                                                                                                   |
+| `src/features/tasks/TasksSection.tsx`                         | etykieta kolumny (Task 1), `activeCount` bez odłożonych (Task 3)                                                                                                                                                                                 |
 | `src/features/tasks/TaskDetailModal.tsx`                      | opcja statusu „Odłożone”                                                                                                                                                                                                                         |
 | `src/features/tasks/tasks.css`                                | `.zad-dot--deferred`, siatka 5 kolumn od 1024 px                                                                                                                                                                                                 |
-| `src/translations.ts`                                         | `tasksDeferred` (EN i PL)                                                                                                                                                                                                                        |
+| `src/translations.ts`                                         | `tasksDeferred` (EN i PL), Task 1 (żeby `tsc` przechodził po każdym commicie)                                                                                                                                                                    |
 | `docs/nexus-vault-formaty-yaml.md`                            | wiersz o statusach: dopisać `deferred`                                                                                                                                                                                                           |
 | testy                                                         | `tests/unit/lib/nexus/task-line.test.ts`, `tests/unit/contexts/bc_cockpit/services.test.ts`, `tests/unit/contexts/bc_calendar/services.test.ts`, `tests/unit/features/tasks/{taskOrderUtils,taskStatsUtils,TaskDetailModal,TasksSection}.test.*` |
 
@@ -97,19 +97,25 @@ export const TASK_STATUSES = ["deferred", "todo", "in_progress", "to_review", "d
 status: "deferred" | "todo" | "in_progress" | "to_review" | "done";
 ```
 
+Rozszerzenie typu `TaskDto["status"]` psuje kompilację `columnLabels: Record<TaskStatus, string>` w `TasksSection.tsx` (`TaskStatus` pochodzi z `Task["status"]`). Żeby każdy commit przechodził `tsc`, dołóż w tym samym commicie minimum UI:
+
+`src/translations.ts`: w bloku EN po `tasksTodo: "To do",` (linia ok. 61) dodaj `tasksDeferred: "Deferred",`; w bloku PL po `tasksTodo: "Do zrobienia",` (linia ok. 307) dodaj `tasksDeferred: "Odłożone",`.
+
+`src/features/tasks/TasksSection.tsx`: w `labels` przed `todo:` dodaj `deferred: (t.tasksDeferred as string) ?? "Deferred",`; w `columnLabels` dodaj jako pierwszy klucz `deferred: labels.deferred,`.
+
 - [ ] **Step 4: Testy zielone i typy**
 
 Run: `npx vitest run tests/unit/lib/nexus/task-line.test.ts`
 Expected: PASS (w tym test własności).
 
 Run: `npx tsc --noEmit`
-Expected: błędy tylko w `src/features/tasks/TasksSection.tsx` (`columnLabels: Record<TaskStatus, string>` bez `deferred`). Ten błąd naprawia Task 3; w tym commicie nie jest wymagany czysty `tsc`. Jeśli `tsc` zgłasza coś jeszcze (np. inne `Record<TaskStatus, …>` lub porównania statusu), dopisz `deferred` w tym miejscu według tej samej reguły co w Task 3.
+Expected: brak błędów. Jeśli `tsc` zgłasza coś jeszcze (np. inne `Record<TaskStatus, …>` lub porównania statusu), dopisz `deferred` w tym miejscu.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/nexus/task-line.ts contexts/bc_tasks/models.ts contexts/bc_tasks/schemas.ts tests/unit/lib/nexus/task-line.test.ts
-git commit -m "feat(zadania): status deferred w formacie linii zadania i typach bc_tasks
+git add lib/nexus/task-line.ts contexts/bc_tasks/models.ts contexts/bc_tasks/schemas.ts src/translations.ts src/features/tasks/TasksSection.tsx tests/unit/lib/nexus/task-line.test.ts
+git commit -m "feat(zadania): status deferred w formacie linii zadania, typach bc_tasks i etykiecie kolumny
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 ```
@@ -143,10 +149,11 @@ it("zadania ogólne „odłożone” znikają z kolejki, także zaległe, na dzi
     task({ id: "a", title: "Aktualne", status: "todo" }),
   ]);
 
-  const { queue } = await getCockpit(TODAY);
+  const { queue, warnings } = await getCockpit(TODAY);
   const titles = queue.flatMap((g) => g.items.map((i) => i.title));
 
   expect(titles).toEqual(["Aktualne"]);
+  expect(warnings.filter((w) => w.includes("Zadania ogólne"))).toEqual([]);
 });
 ```
 
@@ -215,7 +222,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 **Files:**
 
-- Modify: `src/features/tasks/taskOrderUtils.ts:5`, `src/features/tasks/taskStatsUtils.ts`, `src/features/tasks/TasksSection.tsx`, `src/features/tasks/TaskDetailModal.tsx`, `src/features/tasks/tasks.css`, `src/translations.ts`
+- Modify: `src/features/tasks/taskOrderUtils.ts:5`, `src/features/tasks/taskStatsUtils.ts`, `src/features/tasks/TasksSection.tsx`, `src/features/tasks/TaskDetailModal.tsx`, `src/features/tasks/tasks.css`
 - Test: `tests/unit/features/tasks/taskOrderUtils.test.ts`, `taskStatsUtils.test.ts`, `TaskDetailModal.test.tsx`, `TasksSection.test.tsx`
 
 - [ ] **Step 1: Napisz czerwone testy**
@@ -337,13 +344,15 @@ test("odłożone zadanie trafia do pierwszej kolumny „Odłożone”", async ()
   expect(headings.findIndex((h) => /Odłożone/.test(h))).toBeLessThan(
     headings.findIndex((h) => /Do zrobienia/.test(h))
   );
+  // licznik aktywnych nie liczy odłożonych (D5): tylko „Alpha”
+  expect(screen.getByText(/1 zadań aktywnych/)).toBeInTheDocument();
 });
 ```
 
 - [ ] **Step 2: Uruchom testy, upewnij się, że czerwone**
 
 Run: `npx vitest run tests/unit/features/tasks`
-Expected: FAIL we wszystkich pięciu nowych przypadkach (brak kolumny `deferred`, brak przycisku „Odłożone”, odłożone liczone w terminach). Dotychczasowe testy przechodzą.
+Expected: FAIL w nowych przypadkach: `puts the deferred column first…` (TypeError: kolumna `deferred` nie istnieje w `TASK_STATUSES`), obu nowych w `taskStatsUtils`, `allows moving the task to deferred`, `odłożone zadanie trafia do pierwszej kolumny…`. Zmieniony test `tasksByStatus` przechodzi już teraz (filtr nie zależy od listy kolumn); to test charakteryzujący, nie czerwony. Dotychczasowe testy przechodzą.
 
 - [ ] **Step 3: Zaimplementuj logikę (`taskOrderUtils`, `taskStatsUtils`)**
 
@@ -374,13 +383,9 @@ export function getTaskDueState(task: Task, now: Date): "overdue" | "today" | nu
 
 - [ ] **Step 4: Zaimplementuj UI**
 
-`src/translations.ts`: w bloku EN po `tasksTodo: "To do",` (linia ok. 61) dodaj `tasksDeferred: "Deferred",`; w bloku PL po `tasksTodo: "Do zrobienia",` (linia ok. 307) dodaj `tasksDeferred: "Odłożone",`.
+(Tłumaczenie `tasksDeferred` i etykieta kolumny są już z Task 1.)
 
-`src/features/tasks/TasksSection.tsx`:
-
-- w `labels` przed `todo:` dodaj `deferred: (t.tasksDeferred as string) ?? "Deferred",`;
-- w `columnLabels` dodaj `deferred: labels.deferred,` jako pierwszy klucz;
-- w `dateSubtitle`: `const activeCount = tasks.filter((x) => x.status !== "done" && x.status !== "deferred").length;`
+`src/features/tasks/TasksSection.tsx`, w `dateSubtitle`: `const activeCount = tasks.filter((x) => x.status !== "done" && x.status !== "deferred").length;`
 
 `src/features/tasks/TaskDetailModal.tsx`, w `statusOptions` jako pierwszy element:
 
@@ -409,7 +414,7 @@ Expected: brak błędów.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/features/tasks src/translations.ts tests/unit/features/tasks
+git add src/features/tasks tests/unit/features/tasks
 git commit -m "feat(zadania): kolumna Odłożone w tablicy, statystyki i okno szczegółów
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
