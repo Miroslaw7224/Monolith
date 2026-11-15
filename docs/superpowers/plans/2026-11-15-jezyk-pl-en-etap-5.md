@@ -25,7 +25,7 @@ Jedno zadanie = jedno zlecenie Cursora (`--fresh` przy nowym obszarze, `--keep` 
 ## Rozstrzygnięcia planu (względem specu)
 
 1. **Zakres.** Etap 5 obejmuje to, co po etapach 1–4 ma jeszcze teksty na sztywno (sprawdzone grepem po `src/`): `src/features/arsenal/` (7 plików), `src/features/map/` (9 plików z tekstami widocznymi dla użytkownika), `src/features/codex/` (12), `src/features/notes/` (8), `src/components/note-editor/` (2), `src/components/theme/ThemeToggle.tsx`. **Zasoby i Płótno (tablica, mapy myśli) są już zrobione w etapie 4** (namespace `resources`, `planning`, `mindmaps`): tu bez zmian. Kalendarz, zadania, Projekty i Kokpit bez zmian.
-2. **Cztery namespace'y:** `arsenal`, `map`, `codex`, `notes`. Edytor notatek (`NoteEditor*`) idzie do `notes` z prefiksem `editor` (używa go też `MindMapNotesPanel`, ale to ten sam edytor, jeden zestaw etykiet). `ThemeToggle` dostaje klucze w `common` (`theme.toLight`, `theme.toDark`), bo to element powłoki, który w etapie 1 został pominięty.
+2. **Cztery namespace'y:** `arsenal`, `map`, `codex`, `notes`. Edytor notatek (`NoteEditor*`) idzie do `notes` z prefiksem `editor` (używa go też `MindMapNotesPanel`, ale to ten sam edytor, jeden zestaw etykiet). `ThemeToggle` dostaje klucze w `common` (`themeToggle.toLight`, `themeToggle.toDark`), bo to element powłoki, który w etapie 1 został pominięty.
 3. **Klucze płaskie** z prefiksem obszaru: `arsenal*` (np. `arsenalClearFilters`), `map*`, `codex*`, `notes*`, `editor*` (w `notes`). Wartość PL = dotychczasowy tekst dosłownie, EN = naturalne tłumaczenie. Cursor wypisuje listę nowych kluczy w odpowiedzi. Placeholdery `{{x}}`.
 4. **Czyste funkcje z tekstem** (`buildMapTiles`, `noteMeta` kafle, `clusterLabel` w `MapNodeList`, `codexFilters` ostrzeżenia, `arsenalFilters`): dostają **opcjonalny** parametr `lang: Lang = currentLang()` i wołają `i18n.t(key, { lng: lang })`; istniejące testy, które nie podają języka, przechodzą bez zmian (start w PL). Komponent renderujący taką funkcję woła `useT()` (subskrypcja na zmianę języka).
 5. **Dane z repozytorium i vaulta nie są tłumaczone** (J2): etykiety skupisk (`cluster.label`), tytuły i ścieżki notatek, treść skilli i promptów, identyfikatory reguł i treść reguł Kodeksu, komunikaty błędów z API (`body.error`), nazwy sekcji bugów (`"Zamknięte"` jako wartość danych z `bugs.md`, `projectTiles.ts`, `ProjectBugs.tsx`: bez zmian). Tłumaczymy tylko własne teksty interfejsu i klienckie komunikaty zastępcze (`"Błąd"`, `"Błąd ${status}"`, `"Nieprawidłowa odpowiedź …"`): wołane przez `i18n.t` w chwili rzucenia wyjątku, stan zapisany jako gotowy tekst zostaje w języku powstania (jak w etapach 2–3).
@@ -46,8 +46,8 @@ Jedno zadanie = jedno zlecenie Cursora (`--fresh` przy nowym obszarze, `--keep` 
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | `src/i18n/format.ts`                                                                                                                                                  | + `formatShortDateTime`, `formatFullDateTime`  |
 | `src/i18n/resources.ts`, `src/i18n/index.ts` (`ns`)                                                                                                                   | + `arsenal`, `map`, `codex`, `notes`           |
-| `src/i18n/locales/{pl,en}/{arsenal,map,codex,notes}.ts` (nowe), `common.ts` (`theme.*`)                                                                               | słowniki                                       |
-| `src/components/theme/ThemeToggle.tsx`                                                                                                                                | `useT`, klucze `common:theme.*`                |
+| `src/i18n/locales/{pl,en}/{arsenal,map,codex,notes}.ts` (nowe), `common.ts` (`themeToggle.*`)                                                                         | słowniki                                       |
+| `src/components/theme/ThemeToggle.tsx`                                                                                                                                | `useT`, klucze `common:themeToggle.*`          |
 | `src/features/arsenal/{ArsenalSkillsView,ArsenalDetail,ArsenalFilterBar,DeployPanel,CopyButton,useArsenal}.ts(x)`, `arsenalFilters.ts`                                | `useT` / `i18n.t`                              |
 | `src/features/map/{MapView,MapClusterPanel,MapBlockersPanel,MapAgentsPanel,MapNodeList,GlobeControls,Globe}.tsx`, `{mapTiles,edgeColors,useMapGraph,useMapAgents}.ts` | `useT` / `i18n.t`; `labelKey` w `EDGE_CLASSES` |
 | `src/features/codex/{CodexView,CodexRules,CodexToc,CodexAlerts,CodexStates,ChecklistPanel,CodexToast,CodexIcons}.tsx`, `{codexFilters,useCodex,useChecklistRun}.ts`   | `useT` / `i18n.t`; daty przez `format.ts`      |
@@ -131,7 +131,7 @@ export function formatFullDateTime(date: Date, lang: Lang = currentLang()): stri
 }
 ```
 
-`common.ts`: `theme: { toLight: "Włącz tryb jasny", toDark: "Włącz tryb ciemny" }` (PL), `{ toLight: "Switch to light theme", toDark: "Switch to dark theme" }` (EN). `ThemeToggle.tsx`: `const t = useT()`; `aria-label={theme === "dark" ? t("common:theme.toLight") : t("common:theme.toDark")}`.
+`common.ts`: `themeToggle: { toLight: "Włącz tryb jasny", toDark: "Włącz tryb ciemny" }` (PL), `{ toLight: "Switch to light theme", toDark: "Switch to dark theme" }` (EN). `ThemeToggle.tsx`: `const t = useT()`; `aria-label={theme === "dark" ? t("common:themeToggle.toLight") : t("common:themeToggle.toDark")}`.
 
 - [ ] **Step 4: Testy zielone**
 

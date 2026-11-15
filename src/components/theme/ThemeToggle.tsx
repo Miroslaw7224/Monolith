@@ -1,16 +1,20 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/src/i18n/useT";
 import { useTheme } from "./ThemeProvider";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
+  const t = useT();
 
   return (
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label={theme === "dark" ? "Włącz tryb jasny" : "Włącz tryb ciemny"}
+      aria-label={
+        theme === "dark" ? t("common:themeToggle.toLight") : t("common:themeToggle.toDark")
+      }
       className="relative grid h-[38px] w-[38px] shrink-0 place-items-center overflow-hidden rounded-[9px] border border-[var(--border)] bg-[var(--toggle-bg)] text-[var(--toggle-icon-color)] transition-all duration-300 hover:border-[var(--border2)] hover:text-[var(--text)]"
     >
       <span className="relative h-4 w-4">

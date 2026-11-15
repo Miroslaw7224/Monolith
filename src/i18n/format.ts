@@ -70,3 +70,17 @@ export function formatFullDate(date: Date, lang: Lang = currentLang()): string {
     day: "numeric",
   }).format(date);
 }
+
+/** Data i godzina krótko: „15.11.2026, 09:05” / „11/15/26, 9:05 AM”. */
+export function formatShortDateTime(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], { dateStyle: "short", timeStyle: "short" }).format(
+    date
+  );
+}
+
+/** Pełna data i godzina z sekundami (stan pliku Kodeksu). */
+export function formatFullDateTime(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], { dateStyle: "full", timeStyle: "medium" }).format(
+    date
+  );
+}

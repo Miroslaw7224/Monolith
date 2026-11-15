@@ -6,6 +6,8 @@ import {
   formatTimeSeconds,
   formatShortDate,
   formatFullDate,
+  formatShortDateTime,
+  formatFullDateTime,
 } from "@/src/i18n/format";
 
 const MONDAY = new Date(2026, 10, 16);
@@ -45,5 +47,21 @@ describe("formatery Planowania", () => {
   test("formatFullDate", () => {
     expect(formatFullDate(d, "pl")).toBe("niedziela, 15 listopada 2026");
     expect(formatFullDate(d, "en")).toBe("Sunday, November 15, 2026");
+  });
+});
+
+describe("formatery Notatek i Kodeksu", () => {
+  const d = new Date(2026, 10, 15, 9, 5, 30); // niedziela 15.11.2026, czas lokalny
+  const norm = (s: string) => s.replace(/\s/g, " ");
+
+  test("formatShortDateTime", () => {
+    expect(norm(formatShortDateTime(d, "pl"))).toBe("15.11.2026, 09:05");
+    expect(norm(formatShortDateTime(d, "en"))).toBe("11/15/26, 9:05 AM");
+  });
+  test("formatFullDateTime", () => {
+    expect(norm(formatFullDateTime(d, "pl"))).toContain("niedziela, 15 listopada 2026");
+    expect(norm(formatFullDateTime(d, "pl"))).toContain("09:05:30");
+    expect(norm(formatFullDateTime(d, "en"))).toContain("Sunday, November 15, 2026");
+    expect(norm(formatFullDateTime(d, "en"))).toContain("9:05:30 AM");
   });
 });
