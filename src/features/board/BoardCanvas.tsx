@@ -195,7 +195,7 @@ function CanvasInner({
       const copy = deleteCopy(deletePlan(ids, board));
       return new Promise<boolean>((resolve) => setPending({ copy, resolve }));
     },
-    [board, t]
+    [board]
   );
   const actions = {
     onDelete: (id: string) => {
