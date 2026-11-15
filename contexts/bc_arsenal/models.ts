@@ -59,3 +59,35 @@ export type RawFile = {
   key: string;
   parsed: { meta: Record<string, unknown>; body: string } | null;
 };
+
+// ── kursy (`Arsenal/courses.yaml`) ───────────────────────────────────────────────
+
+export const COURSES_FILE = "Arsenal/courses.yaml";
+export const COURSES_KEY = "courses";
+/** Katalog PDF-ów certyfikatów; `certificate_file` jest ścieżką względem niego. */
+export const COURSE_CERT_DIR = "Documents";
+
+export const COURSE_STATUSES = ["plan", "w-trakcie", "ukonczony"] as const;
+export type CourseStatus = (typeof COURSE_STATUSES)[number];
+
+export type Course = {
+  id: string;
+  title: string;
+  url: string;
+  provider?: string;
+  status: CourseStatus;
+  /** RRRR-MM-DD, tylko dla `ukonczony`. */
+  completed?: string;
+  certificateUrl?: string;
+  /** Względem `Vault/Documents/`. */
+  certificateFile?: string;
+  note?: string;
+};
+
+/** Pola edytowalne (formularz i `PUT`). */
+export type CourseInput = Omit<Course, "id">;
+
+/** Kurs z ostrzeżeniem liczonym przez `services`. */
+export type CourseEntry = Course & { certificateMissing: boolean };
+
+export type CourseList = { courses: CourseEntry[]; skipped: number };
