@@ -52,7 +52,7 @@ export type TaskDto = {
   title: string;
   link: string;
   description: string;
-  status: "todo" | "in_progress" | "to_review" | "done";
+  status: "deferred" | "todo" | "in_progress" | "to_review" | "done";
   due_date: string | null;
   priority: number | null;
   order?: number;

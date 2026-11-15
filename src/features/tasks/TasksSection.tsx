@@ -87,6 +87,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
     templateLabel: (t.tasksTemplateLabel as string) ?? "Template",
     templateNone: (t.tasksTemplateNone as string) ?? "No template",
     manageTemplates: (t.tasksManageTemplates as string) ?? "Manage templates",
+    deferred: (t.tasksDeferred as string) ?? "Deferred",
     todo: (t.tasksTodo as string) ?? "To do",
     inProgress: (t.tasksInProgress as string) ?? "In progress",
     toReview: (t.tasksToReview as string) ?? "To review",
@@ -99,6 +100,7 @@ export function TasksSection({ apiFetch, lang, t }: TasksSectionProps) {
   };
 
   const columnLabels: Record<TaskStatus, string> = {
+    deferred: labels.deferred,
     todo: labels.todo,
     in_progress: labels.inProgress,
     to_review: labels.toReview,
