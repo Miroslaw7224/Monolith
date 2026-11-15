@@ -240,7 +240,7 @@ export default function PlanowanieView({
             onOpenTaskDeadline={() => setPlanningTab("tasks")}
           />
         ) : planningTab === "activity" ? (
-          <ActivityLog apiFetch={apiFetch} lang={lang} t={t} userTags={userTags} />
+          <ActivityLog apiFetch={apiFetch} userTags={userTags} />
         ) : planningTab === "tags" ? (
           <TagsSection
             apiFetch={apiFetch}

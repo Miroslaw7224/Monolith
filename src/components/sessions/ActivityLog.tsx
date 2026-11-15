@@ -15,13 +15,11 @@ import type { UserTag } from "@/src/features/tags/TagsSection";
 import { eventMinutesInInclusiveRange } from "./activityRange";
 import type { ActiveSession } from "@/src/components/sessions/activeSession";
 import type { CalendarEventDto as CalendarEvent } from "@/contexts/bc_calendar/schemas";
-
-type TranslationDict = Record<string, string | string[]>;
+import { useT } from "@/src/i18n/useT";
+import { formatTime as formatSessionClockTime } from "@/src/i18n/format";
 
 interface ActivityLogProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
-  lang: "en" | "pl";
-  t: TranslationDict;
   userTags?: UserTag[];
   activeSession?: ActiveSession | null;
   onStartSession?: () => void;
@@ -30,13 +28,12 @@ interface ActivityLogProps {
 
 export function ActivityLog({
   apiFetch,
-  lang,
-  t,
   userTags = [],
   activeSession,
   onStartSession,
   onEndSession,
 }: ActivityLogProps) {
+  const t = useT();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
@@ -116,27 +113,19 @@ export function ActivityLog({
     return ticks;
   }, [maxHours]);
 
-  const formatTime = (minutes: number) => {
+  const formatEventStartTime = (minutes: number) => {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   };
 
-  const labels = {
-    title: (t.activityTitle as string) ?? "What I did",
-    from: (t.activityFrom as string) ?? "From",
-    to: (t.activityTo as string) ?? "To",
-    noEntries: (t.activityNoEntries as string) ?? "No entries in the selected period.",
-    noTags: (t.activityNoTags as string) ?? "No tags in the selected period.",
-  };
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
       <div className="p-6 border-b border-[var(--border)] bg-[var(--surface)]">
-        <h2 className="text-lg font-bold mb-4 text-[var(--text)]">{labels.title}</h2>
+        <h2 className="text-lg font-bold mb-4 text-[var(--text)]">{t("planning:activityTitle")}</h2>
         <div className="flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
-            <span>{labels.from}</span>
+            <span>{t("planning:activityFrom")}</span>
             <input
               type="date"
               value={startDate}
@@ -145,7 +134,7 @@ export function ActivityLog({
             />
           </label>
           <label className="flex items-center gap-2 text-sm font-medium text-[var(--text)]">
-            <span>{labels.to}</span>
+            <span>{t("planning:activityTo")}</span>
             <input
               type="date"
               value={endDate}
@@ -161,11 +150,8 @@ export function ActivityLog({
               >
                 <Square className="w-3 h-3" />
                 <span>
-                  {lang === "pl" ? "Zakończ" : "End"} ·{" "}
-                  {new Date(activeSession.startedAt).toLocaleTimeString(
-                    lang === "pl" ? "pl-PL" : "en-US",
-                    { hour: "2-digit", minute: "2-digit" }
-                  )}
+                  {t("planning:activityEnd")} ·{" "}
+                  {formatSessionClockTime(new Date(activeSession.startedAt))}
                 </span>
               </button>
             ) : (
@@ -174,16 +160,16 @@ export function ActivityLog({
                 className="flex items-center gap-2 px-3 py-2 bg-[var(--bg3)] border border-[var(--border)] rounded-lg text-sm font-semibold text-[var(--text)] hover:bg-[var(--bg2)]"
               >
                 <Play className="w-3 h-3 text-[var(--accent)]" />
-                {lang === "pl" ? "Rozpocznij pracę" : "Start work"}
+                {t("planning:activityStart")}
               </button>
             ))}
         </div>
       </div>
       <div className="flex-1 overflow-auto p-6 flex gap-6 min-h-0">
         {loading ? (
-          <div className="text-[var(--text2)]">Loading…</div>
+          <div className="text-[var(--text2)]">{t("planning:activityLoading")}</div>
         ) : events.length === 0 ? (
-          <p className="text-[var(--text3)] font-medium">{labels.noEntries}</p>
+          <p className="text-[var(--text3)] font-medium">{t("planning:activityNoEntries")}</p>
         ) : (
           <>
             <ul className="flex-[2_2_0%] min-w-0 space-y-1.5 overflow-auto pr-2">
@@ -191,11 +177,7 @@ export function ActivityLog({
                 const minutesInRange = eventMinutesInInclusiveRange(ev, startDate, endDate);
                 const partial = minutesInRange > 0 && minutesInRange !== ev.duration_minutes;
                 const durationPart = partial
-                  ? `${formatDuration(minutesInRange)}${
-                      lang === "pl" ? " w zakresie" : " in range"
-                    } · ${formatDuration(ev.duration_minutes)} ${
-                      lang === "pl" ? "łącznie" : "total"
-                    }`
+                  ? `${formatDuration(minutesInRange)} ${t("planning:activityInRange")} · ${formatDuration(ev.duration_minutes)} ${t("planning:activityTotal")}`
                   : formatDuration(minutesInRange);
                 return (
                   <li
@@ -211,7 +193,7 @@ export function ActivityLog({
                         {ev.title}
                       </p>
                       <p className="text-[10px] text-[var(--text3)] uppercase font-bold mt-0.5 leading-tight">
-                        {ev.date} · {formatTime(ev.start_minutes)} · {durationPart}
+                        {ev.date} · {formatEventStartTime(ev.start_minutes)} · {durationPart}
                         {ev.tags.length > 0 && ` · ${ev.tags.map((tag) => `#${tag}`).join(" ")}`}
                       </p>
                     </div>
@@ -221,7 +203,9 @@ export function ActivityLog({
             </ul>
             <div className="flex-[3_3_0%] min-w-0 flex flex-col self-start bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 activity-chart">
               {tagHours.length === 0 ? (
-                <p className="text-[var(--text3)] font-medium text-sm">{labels.noTags}</p>
+                <p className="text-[var(--text3)] font-medium text-sm">
+                  {t("planning:activityNoTags")}
+                </p>
               ) : (
                 <>
                   <ResponsiveContainer width="100%" height={Math.max(140, tagHours.length * 28)}>
