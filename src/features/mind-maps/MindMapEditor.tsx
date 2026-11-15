@@ -33,23 +33,21 @@ import { useMindMapEditorShortcuts } from "@/src/features/mind-maps/mindMapEdito
 import { MindMapNotesPanel } from "@/src/features/mind-maps/MindMapNotesPanel";
 import { ExportSubtreeToMapModal } from "@/src/features/mind-maps/ExportSubtreeToMapModal";
 import { MindMapDeleteModal } from "@/src/features/mind-maps/MindMapDeleteModal";
-import type { translations } from "@/src/translations";
-
-type T = (typeof translations)["en"];
+import { formatTimeSeconds } from "@/src/i18n/format";
+import { useT } from "@/src/i18n/useT";
 
 export function MindMapEditor({
   apiFetch,
   map,
   onChanged,
   onRefreshList,
-  t,
 }: {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   map: MindMap;
   onChanged: (next: MindMap) => void;
   onRefreshList: () => Promise<void>;
-  t: T;
 }) {
+  const t = useT();
   const doc = useMindMapDocument({ map, apiFetch, onChanged, onRefreshList });
   const {
     rootNode,
@@ -265,7 +263,7 @@ export function MindMapEditor({
               ...n.children,
               {
                 id: nid,
-                label: t.mindMapsNewNode as string,
+                label: t("mindmaps:mindMapsNewNode"),
                 note: "",
                 collapsed: false,
                 children: [],
@@ -288,7 +286,7 @@ export function MindMapEditor({
         (root) =>
           insertSiblingAfter(root, siblingId, {
             id: nid,
-            label: t.mindMapsNewNode as string,
+            label: t("mindmaps:mindMapsNewNode"),
             note: "",
             collapsed: false,
             children: [],
@@ -315,7 +313,7 @@ export function MindMapEditor({
         (root) =>
           insertNodeAbove(root, childId, {
             id: nid,
-            label: t.mindMapsNewCategory as string,
+            label: t("mindmaps:mindMapsNewCategory"),
             note: "",
             collapsed: false,
             children: [],
@@ -420,10 +418,10 @@ export function MindMapEditor({
       <div className="px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-center gap-3">
         <div className="text-sm text-[var(--text3)] flex items-center gap-2 min-w-0">
           <span className="font-semibold text-[var(--accent)]">
-            {t.mindMapsBreadcrumbApp as string}
+            {t("mindmaps:mindMapsBreadcrumbApp")}
           </span>
           <ChevronRight className="w-4 h-4" />
-          <span>{t.mindMapsBreadcrumbMindMaps as string}</span>
+          <span>{t("mindmaps:mindMapsBreadcrumbMindMaps")}</span>
           <ChevronRight className="w-4 h-4" />
           <span className="font-semibold text-[var(--text)] truncate">{rootNode.label}</span>
         </div>
@@ -435,7 +433,7 @@ export function MindMapEditor({
             className="px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text2)] text-sm font-semibold hover:bg-[var(--bg2)] inline-flex items-center gap-2"
           >
             <ChevronsDownUp className="w-4 h-4" />
-            {t.mindMapsCollapseAll as string}
+            {t("mindmaps:mindMapsCollapseAll")}
           </button>
           <button
             type="button"
@@ -443,24 +441,24 @@ export function MindMapEditor({
             className="px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text2)] text-sm font-semibold hover:bg-[var(--bg2)] inline-flex items-center gap-2"
           >
             <ChevronsUpDown className="w-4 h-4" />
-            {t.mindMapsExpandAll as string}
+            {t("mindmaps:mindMapsExpandAll")}
           </button>
           <button
             type="button"
             onClick={() => exportHTML(map)}
             className="px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text2)] text-sm font-semibold hover:bg-[var(--bg2)] inline-flex items-center gap-2"
-            title={t.mindMapsExportHtmlTitle as string}
+            title={t("mindmaps:mindMapsExportHtmlTitle")}
           >
-            ↓ {t.mindMapsExportHtml as string}
+            ↓ {t("mindmaps:mindMapsExportHtml")}
           </button>
           <button
             type="button"
             onClick={resetWidths}
             className="px-3 py-2 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-[var(--text2)] text-sm font-semibold hover:bg-[var(--bg2)] inline-flex items-center gap-2"
-            title={t.mindMapsResetWidthsTitle as string}
+            title={t("mindmaps:mindMapsResetWidthsTitle")}
           >
             <RotateCcw className="w-4 h-4" />
-            {t.mindMapsReset as string}
+            {t("mindmaps:mindMapsReset")}
           </button>
           <button
             type="button"
@@ -468,14 +466,13 @@ export function MindMapEditor({
             className="px-3 py-2 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-95 inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            {t.mindMapsNewNode as string}
+            {t("mindmaps:mindMapsNewNode")}
           </button>
         </div>
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <MindMapEditorToolbar
-          t={t}
           query={query}
           setQuery={setQuery}
           matches={matches}
@@ -516,7 +513,7 @@ export function MindMapEditor({
           }}
         >
           <p className="absolute left-4 top-3 z-10 text-xs text-[var(--text3)] max-w-md pointer-events-none">
-            {t.mindMapsDragReparentHint as string}
+            {t("mindmaps:mindMapsDragReparentHint")}
           </p>
           <div
             ref={contentRef}
@@ -531,7 +528,6 @@ export function MindMapEditor({
               rootNode={displayRoot}
               getColW={getColW}
               startResize={startResize}
-              t={t}
               selId={selId}
               editId={editId}
               ctxId={ctxId}
@@ -567,7 +563,7 @@ export function MindMapEditor({
           </div>
         </div>
 
-        <MindMapNotesPanel selectedNode={selectedNode} onContentChange={updateSelectedNote} t={t} />
+        <MindMapNotesPanel selectedNode={selectedNode} onContentChange={updateSelectedNote} />
       </div>
 
       <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex items-center gap-3 text-xs text-[var(--text3)]">
@@ -588,19 +584,19 @@ export function MindMapEditor({
           )}
           <span className="font-semibold">
             {savePhase === "saving"
-              ? (t.mindMapsSaving as string)
+              ? t("mindmaps:mindMapsSaving")
               : savePhase === "pending"
-                ? (t.mindMapsUnsaved as string)
+                ? t("mindmaps:mindMapsUnsaved")
                 : savePhase === "error"
-                  ? (t.mindMapsSaveError as string)
-                  : (t.mindMapsSaved as string)}
+                  ? t("mindmaps:mindMapsSaveError")
+                  : t("mindmaps:mindMapsSaved")}
           </span>
           {savePhase === "error" ? (
             <button type="button" className="underline font-semibold" onClick={retrySave}>
-              {t.mindMapsRetry as string}
+              {t("mindmaps:mindMapsRetry")}
             </button>
           ) : null}
-          {lastSavedAt ? <span>· {new Date(lastSavedAt).toLocaleTimeString()}</span> : null}
+          {lastSavedAt ? <span>· {formatTimeSeconds(new Date(lastSavedAt))}</span> : null}
         </div>
       </div>
 
@@ -612,7 +608,6 @@ export function MindMapEditor({
           if (!deleteNodeId) return;
           confirmDelete(deleteNodeId, keep);
         }}
-        t={t}
       />
 
       <ExportSubtreeToMapModal
@@ -625,7 +620,6 @@ export function MindMapEditor({
         apiFetch={apiFetch}
         onClose={() => setExportToMapNodeId(null)}
         onRefreshList={onRefreshList}
-        t={t}
       />
     </div>
   );

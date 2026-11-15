@@ -13,14 +13,13 @@ import {
 } from "lucide-react";
 import type { MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
 import { nodeBoxHeight } from "@/src/features/mind-maps/mindMapLayout";
-import type { translations } from "@/src/translations";
+import { useT } from "@/src/i18n/useT";
 
 export function NodePill({
   mode,
   node,
   isRoot,
   depth,
-  t,
   getColW,
   startResize,
   selId,
@@ -49,7 +48,6 @@ export function NodePill({
   node: MindMapNode;
   isRoot: boolean;
   depth: number;
-  t: (typeof translations)["en"];
   getColW: (depth: number) => number;
   startResize: (e: React.MouseEvent, depth: number) => void;
   selId: string | null;
@@ -76,6 +74,7 @@ export function NodePill({
   activeMatchId: string | null;
   branchColor?: string;
 }) {
+  const t = useT();
   const hasKids = node.children.length > 0;
   const colW = getColW(depth);
   const boxH = nodeBoxHeight(node.label, colW);
@@ -89,7 +88,7 @@ export function NodePill({
 
   return (
     <div
-      title={mode === "edit" && !isRoot ? (t.mindMapsDragReparentHint as string) : undefined}
+      title={mode === "edit" && !isRoot ? t("mindmaps:mindMapsDragReparentHint") : undefined}
       draggable={mode === "edit" && !isRoot}
       onDragStart={(e) => {
         if (mode !== "edit") return;
@@ -160,8 +159,8 @@ export function NodePill({
         title={
           hasKids
             ? node.collapsed
-              ? (t.mindMapsExpand as string)
-              : (t.mindMapsCollapse as string)
+              ? t("mindmaps:mindMapsExpand")
+              : t("mindmaps:mindMapsCollapse")
             : ""
         }
       >
@@ -241,7 +240,7 @@ export function NodePill({
               }
             }}
             className="w-7 h-7 rounded-lg hover:bg-[var(--bg3)] text-[var(--text2)] inline-flex items-center justify-center"
-            title={t.mindMapsMenu as string}
+            title={t("mindmaps:mindMapsMenu")}
             aria-haspopup="menu"
             aria-expanded={ctxId === node.id}
           >
@@ -274,7 +273,7 @@ export function NodePill({
             role="menuitem"
           >
             <Plus className="w-4 h-4 text-emerald-700" />
-            {t.mindMapsAddChild as string}
+            {t("mindmaps:mindMapsAddChild")}
           </button>
 
           <div className="my-1 h-px bg-[var(--border)]" />
@@ -290,7 +289,7 @@ export function NodePill({
               role="menuitem"
             >
               <ArrowUp className="w-4 h-4 text-[var(--text2)]" />
-              {t.mindMapsInsertAbove as string}
+              {t("mindmaps:mindMapsInsertAbove")}
             </button>
           ) : null}
           <button
@@ -303,7 +302,7 @@ export function NodePill({
             role="menuitem"
           >
             <Pencil className="w-4 h-4 text-[var(--text2)]" />
-            {t.mindMapsRename as string}
+            {t("mindmaps:mindMapsRename")}
           </button>
 
           <button
@@ -316,7 +315,7 @@ export function NodePill({
             role="menuitem"
           >
             <FolderInput className="w-4 h-4 text-[var(--text2)]" />
-            {t.mindMapsExportToOtherMap as string}
+            {t("mindmaps:mindMapsExportToOtherMap")}
           </button>
 
           {!isRoot ? <div className="my-1 h-px bg-[var(--border)]" /> : null}
@@ -332,7 +331,7 @@ export function NodePill({
               role="menuitem"
             >
               <X className="w-4 h-4" />
-              {t.mindMapsDeleteNode as string}
+              {t("mindmaps:mindMapsDeleteNode")}
             </button>
           ) : null}
         </div>
@@ -342,7 +341,7 @@ export function NodePill({
         <div
           onMouseDown={(e) => startResize(e, depth)}
           className="absolute right-0 top-0 h-full w-3 cursor-col-resize opacity-0 hover:opacity-100 transition-opacity"
-          title={t.mindMapsResizeColTitle as string}
+          title={t("mindmaps:mindMapsResizeColTitle")}
         >
           <div className="absolute right-1 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded bg-[var(--border)]" />
         </div>

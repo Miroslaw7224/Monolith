@@ -4,9 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { MindMap, MindMapNode } from "@/src/features/mind-maps/mindMapTypes";
 import { mapNode } from "@/src/lib/mindMapUtils";
-import type { translations } from "@/src/translations";
-
-type T = (typeof translations)["en"];
+import { useT } from "@/src/i18n/useT";
 
 export function ExportSubtreeToMapModal({
   open,
@@ -16,7 +14,6 @@ export function ExportSubtreeToMapModal({
   apiFetch,
   onClose,
   onRefreshList,
-  t,
 }: {
   open: boolean;
   currentMapId: string;
@@ -25,8 +22,8 @@ export function ExportSubtreeToMapModal({
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   onClose: () => void;
   onRefreshList: () => Promise<void>;
-  t: T;
 }) {
+  const t = useT();
   const [maps, setMaps] = useState<MindMap[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [busyTargetId, setBusyTargetId] = useState<string | null>(null);
@@ -46,13 +43,13 @@ export function ExportSubtreeToMapModal({
       try {
         const res = await apiFetch("/api/mind-maps");
         if (!res.ok) {
-          if (!cancelled) setError(t.mindMapsExportToOtherMapError as string);
+          if (!cancelled) setError(t("mindmaps:mindMapsExportToOtherMapError"));
           return;
         }
         const data = (await res.json()) as MindMap[];
         if (!cancelled) setMaps(Array.isArray(data) ? data : []);
       } catch {
-        if (!cancelled) setError(t.mindMapsExportToOtherMapError as string);
+        if (!cancelled) setError(t("mindmaps:mindMapsExportToOtherMapError"));
       } finally {
         if (!cancelled) setListLoading(false);
       }
@@ -62,16 +59,15 @@ export function ExportSubtreeToMapModal({
     };
   }, [open, apiFetch, t]);
 
-  const subtitle = (t.mindMapsExportToOtherMapModalSubtitle as string).replace(
-    "{label}",
-    sourceNodeLabel || "—"
-  );
+  const subtitle = t("mindmaps:mindMapsExportToOtherMapModalSubtitle", {
+    label: sourceNodeLabel || "—",
+  });
 
   const runExport = useCallback(
     async (targetId: string) => {
       const cloned = cloneSubtree();
       if (!cloned) {
-        setError(t.mindMapsExportToOtherMapError as string);
+        setError(t("mindmaps:mindMapsExportToOtherMapError"));
         return;
       }
       setBusyTargetId(targetId);
@@ -79,7 +75,7 @@ export function ExportSubtreeToMapModal({
       try {
         const getRes = await apiFetch(`/api/mind-maps/${targetId}`);
         if (!getRes.ok) {
-          setError(t.mindMapsExportToOtherMapError as string);
+          setError(t("mindmaps:mindMapsExportToOtherMapError"));
           return;
         }
         const targetMap = (await getRes.json()) as MindMap;
@@ -94,13 +90,13 @@ export function ExportSubtreeToMapModal({
           body: JSON.stringify({ rootNode: merged }),
         });
         if (!patchRes.ok) {
-          setError(t.mindMapsExportToOtherMapError as string);
+          setError(t("mindmaps:mindMapsExportToOtherMapError"));
           return;
         }
         await onRefreshList();
         setSuccess(true);
       } catch {
-        setError(t.mindMapsExportToOtherMapError as string);
+        setError(t("mindmaps:mindMapsExportToOtherMapError"));
       } finally {
         setBusyTargetId(null);
       }
@@ -125,11 +121,11 @@ export function ExportSubtreeToMapModal({
         className="w-full max-w-md bg-[var(--surface)] border border-[var(--border)] rounded-3xl p-6 shadow-xl max-h-[min(520px,85vh)] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-lg font-bold">{t.mindMapsExportToOtherMapModalTitle as string}</div>
+        <div className="text-lg font-bold">{t("mindmaps:mindMapsExportToOtherMapModalTitle")}</div>
         <div className="mt-2 text-sm text-[var(--text3)]">{subtitle}</div>
 
         <div className="mt-4 text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
-          {t.mindMapsExportToOtherMapPickMap as string}
+          {t("mindmaps:mindMapsExportToOtherMapPickMap")}
         </div>
 
         {error ? (
@@ -140,7 +136,7 @@ export function ExportSubtreeToMapModal({
 
         {success ? (
           <div className="mt-3 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
-            {t.mindMapsExportToOtherMapSuccess as string}
+            {t("mindmaps:mindMapsExportToOtherMapSuccess")}
           </div>
         ) : null}
 
@@ -151,7 +147,7 @@ export function ExportSubtreeToMapModal({
             </div>
           ) : targets.length === 0 ? (
             <div className="text-sm text-[var(--text3)] py-4">
-              {t.mindMapsExportToOtherMapNoTargets}
+              {t("mindmaps:mindMapsExportToOtherMapNoTargets")}
             </div>
           ) : (
             targets.map((m) => (
@@ -178,7 +174,7 @@ export function ExportSubtreeToMapModal({
             disabled={Boolean(busyTargetId)}
             className="flex-1 px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-[var(--text)] font-semibold text-sm hover:bg-[var(--bg3)] disabled:opacity-60"
           >
-            {t.mindMapsCancel as string}
+            {t("mindmaps:mindMapsCancel")}
           </button>
         </div>
       </div>

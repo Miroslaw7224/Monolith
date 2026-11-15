@@ -9,7 +9,6 @@ import {
   nodeBoxHeight,
   subtreeHeight,
 } from "@/src/features/mind-maps/mindMapLayout";
-import type { translations } from "@/src/translations";
 import { NodePill } from "@/src/features/mind-maps/NodePill";
 
 export function TreeLevel(props: {
@@ -17,7 +16,6 @@ export function TreeLevel(props: {
   node: MindMapNode;
   isRoot: boolean;
   depth: number;
-  t: (typeof translations)["en"];
   getColW: (depth: number) => number;
   startResize: (e: React.MouseEvent, depth: number) => void;
   selId: string | null;

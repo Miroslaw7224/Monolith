@@ -1,25 +1,25 @@
 "use client";
 
+import React from "react";
 import { Loader2, Plus } from "lucide-react";
 import type { MindMap } from "@/src/features/mind-maps/mindMapTypes";
 import { leafCount } from "@/src/lib/mindMapUtils";
-import type { translations } from "@/src/translations";
+import { formatShortDate } from "@/src/i18n/format";
+import { useT } from "@/src/i18n/useT";
 
-type T = (typeof translations)["en"];
-
-function formatDateLike(d: unknown): string {
+function parseUpdatedAtMs(d: unknown): number | null {
   try {
-    if (!d) return "";
+    if (!d) return null;
     const ms =
       typeof d === "string"
         ? Date.parse(d)
         : typeof d === "number"
           ? d
           : (d as { toMillis?: () => number } | undefined)?.toMillis?.();
-    if (!ms) return "";
-    return new Date(ms).toLocaleDateString();
+    if (!ms) return null;
+    return ms;
   } catch {
-    return "";
+    return null;
   }
 }
 
@@ -29,15 +29,15 @@ export function MindMapList({
   isCreating,
   onCreate,
   onOpen,
-  t,
 }: {
   maps: MindMap[];
   isLoading: boolean;
   isCreating: boolean;
   onCreate: () => void;
   onOpen: (id: string) => void;
-  t: T;
 }) {
+  const t = useT();
+
   return (
     <div className="h-full overflow-auto p-6">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -56,9 +56,9 @@ export function MindMapList({
               )}
             </div>
             <div>
-              <div className="font-bold">{t.mindMapsCreateCardTitle as string}</div>
+              <div className="font-bold">{t("mindmaps:mindMapsCreateCardTitle")}</div>
               <div className="text-xs text-[var(--text3)]">
-                {t.mindMapsCreateCardSubtitle as string}
+                {t("mindmaps:mindMapsCreateCardSubtitle")}
               </div>
             </div>
           </div>
@@ -74,26 +74,35 @@ export function MindMapList({
         ) : maps.length === 0 ? (
           <div className="sm:col-span-2 lg:col-span-3 border border-[var(--border)] rounded-2xl p-8 bg-[var(--surface)]">
             <div className="text-sm text-[var(--text3)] font-semibold">
-              {t.mindMapsNoMaps as string}
+              {t("mindmaps:mindMapsNoMaps")}
             </div>
           </div>
         ) : (
-          maps.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => onOpen(m.id)}
-              className="border border-[var(--border)] rounded-2xl p-5 bg-[var(--surface)] hover:bg-[var(--bg2)] transition-colors text-left"
-            >
-              <div className="font-bold truncate">{m.title || "Bez tytułu"}</div>
-              <div className="mt-1 text-xs text-[var(--text3)]">
-                {formatDateLike(m.updatedAt) ? `Aktualizacja: ${formatDateLike(m.updatedAt)}` : "—"}
-              </div>
-              <div className="mt-3 text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
-                {leafCount(m.rootNode)} liści
-              </div>
-            </button>
-          ))
+          maps.map((m) => {
+            const updatedMs = parseUpdatedAtMs(m.updatedAt);
+            const updatedLabel = updatedMs
+              ? t("mindmaps:mindMapsListUpdatedAt", {
+                  date: formatShortDate(new Date(updatedMs)),
+                })
+              : "—";
+            const leaves = leafCount(m.rootNode);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => onOpen(m.id)}
+                className="border border-[var(--border)] rounded-2xl p-5 bg-[var(--surface)] hover:bg-[var(--bg2)] transition-colors text-left"
+              >
+                <div className="font-bold truncate">
+                  {m.title || t("mindmaps:mindMapsUntitled")}
+                </div>
+                <div className="mt-1 text-xs text-[var(--text3)]">{updatedLabel}</div>
+                <div className="mt-3 text-[10px] uppercase tracking-widest text-[var(--text3)] font-bold">
+                  {t("mindmaps:mindMapsLeafCount", { count: leaves })}
+                </div>
+              </button>
+            );
+          })
         )}
       </div>
     </div>

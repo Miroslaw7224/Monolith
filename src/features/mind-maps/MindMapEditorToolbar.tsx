@@ -3,9 +3,8 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { Redo2, Search, Undo2, ZoomIn, ZoomOut } from "lucide-react";
 import { clamp } from "@/src/features/mind-maps/mindMapClamp";
-import type { translations } from "@/src/translations";
+import { useT } from "@/src/i18n/useT";
 
-type T = (typeof translations)["en"];
 type MindMapView = { scale: number; x: number; y: number };
 
 export function zoomAt(
@@ -25,7 +24,6 @@ export function zoomAt(
 }
 
 export function MindMapEditorToolbar({
-  t,
   query,
   setQuery,
   matches,
@@ -40,7 +38,6 @@ export function MindMapEditorToolbar({
   viewportRef,
   contentRef,
 }: {
-  t: T;
   query: string;
   setQuery: Dispatch<SetStateAction<string>>;
   matches: string[];
@@ -55,6 +52,8 @@ export function MindMapEditorToolbar({
   viewportRef: RefObject<HTMLDivElement | null>;
   contentRef: RefObject<HTMLDivElement | null>;
 }) {
+  const t = useT();
+
   return (
     <div className="px-4 py-2 border-b border-[var(--border)] bg-[var(--surface)] flex items-center gap-2 flex-wrap">
       <label className="relative flex-1 min-w-40 max-w-xs">
@@ -65,7 +64,7 @@ export function MindMapEditorToolbar({
             setQuery(event.target.value);
             setMatchCursor(0);
           }}
-          placeholder={t.mindMapsSearchPlaceholder as string}
+          placeholder={t("mindmaps:mindMapsSearchPlaceholder")}
           className="w-full h-9 pl-8 pr-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-sm text-[var(--text)] outline-none"
         />
       </label>
@@ -73,7 +72,7 @@ export function MindMapEditorToolbar({
         {query.trim()
           ? matches.length
             ? `${(matchCursor % matches.length) + 1}/${matches.length}`
-            : (t.mindMapsSearchNone as string)
+            : t("mindmaps:mindMapsSearchNone")
           : ""}
       </span>
       <button
@@ -97,7 +96,7 @@ export function MindMapEditorToolbar({
       <div className="ml-auto flex items-center gap-1">
         <button
           type="button"
-          title={t.mindMapsUndo as string}
+          title={t("mindmaps:mindMapsUndo")}
           disabled={!canUndo}
           onClick={undo}
           className="h-9 w-9 rounded-lg border border-[var(--border)] inline-flex items-center justify-center disabled:opacity-40"
@@ -106,7 +105,7 @@ export function MindMapEditorToolbar({
         </button>
         <button
           type="button"
-          title={t.mindMapsRedo as string}
+          title={t("mindmaps:mindMapsRedo")}
           disabled={!canRedo}
           onClick={redo}
           className="h-9 w-9 rounded-lg border border-[var(--border)] inline-flex items-center justify-center disabled:opacity-40"
@@ -115,7 +114,7 @@ export function MindMapEditorToolbar({
         </button>
         <button
           type="button"
-          title={t.mindMapsZoomOut as string}
+          title={t("mindmaps:mindMapsZoomOut")}
           onClick={() => {
             const viewport = viewportRef.current;
             setView((current) =>
@@ -139,7 +138,7 @@ export function MindMapEditorToolbar({
         </span>
         <button
           type="button"
-          title={t.mindMapsZoomIn as string}
+          title={t("mindmaps:mindMapsZoomIn")}
           onClick={() => {
             const viewport = viewportRef.current;
             setView((current) =>
@@ -160,7 +159,7 @@ export function MindMapEditorToolbar({
         </button>
         <button
           type="button"
-          title={t.mindMapsFit as string}
+          title={t("mindmaps:mindMapsFit")}
           onClick={() => {
             const viewport = viewportRef.current;
             const content = contentRef.current;
@@ -182,7 +181,7 @@ export function MindMapEditorToolbar({
           }}
           className="h-9 px-3 rounded-lg border border-[var(--border)] text-sm font-semibold"
         >
-          {t.mindMapsFit as string}
+          {t("mindmaps:mindMapsFit")}
         </button>
       </div>
     </div>

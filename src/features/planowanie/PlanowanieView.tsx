@@ -278,11 +278,7 @@ export default function PlanowanieView({
           </div>
         ) : planningTab === "mindmaps" ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
-            <MindMapsTab
-              apiFetch={apiFetch}
-              title={(t.tabMindMaps as string) ?? "Mapy myśli"}
-              t={t}
-            />
+            <MindMapsTab apiFetch={apiFetch} title={(t.tabMindMaps as string) ?? "Mapy myśli"} />
           </div>
         ) : planningTab === "board" ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)] min-h-0">
