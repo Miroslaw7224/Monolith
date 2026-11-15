@@ -91,3 +91,53 @@ export type CourseInput = Omit<Course, "id">;
 export type CourseEntry = Course & { certificateMissing: boolean };
 
 export type CourseList = { courses: CourseEntry[]; skipped: number };
+
+// ── agenci i polecenia (`Arsenal/agents.yaml`) ────────────────────────────────────
+
+export const AGENTS_FILE = "Arsenal/agents.yaml";
+/** Jedna lista na cały plik (G1): rodzaj wpisu w polu `kind`. */
+export const AGENTS_KEY = "items";
+
+export const AGENT_KINDS = ["agent", "preset", "script"] as const;
+export type AgentKind = (typeof AGENT_KINDS)[number];
+
+/** Kto do czego: agent, rola, model/tier, kiedy używać. */
+export type AgentRow = {
+  kind: "agent";
+  id: string;
+  name: string;
+  role: string;
+  model?: string;
+  when?: string;
+};
+
+/** Szablon polecenia `ask-helper`; tylko do kopiowania. */
+export type PresetRow = {
+  kind: "preset";
+  id: string;
+  name: string;
+  command: string;
+  description?: string;
+};
+
+export type ScriptRow = {
+  kind: "script";
+  id: string;
+  name: string;
+  path: string;
+  description?: string;
+  example?: string;
+};
+
+export type AgentsEntry = AgentRow | PresetRow | ScriptRow;
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+/** Pola edytowalne (formularz i `PUT`). */
+export type AgentsEntryInput = DistributiveOmit<AgentsEntry, "id">;
+
+export type AgentsOverview = {
+  agents: AgentRow[];
+  presets: PresetRow[];
+  scripts: ScriptRow[];
+  skipped: number;
+};

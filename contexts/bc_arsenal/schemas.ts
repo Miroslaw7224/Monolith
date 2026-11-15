@@ -3,6 +3,8 @@ import { isIsoDay } from "@/lib/schema/archive-date";
 import { isHttpUrl, isSafeCertificatePath } from "@/lib/schema/course-fields";
 import type {
   ArsenalCatalog,
+  AgentsEntry,
+  AgentsOverview,
   ArsenalEntry,
   CourseEntry,
   CourseList,
@@ -212,4 +214,121 @@ export function toCourseDto(entry: CourseEntry): CourseDto {
 
 export function toCoursesDto(list: CourseList): CoursesDto {
   return { courses: list.courses.map(toCourseDto), skipped: list.skipped };
+}
+
+// ── agenci i polecenia ───────────────────────────────────────────────────────────
+
+const requiredText = (max: number) => z.string().trim().min(1).max(max);
+
+const AgentInputSchema = z.object({
+  kind: z.literal("agent"),
+  name: requiredText(100),
+  role: requiredText(500),
+  model: optionalText(200),
+  when: optionalText(1000),
+});
+const PresetInputSchema = z.object({
+  kind: z.literal("preset"),
+  name: requiredText(100),
+  command: requiredText(2000),
+  description: optionalText(1000),
+});
+const ScriptInputSchema = z.object({
+  kind: z.literal("script"),
+  name: requiredText(100),
+  path: requiredText(300),
+  description: optionalText(1000),
+  example: optionalText(2000),
+});
+
+/** Body `POST /api/arsenal/agents` i `PUT /api/arsenal/agents/[entryId]`. */
+export const AgentEntryInputSchema = z.discriminatedUnion("kind", [
+  AgentInputSchema,
+  PresetInputSchema,
+  ScriptInputSchema,
+]);
+export type AgentEntryInputDto = z.input<typeof AgentEntryInputSchema>;
+
+const AgentRowDtoSchema = z.object({
+  kind: z.literal("agent"),
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  model: z.string().optional(),
+  when: z.string().optional(),
+});
+const PresetRowDtoSchema = z.object({
+  kind: z.literal("preset"),
+  id: z.string(),
+  name: z.string(),
+  command: z.string(),
+  description: z.string().optional(),
+});
+const ScriptRowDtoSchema = z.object({
+  kind: z.literal("script"),
+  id: z.string(),
+  name: z.string(),
+  path: z.string(),
+  description: z.string().optional(),
+  example: z.string().optional(),
+});
+
+export const AgentEntryDtoSchema = z.discriminatedUnion("kind", [
+  AgentRowDtoSchema,
+  PresetRowDtoSchema,
+  ScriptRowDtoSchema,
+]);
+export const AgentsDtoSchema = z.object({
+  agents: z.array(AgentRowDtoSchema),
+  presets: z.array(PresetRowDtoSchema),
+  scripts: z.array(ScriptRowDtoSchema),
+  skipped: z.number(),
+});
+
+export type AgentEntryDto = z.infer<typeof AgentEntryDtoSchema>;
+export type AgentRowDto = z.infer<typeof AgentRowDtoSchema>;
+export type PresetRowDto = z.infer<typeof PresetRowDtoSchema>;
+export type ScriptRowDto = z.infer<typeof ScriptRowDtoSchema>;
+export type AgentsDto = z.infer<typeof AgentsDtoSchema>;
+
+export function toAgentEntryDto(entry: AgentsEntry): AgentEntryDto {
+  const optional = (key: string, value: string | undefined) =>
+    value === undefined ? {} : { [key]: value };
+  switch (entry.kind) {
+    case "agent":
+      return {
+        kind: "agent",
+        id: entry.id,
+        name: entry.name,
+        role: entry.role,
+        ...optional("model", entry.model),
+        ...optional("when", entry.when),
+      };
+    case "preset":
+      return {
+        kind: "preset",
+        id: entry.id,
+        name: entry.name,
+        command: entry.command,
+        ...optional("description", entry.description),
+      };
+    case "script":
+      return {
+        kind: "script",
+        id: entry.id,
+        name: entry.name,
+        path: entry.path,
+        ...optional("description", entry.description),
+        ...optional("example", entry.example),
+      };
+  }
+}
+
+export function toAgentsDto(overview: AgentsOverview): AgentsDto {
+  return {
+    agents: overview.agents.map((e) => toAgentEntryDto(e) as AgentRowDto),
+    presets: overview.presets.map((e) => toAgentEntryDto(e) as PresetRowDto),
+    scripts: overview.scripts.map((e) => toAgentEntryDto(e) as ScriptRowDto),
+    skipped: overview.skipped,
+  };
 }
