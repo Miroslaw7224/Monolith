@@ -1,5 +1,5 @@
 import React from "react";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import HomeView from "@/src/features/home/HomeView";
 import type { CockpitDto } from "@/contexts/bc_cockpit/schemas";
@@ -159,6 +159,14 @@ describe("HomeView po angielsku", () => {
     respond(cockpitWithEnergyQueue);
     render(<HomeView {...defaultProps} />);
     await screen.findByRole("region", { name: "Kolejka na dziś" });
+    // Historia commitów woła API we własnym efekcie, już po nagłówku kolejki:
+    // bez tego oczekiwania jej fetch mógł trafić do licznika dopiero po zmianie języka.
+    // (InboxPanel renderuje się tylko przy `data.inbox`, którego ten zestaw nie ma.)
+    await waitFor(() => {
+      const urls = mockApiFetch.mock.calls.map((call) => String(call[0]));
+      expect(urls).toContain("/api/cockpit");
+      expect(urls.some((url) => url.startsWith("/api/cockpit/commits"))).toBe(true);
+    });
     const callsBefore = mockApiFetch.mock.calls.length;
 
     await act(async () => {
