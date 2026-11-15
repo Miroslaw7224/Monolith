@@ -76,6 +76,16 @@ describe("POST /api/tasks", () => {
     );
   });
 
+  it("passes project to the service and returns it in the DTO", async () => {
+    mockCreateTask.mockResolvedValue({ ...fakeTask, project: "monolith" });
+    const res = await POST(
+      makeRequest({ method: "POST", body: { title: "Napisać testy", project: "monolith" } })
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).project).toBe("monolith");
+    expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project: "monolith" }));
+  });
+
   it("returns 400 for invalid JSON body", async () => {
     const req = new NextRequest("http://localhost/api/tasks", {
       method: "POST",

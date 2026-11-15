@@ -9,6 +9,8 @@ export type TaskLine = {
   description: string;
   due_date: string | null;
   priority: number | null;
+  /** Id projektu z rejestru (`[project:: <id>]`); `null`, gdy zadanie nie ma projektu. */
+  project: string | null;
   order: number | null;
   created_at: string | null;
   updated_at: string | null;
@@ -65,6 +67,7 @@ export function formatTaskLine(task: TaskLine): string {
   ];
   if (task.due_date !== null) fields.push(["due", task.due_date]);
   if (task.priority !== null) fields.push(["priority", String(task.priority)]);
+  if (task.project !== null) fields.push(["project", task.project]);
   if (task.order !== null) fields.push(["order", String(task.order)]);
   if (task.link !== "") fields.push(["link", task.link]);
   if (task.description !== "") fields.push(["desc", task.description]);
@@ -132,6 +135,7 @@ export function parseTaskLine(line: string): TaskLine | null {
     description: fields.desc ?? "",
     due_date: fields.due ?? null,
     priority: numberField(fields.priority, "priority"),
+    project: fields.project ?? null,
     order: numberField(fields.order, "order"),
     created_at: fields.created ?? null,
     updated_at: fields.updated ?? null,

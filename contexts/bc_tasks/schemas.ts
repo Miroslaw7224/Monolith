@@ -11,6 +11,7 @@ export const CreateTaskBodySchema = looseObject({
   status: z.unknown().optional(),
   due_date: z.unknown().optional(),
   priority: z.unknown().optional(),
+  project: z.unknown().optional(),
 }).superRefine((body, ctx) => {
   if (!body.title || typeof body.title !== "string") {
     ctx.addIssue("title required");
@@ -24,6 +25,7 @@ export const UpdateTaskBodySchema = looseObject({
   status: z.unknown().optional(),
   due_date: z.unknown().optional(),
   priority: z.unknown().optional(),
+  project: z.unknown().optional(),
   order: z.unknown().optional(),
 });
 
@@ -55,6 +57,7 @@ export type TaskDto = {
   status: "deferred" | "todo" | "in_progress" | "to_review" | "done";
   due_date: string | null;
   priority: number | null;
+  project?: string;
   order?: number;
   created_at?: string;
   updated_at?: string;
@@ -77,6 +80,7 @@ export function toTaskDto(task: Task): TaskDto {
     status: task.status,
     due_date: task.due_date,
     priority: task.priority,
+    ...(task.project !== undefined ? { project: task.project } : {}),
     order: task.order,
     created_at: task.created_at,
     updated_at: task.updated_at,

@@ -24,6 +24,7 @@ const task = (over: Partial<TaskLine>): TaskLine => ({
   description: "",
   due_date: null,
   priority: null,
+  project: null,
   order: 0,
   created_at: "2026-11-12T10:00:00.000Z",
   updated_at: null,

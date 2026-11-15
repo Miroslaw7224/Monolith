@@ -58,6 +58,7 @@ export function normalizeTask(row: DumpRow, warnings: string[]): TaskLine {
     description: text(data.description),
     due_date: typeof data.due_date === "string" && data.due_date !== "" ? data.due_date : null,
     priority: finiteNumber(data.priority),
+    project: null,
     order: finiteNumber(data.order),
     created_at: created(data),
     updated_at: updated(data),

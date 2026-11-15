@@ -7,6 +7,8 @@ export type Task = {
   status: "deferred" | "todo" | "in_progress" | "to_review" | "done";
   due_date: string | null;
   priority: number | null;
+  /** Id projektu z rejestru (z `[project:: …]`); brak, gdy zadanie nie ma projektu. */
+  project?: string;
   order?: number;
   created_at?: string;
   updated_at?: string;
