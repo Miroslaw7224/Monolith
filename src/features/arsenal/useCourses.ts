@@ -30,7 +30,13 @@ export function useCourses(apiFetch: ApiFetch) {
       .finally(() => setLoading(false));
   }, [refetch]);
 
-  /** Bez `id` tworzy kurs (POST), z `id` zapisuje zmiany (PUT); błąd rzuca z komunikatem serwera. */
+  /** Zapis się udał: błąd odświeżenia nie może wyglądać jak błąd zapisu (ponowny zapis dałby duplikat). */
+  const refetchAfterWrite = useCallback(
+    () => refetch().catch((err) => setError(messageOf(err))),
+    [refetch]
+  );
+
+  /** Bez `id` tworzy kurs (POST), z `id` zapisuje zmiany (PUT); błąd zapisu rzuca z komunikatem serwera. */
   const save = useCallback(
     async (input: CourseInputDto, id?: string): Promise<void> => {
       const res = await apiFetch(id === undefined ? BASE : `${BASE}/${encodeURIComponent(id)}`, {
@@ -39,18 +45,18 @@ export function useCourses(apiFetch: ApiFetch) {
         body: JSON.stringify(input),
       });
       if (!res.ok) throw new Error(await errorText(res));
-      await refetch();
+      await refetchAfterWrite();
     },
-    [apiFetch, refetch]
+    [apiFetch, refetchAfterWrite]
   );
 
   const remove = useCallback(
     async (id: string): Promise<void> => {
       const res = await apiFetch(`${BASE}/${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!res.ok) throw new Error(await errorText(res));
-      await refetch();
+      await refetchAfterWrite();
     },
-    [apiFetch, refetch]
+    [apiFetch, refetchAfterWrite]
   );
 
   return { courses, skipped, loading, error, save, remove };

@@ -143,6 +143,7 @@ export function CoursesView({ apiFetch }: { apiFetch: ApiFetch }) {
         <button
           type="button"
           className="asv-btn asv-btn--primary"
+          disabled={c.loading || c.error !== null}
           onClick={() => setEditing("new")}
         >
           {t("courses:add")}

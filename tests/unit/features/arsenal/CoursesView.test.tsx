@@ -180,4 +180,13 @@ describe("CoursesView", () => {
     expect(await screen.findByRole("button", { name: "Add course" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Certificate" })).toBeInTheDocument();
   });
+
+  it("przycisk Dodaj kurs jest nieaktywny, gdy lista się nie załadowała", async () => {
+    const apiFetch = vi.fn(
+      async () => ({ ok: false, status: 500, json: async () => ({ error: "Awaria" }) }) as Response
+    );
+    render(<CoursesView apiFetch={apiFetch} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Awaria");
+    expect(screen.getByRole("button", { name: "Dodaj kurs" })).toBeDisabled();
+  });
 });

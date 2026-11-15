@@ -42,7 +42,9 @@ function toCourse(record: YamlRecord): Course | null {
     url,
     status: record.status,
     ...(provider !== undefined && { provider }),
-    ...(completed !== undefined && isIsoDay(completed) && { completed }),
+    ...(record.status === "ukonczony" &&
+      completed !== undefined &&
+      isIsoDay(completed) && { completed }),
     ...(certificateUrl !== undefined && isHttpUrl(certificateUrl) && { certificateUrl }),
     ...(certificateFile !== undefined && { certificateFile }),
     ...(note !== undefined && { note }),

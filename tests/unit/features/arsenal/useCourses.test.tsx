@@ -77,4 +77,39 @@ describe("useCourses", () => {
       )
     ).toBe(true);
   });
+
+  it("save pokazuje pierwszy komunikat walidacji pola z odpowiedzi 400", async () => {
+    const { result } = setup((_url, init) =>
+      init?.method === "POST"
+        ? json(
+            {
+              error: "Validation failed",
+              details: {
+                certificateFile: ["certificateFile must be a relative path inside Documents/"],
+              },
+            },
+            false,
+            400
+          )
+        : json(list)
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await expect(act(() => result.current.save(input))).rejects.toThrow(
+      "Validation failed: certificateFile must be a relative path inside Documents/"
+    );
+  });
+
+  it("zapis się udał, a odświeżenie padło: save nie rzuca (formularz się zamknie, brak duplikatu)", async () => {
+    let posted = false;
+    const { result } = setup((_url, init) => {
+      if (init?.method === "POST") {
+        posted = true;
+        return json({});
+      }
+      return posted ? json({ error: "Odświeżenie padło" }, false, 500) : json(list);
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await act(() => result.current.save(input));
+    expect(result.current.error).toBe("Odświeżenie padło");
+  });
 });

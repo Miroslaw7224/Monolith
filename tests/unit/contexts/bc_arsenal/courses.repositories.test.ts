@@ -38,6 +38,11 @@ courses:
     url: https://c.example.com
     status: plan
     certificate_file: ../tajne.pdf
+  - id: c6
+    title: Data przy statusie plan
+    url: https://e.example.com
+    status: plan
+    completed: 2026-03-01
   - id: c5
     title: Zła data i zły link certyfikatu
     url: https://d.example.com
@@ -57,7 +62,7 @@ describe("readCourses", () => {
     vault.write(FILE, HAND_WRITTEN);
     const { courses, skipped } = readCourses();
     expect(skipped).toBe(3);
-    expect(courses.map((c) => c.id)).toEqual(["c1", "c5"]);
+    expect(courses.map((c) => c.id)).toEqual(["c1", "c6", "c5"]);
     expect(courses[0]).toEqual({
       id: "c1",
       title: "Kurs MCP",
@@ -69,6 +74,11 @@ describe("readCourses", () => {
       certificateFile: "certyfikaty/mcp.pdf",
       note: "Ręczna notatka",
     });
+  });
+
+  it("completed bez statusu ukonczony jest odrzucane (niezmiennik K3 przy ręcznej edycji)", () => {
+    vault.write(FILE, HAND_WRITTEN);
+    expect(readCourses().courses.find((c) => c.id === "c6")!.completed).toBeUndefined();
   });
 
   it("zła data i zły link certyfikatu odrzuca tylko pole, wpis zostaje", () => {
@@ -110,7 +120,7 @@ describe("replaceCourse", () => {
       expect(key in item).toBe(false);
     }
     expect(item.x_extra).toBe("zostaje");
-    expect(stored()).toHaveLength(5); // pominięte wpisy przeżywają zapis
+    expect(stored()).toHaveLength(6); // pominięte wpisy przeżywają zapis
   });
 
   it("nieistniejące id to DomainError 404", async () => {
@@ -128,7 +138,7 @@ describe("removeCourse", () => {
   it("usuwa wpis; brak wpisu nie zmienia pliku", async () => {
     vault.write(FILE, HAND_WRITTEN);
     await removeCourse("c1");
-    expect(stored().map((i) => i.id)).toEqual(["c2", "c3", "c4", "c5"]);
+    expect(stored().map((i) => i.id)).toEqual(["c2", "c3", "c4", "c6", "c5"]);
     const before = vault.read(FILE);
     await removeCourse("brak");
     expect(vault.read(FILE)).toBe(before);
