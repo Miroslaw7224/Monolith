@@ -17,8 +17,8 @@ describe("CalendarEventForm: link do spotkania", () => {
         onCancel={() => {}}
       />
     );
-    expect(screen.getByLabelText("Meeting link")).toHaveValue(LINK);
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    expect(screen.getByLabelText("Link do spotkania")).toHaveValue(LINK);
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
     expect(onSubmit.mock.calls[0][0]).toMatchObject({ title: "Career Guide", link: LINK });
   });
 
@@ -31,12 +31,12 @@ describe("CalendarEventForm: link do spotkania", () => {
         onCancel={() => {}}
       />
     );
-    const input = screen.getByLabelText("Meeting link");
+    const input = screen.getByLabelText("Link do spotkania");
     fireEvent.change(input, { target: { value: `  ${LINK}/x  ` } });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
     expect(onSubmit.mock.calls[0][0].link).toBe(`${LINK}/x`);
     fireEvent.change(input, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
     expect(onSubmit.mock.calls[1][0].link).toBe("");
   });
 
@@ -48,14 +48,16 @@ describe("CalendarEventForm: link do spotkania", () => {
         onCancel={() => {}}
       />
     );
-    const open = screen.getByRole("link", { name: /Open meeting/ });
+    const open = screen.getByRole("link", { name: /Dołącz/ });
     expect(open).toHaveAttribute("href", LINK);
     expect(open).toHaveAttribute("target", "_blank");
     expect(open).toHaveAttribute("rel", "noopener noreferrer");
-    fireEvent.change(screen.getByLabelText("Meeting link"), { target: { value: "to nie url" } });
-    expect(screen.queryByRole("link", { name: /Open meeting/ })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Meeting link"), { target: { value: "" } });
-    expect(screen.queryByRole("link", { name: /Open meeting/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Link do spotkania"), {
+      target: { value: "to nie url" },
+    });
+    expect(screen.queryByRole("link", { name: /Dołącz/ })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Link do spotkania"), { target: { value: "" } });
+    expect(screen.queryByRole("link", { name: /Dołącz/ })).not.toBeInTheDocument();
   });
 });
 
@@ -70,7 +72,7 @@ describe("CalendarEventForm: brief spotkania", () => {
       />
     );
     expect(screen.getByLabelText("Brief")).toHaveValue("Punkt 1\nPunkt 2");
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
     expect(onSubmit.mock.calls[0][0].brief).toBe("Punkt 1\nPunkt 2");
   });
 
@@ -85,10 +87,10 @@ describe("CalendarEventForm: brief spotkania", () => {
     );
     const field = screen.getByLabelText("Brief");
     fireEvent.change(field, { target: { value: "  Punkt\n " } });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
     expect(onSubmit.mock.calls[0][0].brief).toBe("Punkt");
     fireEvent.change(field, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
     expect(onSubmit.mock.calls[1][0].brief).toBe("");
   });
 });

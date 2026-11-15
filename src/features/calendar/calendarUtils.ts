@@ -1,4 +1,6 @@
 import type { CalendarEventDto } from "@/contexts/bc_calendar/schemas";
+import type { Lang } from "@/src/i18n";
+import { formatDayMonth, formatMonthGenitive } from "@/src/i18n/format";
 
 export type CalendarEvent = CalendarEventDto;
 
@@ -142,12 +144,16 @@ export const MONTH_NAMES: Record<"pl" | "en", string[]> = {
   ],
 };
 
-export const DAY_NAMES: Record<"pl" | "en", string[]> = {
-  pl: ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "So"],
-  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-};
-
 export const CALENDAR_MAX_STACK = MAX_STACK;
+
+export type WeekdayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+
+const WEEKDAY_BY_GET_DAY: WeekdayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+/** Klucz dnia wg `Date.getDay()` (0 = niedziela). */
+export function weekdayKey(date: Date): WeekdayKey {
+  return WEEKDAY_BY_GET_DAY[date.getDay()];
+}
 
 /* ---------- Tydzień od poniedziałku, siatka miesiąca (karta wg makiety 02) ---------- */
 
@@ -200,45 +206,19 @@ export function monthGrid(
   return { start: weeks[0][0], end: weeks[weeks.length - 1][6], weeks };
 }
 
-export const WEEKDAY_SHORT_PL = ["pon", "wt", "śr", "czw", "pt", "sob", "nd"];
-export const WEEKDAY_MINI_PL = ["pn", "wt", "śr", "cz", "pt", "sb", "nd"];
-export const WEEKDAY_LONG_PL = [
-  "poniedziałek",
-  "wtorek",
-  "środa",
-  "czwartek",
-  "piątek",
-  "sobota",
-  "niedziela",
-];
-export const MONTH_GENITIVE_PL = [
-  "stycznia",
-  "lutego",
-  "marca",
-  "kwietnia",
-  "maja",
-  "czerwca",
-  "lipca",
-  "sierpnia",
-  "września",
-  "października",
-  "listopada",
-  "grudnia",
-];
-
 /** Indeks 0 = poniedziałek. */
 export function weekdayIndex(ymd: string): number {
   return (parseYmd(ymd).getDay() + 6) % 7;
 }
 
-/** `9–15 listopada` albo `30 listopada – 6 grudnia`. */
-export function weekRangeLabel(dates: string[]): string {
+/** Zakres tygodnia wg języka (Intl). */
+export function weekRangeLabelForLang(dates: string[], lang: Lang): string {
   const a = parseYmd(dates[0]);
   const b = parseYmd(dates[dates.length - 1]);
-  if (a.getMonth() === b.getMonth()) {
-    return `${a.getDate()}–${b.getDate()} ${MONTH_GENITIVE_PL[b.getMonth()]}`;
+  if (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()) {
+    return `${a.getDate()}–${b.getDate()} ${formatMonthGenitive(b, lang)}`;
   }
-  return `${a.getDate()} ${MONTH_GENITIVE_PL[a.getMonth()]} – ${b.getDate()} ${MONTH_GENITIVE_PL[b.getMonth()]}`;
+  return `${formatDayMonth(a, lang)} – ${formatDayMonth(b, lang)}`;
 }
 
 /** `5 h 45`, `45 min`, `2 h`. */

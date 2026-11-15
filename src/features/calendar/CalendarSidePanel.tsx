@@ -1,14 +1,21 @@
 import React from "react";
 import type { CalendarEvent } from "./calendarUtils";
 import {
-  MONTH_NAMES,
-  WEEKDAY_MINI_PL,
   formatClock,
   formatHoursMinutes,
   parseYmd,
+  weekdayKey,
+  type WeekdayKey,
 } from "./calendarUtils";
 import { briefLines } from "@/src/features/home/cockpitFormat";
 import type { DeepWindowDto } from "@/contexts/bc_cockpit/schemas";
+import { useT } from "@/src/i18n/useT";
+import { useLang } from "@/src/i18n/useLang";
+import { formatMonthLong } from "@/src/i18n/format";
+
+function calendarWeekdayMiniKey(k: WeekdayKey): `planning:calendarWeekdayMini.${WeekdayKey}` {
+  return `planning:calendarWeekdayMini.${k}`;
+}
 
 interface MiniMonthProps {
   weeks: string[][];
@@ -27,18 +34,30 @@ export function CalendarMiniMonth({
   eventDates,
   onPick,
 }: MiniMonthProps) {
+  const t = useT();
+  const { lang } = useLang();
   const inWeek = new Set(weekDates);
+  const headerWeek = weeks[0] ?? [];
   return (
-    <section className="panel" aria-label="Mini-kalendarz">
+    <section className="panel" aria-label={t("planning:calendarMiniMonthAria")}>
       <div className="panel__head">
         <h2 className="panel__title">
-          <b>{MONTH_NAMES.pl[viewMonth]}</b>
+          <b>
+            {formatMonthLong(
+              new Date(
+                weeks[0]?.[0] ? parseYmd(weeks[0][0]).getFullYear() : new Date().getFullYear(),
+                viewMonth,
+                1
+              ),
+              lang
+            )}
+          </b>
         </h2>
       </div>
       <div className="kal-mini">
-        {WEEKDAY_MINI_PL.map((d) => (
-          <span key={d} className="h">
-            {d}
+        {headerWeek.map((date) => (
+          <span key={date} className="h">
+            {t(calendarWeekdayMiniKey(weekdayKey(parseYmd(date))))}
           </span>
         ))}
         {weeks.flat().map((date) => {
@@ -73,17 +92,18 @@ interface EventDetailProps {
 }
 
 export function CalendarEventDetail({ event, onEdit }: EventDetailProps) {
+  const t = useT();
   if (!event) {
     return (
-      <section className="panel" aria-label="Wybrane wydarzenie">
-        <p className="kal-state kal-state--inline">Wybierz wydarzenie, żeby zobaczyć szczegóły.</p>
+      <section className="panel" aria-label={t("planning:calendarEventDetailAria")}>
+        <p className="kal-state kal-state--inline">{t("planning:calendarDetailEmpty")}</p>
       </section>
     );
   }
   const lines = briefLines(event.brief ?? null);
   const link = event.link && /^https?:\/\/\S+$/i.test(event.link) ? event.link : null;
   return (
-    <section className="panel panel--active" aria-label="Wybrane wydarzenie">
+    <section className="panel panel--active" aria-label={t("planning:calendarEventDetailAria")}>
       <div className="row">
         <span className="chip chip--accent">
           {formatClock(event.start_minutes)}–
@@ -99,16 +119,16 @@ export function CalendarEventDetail({ event, onEdit }: EventDetailProps) {
       <div className="row">
         {link ? (
           <a className="btn btn--sm" href={link} target="_blank" rel="noopener noreferrer">
-            Dołącz ↗
+            {t("planning:calendarFormOpenMeeting")}
           </a>
         ) : null}
         <button type="button" className="btn btn--sm btn--ghost" onClick={() => onEdit(event)}>
-          Edytuj
+          {t("planning:calendarDetailEdit")}
         </button>
       </div>
       {lines.length > 0 && (
         <div className="kal-sec">
-          <h4>Brief</h4>
+          <h4>{t("planning:calendarFormBrief")}</h4>
           <ol>
             {lines.map((line, i) => (
               <li key={i}>{line}</li>
@@ -121,15 +141,17 @@ export function CalendarEventDetail({ event, onEdit }: EventDetailProps) {
 }
 
 export function CalendarSlotPlanner({ windows }: { windows: DeepWindowDto[] }) {
+  const t = useT();
   return (
-    <section className="panel kal-slots" aria-label="Planer slotów">
+    <section className="panel kal-slots" aria-label={t("planning:calendarSlotPlannerAria")}>
       <div className="panel__head">
         <h2 className="panel__title">
-          <b>Planer slotów</b> · dziś
+          <b>{t("planning:calendarSlotPlannerTitle")}</b>
+          {t("planning:calendarSlotPlannerToday")}
         </h2>
       </div>
       {windows.length === 0 ? (
-        <p className="kal-state kal-state--inline">Brak wolnych okien na resztę dnia.</p>
+        <p className="kal-state kal-state--inline">{t("planning:calendarSlotsEmpty")}</p>
       ) : (
         <ul className="list">
           {windows.map((w) => (

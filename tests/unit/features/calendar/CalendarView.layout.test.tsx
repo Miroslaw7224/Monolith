@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 test("tydzień: kafle, siatka z dzisiejszym dniem i zakładki widoków", async () => {
-  render(<CalendarView apiFetch={apiFetch} lang="pl" t={{}} />);
+  render(<CalendarView apiFetch={apiFetch} />);
 
   expect(await screen.findByLabelText("Liczby tygodnia")).toBeInTheDocument();
   expect(await screen.findByRole("button", { name: /Przegląd tygodnia/ })).toBeInTheDocument();
@@ -56,7 +56,7 @@ test("tydzień: kafle, siatka z dzisiejszym dniem i zakładki widoków", async (
 
 test("klik w wydarzenie pokazuje szczegóły z briefem i linkiem do spotkania", async () => {
   const user = userEvent.setup();
-  render(<CalendarView apiFetch={apiFetch} lang="pl" t={{}} />);
+  render(<CalendarView apiFetch={apiFetch} />);
 
   await user.click(await screen.findByRole("button", { name: /Przegląd tygodnia/ }));
 
@@ -71,7 +71,7 @@ test("klik w wydarzenie pokazuje szczegóły z briefem i linkiem do spotkania", 
 
 test("agenda wypisuje wydarzenia dnia, a planer pokazuje okno z Kokpitu", async () => {
   const user = userEvent.setup();
-  render(<CalendarView apiFetch={apiFetch} lang="pl" t={{}} />);
+  render(<CalendarView apiFetch={apiFetch} />);
 
   await user.click(await screen.findByRole("tab", { name: "Agenda" }));
   expect(screen.getByLabelText("Agenda")).toHaveTextContent("Przegląd tygodnia");

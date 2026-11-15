@@ -228,8 +228,6 @@ export default function PlanowanieView({
         {planningTab === "calendar" ? (
           <CalendarView
             apiFetch={apiFetch}
-            lang={lang}
-            t={t}
             userTags={userTags}
             refreshTrigger={calendarRefreshKey}
             activeSession={activeSession}
@@ -242,13 +240,7 @@ export default function PlanowanieView({
         ) : planningTab === "activity" ? (
           <ActivityLog apiFetch={apiFetch} userTags={userTags} />
         ) : planningTab === "tags" ? (
-          <TagsSection
-            apiFetch={apiFetch}
-            lang={lang}
-            t={t}
-            userTags={userTags}
-            onTagsChange={fetchTags}
-          />
+          <TagsSection apiFetch={apiFetch} userTags={userTags} onTagsChange={fetchTags} />
         ) : planningTab === "notes" ? (
           <NotesPanel
             notes={notes}

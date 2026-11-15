@@ -25,7 +25,7 @@ test("loads the visible month and the next month without posting", async () => {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  render(<CalendarView apiFetch={apiFetch} lang="pl" t={{}} />);
+  render(<CalendarView apiFetch={apiFetch} />);
 
   await waitFor(() => {
     expect(apiFetch).toHaveBeenCalledWith(
