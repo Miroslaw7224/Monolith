@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { setLanguage } from "@/src/i18n";
 import { formatDayMonth, formatWeekdayShort } from "@/src/i18n/format";
+import { projectKindLabel } from "@/src/i18n/projectKind";
 import {
   anchorLabel,
   commitsLabel,
@@ -66,5 +67,17 @@ describe("etykiety Kokpitu po polsku (plural)", () => {
   test("daty", () => {
     expect(formatLongDate(today)).toBe("Środa, 11 listopada");
     expect(formatDayMonth(today)).toBe("11 listopada");
+  });
+});
+
+describe("projectKindLabel", () => {
+  test("etykiety rodzajów projektów w obu językach", async () => {
+    expect(projectKindLabel("etat")).toBe("Etat");
+    expect(projectKindLabel("wlasny")).toBe("Własny");
+    expect(projectKindLabel("biblioteka")).toBe("Biblioteka");
+    await setLanguage("en");
+    expect(projectKindLabel("etat")).toBe("Day job");
+    expect(projectKindLabel("wlasny")).toBe("Own");
+    expect(projectKindLabel("biblioteka")).toBe("Library");
   });
 });

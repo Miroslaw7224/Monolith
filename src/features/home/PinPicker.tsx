@@ -1,5 +1,6 @@
 // src/features/home/PinPicker.tsx
 import React, { useEffect, useState } from "react";
+import i18n from "@/src/i18n";
 import { useT } from "@/src/i18n/useT";
 
 const MAX_PINNED = 3;
@@ -32,7 +33,7 @@ export function PinPicker({
         // id spoza rejestru (projekt usunięty) odpada, żeby nie blokował limitu i nie wracał przy zapisie
         setSelected((prev) => prev.filter((id) => list.some((p) => p.id === id)));
       })
-      .catch(() => setError(t("home:pin.loadFailed")));
+      .catch(() => setError(i18n.t("home:pin.loadFailed")));
   }, [apiFetch]);
 
   const toggle = (id: string) =>

@@ -154,4 +154,18 @@ describe("HomeView po angielsku", () => {
     fireEvent.click(within(queue).getByRole("button", { name: "deep" }));
     expect(head).toHaveTextContent("1 zadanie");
   });
+
+  test("zmiana języka nie wczytuje Kokpitu ani Inboxu ponownie", async () => {
+    respond(cockpitWithEnergyQueue);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByRole("region", { name: "Kolejka na dziś" });
+    const callsBefore = mockApiFetch.mock.calls.length;
+
+    await act(async () => {
+      await setLanguage("en");
+    });
+    await screen.findByRole("region", { name: "Today's queue" });
+
+    expect(mockApiFetch.mock.calls.length).toBe(callsBefore);
+  });
 });

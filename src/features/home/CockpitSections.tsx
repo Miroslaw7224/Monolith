@@ -7,7 +7,7 @@ import type {
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
-import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
+import { projectKindLabel } from "@/src/i18n/projectKind";
 import { EnergySwitch } from "./EnergySwitch";
 import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
@@ -89,7 +89,7 @@ function TopicCard({
           ) : null}
           {topic.kind ? (
             <span className={`kok-badge kok-badge--kind-${topic.kind}`}>
-              {PROJECT_KIND_LABELS[topic.kind]}
+              {projectKindLabel(topic.kind)}
             </span>
           ) : null}
           {topic.companyData ? (
@@ -192,7 +192,7 @@ function ItemProjectBadges({ item }: { item: QueueGroupDto["items"][number] }) {
   return (
     <small className="kok-list__sub kok-list__chips">
       <span className={`kok-badge kok-badge--kind-${item.project.kind}`}>
-        {PROJECT_KIND_LABELS[item.project.kind]} · {item.project.name}
+        {projectKindLabel(item.project.kind)} · {item.project.name}
       </span>
       {item.project.companyData ? (
         <span className="kok-badge kok-badge--warn">{t("home:inbox.companyData")}</span>
@@ -225,7 +225,7 @@ function QueueGroupCard({
         <span className="kok-group__badges">
           {group.kind ? (
             <span className={`kok-badge kok-badge--kind-${group.kind}`}>
-              {PROJECT_KIND_LABELS[group.kind]}
+              {projectKindLabel(group.kind)}
             </span>
           ) : null}
           {group.companyData ? (

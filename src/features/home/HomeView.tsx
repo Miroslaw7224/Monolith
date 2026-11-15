@@ -17,6 +17,7 @@ import {
   weekNumber,
   windowsLabel,
 } from "./cockpitFormat";
+import i18n from "@/src/i18n";
 import { useT } from "@/src/i18n/useT";
 
 interface HomeViewProps {
@@ -58,11 +59,11 @@ export default function HomeView({
       setCockpit((await res.json()) as CockpitDto);
       setCockpitError(null);
     } catch (err) {
-      setCockpitError(err instanceof Error ? err.message : t("home:view.genericError"));
+      setCockpitError(err instanceof Error ? err.message : i18n.t("home:view.genericError"));
     } finally {
       setLoading(false);
     }
-  }, [apiFetch, t]);
+  }, [apiFetch]);
 
   useEffect(() => {
     void loadCockpit();

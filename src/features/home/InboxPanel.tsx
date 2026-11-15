@@ -1,6 +1,7 @@
 // src/features/home/InboxPanel.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { InboxDto, InboxItemDto, MoveInboxBody } from "@/contexts/bc_inbox/schemas";
+import i18n from "@/src/i18n";
 import { useT } from "@/src/i18n/useT";
 import { InboxItemDialog } from "./InboxItemDialog";
 
@@ -36,10 +37,10 @@ export function InboxPanel({
       if (Array.isArray(data.items)) setInbox(data);
       return true;
     } catch {
-      setError(t("home:inbox.loadFailed"));
+      setError(i18n.t("home:inbox.loadFailed"));
       return false;
     }
-  }, [apiFetch, t]);
+  }, [apiFetch]);
 
   useEffect(() => {
     void load();
