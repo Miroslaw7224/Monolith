@@ -500,3 +500,108 @@ describe("mergeChangelog", () => {
     );
   });
 });
+
+describe("parseBugs: pola wpisu", () => {
+  const FULL = [
+    "# Bugs — X",
+    "",
+    "## Aktywne",
+    "",
+    "### GP-001 — Porty",
+    "- **Priorytet:** medium",
+    "- **Plik:** `start_v2.bat`",
+    "- **Otwarto:** 2026-11-10",
+    "- **Opis:** Launchery wypisują 5000,",
+    "  a backend działa na 5001.",
+    "- **Naprawa:** Poprawić echo.",
+    "- **Status:** otwarty",
+    "",
+    "## Zamknięte",
+    "",
+    "### EA-001 — Supabase usypia",
+    "- **Priorytet:** high",
+    "- **Rozwiązanie (2026-05-19):** Vercel Cron.",
+    "- **Status:** zamknięty",
+    "",
+  ].join("\n");
+
+  it("czyta wszystkie pola, ciąg dalszy dokleja spacją", () => {
+    expect(parseBugs(FULL)).toEqual([
+      {
+        id: "GP-001",
+        title: "Porty",
+        section: "Aktywne",
+        priority: "medium",
+        file: "`start_v2.bat`",
+        opened: "2026-11-10",
+        description: "Launchery wypisują 5000, a backend działa na 5001.",
+        fix: "Poprawić echo.",
+        status: "otwarty",
+      },
+      {
+        id: "EA-001",
+        title: "Supabase usypia",
+        section: "Zamknięte",
+        priority: "high",
+        resolution: "Vercel Cron.",
+        closedOn: "2026-05-19",
+        status: "zamknięty",
+      },
+    ]);
+  });
+
+  it("sam nagłówek: bez żadnych pól opcjonalnych", () => {
+    expect(parseBugs("## Aktywne\n### A-1 — x\n")).toEqual([
+      { id: "A-1", title: "x", section: "Aktywne" },
+    ]);
+  });
+
+  it("zła data Otwarto jest ignorowana (format i nieistniejący dzień)", () => {
+    const md = [
+      "## Aktywne",
+      "### A-1 — x",
+      "- **Otwarto:** wczoraj",
+      "### A-2 — y",
+      "- **Otwarto:** 2026-02-30",
+      "",
+    ].join("\n");
+    const bugs = parseBugs(md);
+    expect(bugs).toHaveLength(2);
+    expect(bugs.every((b) => b.opened === undefined)).toBe(true);
+  });
+
+  it("Rozwiązanie z nieprawidłową datą w nawiasie: tekst jest, closedOn nie", () => {
+    const md = "## Zamknięte\n### A-1 — x\n- **Rozwiązanie (kiedyś):** zrobione\n";
+    expect(parseBugs(md)).toEqual([
+      { id: "A-1", title: "x", section: "Zamknięte", resolution: "zrobione" },
+    ]);
+  });
+
+  it("puste pole nie ustawia wartości", () => {
+    expect(parseBugs("## Aktywne\n### A-1 — x\n- **Plik:**\n")).toEqual([
+      { id: "A-1", title: "x", section: "Aktywne" },
+    ]);
+  });
+
+  it("pusta linia kończy ciąg dalszy pola", () => {
+    const md = "## Aktywne\n### A-1 — x\n- **Opis:** a\n\n  b\n";
+    expect(parseBugs(md)[0].description).toBe("a");
+  });
+
+  it("### pod obcą sekcją nie jest bugiem i nie oddaje pól poprzedniemu bugowi", () => {
+    const md = [
+      "## Aktywne",
+      "### A-1 — x",
+      "## Ostrzeżenia z builda",
+      "### W-1 — to nie bug",
+      "- **Status:** otwarty",
+      "",
+    ].join("\n");
+    expect(parseBugs(md)).toEqual([{ id: "A-1", title: "x", section: "Aktywne" }]);
+  });
+
+  it("pierwsza wartość pola wygrywa", () => {
+    const md = "## Aktywne\n### A-1 — x\n- **Priorytet:** high\n- **Priorytet:** low\n";
+    expect(parseBugs(md)[0].priority).toBe("high");
+  });
+});
