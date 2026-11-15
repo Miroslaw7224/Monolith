@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ContextPackDto } from "@/contexts/bc_projects/schemas";
+import type { ContextPackDto, ContextPackRole } from "@/contexts/bc_projects/schemas";
 import type { ContextPackResult } from "./mutation";
 
 export type PackState =
@@ -15,17 +15,39 @@ export type CopyNotice =
   | { kind: "error"; error: string };
 
 /**
- * Paczka kontekstu wybranego projektu: pobierana przy zmianie projektu (kafel i karta pokazują
- * budżet), a `copy` składa ją od nowa, żeby schowek miał aktualny stan, i kopiuje do schowka.
+ * Paczka kontekstu wybranego projektu i roli: pobierana przy zmianie projektu albo roli (kafel i karta
+ * pokazują budżet), a `copy` składa ją od nowa, żeby schowek miał aktualny stan, i kopiuje do schowka.
+ * Rola jest powiązana z projektem: po zmianie projektu wraca do `full` (bez dodatkowego pobrania).
  */
 export function useContextPack(
   projectId: string | null,
-  load: () => Promise<ContextPackResult>
-): { state: PackState; busy: boolean; notice: CopyNotice | null; copy: () => Promise<void> } {
+  load: (role: ContextPackRole) => Promise<ContextPackResult>
+): {
+  state: PackState;
+  busy: boolean;
+  notice: CopyNotice | null;
+  copy: () => Promise<void>;
+  role: ContextPackRole;
+  setRole: (role: ContextPackRole) => void;
+} {
   const [state, setState] = useState<PackState>({ status: "loading" });
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<CopyNotice | null>(null);
-  /** Numer bieżącego projektu: spóźniona odpowiedź dla poprzedniego nie rusza stanu ani schowka. */
+  const [pick, setPick] = useState<{ id: string | null; role: ContextPackRole }>({
+    id: null,
+    role: "full",
+  });
+  const role: ContextPackRole = pick.id === projectId ? pick.role : "full";
+  const setRole = useCallback(
+    (next: ContextPackRole) => setPick({ id: projectId, role: next }),
+    [projectId]
+  );
+  // Rola należy do projektu: po zmianie projektu `pick` wraca do `full`, więc powrót do poprzedniego
+  // projektu nie przywraca starej roli. `role` jest już wtedy `full`, więc bez dodatkowego pobrania.
+  useEffect(() => {
+    setPick((p) => (p.id === projectId ? p : { id: projectId, role: "full" }));
+  }, [projectId]);
+  /** Numer bieżącego żądania (projekt, rola): spóźniona odpowiedź nie rusza stanu ani schowka. */
   const generation = useRef(0);
 
   useEffect(() => {
@@ -38,7 +60,7 @@ export function useContextPack(
       return;
     }
     setState({ status: "loading" });
-    void load().then((result) => {
+    void load(role).then((result) => {
       if (generation.current !== mine) return;
       setState(
         result.ok === false
@@ -46,13 +68,13 @@ export function useContextPack(
           : { status: "ready", pack: result.pack }
       );
     });
-  }, [projectId, load]);
+  }, [projectId, load, role]);
 
   const copy = useCallback(async () => {
     const mine = generation.current;
     setBusy(true);
     setNotice(null);
-    const result = await load();
+    const result = await load(role);
     if (generation.current !== mine) return;
     if (result.ok === false) {
       setNotice({ kind: "error", error: result.error });
@@ -69,7 +91,7 @@ export function useContextPack(
       }
     }
     if (generation.current === mine) setBusy(false);
-  }, [load]);
+  }, [load, role]);
 
-  return { state, busy, notice, copy };
+  return { state, busy, notice, copy, role, setRole };
 }

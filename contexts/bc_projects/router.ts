@@ -3,6 +3,7 @@ import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
   ArchiveDoneInputSchema,
+  ContextPackRoleSchema,
   DevlogInputSchema,
   NewProjectInputSchema,
   ProjectPatchInputSchema,
@@ -134,12 +135,18 @@ export async function postTasksArchive(req: NextRequest, ctx: RouteContext): Pro
 }
 
 export async function getContextPack(
-  _req: NextRequest,
+  req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
+    const role = ContextPackRoleSchema.safeParse(req.nextUrl.searchParams.get("role") ?? "full");
+    if (role.success === false) {
+      return NextResponse.json({ error: "Nieznana rola paczki" }, { status: 400 });
+    }
     const { id } = await ctx.params;
-    return NextResponse.json(toContextPackDto(services.buildContextPack(id)));
+    return NextResponse.json(
+      toContextPackDto(services.buildContextPack(id, new Date(), role.data))
+    );
   } catch (err) {
     return handleServiceError(err);
   }

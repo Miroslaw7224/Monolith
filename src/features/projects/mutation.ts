@@ -1,5 +1,6 @@
 import type {
   ContextPackDto,
+  ContextPackRole,
   DevlogInputDto,
   NewProjectInputDto,
   ProjectLinksInputDto,
@@ -34,7 +35,7 @@ export type ProjectActions = {
   /** Uśpienie / wznowienie projektu po `id` (może to być projekt, który nie jest wybrany). */
   setProjectStatus: (id: string, status: ProjectStatusChangeDto) => Promise<MutationResult>;
   /** Składa na serwerze paczkę kontekstu dla agenta (GET, bez zapisu). */
-  loadContextPack: () => Promise<ContextPackResult>;
+  loadContextPack: (role?: ContextPackRole) => Promise<ContextPackResult>;
   /** Ponownie pobiera szczegóły wybranego projektu (np. po konflikcie wersji). */
   reloadDetail: () => void;
 };

@@ -5,6 +5,7 @@ import type {
   ChecklistItem,
   ChecklistSection,
   ContextPack,
+  ContextPackRole,
   DevlogEntry,
   Freshness,
   Owner,
@@ -15,7 +16,7 @@ import type {
   TasksBoard,
 } from "./models";
 
-export type { Owner, ProjectType };
+export type { ContextPackRole, Owner, ProjectType };
 export { archiveDateOf, isArchivable, localIsoDate } from "@/lib/schema/archive-date";
 
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
@@ -338,6 +339,17 @@ export function toArchiveDto(p: ProjectWithContent, archived: number): ArchiveDo
 
 /** Budżet paczki kontekstu w tokenach; wartość zgodna z `PACK_BUDGET_TOKENS` w serwisie (pilnuje test). */
 export const PACK_BUDGET_TOKENS = 4000;
+
+/** Role paczki kontekstu; lista zgodna z `CONTEXT_PACK_ROLES` w `models` (pilnuje test). */
+export const ContextPackRoleSchema = z.enum(["full", "review", "implementation", "debug"]);
+
+/** Role w UI: klucz i etykieta (kolejność przycisków). */
+export const PACK_ROLES: { key: ContextPackRole; label: string }[] = [
+  { key: "full", label: "Pełna" },
+  { key: "review", label: "Review" },
+  { key: "implementation", label: "Implementacja" },
+  { key: "debug", label: "Debug" },
+];
 
 export type ContextPackDto = {
   markdown: string;

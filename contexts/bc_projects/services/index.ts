@@ -1,6 +1,7 @@
 import {
   NOW_LIMIT,
   type ContextPack,
+  type ContextPackRole,
   type Freshness,
   type NewProjectInput,
   type ProjectLinksInput,
@@ -340,7 +341,11 @@ export function isWorkProject(entry: Pick<RegistryEntry, "owner">): boolean {
  * Paczka kontekstu dla agenta (spec etapu 1-4): Markdown z zasadami, Save State, gitem, zadaniami,
  * bugami i devlogiem w budżecie tokenów. Tylko odczyt; brak jednego źródła nie przerywa składania.
  */
-export function buildContextPack(id: string, today: Date = new Date()): ContextPack {
+export function buildContextPack(
+  id: string,
+  today: Date = new Date(),
+  role: ContextPackRole = "full"
+): ContextPack {
   const entry = findEntry(id);
   const project = getProject(id, today);
   const warnings: string[] = isWorkProject(entry) ? [OWNER_WORK_WARNING] : [];
@@ -356,6 +361,7 @@ export function buildContextPack(id: string, today: Date = new Date()): ContextP
     rules: pickRules(entry, warnings),
     git,
     warnings,
+    role,
   });
 }
 

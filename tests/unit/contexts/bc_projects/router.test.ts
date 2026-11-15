@@ -356,7 +356,30 @@ describe("bc_projects router: context-pack", () => {
       truncated: false,
       warnings: ["w"],
     });
-    expect(mockBuildContextPack).toHaveBeenCalledWith("a");
+    expect(mockBuildContextPack).toHaveBeenCalledWith("a", expect.any(Date), "full");
+  });
+
+  const reqRole = (role: string) =>
+    new NextRequest(`http://localhost/api/projects/a/context-pack?role=${role}`);
+  const ctxA = { params: Promise.resolve({ id: "a" }) };
+
+  it("?role=review: serwis dostaje rolę", async () => {
+    mockBuildContextPack.mockReturnValue({
+      markdown: "# R",
+      approxTokens: 1,
+      truncated: false,
+      warnings: [],
+    });
+    const res = await packGET(reqRole("review"), ctxA);
+    expect(res.status).toBe(200);
+    expect(mockBuildContextPack).toHaveBeenCalledWith("a", expect.any(Date), "review");
+  });
+
+  it("nieznana rola: 400 bez wywołania serwisu", async () => {
+    const res = await packGET(reqRole("zly"), ctxA);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Nieznana rola paczki" });
+    expect(mockBuildContextPack).not.toHaveBeenCalled();
   });
 
   it("nieznany projekt: 404", async () => {

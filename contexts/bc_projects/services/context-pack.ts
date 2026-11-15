@@ -1,5 +1,6 @@
 import type {
   ContextPack,
+  ContextPackRole,
   GitSnapshotResult,
   ProjectWithContent,
   RepoUnavailableReason,
@@ -30,6 +31,8 @@ export type ContextPackInput = {
   git: GitSnapshotResult;
   /** Ostrzeżenia zebrane przez `buildContextPack`; kompozytor dopisuje własne. */
   warnings: string[];
+  /** Rola paczki (zestaw sekcji); brak = `full`. */
+  role?: ContextPackRole;
 };
 
 const FRESHNESS_LABEL = { fresh: "świeży", stale: "nieświeży", unknown: "brak danych" } as const;
@@ -42,6 +45,53 @@ type Knobs = {
   diff: boolean;
   devlog: number;
   rulesMax: number;
+};
+
+export type SectionId = "rules" | "state" | "git" | "tasks" | "bugs" | "devlog";
+
+type RoleProfile = {
+  /** Sekcje po nagłówku, w kolejności paczki. */
+  order: readonly SectionId[];
+  /** Które kolumny tablicy trafiają do sekcji „Zadania”. */
+  tasks: { blockers: boolean; now: boolean };
+  /** Czy sekcja „Kod” zawiera `diff --stat`. */
+  diff: boolean;
+  /** Kroki redukcji do budżetu nie ruszają `diff --stat`. */
+  protectDiff: boolean;
+  /** Limit znaków zasad od początku (`Infinity` = bez limitu); wybór roli, nie cięcie do budżetu. */
+  rulesMax: number;
+};
+
+/** Profile ról paczki; `full` odtwarza paczkę sprzed wprowadzenia ról (kolejność i zawartość bez zmian). */
+export const ROLE_PROFILES: Record<ContextPackRole, RoleProfile> = {
+  full: {
+    order: ["rules", "state", "git", "tasks", "bugs", "devlog"],
+    tasks: { blockers: true, now: true },
+    diff: true,
+    protectDiff: false,
+    rulesMax: Infinity,
+  },
+  review: {
+    order: ["rules", "state", "git", "tasks"],
+    tasks: { blockers: false, now: true },
+    diff: true,
+    protectDiff: true,
+    rulesMax: Infinity,
+  },
+  implementation: {
+    order: ["rules", "state", "tasks", "git", "bugs"],
+    tasks: { blockers: true, now: true },
+    diff: false,
+    protectDiff: false,
+    rulesMax: Infinity,
+  },
+  debug: {
+    order: ["bugs", "state", "git", "devlog", "rules"],
+    tasks: { blockers: true, now: true },
+    diff: true,
+    protectDiff: false,
+    rulesMax: 1200,
+  },
 };
 
 const lineCount = (text: string) => (text === "" ? 0 : text.split("\n").length);
@@ -109,112 +159,131 @@ export function demoteHeadings(text: string): string {
 
 const block = (text: string) => `\`\`\`\n${text}\n\`\`\``;
 
-function renderPack(input: ContextPackInput, k: Knobs): string {
+function renderPack(input: ContextPackInput, k: Knobs, profile: RoleProfile): string {
   const { project, git, rules, lastWorked } = input;
-  const sections: string[] = [];
 
   // Niepoprawna data (świeżość `unknown`) nie jest wypisywana.
   const worked =
     lastWorked && project.freshness !== "unknown"
       ? `${lastWorked} (${FRESHNESS_LABEL[project.freshness]})`
       : FRESHNESS_LABEL.unknown;
-  sections.push(
-    `# Kontekst projektu: ${project.name}\n\nStatus: ${project.status} · priorytet: ${project.priority} · ostatnia praca: ${worked}`
-  );
-
-  if (rules) {
-    const text = k.rulesMax === Infinity ? rules.text : cutAtParagraph(rules.text, k.rulesMax);
-    sections.push(`## Zasady projektu (źródło: ${rules.source})\n\n${text}`);
-  }
-
-  if (project.state) {
-    const s = project.state;
-    const lines = [
-      `Branch: ${s.branch || "—"} · Środowisko: ${s.env || "—"}`,
-      `Bloker: ${s.blocker || "brak"}`,
-      `Następny krok: ${s.nextStep || "—"}`,
-    ];
-    if (s.milestone) {
-      lines.push(`Kamień milowy: ${s.milestone}${s.milestoneDue ? ` · do ${s.milestoneDue}` : ""}`);
-    }
-    sections.push(`## Save State\n\n${lines.join("\n")}`);
-  } else if (project.whereIStopped) {
-    sections.push(`## Gdzie skończyłem (brak state.md)\n\n${project.whereIStopped}`);
-  }
-
-  if (git.ok === false) {
-    sections.push(`## Kod (git)\n\nRepozytorium niedostępne (${REPO_REASON_TEXT[git.reason]}).`);
-  } else {
-    const { status, log, diffStat } = git.snapshot;
-    const parts = [`Status:\n${block(status)}`];
-    const logText = log.split("\n").slice(0, k.logCount).join("\n");
-    if (logText !== "") parts.push(`Ostatnie commity:\n${block(logText)}`);
-    if (k.diff && diffStat !== "") {
-      parts.push(`Zmiany (diff --stat):\n${block(limitLines(diffStat, k.diffLines))}`);
-    }
-    sections.push(`## Kod (git)\n\n${parts.join("\n\n")}`);
-  }
+  const head = `# Kontekst projektu: ${project.name}\n\nStatus: ${project.status} · priorytet: ${project.priority} · ostatnia praca: ${worked}`;
 
   const open = (items: { text: string; done: boolean }[]) =>
     items.filter((t) => t.done === false).map((t) => `- ${t.text}`);
-  const blockers = open(project.board.blockers);
-  const now = open(project.board.now);
-  if (blockers.length > 0 || now.length > 0) {
-    let tasks = "## Zadania";
-    if (blockers.length > 0) tasks += `\n\n### Blokery\n${blockers.join("\n")}`;
-    if (now.length > 0) tasks += `\n\n### Teraz\n${now.join("\n")}`;
-    sections.push(tasks);
-  }
 
-  const bugs = project.bugs
-    .filter((b) => b.section !== "Zamknięte")
-    .map(
-      (b) =>
-        `- ${b.id}: ${b.title}${b.priority ? ` [${b.priority}]` : ""}${b.status ? ` (${b.status})` : ""}`
-    );
-  if (bugs.length > 0) sections.push(`## Bugi (otwarte)\n\n${bugs.join("\n")}`);
+  const render: Record<SectionId, () => string | null> = {
+    rules: () => {
+      if (!rules) return null;
+      const text = k.rulesMax === Infinity ? rules.text : cutAtParagraph(rules.text, k.rulesMax);
+      return `## Zasady projektu (źródło: ${rules.source})\n\n${text}`;
+    },
+    state: () => {
+      if (project.state) {
+        const s = project.state;
+        const lines = [
+          `Branch: ${s.branch || "—"} · Środowisko: ${s.env || "—"}`,
+          `Bloker: ${s.blocker || "brak"}`,
+          `Następny krok: ${s.nextStep || "—"}`,
+        ];
+        if (s.milestone) {
+          lines.push(
+            `Kamień milowy: ${s.milestone}${s.milestoneDue ? ` · do ${s.milestoneDue}` : ""}`
+          );
+        }
+        return `## Save State\n\n${lines.join("\n")}`;
+      }
+      if (project.whereIStopped) {
+        return `## Gdzie skończyłem (brak state.md)\n\n${project.whereIStopped}`;
+      }
+      return null;
+    },
+    git: () => {
+      if (git.ok === false) {
+        return `## Kod (git)\n\nRepozytorium niedostępne (${REPO_REASON_TEXT[git.reason]}).`;
+      }
+      const { status, log, diffStat } = git.snapshot;
+      const parts = [`Status:\n${block(status)}`];
+      const logText = log.split("\n").slice(0, k.logCount).join("\n");
+      if (logText !== "") parts.push(`Ostatnie commity:\n${block(logText)}`);
+      if (k.diff && diffStat !== "") {
+        parts.push(`Zmiany (diff --stat):\n${block(limitLines(diffStat, k.diffLines))}`);
+      }
+      return `## Kod (git)\n\n${parts.join("\n\n")}`;
+    },
+    tasks: () => {
+      const blockers = profile.tasks.blockers ? open(project.board.blockers) : [];
+      const now = profile.tasks.now ? open(project.board.now) : [];
+      if (blockers.length === 0 && now.length === 0) return null;
+      let tasks = "## Zadania";
+      if (blockers.length > 0) tasks += `\n\n### Blokery\n${blockers.join("\n")}`;
+      if (now.length > 0) tasks += `\n\n### Teraz\n${now.join("\n")}`;
+      return tasks;
+    },
+    bugs: () => {
+      const bugs = project.bugs
+        .filter((b) => b.section !== "Zamknięte")
+        .map(
+          (b) =>
+            `- ${b.id}: ${b.title}${b.priority ? ` [${b.priority}]` : ""}${b.status ? ` (${b.status})` : ""}`
+        );
+      return bugs.length > 0 ? `## Bugi (otwarte)\n\n${bugs.join("\n")}` : null;
+    },
+    devlog: () => {
+      const entries = project.devlog.slice(0, k.devlog);
+      if (entries.length === 0) return null;
+      const lines = entries.map(
+        (e) => `- ${e.date ?? "—"}: ${e.title}${e.why ? ` — ${e.why}` : ""}`
+      );
+      return `## Devlog (ostatnie ${entries.length})\n\n${lines.join("\n")}`;
+    },
+  };
 
-  const entries = project.devlog.slice(0, k.devlog);
-  if (entries.length > 0) {
-    const lines = entries.map((e) => `- ${e.date ?? "—"}: ${e.title}${e.why ? ` — ${e.why}` : ""}`);
-    sections.push(`## Devlog (ostatnie ${entries.length})\n\n${lines.join("\n")}`);
-  }
-
-  return sections.join("\n\n");
+  const sections = profile.order.map((id) => render[id]()).filter((s): s is string => s !== null);
+  return [head, ...sections].join("\n\n");
 }
 
 /**
  * Składa paczkę kontekstu w budżecie tokenów. Gdy pełna paczka go przekracza, wykonuje kroki
  * redukcji po kolei (git → devlog → zasady) aż się zmieści; Save State, „Gdzie skończyłem”,
- * Zadania i Bugi nigdy nie są skracane.
+ * Zadania i Bugi nigdy nie są skracane. Zestaw i kolejność sekcji wynikają z roli (`ROLE_PROFILES`).
  */
 export function composeContextPack(
   rawInput: ContextPackInput,
   budgetTokens: number = PACK_BUDGET_TOKENS
 ): ContextPack {
+  const profile = ROLE_PROFILES[rawInput.role ?? "full"];
   // Nagłówki zasad schodzą pod sekcję „Zasady” raz, na wejściu: budżet i cięcie liczą się już po tym.
   const input: ContextPackInput = rawInput.rules
     ? { ...rawInput, rules: { ...rawInput.rules, text: demoteHeadings(rawInput.rules.text) } }
     : rawInput;
-  const stat = input.git.ok ? lineCount(input.git.snapshot.diffStat) : 0;
+  // Role bez `diff --stat` albo z chronionym nie mają kroków redukcji dla diffu, a role bez Devlogu kroków devlogu.
+  const stat =
+    input.git.ok && profile.diff && !profile.protectDiff
+      ? lineCount(input.git.snapshot.diffStat)
+      : 0;
   const logLines = input.git.ok ? lineCount(input.git.snapshot.log) : 0;
-  const devlogLength = input.project.devlog.length;
+  const devlogLength = profile.order.includes("devlog") ? input.project.devlog.length : 0;
   const rulesLength = input.rules?.text.length ?? 0;
 
   let k: Knobs = {
     diffLines: DIFF_LINES_MAX,
     logCount: 5,
-    diff: true,
+    diff: profile.diff,
     devlog: 3,
-    rulesMax: Infinity,
+    rulesMax: profile.rulesMax,
   };
-  let markdown = renderPack(input, k);
+  let markdown = renderPack(input, k, profile);
   let truncated = false;
   const over = () => estimateTokens(markdown) > budgetTokens;
+  // `truncated` tylko wtedy, gdy krok faktycznie coś skrócił (limit zasad z roli bywa już ciaśniejszy niż krok).
   const step = (next: Knobs) => {
     k = next;
-    truncated = true;
-    markdown = renderPack(input, k);
+    const rendered = renderPack(input, k, profile);
+    if (rendered !== markdown) {
+      truncated = true;
+      markdown = rendered;
+    }
   };
 
   if (over() && stat > 10 && k.diffLines > 10) step({ ...k, diffLines: 10 });

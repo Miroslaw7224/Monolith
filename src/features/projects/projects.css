@@ -1326,3 +1326,10 @@
   display: flex;
   gap: var(--s-2);
 }
+
+.prj-pack-card__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+  margin: 0 0 var(--s-3);
+}
