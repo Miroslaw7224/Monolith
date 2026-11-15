@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MapGraphDtoSchema, type MapGraphDto } from "@/contexts/bc_map/schemas";
+import i18n from "@/src/i18n";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 type State =
@@ -20,7 +21,8 @@ export function useMapGraph(apiFetch: ApiFetch): State {
         const res = await apiFetch("/api/map/graph");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const parsed = MapGraphDtoSchema.safeParse(await res.json());
-        if (!parsed.success) throw new Error("Nieprawidłowa odpowiedź /api/map/graph");
+        if (!parsed.success)
+          throw new Error(i18n.t("map:mapInvalidResponse", { path: "/api/map/graph" }));
         if (!cancelled) setState({ status: "ready", graph: parsed.data, error: null });
       } catch (err) {
         if (!cancelled) {

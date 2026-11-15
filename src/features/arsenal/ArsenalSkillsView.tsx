@@ -1,6 +1,7 @@
 import React from "react";
 import { Loader2 } from "lucide-react";
 import type { ArsenalEntryDto, DeployTargetDto } from "@/contexts/bc_arsenal/schemas";
+import { useT } from "@/src/i18n/useT";
 import "@/src/features/resources/resources.css";
 import "./arsenal.css";
 import { ArsenalDetail, KIND_LABEL, projectName } from "./ArsenalDetail";
@@ -40,13 +41,14 @@ function EntryCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const t = useT();
   const projects = entryProjects(entry);
   const meta =
     entry.kind === "skill"
       ? entry.deployed.length === 0
-        ? "niewdrożony"
-        : `wdrożony w ${entry.deployed.length}`
-      : (entry.model ?? "prompt");
+        ? t("arsenal:arsenalCardUndeployed")
+        : t("arsenal:arsenalCardDeployedIn", { count: entry.deployed.length })
+      : (entry.model ?? t("arsenal:arsenalPromptFallback"));
   return (
     <article className="asv-card" data-kind={entry.kind} data-selected={selected}>
       <button type="button" className="asv-card__main" aria-pressed={selected} onClick={onSelect}>
@@ -70,9 +72,9 @@ function EntryCard({
       <div className="asv-card__foot">
         <span className="asv-card__meta">{meta}</span>
         {entry.kind === "skill" ? (
-          <CopyButton text={`/${entry.slug}`} label="Kopiuj" ariaLabel="Kopiuj wywołanie" />
+          <CopyButton text={`/${entry.slug}`} ariaLabel={t("arsenal:arsenalCopyInvocation")} />
         ) : (
-          <CopyButton text={entry.body} label="Kopiuj" ariaLabel="Kopiuj prompt" />
+          <CopyButton text={entry.body} ariaLabel={t("arsenal:arsenalCopyPrompt")} />
         )}
       </div>
     </article>
@@ -80,37 +82,50 @@ function EntryCard({
 }
 
 export function ArsenalSkillsView({ apiFetch }: { apiFetch: ApiFetch }) {
+  const t = useT();
   const a = useArsenal(apiFetch);
   const stats = catalogStats(a.allEntries);
+  const eyebrow = `Alt+7 · ${t("shell:cards.arsenal")}`;
+  const entriesLine = t("arsenal:arsenalEntriesCount", { count: a.total });
+  const skippedLine = a.skipped > 0 ? t("arsenal:arsenalSkippedSuffix", { count: a.skipped }) : "";
 
   return (
     <div className="ars asv" data-card="arsenal">
       <header className="ars-head">
         <div>
-          <p className="ars-eyebrow">Alt+7 · Arsenał</p>
-          <h1 className="ars-title">Skille i prompty</h1>
+          <p className="ars-eyebrow">{eyebrow}</p>
+          <h1 className="ars-title">{t("arsenal:arsenalTitle")}</h1>
           <p className="ars-sub">
-            {a.total} wpisów
-            {a.skipped > 0 && ` · pominięto ${a.skipped} (uszkodzone lub nieznane wdrożenia)`}
+            {entriesLine}
+            {skippedLine}
           </p>
         </div>
       </header>
 
       {a.loading ? (
-        <Loader2 className="animate-spin" aria-label="Ładowanie" />
+        <Loader2 className="animate-spin" aria-label={t("arsenal:arsenalLoading")} />
       ) : a.error !== null ? (
         <p role="alert" className="asv-error">
           {a.error}
         </p>
       ) : (
         <>
-          <section className="asv-tiles" aria-label="Statystyki arsenału">
-            <Tile label="Skille" value={stats.skills} meta="dokumenty skilli w Vaulcie" accent />
-            <Tile label="Prompty" value={stats.prompts} meta="z Bazy wiedzy, bez przenoszenia" />
+          <section className="asv-tiles" aria-label={t("arsenal:arsenalStatsAria")}>
             <Tile
-              label="Niewdrożone nigdzie"
+              label={t("arsenal:arsenalTileSkills")}
+              value={stats.skills}
+              meta={t("arsenal:arsenalTileSkillsMeta")}
+              accent
+            />
+            <Tile
+              label={t("arsenal:arsenalTilePrompts")}
+              value={stats.prompts}
+              meta={t("arsenal:arsenalTilePromptsMeta")}
+            />
+            <Tile
+              label={t("arsenal:arsenalTileUndeployed")}
               value={stats.undeployed}
-              meta="skille bez znacznika wdrożenia"
+              meta={t("arsenal:arsenalTileUndeployedMeta")}
             />
           </section>
 
@@ -134,7 +149,7 @@ export function ArsenalSkillsView({ apiFetch }: { apiFetch: ApiFetch }) {
                   </li>
                 ))}
                 {a.entries.length === 0 && (
-                  <li className="asv-empty">Brak wpisów dla tych filtrów.</li>
+                  <li className="asv-empty">{t("arsenal:arsenalEmptyFilters")}</li>
                 )}
               </ul>
             </div>

@@ -32,4 +32,15 @@ describe("buildMapTiles", () => {
     expect(tiles[3].value).toBe("—");
     expect(tiles[3].meta).toMatch(/niedostępny/);
   });
+
+  it("etykiety i meta po angielsku", () => {
+    const tiles = buildMapTiles(graph, { available: false, count: 0 }, "en");
+    expect(tiles.map((t) => t.label)).toEqual([
+      "NEXUS neurons",
+      "Dependencies",
+      "Active blockers",
+      "Live agents",
+    ]);
+    expect(tiles[3].meta).toBe("Herdr unavailable");
+  });
 });

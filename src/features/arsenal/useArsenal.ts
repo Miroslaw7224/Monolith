@@ -7,15 +7,19 @@ import {
   type DeployInstructionsDto,
   type DeployModeDto,
 } from "@/contexts/bc_arsenal/schemas";
+import i18n from "@/src/i18n";
 import { EMPTY_FILTERS, filterEntries, type ArsenalFilters } from "./arsenalFilters";
 
 export type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
-const messageOf = (err: unknown): string => (err instanceof Error ? err.message : "Błąd");
+const messageOf = (err: unknown): string =>
+  err instanceof Error ? err.message : i18n.t("arsenal:arsenalErrorGeneric");
 
 async function errorText(res: Response): Promise<string> {
   const body = (await res.json().catch(() => null)) as { error?: unknown } | null;
-  return typeof body?.error === "string" ? body.error : `Błąd ${res.status}`;
+  return typeof body?.error === "string"
+    ? body.error
+    : i18n.t("arsenal:arsenalErrorStatus", { status: res.status });
 }
 
 export function useArsenal(apiFetch: ApiFetch) {
@@ -68,7 +72,7 @@ export function useArsenal(apiFetch: ApiFetch) {
         await fetchCatalog();
       } catch (err) {
         // Zapis się udał; błąd odświeżenia nie może zastąpić widoku, więc trafia tylko do wywołującego.
-        throw new Error(`Zapisano, ale nie udało się odświeżyć listy: ${messageOf(err)}`);
+        throw new Error(i18n.t("arsenal:arsenalRefreshFailed", { message: messageOf(err) }));
       }
     },
     [apiFetch, fetchCatalog]

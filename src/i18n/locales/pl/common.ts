@@ -9,6 +9,8 @@ export const common = {
     wlasny: "Własny",
     biblioteka: "Biblioteka",
   },
+  /** Przełącznik motywu (`aria-label`). */
+  themeToggle: { toLight: "Włącz tryb jasny", toDark: "Włącz tryb ciemny" },
   lang: {
     switchToEn: "Zmień język na angielski (EN)",
     switchToPl: "Zmień język na polski (PL)",

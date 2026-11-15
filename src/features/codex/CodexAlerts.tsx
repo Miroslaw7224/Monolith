@@ -1,25 +1,20 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/src/i18n/useT";
 import type { AlertItem } from "./codexFilters";
-
-function plural(n: number): string {
-  if (n === 1) return "1 uwaga";
-  const last = n % 10;
-  const teen = n % 100 >= 12 && n % 100 <= 14;
-  return last >= 2 && last <= 4 && !teen ? `${n} uwagi` : `${n} uwag`;
-}
 
 /** Nieblokujące ostrzeżenia parsera i dziennika (spec §4.1, §4.2); bez ostrzeżeń nie renderuje nic. */
 export function CodexAlerts({ items }: { items: AlertItem[] }) {
+  const t = useT();
   if (items.length === 0) return null;
   return (
-    <section className="kod-alerts" aria-label="Ostrzeżenia parsera kodeksu">
+    <section className="kod-alerts" aria-label={t("codex:codexAlertsAria")}>
       <div className="kod-alerts__head">
-        <h2 className="kod-alerts__title">
-          Ostrzeżenia diagnostyczne (parsowanie poprawne, czytanie kontynuowane)
-        </h2>
-        <span className="chip chip--warn">{plural(items.length)}</span>
+        <h2 className="kod-alerts__title">{t("codex:codexAlertsTitle")}</h2>
+        <span className="chip chip--warn">
+          {t("codex:codexAlertsCount", { count: items.length })}
+        </span>
       </div>
       <ul className="kod-alerts__list">
         {items.map((item, i) => (

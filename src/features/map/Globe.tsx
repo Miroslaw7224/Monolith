@@ -52,6 +52,8 @@ import {
 } from "./motion";
 import { elevate, liftedArc, nodeHeight } from "./relief";
 import { pointAlong, retargetSparks, stepSparks, type Spark } from "./sparks";
+import i18n, { currentLang } from "@/src/i18n";
+import { useT } from "@/src/i18n/useT";
 
 /** Liczba iskier płynących po łukach: w spoczynku i po zaznaczeniu (wtedy tylko po podświetlonych). */
 const SPARKS_IDLE = 70;
@@ -179,6 +181,8 @@ export function Globe({
   onSelect,
   ariaLabel,
 }: GlobeProps) {
+  const t = useT();
+  const lang = currentLang();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geo = useMemo(
     () => buildGeometry(clusters, nodes, clusterEdges),
@@ -240,7 +244,19 @@ export function Globe({
     pausedRef.current = paused;
     onSelectRef.current = onSelect;
     drawRef.current();
-  }, [geo, highlight, clusters, nodes, edges, edgeMaps, baseByClass, heights, paused, onSelect]);
+  }, [
+    geo,
+    highlight,
+    clusters,
+    nodes,
+    edges,
+    edgeMaps,
+    baseByClass,
+    heights,
+    paused,
+    onSelect,
+    lang,
+  ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -602,7 +618,11 @@ export function Globe({
         if (pr.z > -0.2) {
           ctx.globalAlpha = pr.z >= 0 ? 1 : 0.4;
           ctx.font = `${Math.round(11 * pr.scale)}px ui-monospace, monospace`;
-          ctx.fillText(c.soon ? `${c.label} (wkrótce)` : c.label, pr.x, pr.y + 4);
+          ctx.fillText(
+            c.soon ? i18n.t("map:mapClusterSoon", { label: c.label }) : c.label,
+            pr.x,
+            pr.y + 4
+          );
         }
       }
       projectedClusters.current = clusterHits;
@@ -826,7 +846,7 @@ export function Globe({
       className="map-globe"
       role="application"
       tabIndex={0}
-      aria-label="Globus sieci NEXUS. Klawisze: plus i minus zmieniają powiększenie, zero dopasowuje do okna."
+      aria-label={t("map:mapGlobeAria")}
       onKeyDown={onKeyDown}
     >
       <canvas ref={canvasRef} className="map-canvas__el" role="img" aria-label={ariaLabel} />

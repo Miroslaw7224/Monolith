@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { MapClusterDto, MapEdgeDto, MapNodeDto } from "@/contexts/bc_map/schemas";
+import { useT } from "@/src/i18n/useT";
 import { noteNeighbors, type MapSelection } from "./selection";
 
 const MAX_NEIGHBORS = 30;
@@ -15,13 +16,14 @@ export function MapClusterPanel(props: {
   selection: MapSelection | null;
   onSelect: (s: MapSelection) => void;
 }) {
+  const t = useT();
   const { clusters, nodes, edges, selection, onSelect } = props;
   const pickNote = (id: string) => onSelect({ kind: "note", id });
 
   if (selection === null) {
     return (
-      <section className="map-cluster-panel map-panel" aria-label="Zaznaczenie">
-        <p className="map-panel__empty">Wybierz skupisko lub punkt na globusie.</p>
+      <section className="map-cluster-panel map-panel" aria-label={t("map:mapSelectionAria")}>
+        <p className="map-panel__empty">{t("map:mapSelectClusterOrNode")}</p>
       </section>
     );
   }
@@ -33,13 +35,15 @@ export function MapClusterPanel(props: {
       .filter((n) => n.cluster === cluster.id)
       .sort((a, b) => b.links - a.links || cmp(a.label, b.label) || cmp(a.id, b.id));
     return (
-      <section className="map-cluster-panel map-panel" aria-label="Zaznaczenie">
+      <section className="map-cluster-panel map-panel" aria-label={t("map:mapSelectionAria")}>
         <h2 className="map-panel__title">{cluster.label}</h2>
         {cluster.soon ? (
-          <p className="map-panel__empty">Kontynent wkrótce: bez notatek i powiązań.</p>
+          <p className="map-panel__empty">{t("map:mapContinentSoon")}</p>
         ) : (
           <>
-            <p className="map-panel__empty">{cluster.size} notatek</p>
+            <p className="map-panel__empty">
+              {t("map:mapClusterNoteCount", { count: cluster.size })}
+            </p>
             <ul>
               {notes.map((n) => (
                 <li key={n.id}>
@@ -60,10 +64,12 @@ export function MapClusterPanel(props: {
   const cluster = clusters.find((c) => c.id === note.cluster);
   const neighbors = noteNeighbors(note.id, nodes, edges).slice(0, MAX_NEIGHBORS);
   return (
-    <section className="map-cluster-panel map-panel" aria-label="Zaznaczenie">
+    <section className="map-cluster-panel map-panel" aria-label={t("map:mapSelectionAria")}>
       <h2 className="map-panel__title">{note.label}</h2>
-      <p className="map-panel__empty">Skupisko: {cluster?.label ?? note.cluster}</p>
-      <p className="map-panel__empty">Powiązania: {note.links}</p>
+      <p className="map-panel__empty">
+        {t("map:mapNoteCluster", { label: cluster?.label ?? note.cluster })}
+      </p>
+      <p className="map-panel__empty">{t("map:mapNoteLinks", { count: note.links })}</p>
       {neighbors.length > 0 ? (
         <ul>
           {neighbors.map((nb) => (

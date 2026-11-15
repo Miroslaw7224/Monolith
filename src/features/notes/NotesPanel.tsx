@@ -3,6 +3,9 @@ import dynamic from "next/dynamic";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { markdownToHtml } from "@/lib/markdown/html-markdown";
 import { cn } from "@/src/lib/cn";
+import { formatShortDate, formatShortDateTime } from "@/src/i18n/format";
+import { useLang } from "@/src/i18n/useLang";
+import { useT } from "@/src/i18n/useT";
 import { NexusDocsSection } from "./NexusDocsSection";
 import { NexusDocView } from "./NexusDocView";
 import { useNexusDocs, type ApiFetch } from "./useNexusDocs";
@@ -73,6 +76,8 @@ export function NotesPanel({
   initialNexusPath,
   onInitialNexusPathConsumed,
 }: NotesPanelProps) {
+  const t = useT();
+  const { lang } = useLang();
   const [filter, setFilter] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [split, setSplit] = useState(false);
@@ -109,25 +114,20 @@ export function NotesPanel({
     setNoteEditMode(true);
   };
 
-  const activeTitle = selectedNote ? selectedNote.title || "Untitled" : null;
-  const lastTwo = notes.length % 100;
-  const lastOne = notes.length % 10;
-  const noun =
-    notes.length === 1
-      ? "notatka"
-      : lastOne >= 2 && lastOne <= 4 && !(lastTwo >= 12 && lastTwo <= 14)
-        ? "notatki"
-        : "notatek";
-  const notesCountLabel = `${notes.length} ${noun}`;
+  const activeTitle = selectedNote ? selectedNote.title || t("notes:notesUntitled") : null;
+  const countLabel = t("notes:notesPanelCount", { count: notes.length });
   const subText = activeTitle
-    ? `${notesCountLabel} · aktywna: ${activeTitle}`
-    : `${notesCountLabel} w bazie`;
+    ? t("notes:notesPanelSubtitleActive", { count: countLabel, title: activeTitle })
+    : t("notes:notesPanelSubtitleInBase", { count: countLabel });
 
   // Nowa (niezapisana) notatka zawsze pokazuje formularz, więc zakładka i chip mają to odzwierciedlać.
   const editing = noteEditMode || (selectedNote !== null && selectedNote.id === "");
   const showSplit = split && editing;
 
-  const tiles = useMemo(() => computeNoteTiles(notes, new Date(), inboxOpen), [notes, inboxOpen]);
+  const tiles = useMemo(
+    () => computeNoteTiles(notes, new Date(), inboxOpen, lang),
+    [notes, inboxOpen, lang]
+  );
   const popularTags = useMemo(() => collectPopularTags(notes), [notes]);
   const visibleNotes = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -171,8 +171,8 @@ export function NotesPanel({
     <div className="not flex-1 min-w-0 flex flex-col overflow-auto" data-card="notatki">
       <header className="view-head not-head">
         <div>
-          <p className="view-head__eyebrow not-eyebrow">Alt+5 · Notatki</p>
-          <h1 className="view-head__title not-title">Baza wiedzy i notatki</h1>
+          <p className="view-head__eyebrow not-eyebrow">Alt+5 · {t("shell:cards.notatki")}</p>
+          <h1 className="view-head__title not-title">{t("notes:notesPanelTitle")}</h1>
           <p className="view-head__sub not-sub">{subText}</p>
         </div>
         <div className="view-head__actions not-head__actions">
@@ -215,7 +215,7 @@ export function NotesPanel({
         </div>
       </header>
 
-      <section className="tiles not-tiles" aria-label="Statystyki bazy wiedzy">
+      <section className="tiles not-tiles" aria-label={t("notes:notesTilesAria")}>
         {tiles.map((tile) => (
           <div key={tile.id} className={cn("tile", tile.accent && "tile--accent")}>
             <span className="tile__label">{tile.label}</span>
@@ -226,10 +226,15 @@ export function NotesPanel({
       </section>
 
       <div className="not-layout">
-        <aside className="not-sidebar" data-testid="notes-sidebar-list" aria-label="Lista notatek">
+        <aside
+          className="not-sidebar"
+          data-testid="notes-sidebar-list"
+          aria-label={t("notes:notesSidebarListAria")}
+        >
           <div className="not-sidebar__head">
             <h2 className="not-sidebar__title">
-              <b>Pliki</b> · Markdown
+              <b>{t("notes:notesFilesBold")}</b>
+              {t("notes:notesFilesTrail")}
             </h2>
             <span className="chip not-chip">{notes.length}</span>
           </div>
@@ -239,14 +244,14 @@ export function NotesPanel({
             type="search"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Szukaj notatki…"
-            aria-label="Filtruj notatki"
+            placeholder={t("notes:notesSearchPlaceholder")}
+            aria-label={t("notes:notesFilterAria")}
           />
 
           {notes.length === 0 ? (
-            <p className="not-state">Brak notatek</p>
+            <p className="not-state">{t("notes:notesEmptyNotes")}</p>
           ) : visibleNotes.length === 0 ? (
-            <p className="not-state">Brak wyników</p>
+            <p className="not-state">{t("notes:notesNoResults")}</p>
           ) : (
             <ul className="not-tree">
               <li className="not-folder">
@@ -269,10 +274,12 @@ export function NotesPanel({
                           className={cn("not-file", isActive && "not-file--active")}
                           aria-current={isActive ? "page" : undefined}
                         >
-                          <span className="not-file__name">{note.title || "Untitled"}</span>
+                          <span className="not-file__name">
+                            {note.title || t("notes:notesUntitled")}
+                          </span>
                           {note.created_at ? (
                             <span className="not-file__meta">
-                              {new Date(note.created_at).toLocaleDateString()}
+                              {formatShortDate(new Date(note.created_at))}
                             </span>
                           ) : null}
                         </button>
@@ -285,9 +292,9 @@ export function NotesPanel({
           )}
 
           <div className="not-tags-sec">
-            <h3 className="not-tags-title">Popularne tagi</h3>
+            <h3 className="not-tags-title">{t("notes:notesPopularTags")}</h3>
             {popularTags.length === 0 ? (
-              <p className="not-state">Brak tagów we frontmatterze</p>
+              <p className="not-state">{t("notes:notesNoFrontmatterTags")}</p>
             ) : (
               <div className="not-tags-wrap">
                 {popularTags.map(({ tag }) => (
@@ -328,11 +335,11 @@ export function NotesPanel({
               <div className="not-toolbar">
                 <div className="not-toolbar__path">
                   <span>Notatki/</span>
-                  <b>{selectedNote.title || "Untitled"}</b>
+                  <b>{selectedNote.title || t("notes:notesUntitled")}</b>
                 </div>
                 <div className="not-toolbar__tools">
                   <span className={cn("chip not-chip", editing ? "chip--warn" : "chip--ok")}>
-                    {editing ? "edycja" : "podgląd"}
+                    {editing ? t("notes:notesChipEditing") : t("notes:notesChipPreview")}
                   </span>
                   <div className="tabs not-tabs" role="tablist">
                     <button
@@ -346,7 +353,7 @@ export function NotesPanel({
                         setNoteEditMode(false);
                       }}
                     >
-                      Podgląd
+                      {t("notes:notesTabPreview")}
                     </button>
                     <button
                       type="button"
@@ -358,7 +365,7 @@ export function NotesPanel({
                         setNoteEditMode(true);
                       }}
                     >
-                      Edycja
+                      {t("notes:notesTabEdit")}
                     </button>
                     <button
                       type="button"
@@ -406,8 +413,8 @@ export function NotesPanel({
                     {doc?.frontmatter ? (
                       <div className="not-frontmatter">
                         <div className="not-frontmatter__top">
-                          <span>--- FRONTMATTER ---</span>
-                          <span>Markdown</span>
+                          <span>{t("notes:notesFrontmatterBanner")}</span>
+                          <span>{t("notes:notesFrontmatterMarkdown")}</span>
                         </div>
                         {doc.frontmatter.map((line, i) => (
                           <div key={i}>{line}</div>
@@ -435,73 +442,73 @@ export function NotesPanel({
           )}
         </main>
 
-        <aside className="not-meta-col" aria-label="Szczegóły i powiązania notatki">
+        <aside className="not-meta-col" aria-label={t("notes:notesMetaAria")}>
           <section className="not-card">
             <div className="not-card__head">
               <h3 className="not-card__title">
-                <b>Metadane</b> · plik
+                <b>{t("notes:notesMetaTitleBold")}</b>
+                {t("notes:notesMetaTitleTrail")}
               </h3>
-              <span className="chip">Markdown</span>
+              <span className="chip">{t("notes:notesFrontmatterMarkdown")}</span>
             </div>
             {nexusDoc ? (
               <dl className="not-kv">
-                <dt>Ścieżka</dt>
+                <dt>{t("notes:notesPath")}</dt>
                 <dd>{nexusDoc.path}</dd>
-                <dt>Obszar</dt>
+                <dt>{t("notes:notesArea")}</dt>
                 <dd>{nexusDoc.group ? `${nexusDoc.area} / ${nexusDoc.group}` : nexusDoc.area}</dd>
-                <dt>Tagi</dt>
+                <dt>{t("notes:notesTags")}</dt>
                 <dd>
                   {nexusDoc.tags.length > 0 ? nexusDoc.tags.map((t) => `#${t}`).join(" ") : "—"}
                 </dd>
               </dl>
             ) : selectedNote ? (
               <dl className="not-kv">
-                <dt>Utworzono</dt>
+                <dt>{t("notes:notesCreated")}</dt>
                 <dd>
                   {selectedNote.created_at
-                    ? new Date(selectedNote.created_at).toLocaleString("pl-PL", {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })
+                    ? formatShortDateTime(new Date(selectedNote.created_at))
                     : "—"}
                 </dd>
-                <dt>Rozmiar</dt>
+                <dt>{t("notes:notesSize")}</dt>
                 <dd>
-                  {formatSize(selectedNote.content)} ({countWords(doc?.body ?? "")} słów)
+                  {formatSize(selectedNote.content)} (
+                  {t("notes:notesWordCount", { count: countWords(doc?.body ?? "") })})
                 </dd>
-                <dt>Tagi</dt>
-                <dd>{docTags.length > 0 ? docTags.map((t) => `#${t}`).join(" ") : "—"}</dd>
+                <dt>{t("notes:notesTags")}</dt>
+                <dd>{docTags.length > 0 ? docTags.map((tag) => `#${tag}`).join(" ") : "—"}</dd>
               </dl>
             ) : (
-              <p className="not-state">Wybierz notatkę</p>
+              <p className="not-state">{t("notes:notesSelectNote")}</p>
             )}
           </section>
 
           <section className="not-card">
             <div className="not-card__head">
               <h3 className="not-card__title">
-                <b>Linki zwrotne</b>
+                <b>{t("notes:notesBacklinksBold")}</b>
               </h3>
-              <span className="chip">backlinks</span>
+              <span className="chip">{t("notes:notesChipBacklinks")}</span>
             </div>
-            <p className="not-state">Wkrótce: indeks linków [[wiki]] między notatkami</p>
+            <p className="not-state">{t("notes:notesBacklinksSoon")}</p>
           </section>
 
           <section className="not-card">
             <div className="not-card__head">
               <h3 className="not-card__title">
-                <b>Baza decyzji</b> · devlogi
+                <b>{t("notes:notesDecisionsBold")}</b>
+                {t("notes:notesDecisionsTrail")}
               </h3>
-              <span className="chip">wkrótce</span>
+              <span className="chip">{t("notes:notesChipSoon")}</span>
             </div>
             <input
               className="input not-decisions-input"
               type="search"
               disabled
-              placeholder="Szukaj decyzji we wszystkich devlogach…"
-              aria-label="Szukaj decyzji"
+              placeholder={t("notes:notesDecisionsSearchPlaceholder")}
+              aria-label={t("notes:notesDecisionsSearchAria")}
             />
-            <p className="not-state">Wymaga agregacji devlogów wszystkich projektów</p>
+            <p className="not-state">{t("notes:notesDecisionsSoonMeta")}</p>
           </section>
         </aside>
       </div>

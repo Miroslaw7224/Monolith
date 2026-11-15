@@ -1,4 +1,5 @@
 import type { CodexDto, RunDto } from "@/contexts/bc_codex/schemas";
+import i18n, { currentLang, type Lang } from "@/src/i18n";
 
 export type CodexOk = Extract<CodexDto, { status: "ok" }>;
 export type SectionDto = CodexOk["sections"][number];
@@ -71,23 +72,28 @@ export function alertItems(
   warnings: CodexOk["warnings"],
   skippedLines: number,
   unterminatedTail: boolean,
-  journalName: string | null
+  journalName: string | null,
+  lang: Lang = currentLang()
 ): AlertItem[] {
   const items: AlertItem[] = warnings.map((w) => ({
-    tag: w.kind === "duplicate-id" ? "Zduplikowany identyfikator" : "Brakująca reguła",
+    tag:
+      w.kind === "duplicate-id"
+        ? i18n.t("codex:codexTagDuplicateId", { lng: lang })
+        : i18n.t("codex:codexTagMissingRule", { lng: lang }),
     text: w.message,
   }));
-  const file = journalName ?? "dziennika";
+  const file = journalName ?? i18n.t("codex:codexJournalDefault", { lng: lang });
+  const eventLog = i18n.t("codex:codexTagEventLog", { lng: lang });
   if (skippedLines > 0) {
     items.push({
-      tag: "Dziennik zdarzeń",
-      text: `Pominięto ${skippedLines} ${skippedLines === 1 ? "uszkodzoną linię" : "uszkodzone linie"} w ${file} (stan odtworzony z poprawnych wpisów).`,
+      tag: eventLog,
+      text: i18n.t("codex:codexSkippedLines", { count: skippedLines, file, lng: lang }),
     });
   }
   if (unterminatedTail) {
     items.push({
-      tag: "Dziennik zdarzeń",
-      text: `Ostatnia linia ${file} nie jest dokończona; zignorowano ją do czasu dopisania końca linii.`,
+      tag: eventLog,
+      text: i18n.t("codex:codexUnterminatedTail", { file, lng: lang }),
     });
   }
   return items;

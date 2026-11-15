@@ -14,6 +14,7 @@ import {
   AlignJustify,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
+import { useT } from "@/src/i18n/useT";
 
 const FONT_SIZES = ["12px", "14px", "16px", "18px", "20px", "24px", "28px", "32px"];
 const FONT_FAMILIES = [
@@ -58,6 +59,7 @@ function TextColorPicker({
   onPick: (hex: string) => void;
   onClear: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const normalizedValue = value ? normalizeHexColor(value) : "";
@@ -73,7 +75,11 @@ function TextColorPicker({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative flex items-center gap-1" title="Kolor tekstu">
+    <div
+      ref={rootRef}
+      className="relative flex items-center gap-1"
+      title={t("notes:editorTextColor")}
+    >
       <Palette className="size-4 text-[var(--text2)] shrink-0" />
       <button
         type="button"
@@ -81,7 +87,9 @@ function TextColorPicker({
         className="h-8 flex items-center gap-1.5 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] cursor-pointer min-w-[5.75rem]"
       >
         <ColorSwatch color={value || undefined} />
-        <span className="truncate tabular-nums">{value ? value.toUpperCase() : "Kolor"}</span>
+        <span className="truncate tabular-nums">
+          {value ? value.toUpperCase() : t("notes:editorColorShort")}
+        </span>
       </button>
       {open ? (
         <div
@@ -102,7 +110,7 @@ function TextColorPicker({
               aria-hidden
               className="inline-block size-4 shrink-0 rounded-sm border border-dashed border-[var(--border)] bg-[var(--bg3)]"
             />
-            <span>Domyślny</span>
+            <span>{t("notes:editorDefault")}</span>
           </button>
           {COLORS.map((color) => {
             const active = normalizedValue === normalizeHexColor(color);
@@ -178,20 +186,21 @@ export function NoteEditorToolbar({
   editor: Editor;
   format?: "html" | "markdown";
 }) {
+  const t = useT();
   const rich = format !== "markdown";
   return (
     <div className="flex flex-wrap items-center gap-1 p-2 border-b border-[var(--border)] bg-[var(--bg2)] flex-shrink-0 note-editor-toolbar">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         active={editor.isActive("bold")}
-        title="Pogrubienie"
+        title={t("notes:editorBold")}
       >
         <Bold className="w-4 h-4" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         active={editor.isActive("italic")}
-        title="Kursywa"
+        title={t("notes:editorItalic")}
       >
         <Italic className="w-4 h-4" />
       </ToolbarButton>
@@ -199,7 +208,7 @@ export function NoteEditorToolbar({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           active={editor.isActive("underline")}
-          title="Podkreślenie"
+          title={t("notes:editorUnderline")}
         >
           <UnderlineIcon className="w-4 h-4" />
         </ToolbarButton>
@@ -207,7 +216,7 @@ export function NoteEditorToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}
         active={editor.isActive("strike")}
-        title="Przekreślenie"
+        title={t("notes:editorStrikethrough")}
       >
         <Strikethrough className="w-4 h-4" />
       </ToolbarButton>
@@ -218,35 +227,35 @@ export function NoteEditorToolbar({
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign("left").run()}
             active={editor.isActive({ textAlign: "left" })}
-            title="Wyrównaj do lewej"
+            title={t("notes:editorAlignLeft")}
           >
             <AlignLeft className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign("center").run()}
             active={editor.isActive({ textAlign: "center" })}
-            title="Wyśrodkuj"
+            title={t("notes:editorAlignCenter")}
           >
             <AlignCenter className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign("right").run()}
             active={editor.isActive({ textAlign: "right" })}
-            title="Wyrównaj do prawej"
+            title={t("notes:editorAlignRight")}
           >
             <AlignRight className="w-4 h-4" />
           </ToolbarButton>
           <ToolbarButton
             onClick={() => editor.chain().focus().setTextAlign("justify").run()}
             active={editor.isActive({ textAlign: "justify" })}
-            title="Justowanie"
+            title={t("notes:editorAlignJustify")}
           >
             <AlignJustify className="w-4 h-4" />
           </ToolbarButton>
           <span className="w-px h-6 bg-[var(--border)] mx-1" />
           {/* Font size */}
           <select
-            title="Rozmiar czcionki"
+            title={t("notes:editorFontSizeTitle")}
             value={(editor.getAttributes("textStyle").fontSize as string) || ""}
             onChange={(e) => {
               const v = e.target.value;
@@ -255,7 +264,7 @@ export function NoteEditorToolbar({
             }}
             className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--text)] min-w-[4rem]"
           >
-            <option value="">Rozmiar</option>
+            <option value="">{t("notes:editorFontSizePlaceholder")}</option>
             {FONT_SIZES.map((size) => (
               <option key={size} value={size}>
                 {size}
@@ -264,7 +273,7 @@ export function NoteEditorToolbar({
           </select>
           {/* Font family */}
           <select
-            title="Czcionka"
+            title={t("notes:editorFontFamilyTitle")}
             value={(editor.getAttributes("textStyle").fontFamily as string) ?? ""}
             onChange={(e) => {
               const v = e.target.value;

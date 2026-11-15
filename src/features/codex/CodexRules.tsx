@@ -2,6 +2,7 @@
 
 import React from "react";
 import { markdownToHtml } from "@/lib/markdown/html-markdown";
+import { useT } from "@/src/i18n/useT";
 import type { CodexOk, LevelFilter, SectionDto } from "./codexFilters";
 import { countLevels } from "./codexFilters";
 
@@ -34,26 +35,31 @@ export function CodexRules({
   onQuery,
   onJump,
 }: Props) {
+  const t = useT();
   const counts = countLevels(data.rules);
   const byId = new Map(data.rules.map((rule) => [rule.id, rule]));
   const filters: { id: LevelFilter; label: string }[] = [
-    { id: "all", label: `Wszystkie (${counts.all})` },
-    { id: "must", label: `MUST (${counts.must})` },
-    { id: "should", label: `SHOULD (${counts.should})` },
+    { id: "all", label: t("codex:codexFilterAll", { count: counts.all }) },
+    { id: "must", label: t("codex:codexFilterMust", { count: counts.must }) },
+    { id: "should", label: t("codex:codexFilterShould", { count: counts.should }) },
   ];
   return (
-    <section className="kod-rules" aria-label="Reguły kodeksu">
+    <section className="kod-rules" aria-label={t("codex:codexRulesAria")}>
       <div className="kod-toolbar">
         <div className="kod-toolbar__row">
           <input
             type="search"
             className="input kod-search"
-            placeholder="Szukaj reguły po ID (np. TDD-1) lub tekście..."
-            aria-label="Wyszukiwanie reguł"
+            placeholder={t("codex:codexSearchPlaceholder")}
+            aria-label={t("codex:codexSearchAria")}
             value={query}
             onChange={(event) => onQuery(event.target.value)}
           />
-          <div className="kod-filter-group" role="group" aria-label="Filtr poziomu reguł">
+          <div
+            className="kod-filter-group"
+            role="group"
+            aria-label={t("codex:codexLevelFilterAria")}
+          >
             {filters.map((filter) => (
               <button
                 key={filter.id}
@@ -70,7 +76,7 @@ export function CodexRules({
       </div>
       <div className="stack" style={{ ["--gap" as string]: "var(--s-5)" }}>
         {sections.length === 0 ? (
-          <div className="kod-empty-filter">Brak reguł dla filtra</div>
+          <div className="kod-empty-filter">{t("codex:codexEmptyFilter")}</div>
         ) : (
           sections.map((section) => {
             const ruleCount = section.blocks.filter((block) => block.kind === "rule").length;
@@ -79,7 +85,7 @@ export function CodexRules({
                 <div className="kod-section__head">
                   <h2 className="kod-section__title">{section.title}</h2>
                   <span className="kod-section__meta">
-                    {ruleCount} {ruleCount === 1 ? "reguła" : "reguł"}
+                    {t("codex:codexRuleCount", { count: ruleCount })}
                   </span>
                 </div>
                 {section.blocks.map((block, index) => {
@@ -108,7 +114,7 @@ export function CodexRules({
                           <a
                             href={`#${elementId}`}
                             className="kod-rule__anchor"
-                            title={`Kotwica do reguły ${rule.id}`}
+                            title={t("codex:codexRuleAnchorTitle", { id: rule.id })}
                             onClick={(event) => {
                               event.preventDefault();
                               onJump(rule.id);

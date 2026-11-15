@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { AgentDto } from "@/contexts/bc_map/schemas";
+import { useT } from "@/src/i18n/useT";
 
 export function MapAgentsPanel(props: {
   available: boolean;
@@ -10,11 +11,12 @@ export function MapAgentsPanel(props: {
   projectNames: Record<string, string>;
   onRefresh: () => void;
 }) {
+  const t = useT();
   return (
     <section className="map-panel" aria-labelledby="map-agents-title">
       <header className="map-panel__head">
         <h2 id="map-agents-title" className="map-panel__title">
-          Agenci (Herdr)
+          {t("map:mapAgentsTitle")}
         </h2>
         <button
           type="button"
@@ -22,13 +24,13 @@ export function MapAgentsPanel(props: {
           disabled={props.loading}
           onClick={props.onRefresh}
         >
-          Odśwież stan
+          {t("map:mapRefreshState")}
         </button>
       </header>
       {!props.available ? (
-        <p className="map-panel__empty">Herdr niedostępny</p>
+        <p className="map-panel__empty">{t("map:mapHerdrUnavailable")}</p>
       ) : props.agents.length === 0 ? (
-        <p className="map-panel__empty">Brak aktywnych agentów</p>
+        <p className="map-panel__empty">{t("map:mapNoActiveAgents")}</p>
       ) : (
         <ul className="map-agents">
           {props.agents.map((a) => (

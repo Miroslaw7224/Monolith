@@ -1,12 +1,7 @@
 import React from "react";
 import type { DeployTargetDto } from "@/contexts/bc_arsenal/schemas";
+import { useT } from "@/src/i18n/useT";
 import { EMPTY_FILTERS, isFiltered, type ArsenalFilters, type KindFilter } from "./arsenalFilters";
-
-const KINDS: { id: KindFilter; label: string }[] = [
-  { id: "all", label: "wszystkie" },
-  { id: "skill", label: "skille" },
-  { id: "prompt", label: "prompty" },
-];
 
 type Props = {
   filters: ArsenalFilters;
@@ -16,19 +11,25 @@ type Props = {
 };
 
 export function ArsenalFilterBar({ filters, onChange, targets, models }: Props) {
+  const t = useT();
+  const kinds: { id: KindFilter; label: string }[] = [
+    { id: "all", label: t("arsenal:arsenalFilterAll") },
+    { id: "skill", label: t("arsenal:arsenalFilterSkills") },
+    { id: "prompt", label: t("arsenal:arsenalFilterPrompts") },
+  ];
   const set = (patch: Partial<ArsenalFilters>) => onChange({ ...filters, ...patch });
   return (
     <div className="asv-filters">
       <input
         type="search"
         className="asv-search"
-        aria-label="Szukaj skilla lub promptu"
-        placeholder="Szukaj skilla lub promptu..."
+        aria-label={t("arsenal:arsenalSearchAria")}
+        placeholder={t("arsenal:arsenalSearchPlaceholder")}
         value={filters.query}
         onChange={(e) => set({ query: e.target.value })}
       />
       <div className="asv-chips">
-        {KINDS.map((kind) => (
+        {kinds.map((kind) => (
           <button
             key={kind.id}
             type="button"
@@ -42,25 +43,25 @@ export function ArsenalFilterBar({ filters, onChange, targets, models }: Props) 
       </div>
       <select
         className="asv-select"
-        aria-label="Projekt"
+        aria-label={t("arsenal:arsenalFilterProjectAria")}
         value={filters.project ?? ""}
         onChange={(e) => set({ project: e.target.value === "" ? null : e.target.value })}
       >
-        <option value="">Wszystkie projekty</option>
-        {targets.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
+        <option value="">{t("arsenal:arsenalAllProjects")}</option>
+        {targets.map((target) => (
+          <option key={target.id} value={target.id}>
+            {target.name}
           </option>
         ))}
       </select>
       {models.length > 0 && (
         <select
           className="asv-select"
-          aria-label="Model"
+          aria-label={t("arsenal:arsenalFilterModelAria")}
           value={filters.model ?? ""}
           onChange={(e) => set({ model: e.target.value === "" ? null : e.target.value })}
         >
-          <option value="">Wszystkie modele</option>
+          <option value="">{t("arsenal:arsenalAllModels")}</option>
           {models.map((m) => (
             <option key={m} value={m}>
               {m}
@@ -74,11 +75,11 @@ export function ArsenalFilterBar({ filters, onChange, targets, models }: Props) 
           checked={filters.undeployedOnly}
           onChange={(e) => set({ undeployedOnly: e.target.checked })}
         />
-        niewdrożone nigdzie
+        {t("arsenal:arsenalUndeployedCheckbox")}
       </label>
       {isFiltered(filters) && (
         <button type="button" className="asv-btn" onClick={() => onChange(EMPTY_FILTERS)}>
-          Wyczyść filtry
+          {t("arsenal:arsenalClearFilters")}
         </button>
       )}
     </div>

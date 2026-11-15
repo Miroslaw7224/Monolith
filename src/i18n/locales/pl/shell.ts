@@ -10,6 +10,7 @@ export const shell = {
     mapa: "Mapa",
     kodeks: "Kodeks",
   },
+  subTabs: { aria: "Widoki karty" },
   rail: {
     aria: "Karty",
     cardTitle: "{{label}} (Alt+{{hotkey}})",
