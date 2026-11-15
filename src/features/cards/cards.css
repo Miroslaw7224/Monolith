@@ -156,13 +156,20 @@
   cursor: pointer;
 }
 
+.card-rail__lang span {
+  opacity: 0.45;
+}
+
 .card-rail__lang:hover {
-  color: var(--shell-text);
+  border-color: var(--shell-muted);
 }
 
 .card-rail__lang .is-active {
   color: var(--shell-text);
   font-weight: 700;
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .card-palette__overlay {
