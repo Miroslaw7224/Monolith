@@ -1154,7 +1154,7 @@ describe("K1: układ wg makiety", () => {
     expect(within(queue).getByText("Przejrzeć raport")).toBeInTheDocument();
     expect(within(queue).queryByText("Zaległa faktura")).not.toBeInTheDocument();
     expect(within(queue).queryByText("Wysłać wniosek")).not.toBeInTheDocument();
-    expect(queue).toHaveTextContent("1 zadań");
+    expect(queue).toHaveTextContent("1 zadanie");
 
     fireEvent.click(within(queue).getByRole("button", { name: "quick" }));
     expect(within(queue).getByText("Zaległa faktura")).toBeInTheDocument();

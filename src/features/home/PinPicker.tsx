@@ -1,5 +1,7 @@
 // src/features/home/PinPicker.tsx
 import React, { useEffect, useState } from "react";
+import i18n from "@/src/i18n";
+import { useT } from "@/src/i18n/useT";
 
 const MAX_PINNED = 3;
 
@@ -16,6 +18,7 @@ export function PinPicker({
   onSaved: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [selected, setSelected] = useState<string[]>(currentIds);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +33,7 @@ export function PinPicker({
         // id spoza rejestru (projekt usunięty) odpada, żeby nie blokował limitu i nie wracał przy zapisie
         setSelected((prev) => prev.filter((id) => list.some((p) => p.id === id)));
       })
-      .catch(() => setError("Nie udało się wczytać listy projektów"));
+      .catch(() => setError(i18n.t("home:pin.loadFailed")));
   }, [apiFetch]);
 
   const toggle = (id: string) =>
@@ -51,7 +54,7 @@ export function PinPicker({
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się zapisać");
+      setError(err instanceof Error ? err.message : t("home:pin.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -59,11 +62,11 @@ export function PinPicker({
 
   return (
     <div className="kok-overlay">
-      <div role="dialog" aria-label="Zmień aktywne tematy" className="kok-modal">
+      <div role="dialog" aria-label={t("home:pin.aria")} className="kok-modal">
         <div className="kok-modal__head">
-          <h3 className="kok-modal__title">Zmień aktywne tematy</h3>
+          <h3 className="kok-modal__title">{t("home:pin.title")}</h3>
           <p className="kok-modal__sub">
-            Wybrano {selected.length} z {MAX_PINNED}
+            {t("home:pin.selected", { selected: selected.length, max: MAX_PINNED })}
           </p>
         </div>
         <ul className="kok-modal__list">
@@ -89,7 +92,7 @@ export function PinPicker({
         {error ? <p className="kok-state kok-state--error">{error}</p> : null}
         <div className="kok-modal__actions">
           <button type="button" onClick={onCancel} className="kok-btn kok-btn--ghost">
-            Anuluj
+            {t("home:common.cancel")}
           </button>
           <button
             type="button"
@@ -97,7 +100,7 @@ export function PinPicker({
             disabled={saving}
             className="kok-btn kok-btn--primary"
           >
-            Zapisz
+            {t("home:common.save")}
           </button>
         </div>
       </div>

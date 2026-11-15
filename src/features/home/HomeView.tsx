@@ -17,6 +17,8 @@ import {
   weekNumber,
   windowsLabel,
 } from "./cockpitFormat";
+import i18n from "@/src/i18n";
+import { useT } from "@/src/i18n/useT";
 
 interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
@@ -36,6 +38,7 @@ export default function HomeView({
   focusInbox,
   onInboxFocused,
 }: HomeViewProps) {
+  const t = useT();
   const [cockpit, setCockpit] = useState<CockpitDto | null>(null);
   const [cockpitError, setCockpitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +59,7 @@ export default function HomeView({
       setCockpit((await res.json()) as CockpitDto);
       setCockpitError(null);
     } catch (err) {
-      setCockpitError(err instanceof Error ? err.message : "Błąd");
+      setCockpitError(err instanceof Error ? err.message : i18n.t("home:view.genericError"));
     } finally {
       setLoading(false);
     }
@@ -93,7 +96,7 @@ export default function HomeView({
         ) : null}
         <header className="kok-head">
           <div>
-            <p className="kok-eyebrow">Alt+1 · Kokpit</p>
+            <p className="kok-eyebrow">{t("home:view.eyebrow")}</p>
             <h1 className="kok-title">{formatLongDate(now)}</h1>
             {meetings !== null ? (
               <p className="kok-sub">
@@ -102,9 +105,9 @@ export default function HomeView({
             ) : null}
           </div>
           <div className="kok-head__right">
-            <div className="kok-clock" aria-label="Aktualna godzina">
+            <div className="kok-clock" aria-label={t("home:view.clockAria")}>
               {hhmm(now.getHours() * 60 + now.getMinutes())}
-              <small>tydz. {weekNumber(now)}</small>
+              <small>{t("home:view.weekLabel", { week: weekNumber(now) })}</small>
             </div>
             {cockpit ? (
               <button
@@ -112,7 +115,7 @@ export default function HomeView({
                 className="kok-btn kok-btn--primary"
                 onClick={() => setCloseOpen(true)}
               >
-                {cockpit.closing.today ? "Dzień zamknięty · zmień" : "Zamknij dzień"}
+                {cockpit.closing.today ? t("home:view.dayClosedChange") : t("home:closeDay.title")}
               </button>
             ) : null}
           </div>
@@ -122,13 +125,15 @@ export default function HomeView({
           <p className="kok-state">…</p>
         ) : cockpit === null ? (
           <p className="kok-state kok-state--error">
-            Nie udało się wczytać Kokpitu ({cockpitError ?? "brak danych"})
+            {t("home:view.loadFailed", {
+              error: cockpitError ?? t("home:view.noData"),
+            })}
           </p>
         ) : (
           <>
             {cockpitError !== null ? (
               <p className="kok-state kok-state--error" role="alert">
-                Nie udało się odświeżyć Kokpitu ({cockpitError}); widać ostatnie wczytane dane
+                {t("home:view.refreshFailed", { error: cockpitError })}
               </p>
             ) : null}
             <CockpitSections

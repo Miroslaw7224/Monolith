@@ -10,3 +10,13 @@ export function formatDate(date: Date, lang: Lang = currentLang()): string {
     month: "long",
   }).format(date);
 }
+
+/** „16 listopada” / „November 16”. */
+export function formatDayMonth(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], { day: "numeric", month: "long" }).format(date);
+}
+
+/** Skrót dnia tygodnia: „pon.” / „Mon”. */
+export function formatWeekdayShort(date: Date, lang: Lang = currentLang()): string {
+  return new Intl.DateTimeFormat(LOCALE[lang], { weekday: "short" }).format(date);
+}

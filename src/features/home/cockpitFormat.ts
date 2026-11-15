@@ -1,5 +1,8 @@
 // Czyste funkcje formatowania czasu dla Kokpitu (bez zależności od React).
 
+import i18n from "@/src/i18n";
+import { formatDate } from "@/src/i18n/format";
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Dzień lokalny `RRRR-MM-DD`. */
@@ -36,79 +39,68 @@ export function minutesUntil(nowMinutes: number, startMinutes: number): number {
   return startMinutes - nowMinutes;
 }
 
-/** „dziś” / „wczoraj” / „N dni temu”; `null` dla braku lub błędnej daty. Przyszłość liczy się jak „dziś”. */
-export function relativeDays(fromIso: string | null, today: Date): string | null {
+/** Pełne dni od `fromIso` do dziś; `null` dla braku lub błędnej daty. Przyszłość liczy się jak 0. */
+function daysAgo(fromIso: string | null, today: Date): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(fromIso ?? "");
   if (!m) return null;
   const from = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
-  const days = Math.max(0, Math.round((now - from) / (24 * 3600 * 1000)));
-  if (days === 0) return "dziś";
-  if (days === 1) return "wczoraj";
-  return `${days} dni temu`;
+  return Math.max(0, Math.round((now - from) / (24 * 3600 * 1000)));
 }
 
-/** Etykieta zaczepu: „Zaczep z wczoraj” / „Zaczep sprzed 3 dni”; dla dziś i błędnej daty: „Zaczep”. */
+/** „dziś” / „wczoraj” / „N dni temu”; `null` dla braku lub błędnej daty. */
+export function relativeDays(fromIso: string | null, today: Date): string | null {
+  const days = daysAgo(fromIso, today);
+  if (days === null) return null;
+  if (days === 0) return i18n.t("home:format.today");
+  if (days === 1) return i18n.t("home:format.yesterday");
+  return i18n.t("home:format.daysAgo", { count: days });
+}
+
+/** „Zaczep z wczoraj” / „Zaczep sprzed 3 dni”; dla dziś i błędnej daty: „Zaczep”. */
 export function anchorLabel(dateIso: string, today: Date): string {
-  const rel = relativeDays(dateIso, today);
-  if (rel === "wczoraj") return "Zaczep z wczoraj";
-  const m = /^(\d+) dni temu$/.exec(rel ?? "");
-  return m ? `Zaczep sprzed ${m[1]} dni` : "Zaczep";
+  const days = daysAgo(dateIso, today);
+  if (days === 1) return i18n.t("home:format.anchorYesterday");
+  if (days !== null && days >= 2) return i18n.t("home:format.anchorDaysAgo", { count: days });
+  return i18n.t("home:format.anchor");
 }
 
-/** „Środa, 11 listopada”. */
+/** „Środa, 11 listopada” / „Wednesday, November 11”. */
 export function formatLongDate(date: Date): string {
-  const text = date.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long" });
+  const text = formatDate(date);
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** „brak spotkań dziś” / „1 spotkanie dziś” / „3 spotkania dziś” / „5 spotkań dziś”. */
 export function meetingsLabel(count: number): string {
-  if (count === 0) return "brak spotkań dziś";
-  if (count === 1) return "1 spotkanie dziś";
-  const last = count % 10;
-  const lastTwo = count % 100;
-  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
-  return `${count} ${few ? "spotkania" : "spotkań"} dziś`;
+  return count === 0
+    ? i18n.t("home:format.meetingsNone")
+    : i18n.t("home:format.meetings", { count });
 }
 
-/** „0 commitów” / „1 commit” / „2 commity” / „5 commitów”. */
 export function commitsLabel(count: number): string {
-  if (count === 1) return "1 commit";
-  const last = count % 10;
-  const lastTwo = count % 100;
-  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
-  return `${count} ${few ? "commity" : "commitów"}`;
+  return i18n.t("home:format.commits", { count });
 }
 
-/** „jutro” albo „Środa, 18 listopada” (dzień spotkania względem `todayIso`). */
+/** „jutro” albo pełna data spotkania względem `todayIso`. */
 export function meetingDayLabel(dateIso: string, todayIso: string): string {
   const parse = (iso: string) => {
     const [y, m, d] = iso.split("-").map(Number);
     return new Date(y, m - 1, d);
   };
   const days = Math.round((parse(dateIso).getTime() - parse(todayIso).getTime()) / 86_400_000);
-  return days === 1 ? "jutro" : formatLongDate(parse(dateIso));
+  return days === 1 ? i18n.t("home:format.tomorrow") : formatLongDate(parse(dateIso));
 }
 
-/** Meta kafla „Commity dziś”: „jeszcze bez commitów” / „1 projekt” / „2 projekty” / „5 projektów”. */
+/** Meta kafla „Commity dziś”. */
 export function projectsLabel(count: number): string {
-  if (count === 0) return "jeszcze bez commitów";
-  if (count === 1) return "1 projekt";
-  const last = count % 10;
-  const lastTwo = count % 100;
-  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
-  return `${count} ${few ? "projekty" : "projektów"}`;
+  return count === 0
+    ? i18n.t("home:format.projectsNone")
+    : i18n.t("home:format.projects", { count });
 }
 
-/** „1 okno Deep Work” / „2 okna Deep Work” / „5 okien Deep Work”; 0 → pusty tekst. */
+/** „N okien Deep Work”; 0 → pusty tekst. */
 export function windowsLabel(count: number): string {
-  if (count === 0) return "";
-  if (count === 1) return "1 okno Deep Work";
-  const last = count % 10;
-  const lastTwo = count % 100;
-  const few = last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14);
-  return `${count} ${few ? "okna" : "okien"} Deep Work`;
+  return count === 0 ? "" : i18n.t("home:format.windows", { count });
 }
 
 /** Propozycje okien, które jeszcze się nie skończyły (serwer liczył je w chwili wczytania Kokpitu). */

@@ -1,6 +1,8 @@
 // src/features/home/InboxItemDialog.tsx
 import React, { useState } from "react";
 import type { InboxItemDto, MoveInboxBody } from "@/contexts/bc_inbox/schemas";
+import { useT } from "@/src/i18n/useT";
+import { inboxTypeLabel } from "./inboxType";
 import { InboxMoveForm } from "./InboxMoveForm";
 
 /**
@@ -26,14 +28,15 @@ export function InboxItemDialog({
   onMove: (body: MoveInboxBody) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [moving, setMoving] = useState(false);
   return (
     <div className="kok-overlay">
-      <div role="dialog" aria-label="Wpis z inboxu" className="kok-modal">
+      <div role="dialog" aria-label={t("home:inbox.itemAria")} className="kok-modal">
         <div className="kok-modal__head">
-          <h3 className="kok-modal__title">Wpis z inboxu</h3>
+          <h3 className="kok-modal__title">{t("home:inbox.itemTitle")}</h3>
           <p className="kok-modal__sub">
-            {item.type}
+            {inboxTypeLabel(item.type)}
             {item.at ? ` · ${item.at.replace("T", " ")}` : ""}
           </p>
         </div>
@@ -56,7 +59,7 @@ export function InboxItemDialog({
             ) : null}
             <div className="kok-modal__actions">
               <button type="button" onClick={onClose} className="kok-btn kok-btn--ghost">
-                Zamknij
+                {t("home:inbox.close")}
               </button>
               <button
                 type="button"
@@ -64,10 +67,10 @@ export function InboxItemDialog({
                 disabled={busy}
                 onClick={() => setMoving(true)}
               >
-                Przenieś do…
+                {t("home:inbox.moveOpen")}
               </button>
               <button type="button" className="kok-btn" disabled={busy} onClick={onResolve}>
-                Gotowe
+                {t("home:inbox.done")}
               </button>
               <button
                 type="button"
@@ -75,7 +78,7 @@ export function InboxItemDialog({
                 disabled={busy}
                 onClick={onDelete}
               >
-                Usuń
+                {t("home:inbox.delete")}
               </button>
             </div>
           </>

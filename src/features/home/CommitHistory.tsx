@@ -1,6 +1,7 @@
-// src/features/home/CommitHistory.tsx
 import React, { useEffect, useState } from "react";
 import type { CommitHistoryDto } from "@/contexts/bc_cockpit/schemas";
+import { useT } from "@/src/i18n/useT";
+import { formatDayMonth, formatWeekdayShort } from "@/src/i18n/format";
 import { commitsLabel } from "./cockpitFormat";
 
 const DAYS = 7;
@@ -19,6 +20,7 @@ export function CommitHistory({
   /** Dzień danych Kokpitu: gdy się zmieni (północ), historia wczytuje się od nowa. */
   day: string;
 }) {
+  const t = useT();
   const [history, setHistory] = useState<CommitHistoryDto | null>(null);
 
   useEffect(() => {
@@ -40,34 +42,45 @@ export function CommitHistory({
   const max = Math.max(1, ...history.days.flatMap((d) => [d.total, d.prs]));
 
   return (
-    <section className="kok-panel kok-history" aria-label="Historia commitów">
+    <section className="kok-panel kok-history" aria-label={t("home:history.aria")}>
       <div className="kok-panel__head">
         <h3 className="kok-panel__title">
-          <b>Commity</b> · ostatnie dni
+          <b>{t("home:history.titleCommits")}</b>
+          {t("home:history.titleSuffix")}
         </h3>
         <div className="kok-panel__tools">
           <span className="kok-history__legend">
-            <i className="kok-history__swatch" aria-hidden="true" /> commity
+            <i className="kok-history__swatch" aria-hidden="true" />{" "}
+            {t("home:history.legendCommits")}
           </span>
           <span className="kok-history__legend-pr kok-history__legend">
             <i className="kok-history__swatch kok-history__swatch--pr" aria-hidden="true" />
-            PR
+            {t("home:history.legendPr")}
           </span>
           <span className="kok-chip">
-            {commitsLabel(history.total)} · {history.totalPrs} PR w {history.days.length} dni
+            {t("home:history.chip", {
+              commits: commitsLabel(history.total),
+              prs: history.totalPrs,
+              days: history.days.length,
+            })}
           </span>
         </div>
       </div>
       <div className="kok-history__bars">
         {history.days.map((d) => {
           const date = parseDay(d.date);
-          const long = date.toLocaleDateString("pl-PL", { day: "numeric", month: "long" });
+          const long = formatDayMonth(date);
           const split = d.projects.map((p) => `${p.name} ${p.count}`).join(", ");
           const commitsText =
             d.total === 0
-              ? `${long}: brak commitów`
-              : `${long}: ${commitsLabel(d.total)} (${split})`;
-          const name = d.prs > 0 ? `${commitsText}, ${d.prs} PR` : commitsText;
+              ? t("home:history.barEmpty", { date: long })
+              : t("home:history.barDay", {
+                  date: long,
+                  commits: commitsLabel(d.total),
+                  projects: split,
+                });
+          const name =
+            d.prs > 0 ? `${commitsText}${t("home:history.barPr", { count: d.prs })}` : commitsText;
           return (
             <div key={d.date} className="kok-history__col">
               <span className="kok-history__value">
@@ -89,7 +102,7 @@ export function CommitHistory({
                 />
               </div>
               <span className="kok-history__day">
-                {date.toLocaleDateString("pl-PL", { weekday: "short" })} {date.getDate()}
+                {formatWeekdayShort(date)} {date.getDate()}
               </span>
             </div>
           );
