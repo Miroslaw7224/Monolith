@@ -46,8 +46,6 @@ type Knobs = {
   diff: boolean;
   devlog: number;
   rulesMax: number;
-  /** Rola debug: sekcja „Bugi” z polami Plik/Opis/Naprawa, wiekiem i instrukcją zamknięcia. */
-  bugDetails: boolean;
 };
 
 export const BUG_CLOSE_HINT =
@@ -78,6 +76,8 @@ type RoleProfile = {
   protectDiff: boolean;
   /** Limit znaków zasad od początku (`Infinity` = bez limitu); wybór roli, nie cięcie do budżetu. */
   rulesMax: number;
+  /** Rola debug: sekcja „Bugi” z polami Plik/Opis/Naprawa, wiekiem i instrukcją zamknięcia. */
+  bugDetails: boolean;
 };
 
 /** Profile ról paczki; `full` odtwarza paczkę sprzed wprowadzenia ról (kolejność i zawartość bez zmian). */
