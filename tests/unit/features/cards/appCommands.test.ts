@@ -1,9 +1,16 @@
 import { describe, expect, test, vi } from "vitest";
+import i18n from "@/src/i18n";
 import { buildAppCommands } from "@/src/features/cards/appCommands";
 import { filterCommands } from "@/src/features/cards/cards";
 
 const make = (lang: "pl" | "en") => {
-  const actions = { lang, toggleLang: vi.fn(), toggleTheme: vi.fn(), openFeedback: vi.fn() };
+  const actions = {
+    lang,
+    toggleLang: vi.fn(),
+    toggleTheme: vi.fn(),
+    openFeedback: vi.fn(),
+    t: i18n.getFixedT(lang),
+  };
   return { actions, commands: buildAppCommands(actions) };
 };
 
@@ -18,8 +25,17 @@ describe("buildAppCommands", () => {
   });
 
   test("etykieta języka zależy od bieżącego języka", () => {
-    expect(make("pl").commands[0].label).toContain("angielski");
-    expect(make("en").commands[0].label).toContain("polski");
+    expect(make("pl").commands[0].label).toBe("Zmień język na angielski (EN)");
+    expect(make("en").commands[0].label).toBe("Switch language to Polish (PL)");
+  });
+
+  test("etykiety po angielsku", () => {
+    const labels = make("en").commands.map((c) => c.label);
+    expect(labels).toEqual([
+      "Switch language to Polish (PL)",
+      "Toggle light / dark theme",
+      "Send feedback",
+    ]);
   });
 
   test("da się je znaleźć w palecie po słowie kluczowym", () => {

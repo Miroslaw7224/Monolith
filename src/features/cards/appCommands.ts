@@ -1,3 +1,4 @@
+import type { TFn } from "@/src/i18n";
 import type { PaletteCommand } from "./cards";
 
 export interface AppCommandActions {
@@ -5,17 +6,19 @@ export interface AppCommandActions {
   toggleLang: () => void;
   toggleTheme: () => void;
   openFeedback: () => void;
+  t: TFn;
 }
 
 /** Polecenia ustawień w palecie Ctrl+K (zastępują dawny górny pasek). */
 export function buildAppCommands(actions: AppCommandActions): PaletteCommand[] {
+  const { t } = actions;
   return [
     {
       id: "toggle-lang",
-      label: actions.lang === "pl" ? "Zmień język na angielski (EN)" : "Zmień język na polski (PL)",
+      label: actions.lang === "pl" ? t("common:lang.switchToEn") : t("common:lang.switchToPl"),
       run: actions.toggleLang,
     },
-    { id: "toggle-theme", label: "Przełącz motyw jasny / ciemny", run: actions.toggleTheme },
-    { id: "open-feedback", label: "Wyślij feedback", run: actions.openFeedback },
+    { id: "toggle-theme", label: t("shell:palette.toggleTheme"), run: actions.toggleTheme },
+    { id: "open-feedback", label: t("shell:palette.sendFeedback"), run: actions.openFeedback },
   ];
 }

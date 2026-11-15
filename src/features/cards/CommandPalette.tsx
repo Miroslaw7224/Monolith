@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useT } from "@/src/i18n/useT";
 import { filterCommands, type PaletteCommand } from "./cards";
 
 export interface CommandPaletteProps {
@@ -9,6 +10,7 @@ export interface CommandPaletteProps {
 }
 
 export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,21 +56,21 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         className="card-palette"
         role="dialog"
         aria-modal="true"
-        aria-label="Paleta poleceń"
+        aria-label={t("shell:palette.aria")}
         onKeyDown={onKeyDown}
       >
         <input
           ref={inputRef}
           className="card-palette__input"
-          aria-label="Polecenie"
-          placeholder="Wpisz polecenie lub nazwę…"
+          aria-label={t("shell:palette.inputAria")}
+          placeholder={t("shell:palette.placeholder")}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             setSelected(0);
           }}
         />
-        <ul className="card-palette__list" role="listbox" aria-label="Polecenia">
+        <ul className="card-palette__list" role="listbox" aria-label={t("shell:palette.listAria")}>
           {shown.map((cmd, i) => (
             <li
               key={cmd.id}
@@ -82,7 +84,9 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
               {cmd.hint && <kbd className="card-palette__kbd">{cmd.hint}</kbd>}
             </li>
           ))}
-          {shown.length === 0 && <li className="card-palette__empty">Brak wyników</li>}
+          {shown.length === 0 && (
+            <li className="card-palette__empty">{t("shell:palette.empty")}</li>
+          )}
         </ul>
       </div>
     </div>

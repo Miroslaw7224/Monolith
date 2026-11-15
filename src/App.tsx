@@ -49,7 +49,7 @@ export default function App() {
   const paletteCommands = useMemo(
     () => [
       ...buildCardCommands(selectCard, tShell),
-      ...buildAppCommands({ lang, toggleLang, toggleTheme, openFeedback }),
+      ...buildAppCommands({ lang, toggleLang, toggleTheme, openFeedback, t: tShell }),
     ],
     [selectCard, tShell, lang, toggleLang, toggleTheme, openFeedback]
   );
