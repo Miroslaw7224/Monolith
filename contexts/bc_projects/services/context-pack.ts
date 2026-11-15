@@ -1,4 +1,5 @@
 import type {
+  BugEntry,
   ContextPack,
   ContextPackRole,
   GitSnapshotResult,
@@ -45,7 +46,24 @@ type Knobs = {
   diff: boolean;
   devlog: number;
   rulesMax: number;
+  /** Rola debug: sekcja „Bugi” z polami Plik/Opis/Naprawa, wiekiem i instrukcją zamknięcia. */
+  bugDetails: boolean;
 };
+
+export const BUG_CLOSE_HINT =
+  "Po naprawie zamknij bug w `Projects/<projekt>/bugs.md` według przepisu „Bugi” w docs/nexus-vault-formaty-yaml.md (Monolith).";
+
+function bugLine(b: BugEntry): string {
+  return `- ${b.id}: ${b.title}${b.priority ? ` [${b.priority}]` : ""}${b.status ? ` (${b.status})` : ""}`;
+}
+
+function bugBlock(b: BugEntry): string {
+  const lines = [bugLine(b) + (b.ageDays !== undefined ? ` · otwarty ${b.ageDays} d` : "")];
+  if (b.file) lines.push(`  Plik: ${b.file}`);
+  if (b.description) lines.push(`  Opis: ${b.description}`);
+  if (b.fix) lines.push(`  Naprawa: ${b.fix}`);
+  return lines.join("\n");
+}
 
 export type SectionId = "rules" | "state" | "git" | "tasks" | "bugs" | "devlog";
 
@@ -70,6 +88,7 @@ export const ROLE_PROFILES: Record<ContextPackRole, RoleProfile> = {
     diff: true,
     protectDiff: false,
     rulesMax: Infinity,
+    bugDetails: false,
   },
   review: {
     order: ["rules", "state", "git", "tasks"],
@@ -77,6 +96,7 @@ export const ROLE_PROFILES: Record<ContextPackRole, RoleProfile> = {
     diff: true,
     protectDiff: true,
     rulesMax: Infinity,
+    bugDetails: false,
   },
   implementation: {
     order: ["rules", "state", "tasks", "git", "bugs"],
@@ -84,6 +104,7 @@ export const ROLE_PROFILES: Record<ContextPackRole, RoleProfile> = {
     diff: false,
     protectDiff: false,
     rulesMax: Infinity,
+    bugDetails: false,
   },
   debug: {
     order: ["bugs", "state", "git", "devlog", "rules"],
@@ -91,6 +112,7 @@ export const ROLE_PROFILES: Record<ContextPackRole, RoleProfile> = {
     diff: true,
     protectDiff: false,
     rulesMax: 1200,
+    bugDetails: true,
   },
 };
 
@@ -221,13 +243,12 @@ function renderPack(input: ContextPackInput, k: Knobs, profile: RoleProfile): st
       return tasks;
     },
     bugs: () => {
-      const bugs = project.bugs
-        .filter((b) => b.section !== "Zamknięte")
-        .map(
-          (b) =>
-            `- ${b.id}: ${b.title}${b.priority ? ` [${b.priority}]` : ""}${b.status ? ` (${b.status})` : ""}`
-        );
-      return bugs.length > 0 ? `## Bugi (otwarte)\n\n${bugs.join("\n")}` : null;
+      const open = project.bugs.filter((b) => b.section !== "Zamknięte");
+      if (open.length === 0) return null;
+      if (!profile.bugDetails) {
+        return `## Bugi (otwarte)\n\n${open.map(bugLine).join("\n")}`;
+      }
+      return `## Bugi (otwarte)\n\n${open.map(bugBlock).join("\n")}\n\n${BUG_CLOSE_HINT}`;
     },
     devlog: () => {
       const entries = project.devlog.slice(0, k.devlog);
