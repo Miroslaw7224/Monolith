@@ -13,48 +13,42 @@ import {
   type TaskOpInputDto,
   type TasksBoardDto,
 } from "@/contexts/bc_projects/schemas";
+import { useT } from "@/src/i18n/useT";
 import type { MutationResult } from "./mutation";
+import {
+  archiveConfirmQuestion,
+  archiveMovedNotice,
+  columnTaskCountLabel,
+  doneToNowError,
+  nowLimitError,
+  type ColumnKey,
+} from "./projectsFormat";
 
-type ColumnKey = "blockers" | "now" | "next" | "icebox";
-
-const COLUMNS: { key: ColumnKey; label: string }[] = [
-  { key: "blockers", label: "Blokery" },
-  { key: "now", label: "Teraz" },
-  { key: "next", label: "Następne" },
-  { key: "icebox", label: "Icebox" },
+const COLUMNS = [
+  { key: "blockers" as const, labelKey: "projects:board.columns.blockers" as const },
+  { key: "now" as const, labelKey: "projects:board.columns.now" as const },
+  { key: "next" as const, labelKey: "projects:board.columns.next" as const },
+  { key: "icebox" as const, labelKey: "projects:board.columns.icebox" as const },
 ];
 
 type Filter = "all" | "open" | "done";
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "Wszystkie" },
-  { key: "open", label: "Otwarte" },
-  { key: "done", label: "Ukończone" },
+const FILTERS = [
+  { key: "all" as const, labelKey: "projects:board.filterAll" as const },
+  { key: "open" as const, labelKey: "projects:board.filterOpen" as const },
+  { key: "done" as const, labelKey: "projects:board.filterDone" as const },
 ];
 
-const EMPTY_TEXT: Record<Filter, string> = {
-  all: "Brak",
-  open: "Brak otwartych",
-  done: "Brak ukończonych",
-};
+const EMPTY_KEYS = {
+  all: "projects:board.emptyAll",
+  open: "projects:board.emptyOpen",
+  done: "projects:board.emptyDone",
+} as const;
 
 const matchesFilter = (filter: Filter, task: BoardTaskDto) =>
   filter === "all" || (filter === "done") === task.done;
 
 type TaskPos = { column: ColumnKey; index: number };
-
-const CONFLICT_MESSAGE = "Plik zadań zmienił się; odświeżono tablicę. Spróbuj ponownie.";
-
-/** Podpis liczby zadań w nagłówku kolumny (po polsku: 1 zadanie, 2–4 zadania, 0/5+ zadań). */
-function countLabel(column: ColumnKey, n: number): string {
-  if (column === "icebox") return `${n} odłożone`;
-  if (n === 1) return "1 zadanie";
-  const lastTwo = n % 100;
-  const last = n % 10;
-  return last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)
-    ? `${n} zadania`
-    : `${n} zadań`;
-}
 
 const samePos = (a: TaskPos | null, column: ColumnKey, index: number) =>
   a !== null && a.column === column && a.index === index;
@@ -65,6 +59,7 @@ export function ProjectTasksBoard(props: {
   onArchive: (version: string | null, olderThanDays: number) => Promise<MutationResult>;
   onReload: () => void;
 }): React.JSX.Element {
+  const t = useT();
   const { board, onOp, onArchive, onReload } = props;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +115,7 @@ export function ProjectTasksBoard(props: {
     }
     // `=== false`: przy `strict: false` tylko takie porównanie zawęża unię.
     if (result.ok === false) {
-      setError(result.conflict ? CONFLICT_MESSAGE : result.error);
+      setError(result.conflict ? t("projects:board.conflict") : result.error);
       if (result.conflict) {
         setEditing(null);
         setConfirming(null);
@@ -138,7 +133,7 @@ export function ProjectTasksBoard(props: {
     const result = await exec(() => onArchive(board.version, days));
     setConfirmingArchive(false);
     if (result.ok === true) {
-      setNotice(`Przeniesiono ${result.archived ?? 0} zadań do changelog.md`);
+      setNotice(archiveMovedNotice(result.archived ?? 0));
     }
   };
 
@@ -185,8 +180,8 @@ export function ProjectTasksBoard(props: {
   /** Te same reguły co na serwerze (422), sprawdzane wcześniej, żeby nie wysyłać skazanego żądania. */
   const moveBlockReason = (task: BoardTaskDto, to: ColumnKey): string | null => {
     if (to !== "now") return null;
-    if (task.done) return "Ukończone zadanie nie może trafić do Teraz";
-    if (nowFull) return `Limit ${NOW_LIMIT} zadań w kolumnie Teraz`;
+    if (task.done) return doneToNowError();
+    if (nowFull) return nowLimitError(NOW_LIMIT);
     return null;
   };
 
@@ -212,7 +207,7 @@ export function ProjectTasksBoard(props: {
         <li key={key} className="prj-board__item">
           <form className="prj-board__edit" onSubmit={(e) => submitEdit(e, column, index, task)}>
             <input
-              aria-label="Edytuj zadanie"
+              aria-label={t("projects:board.editTaskAria")}
               value={editText}
               maxLength={300}
               autoFocus
@@ -223,7 +218,7 @@ export function ProjectTasksBoard(props: {
               }}
             />
             <button type="submit" className="prj-btn prj-btn--primary" disabled={busy}>
-              Zapisz
+              {t("projects:common.save")}
             </button>
             <button
               type="button"
@@ -231,7 +226,7 @@ export function ProjectTasksBoard(props: {
               disabled={busy}
               onClick={() => setEditing(null)}
             >
-              Anuluj
+              {t("projects:common.cancel")}
             </button>
           </form>
         </li>
@@ -250,8 +245,8 @@ export function ProjectTasksBoard(props: {
           <span
             className="prj-board__grip"
             draggable={!busy}
-            aria-label={`Przeciągnij: ${task.text}`}
-            title="Przeciągnij na inną kolumnę"
+            aria-label={t("projects:board.dragAria", { text: task.text })}
+            title={t("projects:board.dragTitle")}
             onDragStart={(e) => {
               e.dataTransfer.effectAllowed = "move";
               e.dataTransfer.setData("text/plain", task.text);
@@ -278,7 +273,7 @@ export function ProjectTasksBoard(props: {
             <button
               type="button"
               className="prj-btn"
-              aria-label={`Edytuj: ${task.text}`}
+              aria-label={t("projects:board.editAria", { text: task.text })}
               disabled={busy}
               onClick={() => {
                 setConfirming(null);
@@ -286,30 +281,30 @@ export function ProjectTasksBoard(props: {
                 setEditing({ column, index });
               }}
             >
-              Edytuj
+              {t("projects:board.editBtn")}
             </button>
             {samePos(confirming, column, index) ? (
               <button
                 type="button"
                 className="prj-btn prj-btn--danger"
-                aria-label={`Potwierdź usunięcie: ${task.text}`}
+                aria-label={t("projects:board.confirmRemoveAria", { text: task.text })}
                 disabled={busy}
                 onClick={() => confirmRemove(column, index, task)}
               >
-                Potwierdź
+                {t("projects:board.confirmRemoveBtn")}
               </button>
             ) : (
               <button
                 type="button"
                 className="prj-btn"
-                aria-label={`Usuń: ${task.text}`}
+                aria-label={t("projects:board.removeAria", { text: task.text })}
                 disabled={busy}
                 onClick={() => {
                   setEditing(null);
                   setConfirming({ column, index });
                 }}
               >
-                Usuń
+                {t("projects:board.removeBtn")}
               </button>
             )}
           </div>
@@ -331,8 +326,8 @@ export function ProjectTasksBoard(props: {
         </p>
       ) : null}
       <div className="prj-board__toolbar">
-        <div className="prj-board__filter" role="group" aria-label="Filtr zadań">
-          {FILTERS.map(({ key, label }) => (
+        <div className="prj-board__filter" role="group" aria-label={t("projects:board.filterAria")}>
+          {FILTERS.map(({ key, labelKey }) => (
             <button
               key={key}
               type="button"
@@ -340,15 +335,15 @@ export function ProjectTasksBoard(props: {
               aria-pressed={filter === key}
               onClick={() => changeFilter(key)}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
         {hasDone ? (
           <div className="prj-board__archive">
-            <span>starsze niż</span>
+            <span>{t("projects:board.archiveOlder")}</span>
             <select
-              aria-label="Archiwizuj starsze niż"
+              aria-label={t("projects:board.archiveDaysAria")}
               value={days}
               disabled={busy}
               onChange={(e) => {
@@ -358,34 +353,30 @@ export function ProjectTasksBoard(props: {
             >
               {ARCHIVE_DAYS_OPTIONS.map((d) => (
                 <option key={d} value={d}>
-                  {d} dni
+                  {t("projects:board.archiveDays", { count: d })}
                 </option>
               ))}
             </select>
             {archiveCount === 0 ? null : confirmingArchive ? (
               <>
-                <span>
-                  {`Przenieść ${archiveCount} zadań do changelog.md${
-                    archiveNoDate > 0 ? ` (w tym ${archiveNoDate} bez daty)` : ""
-                  }?`}
-                </span>
+                <span>{archiveConfirmQuestion(archiveCount, archiveNoDate)}</span>
                 <button
                   type="button"
                   className="prj-btn prj-btn--danger"
-                  aria-label="Potwierdź archiwizację"
+                  aria-label={t("projects:board.archiveConfirmAria")}
                   disabled={busy}
                   onClick={confirmArchive}
                 >
-                  Tak
+                  {t("projects:board.archiveConfirmBtn")}
                 </button>
                 <button
                   type="button"
                   className="prj-btn"
-                  aria-label="Anuluj archiwizację"
+                  aria-label={t("projects:board.archiveCancelAria")}
                   disabled={busy}
                   onClick={() => setConfirmingArchive(false)}
                 >
-                  Anuluj
+                  {t("projects:common.cancel")}
                 </button>
               </>
             ) : (
@@ -395,13 +386,14 @@ export function ProjectTasksBoard(props: {
                 disabled={busy}
                 onClick={() => setConfirmingArchive(true)}
               >
-                {`Archiwizuj ukończone (${archiveCount})`}
+                {t("projects:board.archiveBtn", { count: archiveCount })}
               </button>
             )}
           </div>
         ) : null}
       </div>
-      {COLUMNS.map(({ key, label }) => {
+      {COLUMNS.map(({ key, labelKey }) => {
+        const label = t(labelKey);
         const tasks = board[key];
         // Indeksy zostają oryginalne (z pełnej kolumny): filtr tylko ukrywa wiersze.
         const visible = tasks
@@ -416,7 +408,7 @@ export function ProjectTasksBoard(props: {
                 ? `prj-board__col prj-board__col--${key} prj-board__col--over`
                 : `prj-board__col prj-board__col--${key}`
             }
-            aria-label={`Kolumna ${label}`}
+            aria-label={t("projects:board.columnAria", { label })}
             onDragOver={(e) => {
               if (drag === null || busy) return;
               e.preventDefault();
@@ -445,25 +437,29 @@ export function ProjectTasksBoard(props: {
                 ) : null}
               </h4>
               {key !== "now" ? (
-                <span className="prj-column__count">{countLabel(key, visible.length)}</span>
+                <span className="prj-column__count">
+                  {columnTaskCountLabel(key, visible.length)}
+                </span>
               ) : null}
             </div>
-            {visible.length === 0 ? <p className="prj-task-empty">{EMPTY_TEXT[filter]}</p> : null}
+            {visible.length === 0 ? (
+              <p className="prj-task-empty">{t(EMPTY_KEYS[filter])}</p>
+            ) : null}
             <ul className="prj-task-list">
               {visible.map(({ task, index }) => renderTask(key, task, index))}
             </ul>
             {filter === "done" ? null : (
               <form className="prj-board__add" onSubmit={(e) => submitAdd(e, key)}>
                 <input
-                  aria-label={`Dodaj zadanie: ${label}`}
-                  placeholder="Nowe zadanie…"
+                  aria-label={t("projects:board.addAria", { label })}
+                  placeholder={t("projects:board.addPlaceholder")}
                   value={drafts[key]}
                   maxLength={300}
                   disabled={addDisabled}
                   onChange={(e) => setDrafts((d) => ({ ...d, [key]: e.target.value }))}
                 />
                 <button type="submit" className="prj-btn" disabled={addDisabled}>
-                  Dodaj zadanie
+                  {t("projects:board.addBtn")}
                 </button>
               </form>
             )}

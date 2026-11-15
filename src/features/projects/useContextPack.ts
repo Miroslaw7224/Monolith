@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ContextPackDto, ContextPackRole } from "@/contexts/bc_projects/schemas";
+import i18n from "@/src/i18n";
 import type { ContextPackResult } from "./mutation";
 
 export type PackState =
@@ -89,7 +90,7 @@ export function useContextPack(
       if (generation.current === mine) setNotice({ kind: "copied", pack: result.pack });
     } catch {
       if (generation.current === mine) {
-        setNotice({ kind: "error", error: "Nie udało się skopiować do schowka" });
+        setNotice({ kind: "error", error: i18n.t("projects:errors.clipboard") });
       }
     }
     if (generation.current === mine) setBusy(false);

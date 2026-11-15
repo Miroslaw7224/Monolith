@@ -1,27 +1,22 @@
 import React, { useState } from "react";
 import type { BugEntryDto } from "@/contexts/bc_projects/schemas";
-
-const COLUMN_LABEL: Record<string, string> = {
-  blockers: "Blokery",
-  now: "Teraz",
-  next: "Następne",
-  icebox: "Icebox",
-};
-
-/** Znacznik rozjazdu lub powiązania bugu z zadaniem; `null`, gdy nie ma czego pokazać. */
-function taskHint(bug: BugEntryDto, isClosed: boolean): string | null {
-  const task = bug.task;
-  if (!task) return null;
-  if (isClosed) return task.done ? null : "bug zamknięty, zadanie nadal otwarte";
-  return task.done
-    ? "zadanie zrobione, bug nadal otwarty"
-    : `w zadaniach: ${COLUMN_LABEL[task.column] ?? task.column}`;
-}
+import { useT } from "@/src/i18n/useT";
 
 function BugRow(props: { bug: BugEntryDto; isClosed: boolean }): React.JSX.Element {
+  const t = useT();
   const { bug, isClosed } = props;
   const [expanded, setExpanded] = useState(false);
-  const hint = taskHint(bug, isClosed);
+
+  const hint = ((): string | null => {
+    const task = bug.task;
+    if (!task) return null;
+    if (isClosed) return task.done ? null : t("projects:bugs.hintClosedOpen");
+    if (task.done) return t("projects:bugs.hintOpenDone");
+    const column =
+      t(`projects:board.columns.${task.column}` as "projects:board.columns.now") || task.column;
+    return t("projects:bugs.hintInTasks", { column });
+  })();
+
   const hasDetails = Boolean(bug.file || bug.description || bug.fix || bug.resolution);
 
   return (
@@ -33,11 +28,11 @@ function BugRow(props: { bug: BugEntryDto; isClosed: boolean }): React.JSX.Eleme
         {bug.status ? <span className="prj-badge">{bug.status}</span> : null}
         {!isClosed && bug.ageDays !== undefined ? (
           <span className={bug.stale ? "prj-badge prj-badge--warn" : "prj-badge"}>
-            otwarty {bug.ageDays} d
+            {t("projects:bugs.openDays", { days: bug.ageDays })}
           </span>
         ) : null}
         {isClosed && bug.closedOn ? (
-          <span className="prj-badge">zamknięto {bug.closedOn}</span>
+          <span className="prj-badge">{t("projects:bugs.closedOn", { date: bug.closedOn })}</span>
         ) : null}
         {hint ? <span className="prj-badge prj-badge--warn">{hint}</span> : null}
         {hasDetails ? (
@@ -45,10 +40,10 @@ function BugRow(props: { bug: BugEntryDto; isClosed: boolean }): React.JSX.Eleme
             type="button"
             className="prj-bug__toggle"
             aria-expanded={expanded}
-            aria-label={`Szczegóły ${bug.id}`}
+            aria-label={t("projects:bugs.detailsAria", { id: bug.id })}
             onClick={() => setExpanded((v) => !v)}
           >
-            {expanded ? "Zwiń" : "Szczegóły"}
+            {expanded ? t("projects:bugs.collapse") : t("projects:bugs.expand")}
           </button>
         ) : null}
       </div>
@@ -56,25 +51,25 @@ function BugRow(props: { bug: BugEntryDto; isClosed: boolean }): React.JSX.Eleme
         <dl className="prj-bug__details">
           {bug.file ? (
             <>
-              <dt>Plik</dt>
+              <dt>{t("projects:bugs.fieldFile")}</dt>
               <dd>{bug.file}</dd>
             </>
           ) : null}
           {bug.description ? (
             <>
-              <dt>Opis</dt>
+              <dt>{t("projects:bugs.fieldDesc")}</dt>
               <dd>{bug.description}</dd>
             </>
           ) : null}
           {bug.fix ? (
             <>
-              <dt>Naprawa</dt>
+              <dt>{t("projects:bugs.fieldFix")}</dt>
               <dd>{bug.fix}</dd>
             </>
           ) : null}
           {bug.resolution ? (
             <>
-              <dt>Rozwiązanie</dt>
+              <dt>{t("projects:bugs.fieldResolution")}</dt>
               <dd>{bug.resolution}</dd>
             </>
           ) : null}
@@ -86,15 +81,16 @@ function BugRow(props: { bug: BugEntryDto; isClosed: boolean }): React.JSX.Eleme
 
 /** Sekcja „Bugi” teczki projektu (tylko odczyt `bugs.md`). */
 export function ProjectBugs(props: { bugs: BugEntryDto[] }): React.JSX.Element {
+  const t = useT();
   const [closedOpen, setClosedOpen] = useState(false);
   const active = props.bugs.filter((b) => b.section !== "Zamknięte");
   const closed = props.bugs.filter((b) => b.section === "Zamknięte");
 
   return (
     <article className="prj-card">
-      <h3 className="prj-section-title">Bugi</h3>
+      <h3 className="prj-section-title">{t("projects:bugs.title")}</h3>
       {props.bugs.length === 0 ? (
-        <p>Brak bugów</p>
+        <p>{t("projects:bugs.empty")}</p>
       ) : (
         <>
           {active.length > 0 ? (
@@ -112,7 +108,7 @@ export function ProjectBugs(props: { bugs: BugEntryDto[] }): React.JSX.Element {
                 aria-expanded={closedOpen}
                 onClick={() => setClosedOpen((v) => !v)}
               >
-                Zamknięte: {closed.length}
+                {t("projects:bugs.closedToggle", { count: closed.length })}
               </button>
               {closedOpen ? (
                 <ul className="prj-bugs-list">

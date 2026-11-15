@@ -1,3 +1,5 @@
+import i18n from "@/src/i18n";
+
 /** Przybliżenie z serwisu paczki: 4 znaki na token (bez tokenizera). */
 const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
 
@@ -13,7 +15,9 @@ export function formatTokens(n: number): string {
  * z szacunkiem tokenów. Linie wewnątrz bloków kodu (np. `## main` ze `git status -sb`) nie otwierają sekcji.
  */
 export function packSections(markdown: string): PackSection[] {
-  const sections: { name: string; lines: string[] }[] = [{ name: "Nagłówek", lines: [] }];
+  const sections: { name: string; lines: string[] }[] = [
+    { name: i18n.t("projects:pack.headerSection"), lines: [] },
+  ];
   let fenced = false;
   for (const line of markdown.split("\n")) {
     if (line.startsWith("```")) fenced = !fenced;

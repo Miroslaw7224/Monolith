@@ -1,6 +1,7 @@
 import { PACK_BUDGET_TOKENS } from "@/contexts/bc_projects/schemas";
 import type { ProjectDetailDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
-import { formatTokens } from "./packSections";
+import i18n from "@/src/i18n";
+import { kindCountLabel, packBudgetMeta, packTileValue } from "./projectsFormat";
 import type { PackState } from "./useContextPack";
 
 export type ProjectTile = {
@@ -12,13 +13,7 @@ export type ProjectTile = {
   tone?: "danger";
 };
 
-const KIND_LABELS: [ProjectSummaryDto["kind"], string][] = [
-  ["wlasny", "własne"],
-  ["biblioteka", "biblioteka"],
-  ["etat", "etat"],
-];
-
-const NO_SELECTION = "wybierz projekt";
+const KINDS: ProjectSummaryDto["kind"][] = ["wlasny", "biblioteka", "etat"];
 
 /** Projekt uśpiony przyciskiem „Uśpij” (status `paused`): nie wymaga decyzji, nie świeci na czerwono. */
 export const isPaused = (p: Pick<ProjectSummaryDto, "status">): boolean =>
@@ -31,17 +26,18 @@ export function needsDecision(p: Pick<ProjectSummaryDto, "status" | "freshness">
 }
 
 function packTile(detail: ProjectDetailDto | null, pack: PackState): ProjectTile {
-  const base = { id: "pack" as const, label: "Paczka kontekstu" };
-  if (detail === null) return { ...base, value: "—", meta: NO_SELECTION };
-  if (pack.status === "loading") return { ...base, value: "—", meta: "składam paczkę…" };
-  if (pack.status === "error") return { ...base, value: "—", meta: "paczka niedostępna" };
+  const base = { id: "pack" as const, label: i18n.t("projects:tiles.packLabel") };
+  const noSelection = i18n.t("projects:tiles.noSelection");
+  if (detail === null) return { ...base, value: "—", meta: noSelection };
+  if (pack.status === "loading")
+    return { ...base, value: "—", meta: i18n.t("projects:tiles.packLoading") };
+  if (pack.status === "error")
+    return { ...base, value: "—", meta: i18n.t("projects:tiles.packError") };
   const percent = Math.round((pack.pack.approxTokens / PACK_BUDGET_TOKENS) * 100);
   return {
     ...base,
-    value: `${formatTokens(pack.pack.approxTokens)} tok`,
-    meta: `${percent}% budżetu ${formatTokens(PACK_BUDGET_TOKENS)} tokenów${
-      pack.pack.truncated ? " · skrócona" : ""
-    }`,
+    value: packTileValue(pack.pack.approxTokens),
+    meta: packBudgetMeta(percent, PACK_BUDGET_TOKENS, pack.pack.truncated),
   };
 }
 
@@ -52,8 +48,8 @@ export function buildProjectTiles(
   pack: PackState = { status: "loading" }
 ): ProjectTile[] {
   const active = projects.filter((p) => p.status.toLowerCase() === "active");
-  const kindParts = KIND_LABELS.map(
-    ([kind, label]) => [active.filter((p) => p.kind === kind).length, label] as const
+  const kindParts = KINDS.map(
+    (kind) => [active.filter((p) => p.kind === kind).length, kindCountLabel(kind)] as const
   );
   const parts = kindParts.filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`);
 
@@ -62,30 +58,34 @@ export function buildProjectTiles(
   const staleRest = stale.length - staleNames.length;
   const staleMeta =
     stale.length === 0
-      ? "wszystko świeże"
+      ? i18n.t("projects:tiles.metaFresh")
       : staleRest > 0
-        ? `${staleNames.join(", ")} i ${staleRest} więcej`
+        ? i18n.t("projects:tiles.metaStaleMore", {
+            names: staleNames.join(", "),
+            rest: staleRest,
+          })
         : staleNames.join(", ");
 
   const activeBugs = detail ? detail.bugs.filter((b) => b.section !== "Zamknięte").length : null;
+  const noSelection = i18n.t("projects:tiles.noSelection");
 
   return [
     {
       id: "active",
-      label: "Aktywne projekty",
+      label: i18n.t("projects:tiles.activeLabel"),
       value: String(active.length),
-      meta: parts.length > 0 ? parts.join(" · ") : "brak aktywnych",
+      meta: parts.length > 0 ? parts.join(" · ") : i18n.t("projects:tiles.metaNoActive"),
       accent: true,
     },
     {
       id: "bugs",
-      label: "Aktywne bugi",
+      label: i18n.t("projects:tiles.bugsLabel"),
       value: activeBugs === null ? "—" : String(activeBugs),
-      meta: detail ? `w projekcie ${detail.name}` : NO_SELECTION,
+      meta: detail ? i18n.t("projects:tiles.metaInProject", { name: detail.name }) : noSelection,
     },
     {
       id: "stale",
-      label: "Wymaga decyzji (>14 dni)",
+      label: i18n.t("projects:tiles.staleLabel"),
       value: String(stale.length),
       meta: staleMeta,
       ...(stale.length > 0 ? { tone: "danger" as const } : {}),

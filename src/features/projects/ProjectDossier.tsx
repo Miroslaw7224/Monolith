@@ -1,5 +1,9 @@
+"use client";
+
 import React, { useState } from "react";
 import type { ProjectDetailDto, ProjectType } from "@/contexts/bc_projects/schemas";
+import { projectKindLabel } from "@/src/i18n/projectKind";
+import { useT } from "@/src/i18n/useT";
 import type { ProjectActions } from "./mutation";
 import { ProjectBugs } from "./ProjectBugs";
 import { ProjectContextPack, type ContextPackModel } from "./ProjectContextPack";
@@ -9,15 +13,11 @@ import { ProjectSaveState } from "./ProjectSaveState";
 import { isPaused } from "./projectTiles";
 import { ProjectTasksBoard } from "./ProjectTasksBoard";
 
-const TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
-  { value: "etat", label: "Etat" },
-  { value: "wlasny", label: "Własny" },
-  { value: "biblioteka", label: "Biblioteka" },
+const TYPE_OPTIONS: { value: ProjectType }[] = [
+  { value: "etat" },
+  { value: "wlasny" },
+  { value: "biblioteka" },
 ];
-
-const COMPANY_TITLE_PROTECTED = "Chronione: owner: work w rejestrze";
-const COMPANY_TITLE_LABEL =
-  "Etykieta z typu Etat; ochronę (Mapa, Notatki, przyszłe AI i eksport) włącza owner: work w rejestrze";
 
 export function ProjectDossier(props: {
   project: ProjectDetailDto;
@@ -25,6 +25,7 @@ export function ProjectDossier(props: {
   pack: ContextPackModel;
 }): React.JSX.Element {
   const { project, actions, pack } = props;
+  const t = useT();
   const [typeSaving, setTypeSaving] = useState(false);
   const [typeError, setTypeError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
@@ -53,8 +54,13 @@ export function ProjectDossier(props: {
     0
   );
 
+  const companyTitle =
+    project.owner === "work"
+      ? t("projects:dossier.companyProtectedTitle")
+      : t("projects:dossier.companyLabelTitle");
+
   return (
-    <section className="prj-main" aria-label={`Teczka projektu ${project.name}`}>
+    <section className="prj-main" aria-label={t("projects:dossier.aria", { name: project.name })}>
       <article
         className={`prj-card${project.kind ? ` prj-card--kind prj-card--kind-${project.kind}` : ""}`}
       >
@@ -64,11 +70,8 @@ export function ProjectDossier(props: {
             <p className="prj-card__type">
               {project.status} · {project.priority}
               {project.companyData ? (
-                <span
-                  className="prj-card__owner"
-                  title={project.owner === "work" ? COMPANY_TITLE_PROTECTED : COMPANY_TITLE_LABEL}
-                >
-                  Dane z firmy
+                <span className="prj-card__owner" title={companyTitle}>
+                  {t("projects:dossier.companyData")}
                 </span>
               ) : null}
             </p>
@@ -79,13 +82,9 @@ export function ProjectDossier(props: {
               className="prj-btn"
               disabled={statusSaving}
               onClick={toggleStatus}
-              title={
-                paused
-                  ? "Przywraca status active w rejestrze"
-                  : "Ustawia status paused w rejestrze: projekt przestaje wymagać decyzji"
-              }
+              title={paused ? t("projects:dossier.resumeTitle") : t("projects:dossier.pauseTitle")}
             >
-              {paused ? "Wznów projekt" : "Uśpij projekt"}
+              {paused ? t("projects:dossier.resumeBtn") : t("projects:dossier.pauseBtn")}
             </button>
           ) : null}
         </div>
@@ -93,24 +92,26 @@ export function ProjectDossier(props: {
         <div className="prj-meta-row">
           <select
             className="prj-type-select"
-            aria-label="Typ projektu"
+            aria-label={t("projects:dossier.typeAria")}
             value={project.type ?? ""}
             disabled={typeSaving}
             onChange={changeType}
           >
             <option value="" disabled>
-              Nie ustawiono
+              {t("projects:common.notSet")}
             </option>
             {TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
-                {option.label}
+                {projectKindLabel(option.value)}
               </option>
             ))}
           </select>
           {project.state?.milestone ? (
             <p className="prj-milestone">
-              Kamień milowy: {project.state.milestone}
-              {project.state.milestoneDue ? ` · do ${project.state.milestoneDue}` : ""}
+              {t("projects:dossier.milestone", { text: project.state.milestone })}
+              {project.state.milestoneDue
+                ? t("projects:dossier.milestoneDue", { date: project.state.milestoneDue })
+                : ""}
             </p>
           ) : null}
         </div>
@@ -130,8 +131,8 @@ export function ProjectDossier(props: {
 
       <article className="prj-card">
         <div className="prj-card__head">
-          <h3 className="prj-section-title">Tablica zadań · tasks.md</h3>
-          <span className="prj-chip">{taskTotal} w projekcie</span>
+          <h3 className="prj-section-title">{t("projects:dossier.tasksTitle")}</h3>
+          <span className="prj-chip">{t("projects:dossier.tasksCount", { count: taskTotal })}</span>
         </div>
         <ProjectTasksBoard
           key={project.id}

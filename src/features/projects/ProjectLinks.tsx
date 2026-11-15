@@ -1,12 +1,27 @@
+"use client";
+
 import React, { useState } from "react";
 import type { ProjectDetailDto, ProjectLinksInputDto } from "@/contexts/bc_projects/schemas";
+import { useT } from "@/src/i18n/useT";
 import { isHttpUrl } from "./isHttpUrl";
 import type { MutationResult } from "./mutation";
 
 const SLOTS = [
-  { key: "github", label: "Repo", placeholder: "https://github.com/…" },
-  { key: "deploy", label: "Dev", placeholder: "http://localhost:3000 albo adres wdrożenia" },
-  { key: "docs", label: "Docs", placeholder: "link albo ścieżka, np. docs/specs/v2.md" },
+  {
+    key: "github",
+    labelKey: "projects:links.slotRepo",
+    placeholderKey: "projects:links.githubPlaceholder",
+  },
+  {
+    key: "deploy",
+    labelKey: "projects:links.slotDev",
+    placeholderKey: "projects:links.deployPlaceholder",
+  },
+  {
+    key: "docs",
+    labelKey: "projects:links.slotDocs",
+    placeholderKey: "projects:links.docsPlaceholder",
+  },
 ] as const;
 
 type SlotKey = (typeof SLOTS)[number]["key"];
@@ -22,6 +37,7 @@ export function ProjectLinks(props: {
   onSave: (links: ProjectLinksInputDto) => Promise<MutationResult>;
 }): React.JSX.Element {
   const { project, onSave } = props;
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,14 +74,14 @@ export function ProjectLinks(props: {
 
   if (editing) {
     return (
-      <form className="prj-links-form" onSubmit={save} aria-label="Edycja linków projektu">
+      <form className="prj-links-form" onSubmit={save} aria-label={t("projects:links.formAria")}>
         {SLOTS.map((slot) => (
           <label key={slot.key} className="prj-links-form__field">
-            <span>{slot.label}</span>
+            <span>{t(slot.labelKey)}</span>
             <input
               type="text"
               value={draft[slot.key]}
-              placeholder={slot.placeholder}
+              placeholder={t(slot.placeholderKey)}
               maxLength={300}
               onChange={(e) => setDraft((d) => ({ ...d, [slot.key]: e.target.value }))}
             />
@@ -73,7 +89,7 @@ export function ProjectLinks(props: {
         ))}
         <div className="prj-links-form__actions">
           <button type="submit" className="prj-btn" disabled={saving}>
-            {saving ? "Zapisuję…" : "Zapisz linki"}
+            {saving ? t("projects:common.saving") : t("projects:links.save")}
           </button>
           <button
             type="button"
@@ -81,7 +97,7 @@ export function ProjectLinks(props: {
             disabled={saving}
             onClick={() => setEditing(false)}
           >
-            Anuluj
+            {t("projects:common.cancel")}
           </button>
         </div>
         {error ? (
@@ -97,6 +113,7 @@ export function ProjectLinks(props: {
     <div className="prj-links">
       {SLOTS.map((slot) => {
         const value = project[slot.key];
+        const label = t(slot.labelKey);
         if (!value) {
           return (
             <button
@@ -104,13 +121,13 @@ export function ProjectLinks(props: {
               type="button"
               className="prj-link prj-link--empty"
               onClick={startEdit}
-              aria-label={`Dodaj link: ${slot.label}`}
+              aria-label={t("projects:links.add", { label })}
             >
-              + {slot.label}
+              + {label}
             </button>
           );
         }
-        const text = `${slot.label}: ${shortUrl(value)}`;
+        const text = `${label}: ${shortUrl(value)}`;
         return isHttpUrl(value) ? (
           <a key={slot.key} href={value} target="_blank" rel="noreferrer" className="prj-link">
             {text}
@@ -122,7 +139,7 @@ export function ProjectLinks(props: {
         );
       })}
       <button type="button" className="prj-link prj-link--edit" onClick={startEdit}>
-        Edytuj linki
+        {t("projects:links.edit")}
       </button>
       <code className="prj-local-path">{project.localPath}</code>
     </div>

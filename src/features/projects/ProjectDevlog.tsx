@@ -2,13 +2,16 @@
 
 import React, { useState } from "react";
 import type { DevlogEntryDto, DevlogInputDto } from "@/contexts/bc_projects/schemas";
+import { useT } from "@/src/i18n/useT";
 import type { MutationResult } from "./mutation";
+import { devlogEntriesLabel } from "./projectsFormat";
 
 export function ProjectDevlog(props: {
   entries: DevlogEntryDto[];
   onAdd: (input: DevlogInputDto) => Promise<MutationResult>;
 }): React.JSX.Element {
   const { entries, onAdd } = props;
+  const t = useT();
   const [title, setTitle] = useState("");
   const [why, setWhy] = useState("");
   const [saving, setSaving] = useState(false);
@@ -35,13 +38,11 @@ export function ProjectDevlog(props: {
   return (
     <article className="prj-card">
       <div className="prj-card__head">
-        <h3 className="prj-section-title">Devlog · ostatnie decyzje</h3>
-        <span className="prj-statebox__meta">
-          {entries.length} {entries.length === 1 ? "wpis" : "wpisów"}
-        </span>
+        <h3 className="prj-section-title">{t("projects:devlog.title")}</h3>
+        <span className="prj-statebox__meta">{devlogEntriesLabel(entries.length)}</span>
       </div>
       {entries.length === 0 ? (
-        <p className="prj-state">Brak wpisów</p>
+        <p className="prj-state">{t("projects:devlog.empty")}</p>
       ) : (
         <ol className="prj-devlog">
           {entries.map((entry, index) => (
@@ -55,13 +56,17 @@ export function ProjectDevlog(props: {
           ))}
         </ol>
       )}
-      <form className="prj-form prj-devlog-form" onSubmit={submit} aria-label="Nowy wpis w devlogu">
+      <form
+        className="prj-form prj-devlog-form"
+        onSubmit={submit}
+        aria-label={t("projects:devlog.formAria")}
+      >
         <label className="prj-field prj-field--wide">
-          <span>Tytuł</span>
+          <span>{t("projects:devlog.fieldTitle")}</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
         </label>
         <label className="prj-field prj-field--wide">
-          <span>Dlaczego</span>
+          <span>{t("projects:devlog.fieldWhy")}</span>
           <textarea
             rows={3}
             value={why}
@@ -76,7 +81,7 @@ export function ProjectDevlog(props: {
         ) : null}
         <div className="prj-form__actions">
           <button type="submit" className="prj-btn prj-btn--primary" disabled={!canSubmit}>
-            Dodaj wpis
+            {t("projects:devlog.add")}
           </button>
         </div>
       </form>
