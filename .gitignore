@@ -15,7 +15,11 @@ tsconfig.tsbuildinfo
 
 # Local / IDE
 .cursor/
-.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/bug-projektu/
+!.claude/skills/segreguj-inbox/
 # SQLite DB (local data; do not commit)
 brain.db
 
