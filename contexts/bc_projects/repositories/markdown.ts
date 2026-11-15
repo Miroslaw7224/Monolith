@@ -62,8 +62,9 @@ function applyBugField(bug: BugEntry, label: string, value: string): BugTextKey 
     const date = validIsoDate(parts[2]);
     if (date !== undefined && bug.closedOn === undefined) bug.closedOn = date;
   }
-  if (value === "" || bug[key] !== undefined) return null;
-  bug[key] = value;
+  if (bug[key] !== undefined) return null;
+  // Puste pole zostaje otwarte na ciąg dalszy (wartość od następnej, wciętej linii).
+  if (value !== "") bug[key] = value;
   return key;
 }
 const DEVLOG_HEADING_RE = /^(\d{4}-\d{2}-\d{2})\s+[—–-]\s+(.+)$/;
@@ -153,10 +154,12 @@ export function parseBugs(markdown: string): BugEntry[] {
       continue;
     }
 
-    if (line.trim() === "") {
+    if (lastField !== null && line.trim() !== "" && BUG_CONTINUATION_RE.test(line)) {
+      const prev = current[lastField];
+      current[lastField] = prev === undefined ? line.trim() : `${prev} ${line.trim()}`;
+    } else {
+      // Pusta linia albo linia obca (bez wcięcia, bez etykiety) kończy ciąg dalszy pola.
       lastField = null;
-    } else if (lastField !== null && BUG_CONTINUATION_RE.test(line)) {
-      current[lastField] = `${current[lastField]} ${line.trim()}`;
     }
   }
 

@@ -600,6 +600,22 @@ describe("parseBugs: pola wpisu", () => {
     expect(parseBugs(md)).toEqual([{ id: "A-1", title: "x", section: "Aktywne" }]);
   });
 
+  it("niepusta linia bez wcięcia i bez etykiety kończy ciąg dalszy pola", () => {
+    const md = "## Aktywne\n### A-1 — x\n- **Opis:** a\n- zwykły punkt\n  b\n";
+    expect(parseBugs(md)[0].description).toBe("a");
+  });
+
+  it("wartość pola może zaczynać się w następnej, wciętej linii", () => {
+    const md = "## Aktywne\n### A-1 — x\n- **Opis:**\n  pierwsza\n  druga\n- **Status:** otwarty\n";
+    expect(parseBugs(md)[0]).toEqual({
+      id: "A-1",
+      title: "x",
+      section: "Aktywne",
+      description: "pierwsza druga",
+      status: "otwarty",
+    });
+  });
+
   it("pierwsza wartość pola wygrywa", () => {
     const md = "## Aktywne\n### A-1 — x\n- **Priorytet:** high\n- **Priorytet:** low\n";
     expect(parseBugs(md)[0].priority).toBe("high");
