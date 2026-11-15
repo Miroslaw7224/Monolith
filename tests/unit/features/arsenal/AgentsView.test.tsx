@@ -137,13 +137,14 @@ describe("AgentsView", () => {
   it("usuwanie: po potwierdzeniu wysyła DELETE, po odmowie nic", async () => {
     const apiFetch = setup();
     const card = (await screen.findByText("Review diffa")).closest("article")!;
-    const confirm = vi
-      .spyOn(window, "confirm")
-      .mockReturnValueOnce(false)
-      .mockReturnValueOnce(true);
-    await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    const delBtn = () => within(card).getByRole("button", { name: "Usuń" });
+    await userEvent.click(delBtn());
+    const dialog = screen.getByRole("dialog", { name: "Usunąć wpis „Review diffa”?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Anuluj" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(apiFetch.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
-    await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    await userEvent.click(delBtn());
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Usuń" }));
     await waitFor(() =>
       expect(
         apiFetch.mock.calls.some(
@@ -151,7 +152,7 @@ describe("AgentsView", () => {
         )
       ).toBe(true)
     );
-    expect(confirm).toHaveBeenCalledWith("Usunąć wpis „Review diffa”?");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("po angielsku: etykiety EN", async () => {
@@ -184,8 +185,8 @@ describe("AgentsView", () => {
     );
     render(<AgentsView apiFetch={apiFetch} />);
     const card = (await screen.findByText("Review diffa")).closest("article")!;
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     await userEvent.click(within(card).getByRole("button", { name: "Usuń" }));
+    await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Usuń" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Nie można usunąć");
     await userEvent.click(screen.getByRole("button", { name: "Dodaj preset" }));
     await userEvent.type(screen.getByLabelText("Nazwa"), "Testy");

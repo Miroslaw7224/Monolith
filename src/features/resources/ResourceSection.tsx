@@ -9,6 +9,7 @@ import { ResourceAddForm } from "./ResourceAddForm";
 import { ResourceFavoritesBar } from "./ResourceFavoritesBar";
 import { ResourceListItem } from "./ResourceListItem";
 import { ResourceEditModal } from "./ResourceEditModal";
+import { ArsenalConfirmDialog } from "@/src/features/arsenal/ArsenalConfirmDialog";
 import "./resources.css";
 
 export type { NoteResource } from "./resourceTypes";
@@ -51,7 +52,10 @@ export function ResourceSection({ apiFetch, onOpenNote }: ResourceSectionProps) 
     handleAddFromBlock,
     copyMessage,
     handleCopy,
-    handleDelete,
+    requestDelete,
+    pendingDelete,
+    confirmDelete,
+    cancelDelete,
     openEditModal,
     handleToggleFavorite,
     editingResource,
@@ -65,7 +69,7 @@ export function ResourceSection({ apiFetch, onOpenNote }: ResourceSectionProps) 
   useResourceShortcuts({
     searchRef,
     onClear: clearAllFilters,
-    enabled: editingResource == null,
+    enabled: editingResource == null && !pendingDelete,
   });
 
   const favorites = resources.filter((r) => r.isFavorite === true);
@@ -178,7 +182,7 @@ export function ResourceSection({ apiFetch, onOpenNote }: ResourceSectionProps) 
                     onOpenEdit={openEditModal}
                     onToggleFavorite={handleToggleFavorite}
                     onCopy={handleCopy}
-                    onDelete={handleDelete}
+                    onDelete={requestDelete}
                     onOpenNote={onOpenNote}
                   />
                 ))}
@@ -187,6 +191,16 @@ export function ResourceSection({ apiFetch, onOpenNote }: ResourceSectionProps) 
           </div>
         </div>
       </div>
+
+      {pendingDelete && (
+        <ArsenalConfirmDialog
+          title={labels.resourceDeleteConfirm}
+          confirmLabel={t("common:delete")}
+          cancelLabel={t("common:cancel")}
+          onConfirm={() => void confirmDelete()}
+          onCancel={cancelDelete}
+        />
+      )}
 
       <ResourceEditModal
         isOpen={editingResource != null}

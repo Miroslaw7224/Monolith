@@ -1,5 +1,7 @@
 export const common = {
   close: "Zamknij",
+  cancel: "Anuluj",
+  delete: "Usuń",
   feedback: "Feedback",
   feedbackFrameTitle: "Feedback – Monolith BETA",
   theme: "Motyw",
