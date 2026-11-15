@@ -178,7 +178,7 @@ describe("CoursesView", () => {
     });
     setup();
     expect(await screen.findByRole("button", { name: "Add course" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Certificate" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Certificate" })).toBeInTheDocument();
   });
 
   it("przycisk Dodaj kurs jest nieaktywny, gdy lista się nie załadowała", async () => {
