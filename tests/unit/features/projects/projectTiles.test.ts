@@ -32,7 +32,7 @@ function d(partial: Partial<ProjectDetailDto> & Pick<ProjectDetailDto, "id">): P
 }
 
 describe("buildProjectTiles", () => {
-  it("aktywne projekty: liczy status active (bez wielkości liter) i rozbija po typie", () => {
+  it("aktywne projekty: liczy status active (bez wielkości liter) i rozbija po rodzaju", () => {
     const tiles = buildProjectTiles(
       [
         p({ id: "a", type: "wlasny" }),
@@ -40,13 +40,14 @@ describe("buildProjectTiles", () => {
         p({ id: "c", type: "biblioteka" }),
         p({ id: "d", status: "done", type: "wlasny" }),
         p({ id: "e" }),
+        p({ id: "f", owner: "work" }),
       ],
       null
     );
     expect(tiles[0]).toMatchObject({
       id: "active",
-      value: "4",
-      meta: "2 własne · 1 biblioteka · 1 bez typu",
+      value: "5",
+      meta: "3 własne · 1 biblioteka · 1 etat",
     });
   });
 

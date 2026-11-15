@@ -12,7 +12,7 @@ export type ProjectTile = {
   tone?: "danger";
 };
 
-const TYPE_LABELS: [NonNullable<ProjectSummaryDto["type"]>, string][] = [
+const KIND_LABELS: [ProjectSummaryDto["kind"], string][] = [
   ["wlasny", "własne"],
   ["biblioteka", "biblioteka"],
   ["etat", "etat"],
@@ -52,12 +52,10 @@ export function buildProjectTiles(
   pack: PackState = { status: "loading" }
 ): ProjectTile[] {
   const active = projects.filter((p) => p.status.toLowerCase() === "active");
-  const typeParts = TYPE_LABELS.map(
-    ([type, label]) => [active.filter((p) => p.type === type).length, label] as const
+  const kindParts = KIND_LABELS.map(
+    ([kind, label]) => [active.filter((p) => p.kind === kind).length, label] as const
   );
-  const untyped = active.filter((p) => !p.type).length;
-  const parts = typeParts.filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`);
-  if (untyped > 0) parts.push(`${untyped} bez typu`);
+  const parts = kindParts.filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`);
 
   const stale = projects.filter(needsDecision);
   const staleNames = stale.slice(0, 2).map((p) => p.name);
