@@ -63,6 +63,8 @@ describe("mapery DTO", () => {
         id: "nexus",
         name: "NEXUS",
         owner: "personal",
+        kind: "wlasny",
+        companyData: false,
         freshness: "fresh",
         source: "state",
         nextStep: "Plan",
@@ -76,6 +78,14 @@ describe("mapery DTO", () => {
       },
     ],
     queue: [
+      {
+        projectId: "nexus",
+        name: "NEXUS",
+        owner: "personal",
+        kind: "etat",
+        companyData: true,
+        items: [],
+      },
       {
         projectId: null,
         name: "Ogólne",

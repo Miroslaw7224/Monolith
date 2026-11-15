@@ -31,6 +31,8 @@ function detail(b: TasksBoardDto): ProjectDetailDto {
     priority: "P2",
     localPath: "/tmp/a",
     owner: "personal",
+    kind: "wlasny",
+    companyData: false,
     freshness: "fresh",
     tasks: [],
     board: b,
@@ -51,9 +53,10 @@ function makeApi(
 ) {
   return vi.fn(async (url: string, options?: RequestInit) => {
     if (url === "/api/projects") {
-      const { id, name, status, priority, localPath, owner, freshness } = initial;
+      const { id, name, status, priority, localPath, owner, kind, companyData, freshness } =
+        initial;
       return json({
-        projects: [{ id, name, status, priority, localPath, owner, freshness }],
+        projects: [{ id, name, status, priority, localPath, owner, kind, companyData, freshness }],
         warnings: [],
       });
     }

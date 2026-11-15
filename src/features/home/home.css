@@ -545,6 +545,63 @@
   background: var(--accent-soft);
 }
 
+/* Rodzaj projektu (spec rodzajów, D8): pasek po lewej grupy i tematu oraz znacznik; kolory z tokenów `--kind-*`. */
+.kok-topic,
+.kok-group {
+  position: relative;
+}
+
+.kok-topic--kind::before,
+.kok-group--kind::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--kok-kind, transparent);
+}
+
+.kok-topic--kind-etat,
+.kok-group--kind-etat {
+  --kok-kind: var(--kind-etat);
+}
+
+.kok-topic--kind-wlasny,
+.kok-group--kind-wlasny {
+  --kok-kind: var(--kind-wlasny);
+}
+
+.kok-topic--kind-biblioteka,
+.kok-group--kind-biblioteka {
+  --kok-kind: var(--kind-biblioteka);
+}
+
+.kok-group__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.kok-badge--kind-etat {
+  border-color: var(--kind-etat);
+  color: var(--kind-etat);
+  background: color-mix(in srgb, var(--kind-etat) 12%, transparent);
+}
+
+.kok-badge--kind-wlasny {
+  border-color: var(--kind-wlasny);
+  color: var(--kind-wlasny);
+  background: color-mix(in srgb, var(--kind-wlasny) 12%, transparent);
+}
+
+.kok-badge--kind-biblioteka {
+  border-color: var(--kind-biblioteka);
+  color: var(--kind-biblioteka);
+  background: color-mix(in srgb, var(--kind-biblioteka) 12%, transparent);
+}
+
 /* Checkbox */
 .kok-check {
   appearance: none;

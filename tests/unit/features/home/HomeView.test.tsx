@@ -26,6 +26,8 @@ const FULL: CockpitDto = {
       id: "nexus",
       name: "NEXUS",
       owner: "personal",
+      kind: "wlasny",
+      companyData: false,
       freshness: "fresh",
       source: "state",
       nextStep: "Napisać plan 2-1",
@@ -41,6 +43,8 @@ const FULL: CockpitDto = {
       id: "firma",
       name: "Projekt firmowy",
       owner: "work",
+      kind: "etat",
+      companyData: true,
       freshness: "stale",
       source: "index",
       nextStep: null,
@@ -83,6 +87,8 @@ const FULL: CockpitDto = {
       projectId: "firma",
       name: "Projekt firmowy",
       owner: "work",
+      kind: "etat",
+      companyData: true,
       items: [
         {
           kind: "now",
@@ -236,7 +242,20 @@ function respond(cockpit: CockpitDto | "fail") {
         json: async () => ({
           projects: [
             { id: "nexus", name: "NEXUS", status: "active", owner: "personal" },
-            { id: "firma", name: "Projekt firmowy", status: "active", owner: "work" },
+            {
+              id: "firma",
+              name: "Projekt firmowy",
+              status: "active",
+              owner: "work",
+              companyData: true,
+            },
+            {
+              id: "etatowy",
+              name: "Projekt etatowy",
+              status: "active",
+              owner: "personal",
+              companyData: true,
+            },
             { id: "monolith", name: "Monolith", status: "active", owner: "personal" },
             { id: "inny", name: "Inny", status: "active", owner: "personal" },
           ],
@@ -283,6 +302,27 @@ test("znacznik „Dane z firmy” przy temacie i grupie kolejki oraz „do spraw
   await screen.findByText("NEXUS");
   expect(screen.getAllByText("Dane z firmy")).toHaveLength(2);
   expect(screen.getAllByText("do sprawdzenia")).toHaveLength(1);
+});
+
+test("kolor rodzaju: temat i grupa projektu mają modyfikator i znacznik, grupa ogólna nie", async () => {
+  respond(FULL);
+  render(<HomeView {...defaultProps} />);
+  await screen.findByText("NEXUS");
+
+  expect(screen.getByRole("article", { name: "Temat Projekt firmowy" })).toHaveClass(
+    "kok-topic--kind-etat"
+  );
+  expect(screen.getByRole("article", { name: "Temat NEXUS" })).toHaveClass(
+    "kok-topic--kind-wlasny"
+  );
+
+  const firma = screen.getByRole("region", { name: "Kolejka: Projekt firmowy" });
+  expect(firma).toHaveClass("kok-group--kind-etat");
+  expect(within(firma).getByText("Etat")).toBeInTheDocument();
+
+  const ogolne = screen.getByRole("region", { name: "Kolejka: Ogólne" });
+  expect(ogolne.className).not.toMatch(/kind/);
+  expect(within(ogolne).queryByText(/^(Etat|Własny|Biblioteka)$/)).toBeNull();
 });
 
 test("kolejka: grupy, zaległe z datą, bez znacznika firmy dla ogólnych", async () => {
@@ -900,6 +940,14 @@ describe("K1: układ wg makiety", () => {
           before
         )
       );
+    });
+
+    test("projekt z type: etat przy owner personal też pokazuje „Dane z firmy”", async () => {
+      const dialog = await openEntry("Code Sensei: pusty stan listy");
+      const select = await within(dialog).findByLabelText("Projekt");
+      await within(dialog).findByRole("option", { name: "Projekt etatowy" });
+      fireEvent.change(select, { target: { value: "etatowy" } });
+      expect(within(dialog).getByText("Dane z firmy")).toBeInTheDocument();
     });
 
     test("bug: domyślny cel to zadanie w projekcie; bez wybranego projektu „Przenieś” jest zablokowane", async () => {

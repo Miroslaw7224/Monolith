@@ -21,7 +21,9 @@ export type CopyNotice =
  */
 export function useContextPack(
   projectId: string | null,
-  load: (role: ContextPackRole) => Promise<ContextPackResult>
+  load: (role: ContextPackRole) => Promise<ContextPackResult>,
+  /** Zmiana wartości przeładowuje paczkę (np. `companyData` po zmianie rodzaju: zmienia się `warnings`). */
+  refreshKey?: unknown
 ): {
   state: PackState;
   busy: boolean;
@@ -68,7 +70,7 @@ export function useContextPack(
           : { status: "ready", pack: result.pack }
       );
     });
-  }, [projectId, load, role]);
+  }, [projectId, load, role, refreshKey]);
 
   const copy = useCallback(async () => {
     const mine = generation.current;

@@ -127,6 +127,10 @@ export type NowTask = {
   projectId: string;
   projectName: string;
   owner: Owner;
+  /** Rodzaj projektu do koloru w Kokpicie (`type` z `index.md`, a bez niego z `owner`). */
+  kind: ProjectType;
+  /** `owner: work` albo `type: etat` (znacznik „Dane z firmy”). */
+  companyData: boolean;
   priority: string;
   text: string;
   /** Numer wśród niezakończonych zadań o identycznym tekście w tej kolumnie (0 = pierwsze). */

@@ -7,6 +7,7 @@ import type {
   QueueGroupDto,
   TopicDto,
 } from "@/contexts/bc_cockpit/schemas";
+import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
 import { EnergySwitch } from "./EnergySwitch";
 import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
@@ -70,7 +71,9 @@ function TopicCard({
 
   return (
     <article
-      className={`kok-topic kok-panel${lead ? " kok-topic--lead" : ""}`}
+      className={`kok-topic kok-panel${lead ? " kok-topic--lead" : ""}${
+        topic.kind ? ` kok-topic--kind kok-topic--kind-${topic.kind}` : ""
+      }`}
       aria-label={`Temat ${topic.name}`}
     >
       <div className="kok-topic__head">
@@ -80,11 +83,14 @@ function TopicCard({
           {!hasBlocker && topic.confidence === "sure" && topic.source === "state" ? (
             <span className="kok-badge kok-badge--ok">aktywny</span>
           ) : null}
-          {topic.owner === "work" ? (
+          {topic.kind ? (
+            <span className={`kok-badge kok-badge--kind-${topic.kind}`}>
+              {PROJECT_KIND_LABELS[topic.kind]}
+            </span>
+          ) : null}
+          {topic.companyData ? (
             <span className="kok-badge kok-badge--warn">Dane z firmy</span>
-          ) : (
-            <span className="kok-badge">własny</span>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -172,12 +178,22 @@ function QueueGroupCard({
   onPreview: (item: QueueGroupDto["items"][number], group: QueueGroupDto) => void;
 }) {
   return (
-    <section className="kok-group" aria-label={`Kolejka: ${group.name}`}>
+    <section
+      className={`kok-group${group.kind ? ` kok-group--kind kok-group--kind-${group.kind}` : ""}`}
+      aria-label={`Kolejka: ${group.name}`}
+    >
       <div className="kok-group__head">
         <h4 className="kok-group__title">{group.name}</h4>
-        {group.owner === "work" ? (
-          <span className="kok-badge kok-badge--warn">Dane z firmy</span>
-        ) : null}
+        <span className="kok-group__badges">
+          {group.kind ? (
+            <span className={`kok-badge kok-badge--kind-${group.kind}`}>
+              {PROJECT_KIND_LABELS[group.kind]}
+            </span>
+          ) : null}
+          {group.companyData ? (
+            <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+          ) : null}
+        </span>
       </div>
       <ul className="kok-list">
         {group.items.map((item, i) => (

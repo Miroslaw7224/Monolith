@@ -103,6 +103,25 @@ describe("buildContextPack", () => {
     expect(personal.warnings).not.toContain(OWNER_WORK_WARNING);
   });
 
+  it.each([
+    ["personal", "etat", true],
+    ["personal", "wlasny", false],
+    ["personal", undefined, false],
+    ["work", undefined, true],
+    ["work", "wlasny", true],
+    ["work", "biblioteka", true],
+  ] as const)("ostrzeżenie „Dane z firmy”: owner=%s type=%s → %s", (owner, type, expected) => {
+    mockReadRegistry.mockReturnValue({ entries: [{ ...entry, owner }], warnings: [] });
+    mockReadProjectIndex.mockReturnValue({
+      whereIStopped: null,
+      lastWorked: "2026-11-01",
+      ...(type ? { type } : {}),
+    });
+    const pack = buildContextPack("a", TODAY);
+    expect(pack.warnings.includes(OWNER_WORK_WARNING)).toBe(expected);
+    if (expected) expect(pack.warnings[0]).toBe(OWNER_WORK_WARNING);
+  });
+
   it("priorytet źródeł zasad: ai-context.md → CLAUDE.md → index.md → brak", () => {
     mockReadAiContext.mockReturnValue("AI");
     mockReadRepoRules.mockReturnValue({ ok: true, text: "CL" });

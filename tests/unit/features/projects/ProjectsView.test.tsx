@@ -10,12 +10,15 @@ afterEach(() => cleanup());
 function summary(
   partial: Partial<ProjectSummaryDto> & Pick<ProjectSummaryDto, "id">
 ): ProjectSummaryDto {
+  const owner = partial.owner ?? "personal";
   return {
     name: partial.id,
     status: "active",
     priority: "P2",
     localPath: `/tmp/${partial.id}`,
-    owner: "personal",
+    owner,
+    kind: partial.type ?? (owner === "work" ? "etat" : "wlasny"),
+    companyData: owner === "work" || partial.type === "etat",
     freshness: "fresh",
     ...partial,
   };
@@ -174,7 +177,7 @@ describe("ProjectsView", () => {
     });
   });
 
-  it("znacznik „Dane z firmy” tylko dla owner work", async () => {
+  it("znacznik „Dane z firmy” przy owner work, bez niego przy zwykłym własnym projekcie", async () => {
     const w = summary({ id: "w", owner: "work" });
     const p = summary({ id: "p" });
     const apiFetch = makeApiFetch([w, p], {
@@ -247,7 +250,13 @@ function makeRwApiFetch(initial: ProjectDetailDto, patchResponse?: Response) {
     }
     if (url === "/api/projects/a" && method === "PATCH") {
       if (patchResponse) return patchResponse;
-      current = { ...current, type: JSON.parse(String(options?.body)).type };
+      const type = JSON.parse(String(options?.body)).type;
+      current = {
+        ...current,
+        type,
+        kind: type,
+        companyData: type === "etat" || current.owner === "work",
+      };
       return new Response(JSON.stringify(current), { status: 200 });
     }
     if (url === "/api/projects/a/state" && method === "PUT") {
@@ -494,5 +503,80 @@ describe("ProjectsView: uśpienie i nowy projekt", () => {
     expect(await screen.findByText("Save State")).toBeInTheDocument();
     expect(screen.getByText("brak state.md")).toBeInTheDocument();
     expect(screen.getByText("Gdzie skończyłem (z index.md)")).toBeInTheDocument();
+  });
+});
+
+describe("ProjectsView: rodzaj projektu", () => {
+  it("zmiana rodzaju w teczce odświeża kolor listy, nagłówek, znaczniki i paczkę", async () => {
+    const apiFetch = makeRwApiFetch(detail({ id: "a" }));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByRole("region", { name: "Teczka projektu a" });
+    expect(itemButton("a")).toHaveClass("prj-item--kind-wlasny");
+    const packCalls = () =>
+      apiFetch.mock.calls.filter(([url]) => String(url).endsWith("/context-pack")).length;
+    await waitFor(() => expect(packCalls()).toBeGreaterThan(0));
+    const before = packCalls();
+
+    await userEvent.selectOptions(screen.getByLabelText("Typ projektu"), "etat");
+
+    await waitFor(() => expect(itemButton("a")).toHaveClass("prj-item--kind-etat"));
+    const card = screen.getByRole("region", { name: "Teczka projektu a" });
+    expect(within(card).getByText("Dane z firmy")).toBeInTheDocument();
+    expect(card.querySelector(".prj-card--kind-etat")).not.toBeNull();
+    await waitFor(() => expect(packCalls()).toBeGreaterThan(before));
+  });
+
+  it("lista: klasa i znacznik rodzaju; żółty „Firma” tylko przy owner work", async () => {
+    const list = [
+      summary({ id: "e", type: "etat" }),
+      summary({ id: "w" }),
+      summary({ id: "b", type: "biblioteka" }),
+      summary({ id: "ew", owner: "work" }),
+      summary({ id: "wf", owner: "work", type: "wlasny" }),
+    ];
+    const apiFetch = makeApiFetch(list, Object.fromEntries(list.map((p) => [p.id, detail(p)])));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByText("e", { selector: ".prj-item__name" });
+
+    expect(itemButton("e")).toHaveClass("prj-item--kind-etat");
+    expect(within(itemButton("e")).getByText("Etat")).toBeInTheDocument();
+    expect(within(itemButton("e")).queryByText("Firma")).not.toBeInTheDocument();
+
+    expect(itemButton("w")).toHaveClass("prj-item--kind-wlasny");
+    expect(within(itemButton("w")).getByText("Własny")).toBeInTheDocument();
+
+    expect(itemButton("b")).toHaveClass("prj-item--kind-biblioteka");
+    expect(within(itemButton("b")).getByText("Biblioteka")).toBeInTheDocument();
+
+    expect(itemButton("ew")).toHaveClass("prj-item--kind-etat");
+    expect(within(itemButton("ew")).getByText("Etat")).toBeInTheDocument();
+    expect(within(itemButton("ew")).getByText("Firma")).toBeInTheDocument();
+
+    expect(itemButton("wf")).toHaveClass("prj-item--kind-wlasny");
+    expect(within(itemButton("wf")).getByText("Własny")).toBeInTheDocument();
+    expect(within(itemButton("wf")).getByText("Firma")).toBeInTheDocument();
+  });
+
+  it("teczka: „Dane z firmy” z podpowiedzią wg powodu i pasek rodzaju", async () => {
+    const etat = summary({ id: "e", type: "etat" });
+    const work = summary({ id: "w", owner: "work" });
+    const apiFetch = makeApiFetch([etat, work], { e: detail(etat), w: detail(work) });
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByText("e", { selector: ".prj-item__name" });
+
+    await userEvent.click(itemMain("e"));
+    const etatCard = await screen.findByRole("region", { name: "Teczka projektu e" });
+    expect(within(etatCard).getByText("Dane z firmy")).toHaveAttribute(
+      "title",
+      expect.stringContaining("Etykieta")
+    );
+    expect(etatCard.querySelector(".prj-card--kind-etat")).not.toBeNull();
+
+    await userEvent.click(itemMain("w"));
+    const workCard = await screen.findByRole("region", { name: "Teczka projektu w" });
+    expect(within(workCard).getByText("Dane z firmy")).toHaveAttribute(
+      "title",
+      expect.stringContaining("Chronione")
+    );
   });
 });

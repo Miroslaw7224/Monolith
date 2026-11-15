@@ -9,6 +9,7 @@ import {
   type GitActivity,
   type GitHistory,
   type NowTask,
+  type Owner,
   type Project,
   type ProjectType,
   type ProjectWithContent,
@@ -157,6 +158,15 @@ export function listProjects(today: Date = new Date()): {
  * Niezakończone zadania `[now::]` ze wszystkich projektów rejestru (bez limitu 3: ten dotyczy
  * tablicy jednego projektu). Błąd jednego `tasks.md` to ostrzeżenie; błąd rejestru leci wyżej.
  */
+/** `type` z `index.md` projektu; błąd odczytu indeksu nie przerywa listy zadań (rodzaj wtedy z samego `owner`). */
+function typeOf(entry: RegistryEntry): ProjectType | undefined {
+  try {
+    return readProjectIndex(entry).type;
+  } catch {
+    return undefined;
+  }
+}
+
 export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
   const { entries, warnings: registryWarnings } = readRegistry();
   const warnings = [...registryWarnings];
@@ -164,6 +174,7 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
   for (const entry of entries) {
     try {
       const seen = new Map<string, number>();
+      const type = typeOf(entry);
       for (const task of readProjectBoard(entry).now) {
         if (task.done) continue;
         const occurrence = seen.get(task.text) ?? 0;
@@ -172,6 +183,8 @@ export function listNowTasks(): { tasks: NowTask[]; warnings: string[] } {
           projectId: entry.id,
           projectName: entry.name,
           owner: entry.owner,
+          kind: projectKind(entry.owner, type),
+          companyData: hasCompanyData(entry.owner, type),
           priority: entry.priority,
           text: task.text,
           occurrence,
@@ -339,6 +352,21 @@ export function isWorkProject(entry: Pick<RegistryEntry, "owner">): boolean {
   return entry.owner === "work";
 }
 
+/** Rodzaj projektu do koloru i znacznika: `type` z `index.md`, a gdy go brak, z `owner` (`work` → etat). */
+export function projectKind(owner: Owner, type?: ProjectType): ProjectType {
+  return type ?? (owner === "work" ? "etat" : "wlasny");
+}
+
+/**
+ * Czy pokazywać „Dane z firmy” i ostrzeżenie w paczce: `owner: work` albo etykieta `type: etat`.
+ * Nie jest to blokada: blokady (Mapa, Notatki, przyszłe AI i eksport) zostają przy `isWorkProject`
+ * (tylko `owner`, spec rodzajów D3). Ta sama reguła jest w `toSummaryDto` (`schemas.ts`), bo `services`
+ * nie importuje `schemas`; zgodność pilnuje wspólna tabela `projectKindCases.ts`.
+ */
+export function hasCompanyData(owner: Owner, type?: ProjectType): boolean {
+  return owner === "work" || type === "etat";
+}
+
 /**
  * Paczka kontekstu dla agenta (spec etapu 1-4): Markdown z zasadami, Save State, gitem, zadaniami,
  * bugami i devlogiem w budżecie tokenów. Tylko odczyt; brak jednego źródła nie przerywa składania.
@@ -350,7 +378,7 @@ export function buildContextPack(
 ): ContextPack {
   const entry = findEntry(id);
   const project = getProject(id, today);
-  const warnings: string[] = isWorkProject(entry) ? [OWNER_WORK_WARNING] : [];
+  const warnings: string[] = hasCompanyData(entry.owner, project.type) ? [OWNER_WORK_WARNING] : [];
 
   const git = readGitSnapshot(entry);
   if (git.ok === false) {

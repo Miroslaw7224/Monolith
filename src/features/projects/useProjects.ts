@@ -103,6 +103,8 @@ export function useProjects(
                   status: updated.status,
                   freshness: updated.freshness,
                   ...(updated.type !== undefined ? { type: updated.type } : {}),
+                  kind: updated.kind,
+                  companyData: updated.companyData,
                 }
               : p
           )

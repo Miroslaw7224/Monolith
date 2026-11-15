@@ -280,6 +280,10 @@ export type ProjectSummaryDto = {
   lastWorked?: string;
   stateConfidence?: string;
   type?: ProjectType;
+  /** Rodzaj do koloru i znacznika: `type`, a bez niego z `owner` (spec rodzajów D2). */
+  kind: ProjectType;
+  /** `owner: work` albo `type: etat`: znacznik „Dane z firmy” (spec rodzajów D4). */
+  companyData: boolean;
   freshness: FreshnessDto;
 };
 
@@ -316,6 +320,9 @@ export function toSummaryDto(p: Project): ProjectSummaryDto {
     priority: p.priority,
     localPath: p.localPath,
     owner: p.owner,
+    // Ta sama reguła co `projectKind` i `hasCompanyData` w `services` (R3: `schemas` nie importuje ich); pilnuje `projectKindCases.ts`.
+    kind: p.type ?? (p.owner === "work" ? "etat" : "wlasny"),
+    companyData: p.owner === "work" || p.type === "etat",
     freshness: p.freshness,
   };
   if (p.deploy !== undefined) dto.deploy = p.deploy;
@@ -326,6 +333,13 @@ export function toSummaryDto(p: Project): ProjectSummaryDto {
   if (p.type !== undefined) dto.type = p.type;
   return dto;
 }
+
+/** Etykiety rodzajów w UI (karta Projekty, Kokpit). */
+export const PROJECT_KIND_LABELS: Record<ProjectType, string> = {
+  etat: "Etat",
+  wlasny: "Własny",
+  biblioteka: "Biblioteka",
+};
 
 export function toBugDto(b: BugEntry): BugEntryDto {
   const dto: BugEntryDto = { id: b.id, title: b.title, section: b.section };

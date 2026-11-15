@@ -15,6 +15,10 @@ const TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
   { value: "biblioteka", label: "Biblioteka" },
 ];
 
+const COMPANY_TITLE_PROTECTED = "Chronione: owner: work w rejestrze";
+const COMPANY_TITLE_LABEL =
+  "Etykieta z typu Etat; ochronę (Mapa, Notatki, przyszłe AI i eksport) włącza owner: work w rejestrze";
+
 export function ProjectDossier(props: {
   project: ProjectDetailDto;
   actions: ProjectActions;
@@ -51,14 +55,21 @@ export function ProjectDossier(props: {
 
   return (
     <section className="prj-main" aria-label={`Teczka projektu ${project.name}`}>
-      <article className="prj-card">
+      <article
+        className={`prj-card${project.kind ? ` prj-card--kind prj-card--kind-${project.kind}` : ""}`}
+      >
         <div className="prj-card__head">
           <div>
             <h2 className="prj-card__title">{project.name}</h2>
             <p className="prj-card__type">
               {project.status} · {project.priority}
-              {project.owner === "work" ? (
-                <span className="prj-card__owner">Dane z firmy</span>
+              {project.companyData ? (
+                <span
+                  className="prj-card__owner"
+                  title={project.owner === "work" ? COMPANY_TITLE_PROTECTED : COMPANY_TITLE_LABEL}
+                >
+                  Dane z firmy
+                </span>
               ) : null}
             </p>
           </div>

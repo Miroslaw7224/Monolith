@@ -9,6 +9,10 @@
   --c-arsenal: #b47bff;
   --c-mapa: #ff2bd6;
   --c-kodeks: #3ddc84;
+  /* Rodzaje projektów (etat / własny / biblioteka): stałe, niezależne od `--accent` karty. */
+  --kind-etat: #34d399;
+  --kind-wlasny: #3d95ff;
+  --kind-biblioteka: #a78bfa;
   --shell-bg: #0d0d10;
   --shell-line: #26262c;
   --shell-text: #e8e8ec;

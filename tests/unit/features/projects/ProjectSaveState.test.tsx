@@ -16,6 +16,8 @@ function project(partial: Partial<ProjectDetailDto> = {}): ProjectDetailDto {
     priority: "P2",
     localPath: "/tmp/a",
     owner: "personal",
+    kind: "wlasny",
+    companyData: false,
     freshness: "fresh",
     tasks: [],
     board: { blockers: [], now: [], next: [], icebox: [], version: null },

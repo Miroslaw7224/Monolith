@@ -32,6 +32,8 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listGitHistory: mockListGitHistory,
   completeNowTask: mockCompleteNowTask,
   rewriteNowTask: mockRewriteNowTask,
+  projectKind: (owner: string, type?: string) => type ?? (owner === "work" ? "etat" : "wlasny"),
+  hasCompanyData: (owner: string, type?: string) => owner === "work" || type === "etat",
 }));
 vi.mock("@/contexts/bc_inbox/services", () => ({ countOpen: mockCountOpen }));
 vi.mock("@/contexts/bc_tasks/services", () => ({
@@ -145,6 +147,8 @@ describe("tematy", () => {
         id: "nexus",
         name: "NEXUS",
         owner: "personal",
+        kind: "wlasny",
+        companyData: false,
         freshness: "fresh",
         source: "state",
         nextStep: "Zrobić X",
@@ -273,6 +277,18 @@ describe("tematy", () => {
 describe("tematy: dane do karty skupienia", () => {
   beforeEach(() => {
     mockReadPinned.mockReturnValue({ ids: ["nexus"] });
+  });
+
+  it("temat niesie rodzaj: type: etat przy owner personal → etat i Dane z firmy", async () => {
+    mockGetProject.mockReturnValue(project({ type: "etat" }));
+    const { topics } = await getCockpit(TODAY);
+    expect(topics[0]).toMatchObject({ kind: "etat", companyData: true, owner: "personal" });
+  });
+
+  it("temat owner work bez type → etat", async () => {
+    mockGetProject.mockReturnValue(project({ owner: "work" }));
+    const { topics } = await getCockpit(TODAY);
+    expect(topics[0]).toMatchObject({ kind: "etat", companyData: true });
   });
 
   it("branch jest przycinany, pusty to null", async () => {
@@ -1403,5 +1419,31 @@ describe("setQueueItemEnergy (K2b)", () => {
       text: "Porty #deep",
       occurrence: 0,
     });
+  });
+});
+
+describe("kolejka: rodzaj grupy (D8)", () => {
+  const nowTask = (over: Record<string, unknown> = {}) => ({
+    projectId: "p",
+    projectName: "P",
+    owner: "personal",
+    kind: "biblioteka",
+    companyData: false,
+    priority: "high",
+    text: "Zadanie",
+    occurrence: 0,
+    ...over,
+  });
+
+  it("grupa projektowa niesie kind i companyData z NowTask, grupa ogólna ich nie ma", async () => {
+    mockListNowTasks.mockReturnValue({ tasks: [nowTask()], warnings: [] });
+    mockGetTasks.mockResolvedValue([task({ title: "Ogólne zadanie" })]);
+    const { queue } = await getCockpit(TODAY);
+    const project = queue.find((g) => g.projectId === "p");
+    const general = queue.find((g) => g.projectId === null);
+    expect(project).toMatchObject({ kind: "biblioteka", companyData: false });
+    expect(general).toBeDefined();
+    expect("kind" in general!).toBe(false);
+    expect("companyData" in general!).toBe(false);
   });
 });

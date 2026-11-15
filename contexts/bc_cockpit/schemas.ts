@@ -72,6 +72,8 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       id: t.id,
       name: t.name,
       owner: t.owner,
+      kind: t.kind,
+      companyData: t.companyData,
       freshness: t.freshness,
       source: t.source,
       nextStep: t.nextStep,
@@ -87,6 +89,7 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       projectId: g.projectId,
       name: g.name,
       owner: g.owner,
+      ...(g.kind !== undefined ? { kind: g.kind, companyData: g.companyData ?? false } : {}),
       items: g.items.map((i) => ({
         kind: i.kind,
         title: i.title,
