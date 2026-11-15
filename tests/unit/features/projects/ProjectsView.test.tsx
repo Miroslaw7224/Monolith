@@ -250,7 +250,13 @@ function makeRwApiFetch(initial: ProjectDetailDto, patchResponse?: Response) {
     }
     if (url === "/api/projects/a" && method === "PATCH") {
       if (patchResponse) return patchResponse;
-      current = { ...current, type: JSON.parse(String(options?.body)).type };
+      const type = JSON.parse(String(options?.body)).type;
+      current = {
+        ...current,
+        type,
+        kind: type,
+        companyData: type === "etat" || current.owner === "work",
+      };
       return new Response(JSON.stringify(current), { status: 200 });
     }
     if (url === "/api/projects/a/state" && method === "PUT") {
@@ -501,6 +507,25 @@ describe("ProjectsView: uśpienie i nowy projekt", () => {
 });
 
 describe("ProjectsView: rodzaj projektu", () => {
+  it("zmiana rodzaju w teczce odświeża kolor listy, nagłówek, znaczniki i paczkę", async () => {
+    const apiFetch = makeRwApiFetch(detail({ id: "a" }));
+    render(<ProjectsView apiFetch={apiFetch} />);
+    await screen.findByRole("region", { name: "Teczka projektu a" });
+    expect(itemButton("a")).toHaveClass("prj-item--kind-wlasny");
+    const packCalls = () =>
+      apiFetch.mock.calls.filter(([url]) => String(url).endsWith("/context-pack")).length;
+    await waitFor(() => expect(packCalls()).toBeGreaterThan(0));
+    const before = packCalls();
+
+    await userEvent.selectOptions(screen.getByLabelText("Typ projektu"), "etat");
+
+    await waitFor(() => expect(itemButton("a")).toHaveClass("prj-item--kind-etat"));
+    const card = screen.getByRole("region", { name: "Teczka projektu a" });
+    expect(within(card).getByText("Dane z firmy")).toBeInTheDocument();
+    expect(card.querySelector(".prj-card--kind-etat")).not.toBeNull();
+    await waitFor(() => expect(packCalls()).toBeGreaterThan(before));
+  });
+
   it("lista: klasa i znacznik rodzaju; żółty „Firma” tylko przy owner work", async () => {
     const list = [
       summary({ id: "e", type: "etat" }),

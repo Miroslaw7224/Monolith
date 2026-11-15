@@ -50,7 +50,7 @@ export function ProjectsView(props: {
     const q = query.trim().toLowerCase();
     return q === "" ? projects : projects.filter((p) => p.name.toLowerCase().includes(q));
   }, [projects, query]);
-  const pack = useContextPack(detail?.id ?? null, loadContextPack);
+  const pack = useContextPack(detail?.id ?? null, loadContextPack, detail?.companyData);
   const tiles = useMemo(
     () => buildProjectTiles(projects, detail, pack.state),
     [projects, detail, pack.state]
