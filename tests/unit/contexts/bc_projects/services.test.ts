@@ -8,6 +8,7 @@ import type {
   TasksBoard,
 } from "@/contexts/bc_projects/models";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
+import { PROJECT_KIND_CASES } from "./projectKindCases";
 
 const mockReadRegistry = vi.hoisted(() => vi.fn());
 const mockReadProjectIndex = vi.hoisted(() => vi.fn());
@@ -39,9 +40,11 @@ import {
   effectiveLastWorked,
   freshness,
   getProject,
+  hasCompanyData,
   isWorkProject,
   listNowTasks,
   listProjects,
+  projectKind,
   saveState,
   setProjectType,
   sortProjects,
@@ -652,5 +655,21 @@ describe("listNowTasks", () => {
 
     expect(tasks.map((t) => t.projectId)).toEqual(["dobry"]);
     expect(warnings).toEqual(["rejestr: ostrzeżenie", "zly: pęknięty tasks.md"]);
+  });
+});
+
+describe("projectKind i hasCompanyData", () => {
+  it.each(PROJECT_KIND_CASES)(
+    "owner=%s type=%s → kind=%s, companyData=%s",
+    (owner, type, kind, companyData) => {
+      expect(projectKind(owner, type)).toBe(kind);
+      expect(hasCompanyData(owner, type)).toBe(companyData);
+    }
+  );
+
+  it("isWorkProject zależy tylko od owner: type: etat nie włącza blokad (D3)", () => {
+    const etatOsobisty = { owner: "personal" as const, type: "etat" as const };
+    expect(isWorkProject(etatOsobisty)).toBe(false);
+    expect(isWorkProject({ owner: "work" })).toBe(true);
   });
 });

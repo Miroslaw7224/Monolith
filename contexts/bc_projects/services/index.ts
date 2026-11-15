@@ -9,6 +9,7 @@ import {
   type GitActivity,
   type GitHistory,
   type NowTask,
+  type Owner,
   type Project,
   type ProjectType,
   type ProjectWithContent,
@@ -337,6 +338,21 @@ function pickRules(entry: RegistryEntry, warnings: string[]): PackRules | null {
 /** Jedno miejsce sprawdzenia dla funkcji, które nie mogą obejmować danych etatu (przyszłe AI lokalne, eksport). */
 export function isWorkProject(entry: Pick<RegistryEntry, "owner">): boolean {
   return entry.owner === "work";
+}
+
+/** Rodzaj projektu do koloru i znacznika: `type` z `index.md`, a gdy go brak, z `owner` (`work` → etat). */
+export function projectKind(owner: Owner, type?: ProjectType): ProjectType {
+  return type ?? (owner === "work" ? "etat" : "wlasny");
+}
+
+/**
+ * Czy pokazywać „Dane z firmy” i ostrzeżenie w paczce: `owner: work` albo etykieta `type: etat`.
+ * Nie jest to blokada: blokady (Mapa, Notatki, przyszłe AI i eksport) zostają przy `isWorkProject`
+ * (tylko `owner`, spec rodzajów D3). Ta sama reguła jest w `toSummaryDto` (`schemas.ts`), bo `services`
+ * nie importuje `schemas`; zgodność pilnuje wspólna tabela `projectKindCases.ts`.
+ */
+export function hasCompanyData(owner: Owner, type?: ProjectType): boolean {
+  return owner === "work" || type === "etat";
 }
 
 /**
