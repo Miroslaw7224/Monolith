@@ -69,12 +69,29 @@ export type ProjectIndex = {
 
 export type ChecklistItem = { text: string; done: boolean };
 export type ChecklistSection = { heading: string; items: ChecklistItem[] };
+/** Zadanie tablicy powiązane z bugiem (ID buga jako osobny token w treści zadania). */
+export type BugTaskLink = { column: TaskColumn; done: boolean };
+
 export type BugEntry = {
   id: string;
   title: string;
   section: string;
   priority?: string;
   status?: string;
+  /** Pole `Plik` (surowy tekst). */
+  file?: string;
+  /** Pole `Otwarto`: poprawna data kalendarzowa `RRRR-MM-DD`. */
+  opened?: string;
+  description?: string;
+  fix?: string;
+  /** Treść pola `Rozwiązanie`. */
+  resolution?: string;
+  /** Data z nawiasu w `Rozwiązanie (RRRR-MM-DD)`. */
+  closedOn?: string;
+  /** Pola pochodne dopisywane w `services/bugs.ts`; parser ich nie ustawia. */
+  ageDays?: number;
+  stale?: boolean;
+  task?: BugTaskLink;
 };
 
 export type TaskColumn = "blockers" | "now" | "next" | "icebox";

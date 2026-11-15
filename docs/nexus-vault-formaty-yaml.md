@@ -135,3 +135,49 @@ Jeden plik na mapę; `id` (20 znaków alfanumerycznych) to nazwa pliku. JSON z w
 ## Tablica: `Board/board.json`
 
 Jeden plik: `{ "tiles": […], "frames": […], "edges": […], "updatedAt": "ISO" }`. Brak pliku to pusta tablica. Zapis zawsze nadpisuje plik (ostatni zapis wygrywa).
+
+## Bugi: `Projects/<projekt>/bugs.md`
+
+Aplikacja **tylko czyta** ten plik (karta Projekty, paczka kontekstu); bugi dodaje i zamyka agent według przepisu poniżej (skill `bug-projektu`). Pole `Otwarto` daje w UI wiek buga i znaczek „stary” po 14 dniach.
+
+```
+## Aktywne
+
+### GP-001 — Tytuł buga
+- **Priorytet:** medium
+- **Plik:** `ścieżka/do/pliku`
+- **Otwarto:** 2026-11-10
+- **Opis:** Co się dzieje. Kolejne linie wcięte o 2 spacje należą do tego samego pola.
+- **Naprawa:** Plan naprawy (opcjonalnie).
+- **Status:** otwarty
+
+## Zamknięte
+
+### EA-001 — Tytuł buga
+- **Priorytet:** high
+- **Opis:** …
+- **Rozwiązanie (2026-05-19):** Co zrobiono.
+- **Status:** zamknięty
+```
+
+Reguły formatu:
+
+- Bug to `### <ID> — <tytuł>` (myślnik, półpauza lub pauza) pod `## Aktywne` albo `## Zamknięte` (albo przed pierwszym `##`). `###` pod inną sekcją (np. „Ostrzeżenia z builda”) nie jest bugiem.
+- ID to `XX-NNN` (prefiks projektu z `NEXUS/CLAUDE.md` § Format ID bugów, numer o 1 większy od największego w pliku, w obu sekcjach).
+- Pole to linia `- **Etykieta:** wartość`. Znane etykiety: `Priorytet`, `Plik`, `Otwarto`, `Opis`, `Naprawa`, `Rozwiązanie`, `Status`. Data w `Otwarto` i w nawiasie `Rozwiązanie (…)` musi mieć dokładnie postać `RRRR-MM-DD` (inna jest ignorowana). Wszystko poza nagłówkiem jest opcjonalne.
+- Nie wpisuj przykładów `### …` w komentarzach HTML od początku linii: parser czyta linie.
+- Gdy plik ma tylko zdanie „Brak znanych bugów.” (nowy projekt), zastąp je sekcjami `## Aktywne` i `## Zamknięte`.
+
+**Dodaj bug** (polecenie „Dodaj buga do X”, ustalenie podczas pracy, wpis z Inboxu typu `bug`):
+
+1. Wpis pod `## Aktywne` według formatu; `Otwarto: <dziś>` (dla wpisu z Inboxu: data wpisu), `Status: otwarty`.
+2. Wiersz w tabeli „Bugi” w `Vault/dashboard.md` oraz ID w kolumnie „Bugi” tabeli „Projekty — przegląd”.
+3. Zadanie w `Projects/<projekt>/tasks.md` pod `## Next`: `- [ ] **Tytuł** — krótki opis (patrz <ID>)`. ID musi być w treści (aplikacja po nim łączy bug z zadaniem). Dla `Priorytet: high` dopisz na końcu linii ` [now::]`, o ile w „Teraz” jest mniej niż 3 niezakończone zadania; inaczej bez znacznika.
+
+**Zamknij bug** (polecenie „Zamknij buga X w projekcie Y”, naprawa w trakcie pracy):
+
+1. Przenieś cały wpis pod `## Zamknięte`, ustaw `Status: zamknięty`, dodaj `- **Rozwiązanie (RRRR-MM-DD):** co zrobiono` (data = dziś).
+2. Usuń lub przekreśl wiersz w tabeli „Bugi” w `Vault/dashboard.md` i zaktualizuj kolumnę „Bugi” w przeglądzie projektów.
+3. Odhacz zadanie z tym ID w `tasks.md`: `- [x] … — RRRR-MM-DD` (data zakończenia na końcu linii). Gdy zadania nie ma, nic nie dodawaj.
+
+Rozjazdy (zadanie zrobione, a bug nadal aktywny, albo bug zamknięty, a zadanie otwarte) aplikacja sygnalizuje przy wpisie w karcie Projekty; popraw wtedy brakującą stronę według powyższych kroków.

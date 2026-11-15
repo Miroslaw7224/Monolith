@@ -237,6 +237,32 @@ describe("bc_projects services", () => {
     });
   });
 
+  it("getProject: bugi z wiekiem i powiązaniem z zadaniem", () => {
+    const a = entry({ id: "a", name: "A" });
+    mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
+    mockReadProjectIndex.mockReturnValue({ lastWorked: "2026-11-05", whereIStopped: "tu" });
+    mockReadProjectContent.mockReturnValue({
+      tasks: [],
+      bugs: [{ id: "B-1", title: "x", section: "Aktywne", opened: "2026-10-01" }],
+    });
+    mockReadProjectBoard.mockReturnValue({
+      ...EMPTY_BOARD,
+      next: [{ text: "Napraw (patrz B-1)", done: false }],
+    });
+
+    expect(getProject("a", TODAY).bugs).toEqual([
+      {
+        id: "B-1",
+        title: "x",
+        section: "Aktywne",
+        opened: "2026-10-01",
+        ageDays: 42,
+        stale: true,
+        task: { column: "next", done: false },
+      },
+    ]);
+  });
+
   it("getProject nieznany", () => {
     mockReadRegistry.mockReturnValue({ entries: [], warnings: [] });
     expect(() => getProject("zzz", TODAY)).toThrow(NotFoundError);

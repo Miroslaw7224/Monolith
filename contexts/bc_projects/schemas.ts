@@ -2,6 +2,7 @@ import { z } from "zod";
 import type {
   BoardTask,
   BugEntry,
+  BugTaskLink,
   ChecklistItem,
   ChecklistSection,
   ContextPack,
@@ -234,7 +235,24 @@ export type ChecklistSectionDto = ChecklistSection;
 export type BoardTaskDto = BoardTask;
 /** Tablica zadań projektu; `version` to `"<size>:<hash>"` pliku `tasks.md` (`null`, gdy pliku nie ma). */
 export type TasksBoardDto = Omit<TasksBoard, "version"> & { version: string | null };
-export type BugEntryDto = BugEntry;
+export type BugTaskLinkDto = BugTaskLink;
+export type BugEntryDto = {
+  id: string;
+  title: string;
+  section: string;
+  priority?: string;
+  status?: string;
+  file?: string;
+  opened?: string;
+  description?: string;
+  fix?: string;
+  resolution?: string;
+  closedOn?: string;
+  /** Pola pochodne z `services/bugs.ts`. */
+  ageDays?: number;
+  stale?: boolean;
+  task?: BugTaskLinkDto;
+};
 export type FreshnessDto = Freshness;
 
 export type ProjectStateDto = {
@@ -309,6 +327,22 @@ export function toSummaryDto(p: Project): ProjectSummaryDto {
   return dto;
 }
 
+export function toBugDto(b: BugEntry): BugEntryDto {
+  const dto: BugEntryDto = { id: b.id, title: b.title, section: b.section };
+  if (b.priority !== undefined) dto.priority = b.priority;
+  if (b.status !== undefined) dto.status = b.status;
+  if (b.file !== undefined) dto.file = b.file;
+  if (b.opened !== undefined) dto.opened = b.opened;
+  if (b.description !== undefined) dto.description = b.description;
+  if (b.fix !== undefined) dto.fix = b.fix;
+  if (b.resolution !== undefined) dto.resolution = b.resolution;
+  if (b.closedOn !== undefined) dto.closedOn = b.closedOn;
+  if (b.ageDays !== undefined) dto.ageDays = b.ageDays;
+  if (b.stale !== undefined) dto.stale = b.stale;
+  if (b.task !== undefined) dto.task = b.task;
+  return dto;
+}
+
 export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
   return {
     ...toSummaryDto(p),
@@ -320,7 +354,7 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
       icebox: p.board.icebox,
       version: p.board.version ? `${p.board.version.size}:${p.board.version.hash}` : null,
     },
-    bugs: p.bugs,
+    bugs: p.bugs.map(toBugDto),
     whereIStopped: p.whereIStopped,
     state: p.state ? toStateDto(p.state) : null,
     stateVersion: p.stateVersion ? `${p.stateVersion.size}:${p.stateVersion.hash}` : null,

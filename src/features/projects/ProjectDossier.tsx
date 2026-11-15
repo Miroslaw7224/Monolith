@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { ProjectDetailDto, ProjectType } from "@/contexts/bc_projects/schemas";
 import type { ProjectActions } from "./mutation";
+import { ProjectBugs } from "./ProjectBugs";
 import { ProjectContextPack, type ContextPackModel } from "./ProjectContextPack";
 import { ProjectDevlog } from "./ProjectDevlog";
 import { ProjectLinks } from "./ProjectLinks";
@@ -47,8 +48,6 @@ export function ProjectDossier(props: {
     (sum, column) => sum + project.board[column].length,
     0
   );
-  const activeBugs = project.bugs.filter((b) => b.section !== "Zamknięte");
-  const closedBugs = project.bugs.filter((b) => b.section === "Zamknięte");
 
   return (
     <section className="prj-main" aria-label={`Teczka projektu ${project.name}`}>
@@ -132,30 +131,7 @@ export function ProjectDossier(props: {
         />
       </article>
 
-      <article className="prj-card">
-        <h3 className="prj-section-title">Bugi</h3>
-        {project.bugs.length === 0 ? (
-          <p>Brak bugów</p>
-        ) : (
-          <>
-            {activeBugs.length > 0 ? (
-              <ul className="prj-bugs">
-                {activeBugs.map((bug) => (
-                  <li key={bug.id}>
-                    <span className="prj-badge">{bug.id}</span>
-                    <span>{bug.title}</span>
-                    {bug.priority ? <span className="prj-badge">{bug.priority}</span> : null}
-                    {bug.status ? <span className="prj-badge">{bug.status}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {closedBugs.length > 0 ? (
-              <p className="prj-bugs-closed">Zamknięte: {closedBugs.length}</p>
-            ) : null}
-          </>
-        )}
-      </article>
+      <ProjectBugs key={`${project.id}-bugs`} bugs={project.bugs} />
 
       <ProjectDevlog
         key={`${project.id}-devlog`}

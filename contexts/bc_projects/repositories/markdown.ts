@@ -13,8 +13,60 @@ import { archiveDateOf } from "@/lib/schema/archive-date";
 const SECTION_RE = /^## (.+?)\s*$/;
 const CHECKBOX_RE = /^\s*[-*] \[( |x|X)\] (.*)$/;
 const BUG_HEADING_RE = /^### (\S+)\s+[—–-]\s+(.+?)\s*$/;
-const PRIORITY_RE = /^\s*- \*\*Priorytet:\*\*\s*(.+?)\s*$/;
-const STATUS_RE = /^\s*- \*\*Status:\*\*\s*(.+?)\s*$/;
+const BUG_FIELD_RE = /^\s*- \*\*([^*]+?):\*\*\s*(.*?)\s*$/;
+const BUG_LABEL_RE = /^([^(]+?)\s*(?:\(([^)]*)\))?$/;
+const BUG_CONTINUATION_RE = /^[ \t]+\S/;
+const BUG_SECTIONS = new Set(["Aktywne", "Zamknięte"]);
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+type BugTextKey = "priority" | "status" | "file" | "description" | "fix" | "resolution";
+const BUG_FIELD_KEYS: Record<string, BugTextKey> = {
+  priorytet: "priority",
+  status: "status",
+  plik: "file",
+  opis: "description",
+  naprawa: "fix",
+  rozwiązanie: "resolution",
+};
+
+/** `RRRR-MM-DD` tylko dla istniejącej daty kalendarzowej; inaczej `undefined`. */
+function validIsoDate(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const m = ISO_DATE_RE.exec(value.trim());
+  if (!m) return undefined;
+  const y = Number(m[1]);
+  const month = Number(m[2]);
+  const d = Number(m[3]);
+  const probe = new Date(Date.UTC(y, month - 1, d));
+  const real =
+    probe.getUTCFullYear() === y && probe.getUTCMonth() === month - 1 && probe.getUTCDate() === d;
+  return real ? m[0] : undefined;
+}
+
+/**
+ * Zapisuje pole wpisu; pierwsza wartość wygrywa. Zwraca klucz pola tekstowego, któremu wolno
+ * doklejać linie ciągu dalszego (`null`, gdy pole nie przyjmuje ciągu dalszego).
+ */
+function applyBugField(bug: BugEntry, label: string, value: string): BugTextKey | null {
+  const parts = BUG_LABEL_RE.exec(label.trim());
+  if (!parts) return null;
+  const name = parts[1].trim().toLowerCase();
+  if (name === "otwarto") {
+    const date = validIsoDate(value);
+    if (date !== undefined && bug.opened === undefined) bug.opened = date;
+    return null;
+  }
+  const key = BUG_FIELD_KEYS[name];
+  if (key === undefined) return null;
+  if (key === "resolution") {
+    const date = validIsoDate(parts[2]);
+    if (date !== undefined && bug.closedOn === undefined) bug.closedOn = date;
+  }
+  if (bug[key] !== undefined) return null;
+  // Puste pole zostaje otwarte na ciąg dalszy (wartość od następnej, wciętej linii).
+  if (value !== "") bug[key] = value;
+  return key;
+}
 const DEVLOG_HEADING_RE = /^(\d{4}-\d{2}-\d{2})\s+[—–-]\s+(.+)$/;
 /** Ta sama reguła nagłówka co w `parseSections`, żeby prepend i parse zawsze zgadzały się co do granic wpisów. */
 const FIRST_SECTION_RE = new RegExp(SECTION_RE.source, "m");
@@ -70,41 +122,44 @@ export function parseBugs(markdown: string): BugEntry[] {
   const bugs: BugEntry[] = [];
   let section = "";
   let current: BugEntry | null = null;
+  let lastField: BugTextKey | null = null;
 
   for (const line of markdown.split(/\r?\n/)) {
     const sectionMatch = SECTION_RE.exec(line);
     if (sectionMatch) {
       section = sectionMatch[1].trim();
       current = null;
+      lastField = null;
       continue;
     }
 
     const bugMatch = BUG_HEADING_RE.exec(line);
     if (bugMatch) {
-      current = {
-        id: bugMatch[1],
-        title: bugMatch[2].trim(),
-        section,
-      };
+      lastField = null;
+      // Bugi tylko pod „Aktywne”, „Zamknięte” albo przed pierwszym `##`; obce sekcje są ignorowane.
+      if (section !== "" && !BUG_SECTIONS.has(section)) {
+        current = null;
+        continue;
+      }
+      current = { id: bugMatch[1], title: bugMatch[2].trim(), section };
       bugs.push(current);
       continue;
     }
 
     if (!current) continue;
 
-    if (current.priority === undefined) {
-      const priorityMatch = PRIORITY_RE.exec(line);
-      if (priorityMatch) {
-        current.priority = priorityMatch[1].trim();
-        continue;
-      }
+    const field = BUG_FIELD_RE.exec(line);
+    if (field) {
+      lastField = applyBugField(current, field[1], field[2]);
+      continue;
     }
 
-    if (current.status === undefined) {
-      const statusMatch = STATUS_RE.exec(line);
-      if (statusMatch) {
-        current.status = statusMatch[1].trim();
-      }
+    if (lastField !== null && line.trim() !== "" && BUG_CONTINUATION_RE.test(line)) {
+      const prev = current[lastField];
+      current[lastField] = prev === undefined ? line.trim() : `${prev} ${line.trim()}`;
+    } else {
+      // Pusta linia albo linia obca (bez wcięcia, bez etykiety) kończy ciąg dalszy pola.
+      lastField = null;
     }
   }
 
