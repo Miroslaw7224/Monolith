@@ -1,3 +1,4 @@
+import i18n, { currentLang, type Lang } from "@/src/i18n";
 import type { Note } from "./useNotesData";
 
 export type FrontmatterSplit = { frontmatter: string[] | null; body: string };
@@ -78,7 +79,13 @@ const sameDay = (a: Date, b: Date) =>
  * Cztery kafle statystyk (makieta 05). „Decyzje w devlogach” czeka na agregację devlogów
  * (etap 2), więc na razie ma pustą wartość. `inboxOpen === null` = brak danych o Inboxie.
  */
-export function computeNoteTiles(notes: Note[], now: Date, inboxOpen: number | null): NoteTile[] {
+export function computeNoteTiles(
+  notes: Note[],
+  now: Date,
+  inboxOpen: number | null,
+  lang: Lang = currentLang()
+): NoteTile[] {
+  const lng = { lng: lang };
   const dates = notes
     .map((n) => new Date(n.created_at ?? ""))
     .filter((d) => !Number.isNaN(d.getTime()))
@@ -86,33 +93,47 @@ export function computeNoteTiles(notes: Note[], now: Date, inboxOpen: number | n
   const todays = dates.filter((d) => sameDay(d, now));
 
   let todayMeta: string;
-  if (notes.length === 0) todayMeta = "brak notatek";
+  if (notes.length === 0) todayMeta = i18n.t("notes:notesTileTodayMetaNoNotes", lng);
   else if (todays.length > 0)
-    todayMeta = `ostatnia ${pad(todays[0].getHours())}:${pad(todays[0].getMinutes())}`;
+    todayMeta = i18n.t("notes:notesTileTodayMetaLastTime", {
+      ...lng,
+      time: `${pad(todays[0].getHours())}:${pad(todays[0].getMinutes())}`,
+    });
   else if (dates.length > 0)
-    todayMeta = `ostatnia ${pad(dates[0].getDate())}.${pad(dates[0].getMonth() + 1)}`;
-  else todayMeta = "brak daty";
+    todayMeta = i18n.t("notes:notesTileTodayMetaLastDate", {
+      ...lng,
+      date: `${pad(dates[0].getDate())}.${pad(dates[0].getMonth() + 1)}`,
+    });
+  else todayMeta = i18n.t("notes:notesTileTodayMetaNoDate", lng);
 
   return [
     {
       id: "notes",
-      label: "Notatki w bazie",
+      label: i18n.t("notes:notesTileNotesLabel", lng),
       value: String(notes.length),
-      meta: "katalog Notes/",
+      meta: i18n.t("notes:notesTileNotesMeta", lng),
       accent: true,
     },
-    { id: "today", label: "Dodane dziś", value: String(todays.length), meta: todayMeta },
+    {
+      id: "today",
+      label: i18n.t("notes:notesTileTodayLabel", lng),
+      value: String(todays.length),
+      meta: todayMeta,
+    },
     {
       id: "decisions",
-      label: "Decyzje w devlogach",
+      label: i18n.t("notes:notesTileDecisionsLabel", lng),
       value: "—",
-      meta: "wkrótce: agregacja devlogów",
+      meta: i18n.t("notes:notesTileDecisionsMeta", lng),
     },
     {
       id: "inbox",
-      label: "Do segregacji (Inbox)",
+      label: i18n.t("notes:notesTileInboxLabel", lng),
       value: inboxOpen === null ? "—" : String(inboxOpen),
-      meta: inboxOpen === null ? "brak danych" : "otwarte wpisy",
+      meta:
+        inboxOpen === null
+          ? i18n.t("notes:notesTileInboxMetaNoData", lng)
+          : i18n.t("notes:notesTileInboxMetaOpen", lng),
     },
   ];
 }

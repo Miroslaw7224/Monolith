@@ -119,6 +119,14 @@ describe("computeNoteTiles", () => {
     expect(tiles[1].value).toBe("0");
     expect(tiles[1].meta).toBe("brak daty");
   });
+
+  it("etykiety kafli po angielsku", () => {
+    const today = new Date(2026, 10, 14, 9, 22, 0).toISOString();
+    const tiles = computeNoteTiles([note("a", today)], now, null, "en");
+    expect(tiles[0].label).toBe("Notes in the base");
+    expect(tiles[1].label).toBe("Added today");
+    expect(tiles[2].label).toBe("Decisions in devlogs");
+  });
 });
 
 describe("joinFrontmatter", () => {

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import type { NexusDocSummaryDto } from "@/contexts/bc_nexus_docs/schemas";
 import { markdownToHtmlWithWikilinks } from "@/lib/markdown/wikilinks";
+import { useT } from "@/src/i18n/useT";
 import { createNexusResolver } from "./nexusLinks";
 import { useNexusDoc, type ApiFetch } from "./useNexusDocs";
 
@@ -14,6 +15,7 @@ export interface NexusDocViewProps {
 
 /** Podgląd dokumentu NEXUS: wyłącznie odczyt, karta frontmattera, klikalne wikilinki. */
 export function NexusDocView({ apiFetch, path, docs, onNavigate }: NexusDocViewProps) {
+  const t = useT();
   const { doc: fetched, loading, error } = useNexusDoc(apiFetch, path);
   const doc = fetched && fetched.path === path ? fetched : null;
   const resolve = useMemo(() => createNexusResolver(docs.map((d) => d.path)), [docs]);
@@ -39,11 +41,11 @@ export function NexusDocView({ apiFetch, path, docs, onNavigate }: NexusDocViewP
         </div>
         <div className="not-toolbar__tools">
           <span className="chip not-chip chip--ok" data-testid="nexus-readonly-badge">
-            tylko odczyt
+            {t("notes:notesReadOnlyBadge")}
           </span>
           <div className="tabs not-tabs" role="tablist">
             <button type="button" className="tabs__btn not-tabs__btn" role="tab" aria-selected>
-              Podgląd
+              {t("notes:notesPreview")}
             </button>
           </div>
         </div>
@@ -52,7 +54,7 @@ export function NexusDocView({ apiFetch, path, docs, onNavigate }: NexusDocViewP
       <article className="not-sheet">
         <div className="not-sheet__body">
           {loading ? (
-            <p className="not-state">Wczytywanie…</p>
+            <p className="not-state">{t("notes:notesLoading")}</p>
           ) : error ? (
             <p className="not-state">{error}</p>
           ) : doc ? (
@@ -60,7 +62,7 @@ export function NexusDocView({ apiFetch, path, docs, onNavigate }: NexusDocViewP
               {doc.frontmatter.length > 0 ? (
                 <div className="not-frontmatter">
                   <div className="not-frontmatter__top">
-                    <span>--- FRONTMATTER ---</span>
+                    <span>{t("notes:notesFrontmatterBanner")}</span>
                     <span>NEXUS</span>
                   </div>
                   {doc.frontmatter.map((line) => (

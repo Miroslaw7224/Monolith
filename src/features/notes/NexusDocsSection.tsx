@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import type { NexusDocSummaryDto } from "@/contexts/bc_nexus_docs/schemas";
 import { cn } from "@/src/lib/cn";
+import { useT } from "@/src/i18n/useT";
 import { collectNexusTags, filterNexusDocs, groupNexusDocs } from "./nexusTree";
 
 export interface NexusDocsSectionProps {
@@ -12,6 +13,7 @@ export interface NexusDocsSectionProps {
 
 /** Sekcja „Baza wiedzy NEXUS” w lewej kolumnie panelu Notatki (tylko odczyt). */
 export function NexusDocsSection({ docs, error, selectedPath, onSelect }: NexusDocsSectionProps) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
@@ -22,10 +24,11 @@ export function NexusDocsSection({ docs, error, selectedPath, onSelect }: NexusD
   const forceOpen = query.trim() !== "" || activeTag !== null;
 
   return (
-    <section className="not-nexus" aria-label="Baza wiedzy NEXUS">
+    <section className="not-nexus" aria-label={t("notes:notesNexusSectionAria")}>
       <div className="not-sidebar__head">
         <h2 className="not-sidebar__title">
-          <b>Baza wiedzy NEXUS</b> · tylko odczyt
+          <b>{t("notes:notesNexusTitleBold")}</b>
+          {t("notes:notesNexusTitleTrail")}
         </h2>
         <span className="chip not-chip">{docs.length}</span>
       </div>
@@ -35,16 +38,16 @@ export function NexusDocsSection({ docs, error, selectedPath, onSelect }: NexusD
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Szukaj w bazie NEXUS…"
-        aria-label="Filtruj bazę NEXUS"
+        placeholder={t("notes:notesNexusSearchPlaceholder")}
+        aria-label={t("notes:notesNexusFilterAria")}
       />
 
       {error ? (
         <p className="not-state">{error}</p>
       ) : docs.length === 0 ? (
-        <p className="not-state">Brak dokumentów NEXUS</p>
+        <p className="not-state">{t("notes:notesNexusEmpty")}</p>
       ) : visible.length === 0 ? (
-        <p className="not-state">Brak wyników</p>
+        <p className="not-state">{t("notes:notesNoResults")}</p>
       ) : (
         <ul className="not-tree">
           {folders.map((folder) => {
@@ -92,7 +95,7 @@ export function NexusDocsSection({ docs, error, selectedPath, onSelect }: NexusD
 
       {tags.length > 0 ? (
         <div className="not-tags-sec">
-          <h3 className="not-tags-title">Tagi NEXUS</h3>
+          <h3 className="not-tags-title">{t("notes:notesNexusTagsTitle")}</h3>
           <div className="not-tags-wrap">
             {tags.map((tag) => (
               <button

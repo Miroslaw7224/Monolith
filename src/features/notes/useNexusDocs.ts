@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import type { NexusDocDto, NexusDocSummaryDto } from "@/contexts/bc_nexus_docs/schemas";
+import i18n from "@/src/i18n";
 
 export type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
-const LIST_ERROR = "Nie udało się wczytać bazy NEXUS";
-const DOC_ERROR = "Dokument jest niedostępny";
+function nexusListError(): string {
+  return i18n.t("notes:notesNexusListError");
+}
+
+function nexusDocError(): string {
+  return i18n.t("notes:notesNexusDocError");
+}
 
 /** Lista dokumentów NEXUS (jedno zapytanie, bez treści). Bez `apiFetch` nic nie pobiera. */
 export function useNexusDocs(apiFetch: ApiFetch | undefined): {
@@ -24,7 +30,7 @@ export function useNexusDocs(apiFetch: ApiFetch | undefined): {
         if (cancelled) return;
         if (!res.ok || !Array.isArray(data)) {
           setDocs([]);
-          setError(LIST_ERROR);
+          setError(nexusListError());
           return;
         }
         setDocs(data as NexusDocSummaryDto[]);
@@ -32,7 +38,7 @@ export function useNexusDocs(apiFetch: ApiFetch | undefined): {
       } catch {
         if (cancelled) return;
         setDocs([]);
-        setError(LIST_ERROR);
+        setError(nexusListError());
       }
     })();
     return () => {
@@ -68,12 +74,12 @@ export function useNexusDoc(
         const data: unknown = await res.json();
         if (cancelled) return;
         if (!res.ok) {
-          setError(DOC_ERROR);
+          setError(nexusDocError());
         } else {
           setDoc(data as NexusDocDto);
         }
       } catch {
-        if (!cancelled) setError(DOC_ERROR);
+        if (!cancelled) setError(nexusDocError());
       } finally {
         if (!cancelled) setLoading(false);
       }

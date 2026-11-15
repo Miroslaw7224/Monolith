@@ -62,6 +62,7 @@ if (!i18n.isInitialized) {
       "arsenal",
       "map",
       "codex",
+      "notes",
     ],
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
