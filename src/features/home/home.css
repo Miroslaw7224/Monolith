@@ -564,17 +564,20 @@
 }
 
 .kok-topic--kind-etat,
-.kok-group--kind-etat {
+.kok-group--kind-etat,
+.kok-list__item--kind-etat {
   --kok-kind: var(--kind-etat);
 }
 
 .kok-topic--kind-wlasny,
-.kok-group--kind-wlasny {
+.kok-group--kind-wlasny,
+.kok-list__item--kind-wlasny {
   --kok-kind: var(--kind-wlasny);
 }
 
 .kok-topic--kind-biblioteka,
-.kok-group--kind-biblioteka {
+.kok-group--kind-biblioteka,
+.kok-list__item--kind-biblioteka {
   --kok-kind: var(--kind-biblioteka);
 }
 
@@ -1336,4 +1339,9 @@
 
 .kok-urgent__title b {
   color: var(--danger);
+}
+
+/* Zadanie ogólne z projektem w kolejce (spec zadań ogólnych, P4): wewnętrzny pasek rodzaju przy pozycji. */
+.kok-list__item--kind {
+  box-shadow: inset 3px 0 0 var(--kok-kind);
 }

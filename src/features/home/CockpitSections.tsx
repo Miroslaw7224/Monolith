@@ -164,6 +164,24 @@ const sourceKey = (item: QueueGroupDto["items"][number]) =>
     ? `task:${item.source.taskId}`
     : `project:${item.source.projectId}:${item.source.occurrence}:${item.source.text}`;
 
+/** Rodzaj projektu zadania ogólnego (spec zadań ogólnych, P4): klasa paska i znaczniki przy pozycji kolejki. */
+const itemKindClass = (item: QueueGroupDto["items"][number]) =>
+  item.project ? ` kok-list__item--kind kok-list__item--kind-${item.project.kind}` : "";
+
+function ItemProjectBadges({ item }: { item: QueueGroupDto["items"][number] }) {
+  if (!item.project) return null;
+  return (
+    <>
+      <span className={`kok-badge kok-badge--kind-${item.project.kind}`}>
+        {PROJECT_KIND_LABELS[item.project.kind]} · {item.project.name}
+      </span>
+      {item.project.companyData ? (
+        <span className="kok-badge kok-badge--warn">Dane z firmy</span>
+      ) : null}
+    </>
+  );
+}
+
 function QueueGroupCard({
   group,
   busyKey,
@@ -197,7 +215,7 @@ function QueueGroupCard({
       </div>
       <ul className="kok-list">
         {group.items.map((item, i) => (
-          <li key={`${item.kind}-${i}`} className="kok-list__item">
+          <li key={`${item.kind}-${i}`} className={`kok-list__item${itemKindClass(item)}`}>
             <input
               className="kok-check"
               type="checkbox"
@@ -226,6 +244,7 @@ function QueueGroupCard({
               disabled={busyKey !== null}
               onChange={(energy) => onSetEnergy(item, energy)}
             />
+            <ItemProjectBadges item={item} />
             {item.kind === "overdue" && item.due ? (
               <span className="kok-badge kok-badge--danger">{item.due}</span>
             ) : null}
@@ -481,7 +500,7 @@ export function CockpitSections({
           </h3>
           <ul className="kok-list">
             {urgentEntries.map(({ item, group }) => (
-              <li key={sourceKey(item)} className="kok-list__item">
+              <li key={sourceKey(item)} className={`kok-list__item${itemKindClass(item)}`}>
                 <input
                   className="kok-check"
                   type="checkbox"
@@ -508,6 +527,7 @@ export function CockpitSections({
                   disabled={busyKey !== null}
                   onChange={(energy) => void setItemEnergy(item, energy)}
                 />
+                <ItemProjectBadges item={item} />
                 {item.kind === "overdue" && item.due ? (
                   <span className="kok-badge kok-badge--danger">{item.due}</span>
                 ) : null}

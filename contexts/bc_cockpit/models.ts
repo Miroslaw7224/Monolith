@@ -45,6 +45,14 @@ export type QueueSource =
 
 /** `overdue`: `due` < dziś, `today`: `due` = dziś, `upcoming`: `due` > dziś (termin ostateczny; zadanie jest do zrobienia już teraz), `now`: zadanie `[now::]` projektu, `undated`: otwarte zadanie ogólne bez terminu. */
 export type QueueKind = "overdue" | "today" | "upcoming" | "now" | "undated";
+/** Projekt zadania ogólnego (`[project:: …]`) znany w rejestrze: rodzaj do koloru i znacznika (spec zadań ogólnych, P4). */
+export type QueueItemProject = {
+  id: string;
+  name: string;
+  kind: ProjectKind;
+  companyData: boolean;
+};
+
 export type QueueItem = {
   kind: QueueKind;
   title: string;
@@ -57,6 +65,8 @@ export type QueueItem = {
   energy: Energy | null;
   /** Zadanie ogólne z priorytetem 1 („Pilne”, do zrobienia od ręki); brak pola = nie pilne. */
   urgent?: boolean;
+  /** Tylko zadania ogólne ze znanym projektem; grupowanie kolejki się nie zmienia. */
+  project?: QueueItemProject;
   source: QueueSource;
 };
 /** Grupa kolejki: projekt albo „Ogólne” (`projectId: null`). */
