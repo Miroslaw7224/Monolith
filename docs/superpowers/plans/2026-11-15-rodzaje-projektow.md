@@ -227,7 +227,7 @@ function summary(
 }
 ```
 
-(w `projectTiles.test.ts` ten sam kształt pod nazwą `p`; w `useProjects.test.tsx` dopasuj do tamtejszej fabryki). Pozostałe pliki z listy tsc (`ProjectLinks.test.tsx`, `ProjectSaveState.test.tsx`, `ProjectTasksBoard.test.tsx`) dostają `kind: "wlasny", companyData: false` w literale.
+(w `projectTiles.test.ts` ten sam kształt pod nazwą `p`; w `useProjects.test.tsx` dopasuj do tamtejszej fabryki). Pozostałe pliki z listy tsc (`ProjectLinks.test.tsx`, `ProjectSaveState.test.tsx`, `ProjectTasksBoard.test.tsx`) dostają `kind: "wlasny", companyData: false` w literale. W `ProjectTasksBoard.test.tsx` `makeApi` dla `/api/projects` rozpakowuje z `initial` tylko wybrane pola (`const { id, name, status, priority, localPath, owner, freshness } = initial;`): dopisz `kind, companyData` do rozpakowania i do obiektu w `projects: [...]`, inaczej lista zwróci projekt bez rodzaju.
 Powtarzaj `npx tsc --noEmit`, aż nie będzie błędów dotyczących `kind`/`companyData` (błędy z `bc_cockpit` i `home` pojawią się dopiero w Task 5; jeśli tsc zgłasza coś poza zakresem tego zadania, odłóż do właściwego zadania).
 
 - [ ] **Step 6: Testy projektów**
@@ -320,6 +320,8 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - Test: `tests/unit/contexts/bc_projects/services.test.ts` (test „zbiera niezakończone zadania Teraz…”, ok. linii 593)
 
 - [ ] **Step 1: Zmień istniejący test i dodaj nowe (failujące)**
+
+Najpierw w `beforeEach` bloku `describe("listNowTasks")` (ok. linii 569–572) dopisz `mockReadProjectIndex.mockReset();` (obok `mockReadRegistry.mockReset()`); `clearMocks: true` w `vitest.config.ts` nie czyści implementacji, więc `mockReturnValue({ type: "etat" }) / mockImplementation(throw)` z nowych testów wyciekłoby do kolejnych.
 
 Zastąp wskazany test:
 
@@ -599,15 +601,19 @@ W `tests/unit/contexts/bc_cockpit/schemas.test.ts` w `const model: Cockpit` zakt
 
 (test `toCockpitDto zachowuje kształt…` wymaga `expect(dto).toEqual(model)`, więc zweryfikuje kopiowanie pól).
 
+- [ ] **Step 6b: Fixtura `FULL` w `HomeView.test.tsx` (tylko typy)**
+
+`kind`/`companyData` w `TopicDto` są wymagane, więc `npx tsc --noEmit` zgłosi błąd w `tests/unit/features/home/HomeView.test.tsx` (fixtura `FULL`, ok. linii 25–54). W temacie `nexus` po `owner: "personal",` dopisz `kind: "wlasny", companyData: false,`; w temacie `firma` po `owner: "work",` dopisz `kind: "etat", companyData: true,`. Inne tematy w fixturach tego pliku (jeśli są) uzupełnij tak samo.
+
 - [ ] **Step 7: Uruchom, zobacz sukces**
 
-Run: `npx vitest run tests/unit/contexts/bc_cockpit tests/unit/architecture.static.test.ts`
-Expected: PASS (testy architektury bez zmian i zielone: `bc_cockpit` woła tylko `services` kontekstu projektów).
+Run: `npx vitest run tests/unit/contexts/bc_cockpit tests/unit/features/home/HomeView.test.tsx tests/unit/architecture.static.test.ts` oraz `npx tsc --noEmit`
+Expected: PASS i brak błędów tsc (testy architektury bez zmian i zielone: `bc_cockpit` woła tylko `services` kontekstu projektów).
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add contexts/bc_cockpit tests/unit/contexts/bc_cockpit
+git add contexts/bc_cockpit tests/unit/contexts/bc_cockpit tests/unit/features/home/HomeView.test.tsx
 git commit -m "feat(kokpit): tematy i grupy kolejki niosą rodzaj projektu
 
 Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
@@ -1122,7 +1128,7 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Zaktualizuj fixturę `FULL` i dodaj test (failujący)**
 
-W `FULL`: w temacie `nexus` po `owner: "personal",` dopisz `kind: "wlasny", companyData: false,`; w temacie `firma` po `owner: "work",` dopisz `kind: "etat", companyData: true,`; w grupie kolejki `firma` (ok. linii 83–85) po `owner: "work",` dopisz `kind: "etat", companyData: true,`. W teście „znacznik „Dane z firmy” przy temacie i grupie kolejki…” asercja `toHaveLength(2)` zostaje (jeden na temat, jeden na grupę). Dodaj test:
+W `FULL`: tematy `nexus` i `firma` dostały już `kind`/`companyData` w Task 5 (Step 6b, żeby `tsc` był zielony); tu dopisz tylko w grupie kolejki `firma` (ok. linii 83–85) po `owner: "work",` `kind: "etat", companyData: true,`. Do testu poniżej dodaj asercję, że grupa „Ogólne” nie ma żadnego znacznika rodzaju: `expect(within(ogolne).queryByText(/^(Etat|Własny|Biblioteka)$/)).toBeNull();`. W teście „znacznik „Dane z firmy” przy temacie i grupie kolejki…” asercja `toHaveLength(2)` zostaje (jeden na temat, jeden na grupę). Dodaj test:
 
 ```tsx
 test("kolor rodzaju: temat i grupa projektu mają modyfikator i znacznik, grupa ogólna nie", async () => {
