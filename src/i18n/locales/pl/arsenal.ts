@@ -47,6 +47,7 @@ export const arsenal = {
   arsenalDeployTitle: "Wdrażanie do projektu",
   arsenalDeployTarget: "Projekt docelowy",
   arsenalDeployMode: "Tryb",
+  arsenalDeployOptionCompany: "{{name}} (etat)",
   arsenalModeFull: "W całości (polecenie skryptu)",
   arsenalModeAdapted: "Zredagowany (prompt dla agenta)",
   arsenalModeFullShort: "w całości",

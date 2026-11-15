@@ -88,8 +88,9 @@ export function DeployPanel({ skill, targets, fetchInstructions, markDeployed }:
         >
           {targets.map((target) => (
             <option key={target.id} value={target.id}>
-              {target.name}
-              {target.companyData ? " (etat)" : ""}
+              {target.companyData
+                ? t("arsenal:arsenalDeployOptionCompany", { name: target.name })
+                : target.name}
             </option>
           ))}
         </select>

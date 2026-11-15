@@ -60,4 +60,26 @@ describe("DeployPanel po angielsku", () => {
     );
     expect(screen.getByText("No projects in the registry.")).toBeInTheDocument();
   });
+
+  test("opcja projektu z danymi firmowymi: „(day job)” w EN, „(etat)” w PL", async () => {
+    const targets = [
+      { id: "w", name: "Firma", localPath: "~/w", owner: "work" as const, companyData: true },
+    ];
+    await act(async () => {
+      await setLanguage("en");
+    });
+    render(
+      <DeployPanel
+        skill={skill}
+        targets={targets}
+        fetchInstructions={fetchInstructions}
+        markDeployed={markDeployed}
+      />
+    );
+    expect(screen.getByRole("option", { name: "Firma (day job)" })).toBeInTheDocument();
+    await act(async () => {
+      await setLanguage("pl");
+    });
+    expect(screen.getByRole("option", { name: "Firma (etat)" })).toBeInTheDocument();
+  });
 });

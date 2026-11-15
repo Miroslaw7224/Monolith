@@ -45,6 +45,7 @@ export const arsenal = {
   arsenalDeployTitle: "Deploy to project",
   arsenalDeployTarget: "Target project",
   arsenalDeployMode: "Mode",
+  arsenalDeployOptionCompany: "{{name}} (day job)",
   arsenalModeFull: "Full (script command)",
   arsenalModeAdapted: "Adapted (agent prompt)",
   arsenalModeFullShort: "full",
