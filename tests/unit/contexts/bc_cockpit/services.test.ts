@@ -1468,3 +1468,67 @@ describe("kolejka: rodzaj grupy (D8)", () => {
     expect("companyData" in general!).toBe(false);
   });
 });
+
+describe("kolejka: zadanie ogólne z projektem (spec zadań ogólnych, P4)", () => {
+  const known = (over: Record<string, unknown> = {}) => ({
+    id: "monolith",
+    name: "Monolith",
+    owner: "personal",
+    type: undefined,
+    ...over,
+  });
+
+  it("pozycja z `project` zostaje w grupie „Ogólne” i niesie rodzaj projektu", async () => {
+    mockListProjects.mockReturnValue({ projects: [known()], warnings: [] });
+    mockGetTasks.mockResolvedValue([task({ id: "t1", title: "Z projektu", project: "monolith" })]);
+    const { queue } = await getCockpit(TODAY);
+    expect(queue).toHaveLength(1);
+    expect(queue[0].projectId).toBeNull();
+    expect("kind" in queue[0]).toBe(false);
+    expect(queue[0].items[0].project).toEqual({
+      id: "monolith",
+      name: "Monolith",
+      kind: "wlasny",
+      companyData: false,
+    });
+  });
+
+  it("projekt etatowy dostaje kind etat i companyData", async () => {
+    mockListProjects.mockReturnValue({
+      projects: [known({ id: "firma", name: "Firma", type: "etat" })],
+      warnings: [],
+    });
+    mockGetTasks.mockResolvedValue([task({ title: "Raport", project: "firma" })]);
+    const { queue } = await getCockpit(TODAY);
+    expect(queue[0].items[0].project).toMatchObject({ kind: "etat", companyData: true });
+  });
+
+  it("nieznany projekt i zadanie bez projektu: bez pola project, bez ostrzeżenia", async () => {
+    mockListProjects.mockReturnValue({ projects: [known()], warnings: [] });
+    mockGetTasks.mockResolvedValue([
+      task({ id: "a", title: "Osierocone", project: "usuniety" }),
+      task({ id: "b", title: "Zwykłe" }),
+    ]);
+    const { queue, warnings } = await getCockpit(TODAY);
+    for (const item of queue[0].items) expect("project" in item).toBe(false);
+    expect(warnings).toEqual([]);
+  });
+
+  it("błąd odczytu rejestru to ostrzeżenie, a zadania zostają bez koloru", async () => {
+    mockListProjects.mockImplementation(() => {
+      throw new Error("zły rejestr");
+    });
+    mockGetTasks.mockResolvedValue([task({ title: "Z projektu", project: "monolith" })]);
+    const { queue, warnings } = await getCockpit(TODAY);
+    expect(queue[0].items).toHaveLength(1);
+    expect("project" in queue[0].items[0]).toBe(false);
+    expect(warnings.some((w) => w.includes("zły rejestr"))).toBe(true);
+  });
+
+  it("bez zadań z projektem rejestr nie jest czytany dla kolejki", async () => {
+    mockGetTasks.mockResolvedValue([task({ title: "Zwykłe" })]);
+    await getCockpit(TODAY);
+    // loadTopics/pin nie czytają listy przy pustych przypięciach, więc kolejka nie może jej wołać
+    expect(mockListProjects).not.toHaveBeenCalled();
+  });
+});

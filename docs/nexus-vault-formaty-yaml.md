@@ -26,13 +26,13 @@ Struktura pliku: `version: 1`, lista rekordów pod kluczem. Czas to tekst ISO 86
 
 Frontmatter (po pierwszym zapisie aplikacji bez `generated_by`), nagłówek `# Zadania`, potem jedna linia na zadanie:
 
-`- [ ] Tytuł [id:: …] [status:: todo] [due:: RRRR-MM-DD] [priority:: n] [order:: n] [link:: …] [desc:: …] [created:: ISO] [updated:: ISO]`
+`- [ ] Tytuł [id:: …] [status:: todo] [due:: RRRR-MM-DD] [priority:: n] [project:: id] [order:: n] [link:: …] [desc:: …] [created:: ISO] [updated:: ISO]`
 
-- Pola `due`, `priority`, `link`, `desc` są pomijane, gdy puste. `status`: `deferred` (odłożone: nie trafia do kolejki Kokpitu, terminów w kalendarzu ani liczników terminów), `todo`, `in_progress`, `to_review`, `done`; pole wyboru `[x]` oznacza `done`, a `deferred` ma `[ ]`.
+- Pola `due`, `priority`, `project`, `link`, `desc` są pomijane, gdy puste. `project` to id projektu z `Projects/_registry.yaml` (małe litery, cyfry, `-`, `_`, do 64 znaków): zadanie z projektem dostaje w aplikacji kolor i znacznik rodzaju tego projektu (spec `2026-11-15-zadania-ogolne-projekt-design.md`); nieznane id nie daje koloru i niczego nie psuje. `status`: `deferred` (odłożone: nie trafia do kolejki Kokpitu, terminów w kalendarzu ani liczników terminów), `todo`, `in_progress`, `to_review`, `done`; pole wyboru `[x]` oznacza `done`, a `deferred` ma `[ ]`.
 - W tytule i wartościach pól ucieczki: `\[`, `\]`, `\\`, `\n`. Parser: `lib/nexus/task-line.ts`, edycja: `lib/nexus/markdown-edit.ts`.
 - Aplikacja zmienia **tylko** linię zadania, którego dotyczy żądanie; reszta pliku (nagłówki, notatki, inne linie) zostaje bajtowo. Dodane zadanie trafia na koniec pliku.
 - Linie bez `id` lub z uszkodzonymi polami nie pojawiają się w aplikacji i nie są zmieniane. Przy duplikacie `id` obowiązuje pierwsza linia.
-- Edytowana linia jest formatowana od nowa: **nieznane pola inline w tej linii giną** (np. `[project:: x]`). Dodatkowe informacje wpisuj w `desc`.
+- Edytowana linia jest formatowana od nowa: **nieznane pola inline w tej linii giną** (np. `[foo:: x]`; znane: `id`, `status`, `due`, `priority`, `project`, `order`, `link`, `desc`, `created`, `updated`). Dodatkowe informacje wpisuj w `desc`.
 - Przeciąganie zadań (`reorder`) zmienia tylko `order` i tylko w liniach, w których wartość się zmienia; edycja zmienia `updated`.
 
 ## Kalendarz: `Calendar/RRRR-MM.yaml`

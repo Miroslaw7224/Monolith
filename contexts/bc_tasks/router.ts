@@ -29,7 +29,7 @@ export async function createTask(request: NextRequest): Promise<NextResponse> {
   const parsed = await parseBody(request, CreateTaskBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
-  const { title, link, description, status, due_date, priority } = parsed.data;
+  const { title, link, description, status, due_date, priority, project } = parsed.data;
   try {
     const task = await services.createTask({
       title: title as string,
@@ -38,6 +38,7 @@ export async function createTask(request: NextRequest): Promise<NextResponse> {
       status: (status ?? "todo") as TaskDto["status"],
       due_date: (due_date ?? null) as string | null,
       priority: priority !== undefined && priority !== null ? Number(priority) : null,
+      project: project as string | null | undefined,
     });
     return NextResponse.json(toTaskDto(task));
   } catch (err) {
@@ -51,7 +52,7 @@ export async function updateTask(request: NextRequest, ctx: RouteContext): Promi
   const parsed = await parseBody(request, UpdateTaskBodySchema, { details: false });
   if (parsed.success === false) return parsed.response;
 
-  const { title, link, description, status, due_date, priority, order } = parsed.data;
+  const { title, link, description, status, due_date, priority, project, order } = parsed.data;
   try {
     await services.updateTask(id, {
       title: title as string | undefined,
@@ -67,6 +68,7 @@ export async function updateTask(request: NextRequest, ctx: RouteContext): Promi
               ? priority
               : Number(priority)
           : undefined,
+      project: project as string | null | undefined,
       order: order as number | undefined,
     });
     return NextResponse.json({ success: true });

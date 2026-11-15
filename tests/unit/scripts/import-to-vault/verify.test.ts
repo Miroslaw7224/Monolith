@@ -20,6 +20,7 @@ function task(id: string, over: Partial<TaskLine> = {}): TaskLine {
     description: "",
     due_date: null,
     priority: null,
+    project: null,
     order: null,
     created_at: null,
     updated_at: null,

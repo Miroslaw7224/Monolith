@@ -42,6 +42,8 @@ function toRecord(t: TaskLine): Task {
     status: t.status,
     due_date: t.due_date,
     priority: t.priority,
+    // ręcznie wpisane puste `[project:: ]` = brak projektu
+    project: t.project || undefined,
     order: t.order ?? undefined,
     created_at: t.created_at ?? undefined,
     updated_at: t.updated_at ?? undefined,
@@ -74,6 +76,7 @@ export async function createTask(data: {
   status?: Task["status"];
   due_date?: string | null;
   priority?: number | null;
+  project?: string | null;
 }): Promise<Task> {
   let created: TaskLine | undefined;
   await edit((current) => {
@@ -86,6 +89,7 @@ export async function createTask(data: {
       description: data.description ?? "",
       due_date: data.due_date ?? null,
       priority: data.priority ?? null,
+      project: data.project ?? null,
       order: 0,
       created_at: now,
       updated_at: now,
@@ -105,6 +109,7 @@ export async function updateTask(
     status: Task["status"];
     due_date: string | null;
     priority: number | null;
+    project: string | null;
     order: number;
   }>
 ): Promise<void> {

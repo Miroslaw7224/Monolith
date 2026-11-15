@@ -19,6 +19,7 @@ function task(overrides: Partial<TaskLine> = {}): TaskLine {
     description: "",
     due_date: null,
     priority: null,
+    project: null,
     order: null,
     created_at: null,
     updated_at: null,
@@ -51,6 +52,7 @@ describe("formatTaskLine", () => {
       task({
         due_date: "2026-11-12",
         priority: 2,
+        project: "monolith",
         order: 1.5,
         link: "https://example.com/a",
         description: "opis",
@@ -59,10 +61,14 @@ describe("formatTaskLine", () => {
       })
     );
     expect(line).toBe(
-      "- [ ] Zadanie [id:: t1] [status:: todo] [due:: 2026-11-12] [priority:: 2] [order:: 1.5]" +
+      "- [ ] Zadanie [id:: t1] [status:: todo] [due:: 2026-11-12] [priority:: 2] [project:: monolith] [order:: 1.5]" +
         " [link:: https://example.com/a] [desc:: opis] [created:: 2026-05-01T10:00:00.000Z]" +
         " [updated:: 2026-05-02T10:00:00.000Z]"
     );
+  });
+
+  it("omits the project field when the task has no project", () => {
+    expect(formatTaskLine(task({ project: null }))).not.toContain("project::");
   });
 
   it("always produces a single line, even for multi-line descriptions", () => {
@@ -89,6 +95,11 @@ describe("parseTaskLine", () => {
     const parsed = parseTaskLine("- [ ] Kurs Playwright [id:: t9] [status:: deferred]");
     expect(parsed?.status).toBe("deferred");
     expect(parsed?.title).toBe("Kurs Playwright");
+  });
+
+  it("reads the project field and gives null when it is missing", () => {
+    expect(parseTaskLine("- [ ] A [id:: t1] [project:: monolith]")?.project).toBe("monolith");
+    expect(parseTaskLine("- [ ] A [id:: t1]")?.project).toBeNull();
   });
 
   it("keeps square brackets that do not start a field as literal text", () => {
@@ -157,6 +168,7 @@ describe("property: parse(format(x)) == x", () => {
     description: text,
     due_date: fc.option(text, { nil: null }),
     priority: fc.option(finiteNumber, { nil: null }),
+    project: fc.option(text, { nil: null }),
     order: fc.option(finiteNumber, { nil: null }),
     created_at: fc.option(text, { nil: null }),
     updated_at: fc.option(text, { nil: null }),

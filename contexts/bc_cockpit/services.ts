@@ -21,6 +21,7 @@ import {
   type QueueGroup,
   type QueueSource,
   type QueueItem,
+  type QueueItemProject,
   type Topic,
 } from "./models";
 import * as repositories from "./repositories";
@@ -212,6 +213,29 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
   }
 
   try {
+    // rejestr czytamy dopiero przy pierwszym zadaniu z `project` (spec zadań ogólnych, P4); błąd = zadania bez koloru
+    let projectsById: Map<string, QueueItemProject> | undefined;
+    const projectOf = (id: string): QueueItemProject | undefined => {
+      if (projectsById === undefined) {
+        try {
+          projectsById = new Map(
+            projectsServices.listProjects().projects.map((p) => [
+              p.id,
+              {
+                id: p.id,
+                name: p.name,
+                kind: projectsServices.projectKind(p.owner, p.type),
+                companyData: projectsServices.hasCompanyData(p.owner, p.type),
+              },
+            ])
+          );
+        } catch (err) {
+          warnings.push(`Rejestr projektów (kolor zadań): ${reason(err)}`);
+          projectsById = new Map();
+        }
+      }
+      return projectsById.get(id);
+    };
     for (const t of await tasksServices.getTasks()) {
       // w kolejce tylko „do zrobienia” i „w toku”; „do sprawdzenia” (wysłane komuś), „odłożone” (świadomie nie teraz) i „zrobione” nie wracają do kokpitu
       if (t.status === "done" || t.status === "to_review" || t.status === "deferred") continue;
@@ -220,6 +244,7 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
         continue;
       }
       // Zadania ogólne nie mają pola `owner`: w 2-1 traktowane jako prywatne (spec D7).
+      const project = t.project ? projectOf(t.project) : undefined;
       entries.push({
         projectId: null,
         name: GENERAL_NAME,
@@ -238,6 +263,7 @@ async function loadQueue(date: string, warnings: string[]): Promise<QueueGroup[]
           priority: null,
           energy: extractEnergy(t.title).energy,
           ...(t.priority === URGENT_TASK_PRIORITY ? { urgent: true } : {}),
+          ...(project ? { project } : {}),
           source: { type: "task", taskId: t.id },
         },
       });

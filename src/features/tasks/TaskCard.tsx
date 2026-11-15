@@ -5,6 +5,8 @@ import { TaskDescriptionLink } from "./TaskDescriptionLink";
 import { URGENT_PRIORITY } from "./taskPriorityUtils";
 import { getTaskDueState } from "./taskStatsUtils";
 import { getTaskEnergy, setTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
+import type { TaskProject } from "./useTasksBoard";
+import { PROJECT_KIND_LABELS } from "@/contexts/bc_projects/schemas";
 
 interface TaskCardProps {
   task: Task;
@@ -19,6 +21,8 @@ interface TaskCardProps {
     startDateLabel: string;
     deadlineLabel: string;
   };
+  /** Projekt zadania z rejestru (kolor i znacznik rodzaju); brak, gdy zadanie bez projektu lub projekt nieznany. */
+  project?: TaskProject;
   formatDate: (iso: string | null | undefined) => string;
   onDragStart: (taskId: string) => void;
   onDragOver: (taskId: string) => void;
@@ -46,6 +50,7 @@ export function TaskCard({
   editingId,
   editTitle,
   labels,
+  project,
   formatDate,
   onDragStart,
   onDragOver,
@@ -74,6 +79,7 @@ export function TaskCard({
         isDone ? "zad-card--done" : "",
         dueState ? `zad-card--${dueState}` : "",
         isUrgent && !isDone ? "zad-card--urgent" : "",
+        project ? `zad-card--kind zad-card--kind-${project.kind}` : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -201,6 +207,14 @@ export function TaskCard({
               </span>
             )}
           </label>
+          {project && (
+            <span
+              className={`zad-kind zad-kind--${project.kind}`}
+              title={`${PROJECT_KIND_LABELS[project.kind]}: ${project.name}`}
+            >
+              {PROJECT_KIND_LABELS[project.kind]} · {project.name}
+            </span>
+          )}
           {task.priority != null && task.priority !== URGENT_PRIORITY && (
             <span className={`zad-pri zad-pri--p${task.priority}`}>P{task.priority}</span>
           )}

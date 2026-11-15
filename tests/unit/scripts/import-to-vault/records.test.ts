@@ -60,6 +60,7 @@ describe("normalizeTask", () => {
       description: "opis",
       due_date: "2026-06-01",
       priority: 2,
+      project: null,
       order: 3,
       created_at: "2026-05-01 10:00:00",
       updated_at: "2026-05-02 10:00:00",

@@ -229,3 +229,43 @@ describe("deleteTask", () => {
     expect(vault.read(FILE)).toBe(SEED);
   });
 });
+
+describe("project (zadanie ogólne powiązane z projektem)", () => {
+  const WITH_PROJECT =
+    "- [ ] Zadanie z projektu [id:: p1] [status:: todo] [project:: monolith] [order:: 3]";
+
+  it("12a. reads the project field and leaves it undefined for tasks without one", async () => {
+    vault.write(FILE, `${GEN}# Zadania\n\n${T1}\n${WITH_PROJECT}\n`);
+    const byId = new Map((await getTasks()).map((t) => [t.id, t]));
+    expect(byId.get("p1")?.project).toBe("monolith");
+    expect(byId.get("t1")?.project).toBeUndefined();
+  });
+
+  it("12a2. a hand-written empty [project:: ] reads as no project", async () => {
+    vault.write(FILE, `${GEN}# Zadania\n\n- [ ] Puste [id:: e1] [status:: todo] [project:: ]\n`);
+    expect((await getTasks())[0].project).toBeUndefined();
+  });
+
+  it("12b. createTask writes [project:: …] and returns it", async () => {
+    vault.write(FILE, SEED);
+    const created = await createTask({ title: "Nowe", project: "gen-podsum-ai" });
+    expect(created.project).toBe("gen-podsum-ai");
+    expect(vault.read(FILE)).toContain("[project:: gen-podsum-ai]");
+  });
+
+  it("12c. editing another field keeps the project field in the line", async () => {
+    vault.write(FILE, `${GEN}# Zadania\n\n${WITH_PROJECT}\n`);
+    await updateTask("p1", { title: "Zmieniony tytuł" });
+    const text = vault.read(FILE) as string;
+    expect(text).toContain("Zmieniony tytuł");
+    expect(text).toContain("[project:: monolith]");
+  });
+
+  it("12d. updateTask sets and clears the project (null removes the field)", async () => {
+    vault.write(FILE, SEED);
+    await updateTask("t1", { project: "monolith" });
+    expect(vault.read(FILE)).toContain("[project:: monolith]");
+    await updateTask("t1", { project: null });
+    expect(vault.read(FILE)).not.toContain("project::");
+  });
+});

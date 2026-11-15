@@ -130,4 +130,36 @@ describe("taskService", () => {
       await expect(reorderTasks(["t1"])).rejects.toThrow("Reorder failed");
     });
   });
+  describe("project", () => {
+    it("given a valid project id, when createTask is called, then passes it to the repository", async () => {
+      mockCreateTask.mockResolvedValue({ id: "t1" });
+
+      await createTask({ title: "T", project: "gen-podsum-ai" });
+
+      expect(mockCreateTask).toHaveBeenCalledWith({ title: "T", project: "gen-podsum-ai" });
+    });
+
+    it("given a malformed project id, when createTask or updateTask is called, then rejects with 400 and does not write", async () => {
+      for (const bad of ["Zły Projekt", "a]b", "../x", "x".repeat(65)]) {
+        await expect(createTask({ title: "T", project: bad })).rejects.toMatchObject({
+          statusCode: 400,
+        });
+        await expect(updateTask("t1", { project: bad })).rejects.toMatchObject({
+          statusCode: 400,
+        });
+      }
+      expect(mockCreateTask).not.toHaveBeenCalled();
+      expect(mockUpdateTask).not.toHaveBeenCalled();
+    });
+
+    it("given an empty project, when updateTask is called, then clears it with null", async () => {
+      mockUpdateTask.mockResolvedValue(undefined);
+
+      await updateTask("t1", { project: "" });
+      await updateTask("t1", { project: null });
+
+      expect(mockUpdateTask).toHaveBeenNthCalledWith(1, "t1", { project: null });
+      expect(mockUpdateTask).toHaveBeenNthCalledWith(2, "t1", { project: null });
+    });
+  });
 });
