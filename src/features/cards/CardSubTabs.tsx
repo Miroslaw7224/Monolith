@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import type { PlanningTab } from "@/src/features/planowanie/planningTab";
+import { useT } from "@/src/i18n/useT";
 import { cardForView, type CardId } from "./cards";
 
 export interface CardSubTabItem {
@@ -17,6 +18,7 @@ export interface CardSubTabsProps {
 }
 
 export function CardSubTabs({ tabs, active, onSelect, cardId }: CardSubTabsProps) {
+  const t = useT();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   if (!tabs || tabs.length < 2) {
@@ -57,7 +59,7 @@ export function CardSubTabs({ tabs, active, onSelect, cardId }: CardSubTabsProps
   return (
     <div
       role="tablist"
-      aria-label="Widoki karty"
+      aria-label={t("shell:subTabs.aria")}
       className="card-subtabs"
       data-card={currentCard}
       style={{ "--c": `var(--c-${currentCard})` } as React.CSSProperties}
