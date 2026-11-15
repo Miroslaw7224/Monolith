@@ -473,7 +473,7 @@ describe("ProjectTasksBoard: archiwizacja ukończonych", () => {
     render(<ProjectsView apiFetch={makeApi(detail(archBoard()))} />);
     await user.click(await screen.findByRole("button", BTN(1)));
     expect(
-      screen.getByText("Przenieść 1 zadań do changelog.md (w tym 1 bez daty)?")
+      screen.getByText("Przenieść 1 zadanie do changelog.md (w tym 1 bez daty)?")
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Anuluj archiwizację" }));
     expect(screen.queryByText(/Przenieść/)).not.toBeInTheDocument();
@@ -484,7 +484,7 @@ describe("ProjectTasksBoard: archiwizacja ukończonych", () => {
     const user2 = userEvent.setup();
     await setDays(user2, "3");
     await user2.click(screen.getByRole("button", BTN(1)));
-    expect(screen.getByText("Przenieść 1 zadań do changelog.md?")).toBeInTheDocument();
+    expect(screen.getByText("Przenieść 1 zadanie do changelog.md?")).toBeInTheDocument();
   });
 
   it("potwierdzenie → POST /tasks/archive z wersją i progiem; komunikat z archived z odpowiedzi", async () => {
@@ -498,7 +498,7 @@ describe("ProjectTasksBoard: archiwizacja ukończonych", () => {
     await user.click(screen.getByRole("button", { name: "Potwierdź archiwizację" }));
     expect(posts(api)).toEqual([{ version: V, olderThanDays: 3 }]);
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Przeniesiono 2 zadań do changelog.md"
+      "Przeniesiono 2 zadania do changelog.md"
     );
     expect(screen.queryByRole("button", { name: /Archiwizuj ukończone/ })).not.toBeInTheDocument();
   });
