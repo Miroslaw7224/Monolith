@@ -1,14 +1,15 @@
+"use client";
+
 import React, { useState } from "react";
 import {
   PACK_BUDGET_TOKENS,
   PACK_ROLES,
   type ContextPackRole,
 } from "@/contexts/bc_projects/schemas";
+import { useT } from "@/src/i18n/useT";
 import { formatTokens, packSections } from "./packSections";
+import { packButtonSizeSuffix, tokensThousandLabel } from "./projectsFormat";
 import type { CopyNotice, PackState } from "./useContextPack";
-
-const tokensLabel = (approxTokens: number) =>
-  `~${(approxTokens / 1000).toFixed(1).replace(".", ",")} tys. tokenów`;
 
 export type ContextPackModel = {
   state: PackState;
@@ -22,6 +23,7 @@ export type ContextPackModel = {
 /** Wynik kopiowania: sukces (z liczbą tokenów i ostrzeżeniami) albo błąd. */
 function CopyNoticeView(props: { notice: CopyNotice | null }): React.JSX.Element | null {
   const { notice } = props;
+  const t = useT();
   if (notice === null) return null;
   if (notice.kind === "error") {
     return (
@@ -34,8 +36,8 @@ function CopyNoticeView(props: { notice: CopyNotice | null }): React.JSX.Element
   return (
     <>
       <p className="prj-pack__note" role="status">
-        Skopiowano paczkę kontekstu ({tokensLabel(pack.approxTokens)})
-        {pack.truncated ? " · skrócona do budżetu" : ""}
+        {t("projects:pack.copied", { label: tokensThousandLabel(pack.approxTokens) })}
+        {pack.truncated ? t("projects:pack.copiedTruncated") : ""}
       </p>
       {pack.warnings.length > 0 ? (
         <p className="prj-pack__note" role="status">
@@ -49,14 +51,12 @@ function CopyNoticeView(props: { notice: CopyNotice | null }): React.JSX.Element
 /** Przycisk w nagłówku karty: kopiuje paczkę wybranego projektu (pełny opis i budżet są w karcie na dole teczki). */
 export function ProjectContextPackButton(props: { pack: ContextPackModel }): React.JSX.Element {
   const { state, busy, notice, copy } = props.pack;
-  const size =
-    state.status === "ready"
-      ? ` (${tokensLabel(state.pack.approxTokens).replace(" tokenów", " tok")})`
-      : "";
+  const t = useT();
+  const size = state.status === "ready" ? packButtonSizeSuffix(state.pack.approxTokens) : "";
   return (
     <div className="prj-pack-button">
       <button type="button" className="prj-btn prj-btn--primary" disabled={busy} onClick={copy}>
-        Kopiuj paczkę kontekstu{size}
+        {`${t("projects:pack.copy")}${size}`}
       </button>
       <CopyNoticeView notice={notice} />
     </div>
@@ -66,32 +66,35 @@ export function ProjectContextPackButton(props: { pack: ContextPackModel }): Rea
 /** Karta „Paczka kontekstu” (makieta 04): budżet tokenów, skład sekcji, kopiowanie i podgląd Markdown. */
 export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX.Element {
   const { state, busy, notice, copy, role, setRole } = props.pack;
+  const t = useT();
   const [preview, setPreview] = useState(false);
 
   return (
-    <article className="prj-card prj-pack-card" aria-label="Paczka kontekstu">
+    <article className="prj-card prj-pack-card" aria-label={t("projects:pack.cardAria")}>
       <div className="prj-card__head">
         <div>
-          <h3 className="prj-section-title">Paczka kontekstu · zrzut do LLM</h3>
-          <p className="prj-pack-card__sub">
-            Prompt startowy dla agenta, składany na żywo z Save State, gita, zadań, bugów i devlogu.
-          </p>
+          <h3 className="prj-section-title">{t("projects:pack.title")}</h3>
+          <p className="prj-pack-card__sub">{t("projects:pack.subtitle")}</p>
         </div>
         {state.status === "ready" ? (
           <div className="prj-pack-card__budget">
             <span>
-              {formatTokens(state.pack.approxTokens)} / {formatTokens(PACK_BUDGET_TOKENS)} tokenów
+              {t("projects:pack.budgetLine", {
+                used: formatTokens(state.pack.approxTokens),
+                budget: formatTokens(PACK_BUDGET_TOKENS),
+              })}
             </span>
             <small>
-              Wykorzystanie okna: {Math.round((state.pack.approxTokens / PACK_BUDGET_TOKENS) * 100)}
-              %
+              {t("projects:pack.windowUse", {
+                percent: Math.round((state.pack.approxTokens / PACK_BUDGET_TOKENS) * 100),
+              })}
             </small>
           </div>
         ) : null}
       </div>
 
-      <div className="prj-pack-card__roles" role="group" aria-label="Rola paczki">
-        {PACK_ROLES.map(({ key, label }) => (
+      <div className="prj-pack-card__roles" role="group" aria-label={t("projects:pack.rolesAria")}>
+        {PACK_ROLES.map(({ key }) => (
           <button
             key={key}
             type="button"
@@ -99,12 +102,14 @@ export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX
             aria-pressed={role === key}
             onClick={() => setRole(key)}
           >
-            {label}
+            {t(`projects:pack.role.${key}`)}
           </button>
         ))}
       </div>
 
-      {state.status === "loading" ? <p className="prj-state">Składam paczkę…</p> : null}
+      {state.status === "loading" ? (
+        <p className="prj-state">{t("projects:pack.loading")}</p>
+      ) : null}
       {state.status === "error" ? (
         <p className="prj-alert" role="alert">
           {state.error}
@@ -116,7 +121,7 @@ export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX
           <div
             className="prj-progress"
             role="progressbar"
-            aria-label="Budżet paczki kontekstu"
+            aria-label={t("projects:pack.progressAria")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.min(
@@ -139,7 +144,7 @@ export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX
             ))}
           </ul>
           {state.pack.truncated ? (
-            <p className="prj-pack__note">Paczka skrócona do budżetu.</p>
+            <p className="prj-pack__note">{t("projects:pack.truncatedNote")}</p>
           ) : null}
           {state.pack.warnings.length > 0 ? (
             <p className="prj-pack__note">{state.pack.warnings.join(" · ")}</p>
@@ -149,7 +154,7 @@ export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX
 
       <div className="prj-form__actions">
         <button type="button" className="prj-btn prj-btn--primary" disabled={busy} onClick={copy}>
-          Kopiuj paczkę kontekstu
+          {t("projects:pack.copy")}
         </button>
         {state.status === "ready" ? (
           <button
@@ -158,7 +163,7 @@ export function ProjectContextPack(props: { pack: ContextPackModel }): React.JSX
             aria-expanded={preview}
             onClick={() => setPreview((v) => !v)}
           >
-            {preview ? "Ukryj podgląd" : "Podgląd Markdown"}
+            {preview ? t("projects:pack.previewHide") : t("projects:pack.previewShow")}
           </button>
         ) : null}
       </div>

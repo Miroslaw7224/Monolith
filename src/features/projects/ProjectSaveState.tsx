@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import type { ProjectDetailDto, StateInputDto } from "@/contexts/bc_projects/schemas";
+import { useT } from "@/src/i18n/useT";
 import { isHttpUrl } from "./isHttpUrl";
 import type { MutationResult } from "./mutation";
 
@@ -16,9 +17,6 @@ type Draft = {
 };
 
 type FormError = { message: string; conflict: boolean };
-
-const CONFLICT_MESSAGE =
-  "state.md zmienił się poza aplikacją. Wczytaj aktualną wersję; niezapisane zmiany w formularzu zostaną utracone.";
 
 function draftFrom(state: ProjectDetailDto["state"]): Draft {
   return {
@@ -53,6 +51,7 @@ export function ProjectSaveState(props: {
   onReload: () => void;
 }): React.JSX.Element {
   const { project, onSave, onReload } = props;
+  const t = useT();
   const state = project.state;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Draft>(() => draftFrom(state));
@@ -77,7 +76,7 @@ export function ProjectSaveState(props: {
       .map((line) => line.trim())
       .filter((line) => line !== "");
     if (links.some((link) => !isHttpUrl(link))) {
-      setError({ message: "Linki muszą zaczynać się od http:// lub https://", conflict: false });
+      setError({ message: t("projects:saveState.linksHttpOnly"), conflict: false });
       return;
     }
     setSaving(true);
@@ -110,44 +109,44 @@ export function ProjectSaveState(props: {
   if (editing) {
     return (
       <article className="prj-card">
-        <h3 className="prj-section-title">Save State</h3>
-        <form className="prj-form" onSubmit={submit} aria-label="Edycja Save State">
+        <h3 className="prj-section-title">{t("projects:saveState.title")}</h3>
+        <form className="prj-form" onSubmit={submit} aria-label={t("projects:saveState.editAria")}>
           <label className="prj-field">
-            <span>Branch</span>
+            <span>{t("projects:saveState.fieldBranch")}</span>
             <input value={draft.branch} onChange={field("branch")} maxLength={200} />
           </label>
           <label className="prj-field">
-            <span>Środowisko</span>
+            <span>{t("projects:saveState.fieldEnv")}</span>
             <input value={draft.env} onChange={field("env")} maxLength={200} />
           </label>
           <label className="prj-field">
-            <span>Bloker</span>
+            <span>{t("projects:saveState.fieldBlocker")}</span>
             <input value={draft.blocker} onChange={field("blocker")} maxLength={500} />
           </label>
           <label className="prj-field">
-            <span>Następny krok</span>
+            <span>{t("projects:saveState.fieldNextStep")}</span>
             <input value={draft.nextStep} onChange={field("nextStep")} maxLength={500} />
           </label>
           <label className="prj-field">
-            <span>Kamień milowy</span>
+            <span>{t("projects:saveState.fieldMilestone")}</span>
             <input value={draft.milestone} onChange={field("milestone")} maxLength={200} />
           </label>
           <label className="prj-field">
-            <span>Termin kamienia</span>
+            <span>{t("projects:saveState.fieldMilestoneDue")}</span>
             <input type="date" value={draft.milestoneDue} onChange={field("milestoneDue")} />
           </label>
           <label className="prj-field prj-field--wide">
-            <span>Linki (jeden na linię)</span>
+            <span>{t("projects:saveState.linksMultiline")}</span>
             <textarea rows={3} value={draft.links} onChange={field("links")} />
           </label>
           {error ? (
             <p className="prj-alert" role="alert">
-              {error.conflict ? CONFLICT_MESSAGE : error.message}
+              {error.conflict ? t("projects:saveState.conflict") : error.message}
             </p>
           ) : null}
           <div className="prj-form__actions">
             <button type="submit" className="prj-btn prj-btn--primary" disabled={saving}>
-              Zapisz
+              {t("projects:saveState.save")}
             </button>
             <button
               type="button"
@@ -155,11 +154,11 @@ export function ProjectSaveState(props: {
               onClick={() => setEditing(false)}
               disabled={saving}
             >
-              Anuluj
+              {t("projects:common.cancel")}
             </button>
             {error?.conflict ? (
               <button type="button" className="prj-btn" onClick={reload}>
-                Wczytaj aktualną wersję
+                {t("projects:saveState.reload")}
               </button>
             ) : null}
           </div>
@@ -173,17 +172,17 @@ export function ProjectSaveState(props: {
     return (
       <article className="prj-card">
         <div className="prj-card__head">
-          <h3 className="prj-section-title">Save State</h3>
-          <span className="prj-statebox__meta">brak state.md</span>
+          <h3 className="prj-section-title">{t("projects:saveState.title")}</h3>
+          <span className="prj-statebox__meta">{t("projects:saveState.noFile")}</span>
         </div>
         <div className="prj-savestate">
-          <StateBox label="Gdzie skończyłem (z index.md)" wide>
-            <p className="prj-where">{project.whereIStopped ?? "Brak wpisu"}</p>
+          <StateBox label={t("projects:saveState.whereStopped")} wide>
+            <p className="prj-where">{project.whereIStopped ?? t("projects:saveState.noEntry")}</p>
           </StateBox>
         </div>
         <div className="prj-form__actions">
           <button type="button" className="prj-btn" onClick={open}>
-            Utwórz Save State
+            {t("projects:saveState.create")}
           </button>
         </div>
       </article>
@@ -193,25 +192,27 @@ export function ProjectSaveState(props: {
   return (
     <article className="prj-card">
       <div className="prj-card__head">
-        <h3 className="prj-section-title">Save State</h3>
+        <h3 className="prj-section-title">{t("projects:saveState.title")}</h3>
         {state.updated ? (
-          <span className="prj-statebox__meta">Zapisano: {state.updated}</span>
+          <span className="prj-statebox__meta">
+            {t("projects:saveState.savedAt", { date: state.updated })}
+          </span>
         ) : null}
       </div>
       <div className="prj-savestate">
-        <StateBox label="Aktywny branch">
+        <StateBox label={t("projects:saveState.readBranch")}>
           <p className="prj-statebox__val">{dash(state.branch)}</p>
         </StateBox>
-        <StateBox label="Środowisko">
+        <StateBox label={t("projects:saveState.readEnv")}>
           <p className="prj-statebox__val">{dash(state.env)}</p>
         </StateBox>
-        <StateBox label="Bloker" wide>
+        <StateBox label={t("projects:saveState.readBlocker")} wide>
           <p className="prj-statebox__val">{dash(state.blocker)}</p>
         </StateBox>
-        <StateBox label="Następny krok" wide>
+        <StateBox label={t("projects:saveState.readNextStep")} wide>
           <p className="prj-statebox__next">{dash(state.nextStep)}</p>
         </StateBox>
-        <StateBox label="Linki" wide>
+        <StateBox label={t("projects:saveState.readLinks")} wide>
           {state.links.length === 0 ? (
             <p className="prj-statebox__val">—</p>
           ) : (
@@ -233,7 +234,7 @@ export function ProjectSaveState(props: {
       </div>
       <div className="prj-form__actions">
         <button type="button" className="prj-btn" onClick={open}>
-          Edytuj
+          {t("projects:saveState.edit")}
         </button>
       </div>
     </article>
