@@ -13,6 +13,9 @@ export default defineConfig({
     clearMocks: true,
     resetMocks: true,
     passWithNoTests: true,
+    // Pełny zestaw (270+ plików jsdom) spowalnia pojedyncze testy kilkukrotnie
+    // (CalendarView: 0,8 s osobno, 3,5 s w całości), więc domyślne 5 s bywa za mało.
+    testTimeout: 15_000,
     exclude: ["**/node_modules/**", "**/dist/**", "**/tests/e2e/**", "**/.worktrees/**"],
   },
   coverage: {
