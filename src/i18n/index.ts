@@ -3,6 +3,8 @@ import { initReactI18next } from "react-i18next";
 import { resources } from "./resources";
 
 export type Lang = "pl" | "en";
+/** Typ `t` dla funkcji spoza Reacta (typ `t` z hooka nie działa przy `strict: false`). */
+export type TFn = typeof i18n.t;
 export const DEFAULT_LANG: Lang = "pl";
 export const LANG_KEY = "monolith.lang";
 

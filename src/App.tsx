@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
+import { useT } from "@/src/i18n/useT";
 import { translations } from "@/src/translations";
 import { apiFetch } from "@/src/lib/apiFetch";
 import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
@@ -26,6 +27,7 @@ import { CodexView } from "@/src/features/codex/CodexView";
 export default function App() {
   const [lang, setLang] = useState<"en" | "pl">("pl");
   const t = translations[lang];
+  const tShell = useT();
   const {
     appMode,
     setAppMode,
@@ -46,10 +48,10 @@ export default function App() {
   const openFeedback = useCallback(() => setFeedbackOpen(true), []);
   const paletteCommands = useMemo(
     () => [
-      ...buildCardCommands(selectCard),
+      ...buildCardCommands(selectCard, tShell),
       ...buildAppCommands({ lang, toggleLang, toggleTheme, openFeedback }),
     ],
-    [selectCard, lang, toggleLang, toggleTheme, openFeedback]
+    [selectCard, tShell, lang, toggleLang, toggleTheme, openFeedback]
   );
   const [inboxFocus, setInboxFocus] = useState(false);
   const captureInbox = useCallback(() => {
