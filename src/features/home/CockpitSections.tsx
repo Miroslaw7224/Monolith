@@ -472,7 +472,7 @@ export function CockpitSections({
       setPreview(null);
       onQueueChanged();
     } catch (err) {
-      setQueueError(err instanceof Error ? err.message : "Nie udało się domknąć zadania");
+      setQueueError(err instanceof Error ? err.message : t("home:cockpit.queueCompleteFailed"));
     } finally {
       setBusyKey(null);
     }
@@ -502,7 +502,7 @@ export function CockpitSections({
       );
       onQueueChanged();
     } catch (err) {
-      setQueueError(err instanceof Error ? err.message : "Nie udało się zmienić energii");
+      setQueueError(err instanceof Error ? err.message : t("home:cockpit.queueEnergyFailed"));
     } finally {
       setBusyKey(null);
     }
@@ -524,9 +524,9 @@ export function CockpitSections({
   return (
     <>
       {urgentEntries.length > 0 ? (
-        <section className="kok-urgent" aria-label="Pilne">
+        <section className="kok-urgent" aria-label={t("home:cockpit.urgentAria")}>
           <h3 className="kok-urgent__title">
-            <b>Pilne</b> · do zrobienia od ręki
+            <b>{t("home:cockpit.urgentBold")}</b> · {t("home:cockpit.urgentSub")}
           </h3>
           <ul className="kok-list">
             {urgentEntries.map(({ item, group }) => (
@@ -534,7 +534,7 @@ export function CockpitSections({
                 <input
                   className="kok-check"
                   type="checkbox"
-                  aria-label="zrobione"
+                  aria-label={t("home:cockpit.doneCheckbox")}
                   checked={busyKey === sourceKey(item)}
                   disabled={busyKey !== null}
                   onChange={() => void completeItem(item)}
@@ -562,28 +562,31 @@ export function CockpitSections({
                   <span className="kok-badge kok-badge--danger">{item.due}</span>
                 ) : null}
                 {item.kind === "today" ? (
-                  <span className="kok-badge kok-badge--accent">dziś</span>
+                  <span className="kok-badge kok-badge--accent">{t("home:format.today")}</span>
                 ) : null}
                 {item.kind === "upcoming" && item.due ? (
-                  <span className="kok-badge">do {item.due}</span>
+                  <span className="kok-badge">{t("home:cockpit.dueBy", { due: item.due })}</span>
                 ) : null}
               </li>
             ))}
           </ul>
         </section>
       ) : null}
-      <section className="kok-tiles tiles" aria-label="Liczby dnia">
+      <section className="kok-tiles tiles" aria-label={t("home:cockpit.tilesAria")}>
         <div className="kok-tile kok-tile--accent tile tile--accent">
-          <span className="kok-tile__label">Następne spotkanie</span>
+          <span className="kok-tile__label">{t("home:cockpit.nextMeetingLabel")}</span>
           <span className="kok-tile__value">{next ? hhmm(next.startMinutes) : "—"}</span>
           <span className="kok-tile__meta">
             {next
               ? next.date !== data.date
                 ? `${meetingDayLabel(next.date, data.date)} · ${next.title}`
                 : next.startMinutes <= nowMinutes
-                  ? `trwa · ${next.title}`
-                  : `za ${minutesUntil(nowMinutes, next.startMinutes)} min · ${next.title}`
-              : "brak nadchodzących spotkań"}
+                  ? t("home:cockpit.meetingInProgress", { title: next.title })
+                  : t("home:cockpit.meetingInMinutes", {
+                      minutes: minutesUntil(nowMinutes, next.startMinutes),
+                      title: next.title,
+                    })
+              : t("home:cockpit.noUpcomingMeetings")}
           </span>
           {next?.link ? (
             <a
@@ -591,49 +594,51 @@ export function CockpitSections({
               href={next.link}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`Dołącz do spotkania: ${next.title}`}
+              aria-label={t("home:cockpit.joinMeetingAria", { title: next.title })}
             >
-              Dołącz ↗
+              {t("home:cockpit.joinMeeting")}
             </a>
           ) : null}
         </div>
         <div className="kok-tile tile">
-          <span className="kok-tile__label">Kolejka zadań</span>
+          <span className="kok-tile__label">{t("home:cockpit.queueTileLabel")}</span>
           <span className="kok-tile__value">{totalQueueTasks}</span>
           <span className="kok-tile__meta">
             {hasEnergy
-              ? `${deepCount} deep · ${quickCount} quick`
-              : `${data.queue.length} grup projektowych`}
+              ? t("home:cockpit.queueTileEnergyMeta", { deep: deepCount, quick: quickCount })
+              : t("home:cockpit.queueTileGroupsMeta", { count: data.queue.length })}
           </span>
         </div>
         <div className="kok-tile tile">
-          <span className="kok-tile__label">Aktywne tematy</span>
+          <span className="kok-tile__label">{t("home:cockpit.activeTopicsLabel")}</span>
           <span className="kok-tile__value">
             {data.topics.length}
             <span className="kok-tile__sub"> / 3</span>
           </span>
           <span className="kok-tile__meta">
             {free === 0
-              ? "limit 3 tematy"
+              ? t("home:cockpit.topicsLimit")
               : free === 3
-                ? "przypnij projekty"
+                ? t("home:cockpit.pinProjectsHint")
                 : free === 1
-                  ? "jedno wolne miejsce"
-                  : "dwa wolne miejsca"}
+                  ? t("home:cockpit.oneFreeSlot")
+                  : t("home:cockpit.twoFreeSlots")}
           </span>
         </div>
         {data.inbox ? (
           <div className="kok-tile tile">
-            <span className="kok-tile__label">Inbox</span>
+            <span className="kok-tile__label">{t("home:inbox.title")}</span>
             <span className="kok-tile__value">{data.inbox.open}</span>
             <span className="kok-tile__meta">
-              {data.inbox.open === 0 ? "pusto" : "do segregacji wieczorem"}
+              {data.inbox.open === 0
+                ? t("home:cockpit.inboxEmpty")
+                : t("home:cockpit.inboxEveningSort")}
             </span>
           </div>
         ) : null}
         {data.git ? (
           <div className="kok-tile tile">
-            <span className="kok-tile__label">Commity dziś</span>
+            <span className="kok-tile__label">{t("home:cockpit.commitsTodayLabel")}</span>
             <span className="kok-tile__value">{data.git.commitsToday}</span>
             <span className="kok-tile__meta">{projectsLabel(data.git.projectsWithCommits)}</span>
           </div>
@@ -642,15 +647,15 @@ export function CockpitSections({
 
       <div className="kok-grid">
         <div className="kok-col">
-          <section className="kok-panel" aria-label="Oś dnia">
+          <section className="kok-panel" aria-label={t("home:cockpit.dayAxisAria")}>
             <div className="kok-panel__head">
               <h3 className="kok-panel__title">
-                <b>Dziś</b> · oś czasu
+                <b>{t("home:cockpit.todayBold")}</b> · {t("home:cockpit.timeAxis")}
               </h3>
               <span className="kok-chip">00–24</span>
             </div>
             {data.events.length === 0 ? (
-              <p className="kok-empty-msg">Brak wydarzeń na dziś</p>
+              <p className="kok-empty-msg">{t("home:cockpit.noEventsToday")}</p>
             ) : (
               <Timeline events={data.events} windows={data.windows} now={now} />
             )}
@@ -659,22 +664,22 @@ export function CockpitSections({
           <CommitHistory apiFetch={apiFetch} day={data.date} />
         </div>
 
-        <section className="kok-focus" aria-label="Aktywne tematy">
+        <section className="kok-focus" aria-label={t("home:cockpit.focusAria")}>
           <div className="kok-panel__head">
             <h3 className="kok-panel__title">
-              <b>Punkty skupienia</b> · Save State
+              <b>{t("home:cockpit.focusBold")}</b> · {t("home:cockpit.focusSaveState")}
             </h3>
-            <span className="kok-focus__limit">limit 3</span>
+            <span className="kok-focus__limit">{t("home:cockpit.focusLimit")}</span>
             <button
               type="button"
               onClick={onChangeActive}
               className="kok-btn kok-btn--sm kok-btn--ghost"
             >
-              Zmień aktywne
+              {t("home:cockpit.changeActive")}
             </button>
           </div>
           {data.topics.length === 0 ? (
-            <p className="kok-empty-msg">Przypnij projekty</p>
+            <p className="kok-empty-msg">{t("home:cockpit.pinProjectsEmpty")}</p>
           ) : (
             data.topics.map((topic, i) => (
               <TopicCard
@@ -690,7 +695,7 @@ export function CockpitSections({
           {free > 0 ? (
             <button className="kok-empty" type="button" onClick={onChangeActive}>
               <span>
-                {free === 1 ? "Wolne miejsce na trzeci temat" : "Wolne miejsce na kolejny temat"}
+                {free === 1 ? t("home:cockpit.freeSlotThird") : t("home:cockpit.freeSlotNext")}
               </span>
               <span className="kok-kbd">+</span>
             </button>
@@ -698,10 +703,10 @@ export function CockpitSections({
         </section>
 
         <div className="kok-col">
-          <section className="kok-panel kok-queue" aria-label="Kolejka na dziś">
+          <section className="kok-panel kok-queue" aria-label={t("home:cockpit.queueTodayAria")}>
             <div className="kok-panel__head">
               <h3 className="kok-panel__title">
-                <b>Kolejka</b> · dziś
+                <b>{t("home:cockpit.queueBold")}</b> · {t("home:format.today")}
               </h3>
               <div className="kok-panel__tools">
                 {hasEnergy
@@ -717,13 +722,15 @@ export function CockpitSections({
                       </button>
                     ))
                   : null}
-                <span className="kok-chip">{visibleCount} zadań</span>
+                <span className="kok-chip">
+                  {t("home:cockpit.energyCount", { count: visibleCount })}
+                </span>
               </div>
             </div>
             {restQueue.length === 0 ? (
-              <p className="kok-empty-msg">Nic w kolejce</p>
+              <p className="kok-empty-msg">{t("home:cockpit.queueEmpty")}</p>
             ) : visibleCount === 0 ? (
-              <p className="kok-empty-msg">Brak zadań z tą energią</p>
+              <p className="kok-empty-msg">{t("home:cockpit.queueNoEnergy")}</p>
             ) : (
               <div className="kok-queue">
                 {shownQueue.map((group) => (
@@ -752,7 +759,9 @@ export function CockpitSections({
                 className="kok-btn kok-btn--sm kok-btn--ghost"
                 onClick={() => setShowAll((v) => !v)}
               >
-                {showAll ? "Pokaż mniej" : `Pokaż wszystkie (${visibleCount})`}
+                {showAll
+                  ? t("home:cockpit.showLess")
+                  : t("home:cockpit.showAll", { count: visibleCount })}
               </button>
             ) : null}
           </section>
@@ -793,7 +802,7 @@ export function CockpitSections({
       ) : null}
 
       {data.warnings.length > 0 ? (
-        <ul className="kok-warnings" aria-label="Ostrzeżenia">
+        <ul className="kok-warnings" aria-label={t("home:cockpit.warningsAria")}>
           {data.warnings.map((w, i) => (
             <li key={i}>{w}</li>
           ))}
