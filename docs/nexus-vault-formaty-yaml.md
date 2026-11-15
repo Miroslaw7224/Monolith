@@ -28,7 +28,7 @@ Frontmatter (po pierwszym zapisie aplikacji bez `generated_by`), nagłówek `# Z
 
 `- [ ] Tytuł [id:: …] [status:: todo] [due:: RRRR-MM-DD] [priority:: n] [order:: n] [link:: …] [desc:: …] [created:: ISO] [updated:: ISO]`
 
-- Pola `due`, `priority`, `link`, `desc` są pomijane, gdy puste. `status`: `todo`, `in_progress`, `to_review`, `done`; pole wyboru `[x]` oznacza `done`.
+- Pola `due`, `priority`, `link`, `desc` są pomijane, gdy puste. `status`: `deferred` (odłożone: nie trafia do kolejki Kokpitu, terminów w kalendarzu ani liczników terminów), `todo`, `in_progress`, `to_review`, `done`; pole wyboru `[x]` oznacza `done`, a `deferred` ma `[ ]`.
 - W tytule i wartościach pól ucieczki: `\[`, `\]`, `\\`, `\n`. Parser: `lib/nexus/task-line.ts`, edycja: `lib/nexus/markdown-edit.ts`.
 - Aplikacja zmienia **tylko** linię zadania, którego dotyczy żądanie; reszta pliku (nagłówki, notatki, inne linie) zostaje bajtowo. Dodane zadanie trafia na koniec pliku.
 - Linie bez `id` lub z uszkodzonymi polami nie pojawiają się w aplikacji i nie są zmieniane. Przy duplikacie `id` obowiązuje pierwsza linia.
