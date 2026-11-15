@@ -1277,6 +1277,8 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 Brak testów (dokumenty). Weryfikacja: czytanie i `npx prettier --check` na zmienionych plikach.
 
+> **Zmiana wykonawcza (decyzja użytkownika 2026-11-15):** zamiast wąskiego wyjątku w `segreguj-inbox` (krok 3) powstał osobny skill `.claude/skills/bug-projektu/SKILL.md` z przepisem „dodaj / zamknij bug” (w tym tryb „z Inboxu”), a `segreguj-inbox` dostał tylko odnośnik (krok 5a) i nadal zabrania ręcznej edycji vaulta. Spec poprawiono w zadaniu 1 odpowiednio.
+
 - [ ] **Step 1: Dopisz sekcję „Bugi” na końcu `docs/nexus-vault-formaty-yaml.md`**
 
 ````markdown
