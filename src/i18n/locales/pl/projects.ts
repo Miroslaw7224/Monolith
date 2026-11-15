@@ -62,7 +62,6 @@ export const projects = {
     progressAria: "Budżet paczki kontekstu",
     truncatedNote: "Paczka skrócona do budżetu.",
     copy: "Kopiuj paczkę kontekstu",
-    copyWithSize: "Kopiuj paczkę kontekstu{{size}}",
     copied: "Skopiowano paczkę kontekstu ({{label}})",
     copiedTruncated: " · skrócona do budżetu",
     previewShow: "Podgląd Markdown",

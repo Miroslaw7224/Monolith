@@ -35,7 +35,7 @@ export const projects = {
     kindCount: {
       wlasny: "own",
       biblioteka: "library",
-      etat: "work",
+      etat: "day job",
     },
   },
   pack: {
@@ -52,7 +52,6 @@ export const projects = {
     progressAria: "Context pack budget",
     truncatedNote: "Pack truncated to budget.",
     copy: "Copy context pack",
-    copyWithSize: "Copy context pack{{size}}",
     copied: "Copied context pack ({{label}})",
     copiedTruncated: " · truncated to budget",
     previewShow: "Markdown preview",
@@ -162,7 +161,7 @@ export const projects = {
     companyData: "Company data",
     companyProtectedTitle: "Protected: owner: work in registry",
     companyLabelTitle:
-      "Label from Etat type; protection (Map, Notes, future AI and export) is enabled by owner: work in registry",
+      "Label from Day job type; protection (Map, Notes, future AI and export) is enabled by owner: work in registry",
     resumeTitle: "Restores active status in registry",
     pauseTitle: "Sets paused status in registry: project no longer needs a decision",
     resumeBtn: "Resume project",

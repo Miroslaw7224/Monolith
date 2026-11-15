@@ -10,6 +10,7 @@ import { buildProjectTiles } from "./projectTiles";
 import { useContextPack } from "./useContextPack";
 import { useProjects } from "./useProjects";
 import { registryProjectsLabel } from "./projectsFormat";
+import { useLang } from "@/src/i18n/useLang";
 import { useT } from "@/src/i18n/useT";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
@@ -19,6 +20,7 @@ export function ProjectsView(props: {
   initialProjectId?: string | null;
 }): React.JSX.Element {
   const t = useT();
+  const { lang } = useLang();
   const {
     status,
     error,
@@ -48,7 +50,7 @@ export function ProjectsView(props: {
   const pack = useContextPack(detail?.id ?? null, loadContextPack, detail?.companyData);
   const tiles = useMemo(
     () => buildProjectTiles(projects, detail, pack.state),
-    [projects, detail, pack.state]
+    [projects, detail, pack.state, lang]
   );
   const [creating, setCreating] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);

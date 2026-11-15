@@ -96,6 +96,7 @@ describe("ProjectsView po angielsku", () => {
     const heading = await screen.findByRole("heading", { level: 1 });
     expect(heading).toHaveTextContent("Engineering project dossier");
     expect(screen.getByText("2 projects in registry")).toBeInTheDocument();
+    expect(screen.getByText("Active projects")).toBeInTheDocument();
 
     await act(async () => {
       await setLanguage("pl");
@@ -103,5 +104,14 @@ describe("ProjectsView po angielsku", () => {
 
     expect(heading).toHaveTextContent("Teczka inżynierska projektów");
     expect(screen.getByText("2 projekty w rejestrze")).toBeInTheDocument();
+    expect(screen.getByText("Aktywne projekty")).toBeInTheDocument();
+    expect(screen.queryByText("Active projects")).toBeNull();
+
+    await act(async () => {
+      await setLanguage("en");
+    });
+
+    expect(screen.getByText("Active projects")).toBeInTheDocument();
+    expect(screen.queryByText("Aktywne projekty")).toBeNull();
   });
 });
