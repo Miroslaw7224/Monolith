@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { runGh } from "./gh";
 
 /** PR (otwarty albo już zmergowany), w którym użytkownik nadal jest wskazanym recenzentem (spłaszczony wynik `gh`). */
 export type GithubReviewRequest = {
@@ -35,44 +35,6 @@ const GH_ARGS = [
 ];
 /** `gh` podaje daty ISO-8601 (`2026-11-16T05:58:28Z`); luźne ciągi typu „1” odrzucamy. */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-const TIMEOUT_MS = 8000;
-const MAX_BUFFER = 256 * 1024;
-
-type Run = { ok: true; stdout: string } | { ok: false; reason: "gh-missing" | "gh-error" };
-
-/** Uruchamia `gh` bez powłoki i bez blokowania pętli zdarzeń; nigdy nie rzuca. */
-function runGh(): Promise<Run> {
-  return new Promise((resolve) => {
-    try {
-      execFile(
-        "gh",
-        GH_ARGS,
-        {
-          encoding: "utf8",
-          timeout: TIMEOUT_MS,
-          maxBuffer: MAX_BUFFER,
-          env: {
-            ...process.env,
-            GH_PROMPT_DISABLED: "1",
-            GH_PAGER: "cat",
-            NO_COLOR: "1",
-            GH_NO_UPDATE_NOTIFIER: "1",
-          },
-        },
-        (err, stdout) => {
-          if (err) {
-            const code = (err as NodeJS.ErrnoException).code;
-            resolve({ ok: false, reason: code === "ENOENT" ? "gh-missing" : "gh-error" });
-            return;
-          }
-          resolve({ ok: true, stdout: String(stdout) });
-        }
-      );
-    } catch {
-      resolve({ ok: false, reason: "gh-error" });
-    }
-  });
-}
 
 /** `url` trafia do `href`, więc przepuszczamy tylko `https://github.com/...` (bez portu i danych logowania). */
 function isGithubUrl(raw: string): boolean {
@@ -125,7 +87,7 @@ function parseItem(raw: unknown): GithubReviewRequest | null {
 
 /** Otwarte i zmergowane PR-y z wiszącą prośbą o review do użytkownika (konto zalogowane w `gh`), najnowsze pierwsze. Błąd `gh` to `ok: false`, nie wyjątek. */
 export async function fetchReviewRequests(): Promise<ReviewRequestsResult> {
-  const run = await runGh();
+  const run = await runGh(GH_ARGS);
   if (run.ok === false) return run;
   let parsed: unknown;
   try {
