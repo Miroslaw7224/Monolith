@@ -1399,3 +1399,23 @@
   font: 500 var(--fs-sm) / 1.4 var(--font-mono);
   color: var(--muted);
 }
+
+/* Historia commitów i review: długie opisy w nagłówku łamią się na 2 linie zamiast nachodzić na siebie. */
+.kok-history .kok-panel__head {
+  flex-wrap: wrap;
+  row-gap: var(--s-2);
+}
+
+.kok-history .kok-panel__tools {
+  flex-wrap: wrap;
+  row-gap: var(--s-1);
+  min-width: 0;
+}
+
+.kok-history .kok-chip {
+  height: auto;
+  min-height: 20px;
+  padding-block: 3px;
+  line-height: 1.3;
+  white-space: normal;
+}
