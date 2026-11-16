@@ -6,7 +6,9 @@ import {
   type ArchiveResult,
   type BugEntry,
   type ChecklistSection,
+  type CodeSync,
   type DevlogEntry,
+  type GitRange,
   type GitSnapshotResult,
   type IndexRuleSection,
   type Owner,
@@ -23,9 +25,14 @@ import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 import {
   commitSubjects,
   commitsByDay,
+  commitsInRange,
   commitsSince,
   currentBranch,
+  diffStatInRange,
+  headSha,
   mergedPrsByDay,
+  normalizeSha,
+  relationToHead,
   snapshotRepo,
 } from "@/lib/git/project-git";
 import { readRepoFile } from "@/lib/git/repo-file";
@@ -451,6 +458,65 @@ export function readGitHistory(
   if (commits.ok === false) return { ok: false };
   const prs = mergedPrsByDay(repo.path, from, to);
   return { ok: true, days: commits.days, prs: prs.ok ? prs.prs : {} };
+}
+
+const RANGE_COMMITS_MAX = 30;
+
+/** Pełny sha HEAD repo projektu; `null`, gdy repo jest niedostępne albo nie ma commitów. */
+export function readHeadSha(entry: RegistryEntry): string | null {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return null;
+  const head = headSha(repo.path);
+  return head.ok ? head.sha : null;
+}
+
+/** Stan karty względem repo dla zapisanego `codeCommit`; git tylko do odczytu. */
+export function readCodeSync(entry: RegistryEntry, codeCommit: string): CodeSync {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { status: "unavailable" };
+  const head = headSha(repo.path);
+  if (head.ok === false) return { status: "unavailable" };
+  const relation = relationToHead(repo.path, codeCommit);
+  switch (relation.kind) {
+    case "ancestor":
+      return relation.ahead === 0
+        ? { status: "current", head: head.sha }
+        : { status: "behind", ahead: relation.ahead, head: head.sha };
+    case "diverged":
+      return { status: "diverged", head: head.sha };
+    case "missing":
+      return { status: "unknown-sha" };
+    default:
+      return { status: "unavailable" };
+  }
+}
+
+/**
+ * Zakres commitów dla paczki „odśwież kartę”: od `codeCommit` do HEAD, a gdy go brak albo nie jest
+ * przodkiem HEAD, ostatnie commity (`baselineLost` mówi, który z tych przypadków zaszedł).
+ */
+export function readGitRange(entry: RegistryEntry, codeCommit: string | undefined): GitRange {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false };
+  const head = headSha(repo.path);
+  if (head.ok === false) return { ok: false };
+  let baseline: string | null = null;
+  if (codeCommit !== undefined) {
+    const relation = relationToHead(repo.path, codeCommit);
+    if (relation.kind === "ancestor") baseline = normalizeSha(codeCommit);
+  }
+  const commits = commitsInRange(repo.path, baseline, RANGE_COMMITS_MAX);
+  if (commits.ok === false) return { ok: false };
+  const stat = baseline === null ? null : diffStatInRange(repo.path, baseline);
+  return {
+    ok: true,
+    head: head.sha,
+    baseline,
+    baselineLost: codeCommit !== undefined && baseline === null,
+    commits: commits.lines,
+    total: commits.total,
+    diffStat: stat !== null && stat.ok ? stat.stat : "",
+  };
 }
 
 /** Tematy commitów projektu z zakresu `from`–`to` (`RRRR-MM-DD`); brak repo albo błąd gita to `ok: false`. */

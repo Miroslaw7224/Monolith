@@ -148,6 +148,10 @@ export function useProjects(
       mutate("POST", "/tasks/archive", { version, olderThanDays }),
     [mutate]
   );
+  const markCodeSynced = useCallback(
+    (commit?: string) => mutate("PUT", "/code-sync", commit === undefined ? {} : { commit }),
+    [mutate]
+  );
 
   const setProjectStatus = useCallback(
     (id: string, status: ProjectStatusChangeDto) => mutateProject(id, "PATCH", "", { status }),
@@ -286,6 +290,7 @@ export function useProjects(
     createProject,
     tasksOp,
     archiveDone,
+    markCodeSynced,
     loadContextPack,
     reloadDetail,
   };

@@ -408,6 +408,10 @@
   color: var(--text);
 }
 
+.prj-item__sync {
+  font-weight: 600;
+}
+
 .prj-dossier-slot {
   min-width: 0;
 }

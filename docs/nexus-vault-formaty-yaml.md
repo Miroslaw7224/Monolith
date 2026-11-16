@@ -186,6 +186,28 @@ Jeden plik na mapę; `id` (20 znaków alfanumerycznych) to nazwa pliku. JSON z w
 
 Jeden plik: `{ "tiles": […], "frames": […], "edges": […], "updatedAt": "ISO" }`. Brak pliku to pusta tablica. Zapis zawsze nadpisuje plik (ostatni zapis wygrywa).
 
+## Save State: `Projects/<projekt>/state.md`
+
+Plik aplikacji (formularz „Save State” w karcie Projekty); frontmatter YAML + treść jako notatki.
+
+```yaml
+---
+branch: main
+env: lokalnie
+blocker: ""
+next_step: Uruchomić testy
+links: []
+milestone: ""
+milestone_due: 2026-12-01 # opcjonalnie
+updated: 2026-11-16T20:45 # ustawia aplikacja przy Save State
+code_commit: 8c107d7a… # opcjonalnie: sha commita repo, z którym zgadza się karta
+---
+```
+
+- `code_commit`: pełny (zalecany) lub skrócony sha, 7–40 znaków szesnastkowych. Aplikacja porównuje go z HEAD repo z `local_path` i pokazuje „kod nowszy: N commitów”, gdy repo poszło dalej. Zapisuje go przycisk „Oznacz jako zaktualizowaną” albo agent po odświeżeniu karty (paczka kontekstu w roli „Odśwież kartę” zawiera tę instrukcję).
+- Zapis formularza Save State zachowuje `code_commit`; przycisk „Oznacz jako zaktualizowaną” zmienia tylko to pole (nie rusza `updated`).
+- Bez `code_commit` (albo bez pliku) karta ma stan „brak punktu odniesienia” i rozjazd nie jest zgłaszany.
+
 ## Bugi: `Projects/<projekt>/bugs.md`
 
 Aplikacja **tylko czyta** ten plik (karta Projekty, paczka kontekstu); bugi dodaje i zamyka agent według przepisu poniżej (skill `bug-projektu`). Pole `Otwarto` daje w UI wiek buga i znaczek „stary” po 14 dniach.

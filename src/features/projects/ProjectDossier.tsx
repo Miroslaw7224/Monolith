@@ -9,6 +9,7 @@ import { ProjectBugs } from "./ProjectBugs";
 import { ProjectContextPack, type ContextPackModel } from "./ProjectContextPack";
 import { ProjectDevlog } from "./ProjectDevlog";
 import { ProjectLinks } from "./ProjectLinks";
+import { ProjectCodeSync } from "./ProjectCodeSync";
 import { ProjectSaveState } from "./ProjectSaveState";
 import { isPaused } from "./projectTiles";
 import { ProjectTasksBoard } from "./ProjectTasksBoard";
@@ -121,6 +122,13 @@ export function ProjectDossier(props: {
           </p>
         ) : null}
       </article>
+
+      <ProjectCodeSync
+        key={`${project.id}-code-sync`}
+        sync={project.codeSync}
+        onMark={actions.markCodeSynced}
+        onShowPack={() => pack.setRole("refresh")}
+      />
 
       <ProjectSaveState
         key={project.id}

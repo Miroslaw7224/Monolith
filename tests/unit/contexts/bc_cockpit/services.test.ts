@@ -225,6 +225,16 @@ describe("tematy", () => {
     expect(topics[0].freshness).toBe("stale");
   });
 
+  it.each([
+    [{ status: "behind", ahead: 2, head: "a".repeat(40) }, "check"],
+    [{ status: "diverged", head: "a".repeat(40) }, "check"],
+    [{ status: "current", head: "a".repeat(40) }, "sure"],
+    [{ status: "no-baseline" }, "sure"],
+  ] as const)("codeSync %j: confidence %s", async (codeSync, expected) => {
+    mockGetProject.mockReturnValue(project({ whereIStopped: "x", codeSync }));
+    expect((await getCockpit(TODAY)).topics[0].confidence).toBe(expected);
+  });
+
   it("owner work przechodzi do tematu", async () => {
     mockGetProject.mockReturnValue(project({ owner: "work" }));
     expect((await getCockpit(TODAY)).topics[0].owner).toBe("work");

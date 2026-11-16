@@ -212,6 +212,7 @@ export function parseState(text: string, rel: string): ProjectState {
     milestone: textOf(meta.milestone),
     milestoneDue: optionalText(meta.milestone_due),
     updated: optionalText(meta.updated),
+    codeCommit: optionalText(meta.code_commit),
     notes,
   };
 }
@@ -225,6 +226,7 @@ function sameStateFields(a: ProjectState, b: ProjectState): boolean {
     a.milestone.trim() === b.milestone.trim() &&
     (a.milestoneDue || undefined) === (b.milestoneDue || undefined) &&
     (a.updated || undefined) === (b.updated || undefined) &&
+    (a.codeCommit || undefined) === (b.codeCommit || undefined) &&
     a.links.length === b.links.length &&
     a.links.every((link, i) => link === b.links[i])
   );
@@ -244,6 +246,7 @@ function serializeStateQuoted(state: ProjectState): string {
     `milestone: ${q(state.milestone)}`,
     ...(state.milestoneDue ? [`milestone_due: ${q(state.milestoneDue)}`] : []),
     ...(state.updated ? [`updated: ${q(state.updated)}`] : []),
+    ...(state.codeCommit ? [`code_commit: ${q(state.codeCommit)}`] : []),
   ];
   return `---\n${lines.join("\n")}\n---\n\n${trimNotes(state.notes)}\n`;
 }
@@ -263,6 +266,7 @@ export function serializeState(state: ProjectState): string {
       milestone: state.milestone,
       milestone_due: state.milestoneDue || undefined,
       updated: state.updated || undefined,
+      code_commit: state.codeCommit || undefined,
     },
     state.notes
   );

@@ -32,6 +32,8 @@ export type ProjectActions = {
   tasksOp: (input: TaskOpInputDto) => Promise<MutationResult>;
   /** Archiwizacja ukończonych zadań starszych niż N dni do `changelog.md` (`version`: `board.version`). */
   archiveDone: (version: string | null, olderThanDays: number) => Promise<MutationResult>;
+  /** Zapisuje `code_commit` w `state.md`; bez argumentu serwer bierze HEAD (stan `no-baseline`). */
+  markCodeSynced: (commit?: string) => Promise<MutationResult>;
   /** Uśpienie / wznowienie projektu po `id` (może to być projekt, który nie jest wybrany). */
   setProjectStatus: (id: string, status: ProjectStatusChangeDto) => Promise<MutationResult>;
   /** Składa na serwerze paczkę kontekstu dla agenta (GET, bez zapisu). */

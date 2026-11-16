@@ -5,6 +5,7 @@ import type {
   BugTaskLink,
   ChecklistItem,
   ChecklistSection,
+  CodeSync,
   ContextPack,
   ContextPackRole,
   DevlogEntry,
@@ -118,6 +119,22 @@ export const StateInputSchema = z.object({
     .transform((v) => (v === "" ? undefined : v))
     .refine((v) => v === undefined || isIsoDate(v), "Data w formacie RRRR-MM-DD"),
   version: nullableVersion,
+});
+
+/** Stan karty względem repo; ten sam kształt co `CodeSync` z `models` (nie zawiera nic poza statusem, sha i licznikiem). */
+export type CodeSyncDto = CodeSync;
+
+/**
+ * Wejście `PUT /api/projects/[id]/code-sync`. `commit` (7–40 znaków szesnastkowych, wielkie litery
+ * zamieniane na małe) pochodzi z `head` pokazanego w UI; bez niego serwer bierze HEAD z chwili zapisu.
+ */
+export const CodeSyncMarkInputSchema = z.object({
+  commit: z
+    .string()
+    .trim()
+    .regex(/^[0-9a-f]{7,40}$/i, "Zły sha commita")
+    .transform((s) => s.toLowerCase())
+    .optional(),
 });
 
 /** Wejście `POST /api/projects/[id]/devlog`. */
@@ -296,6 +313,8 @@ export type ProjectDetailDto = ProjectSummaryDto & {
   /** `"<size>:<hash>"` pliku `state.md` (do odesłania w PUT); `null`, gdy pliku nie ma. */
   stateVersion: string | null;
   devlog: DevlogEntryDto[];
+  /** Stan karty względem repo; brak = nie policzono. */
+  codeSync?: CodeSyncDto;
 };
 
 function toStateDto(state: ProjectState): ProjectStateDto {
@@ -373,6 +392,7 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
     state: p.state ? toStateDto(p.state) : null,
     stateVersion: p.stateVersion ? `${p.stateVersion.size}:${p.stateVersion.hash}` : null,
     devlog: p.devlog.slice(0, DEVLOG_LIMIT),
+    ...(p.codeSync !== undefined ? { codeSync: p.codeSync } : {}),
   };
 }
 
@@ -389,7 +409,13 @@ export function toArchiveDto(p: ProjectWithContent, archived: number): ArchiveDo
 export const PACK_BUDGET_TOKENS = 4000;
 
 /** Role paczki kontekstu; lista zgodna z `CONTEXT_PACK_ROLES` w `models` (pilnuje test). */
-export const ContextPackRoleSchema = z.enum(["full", "review", "implementation", "debug"]);
+export const ContextPackRoleSchema = z.enum([
+  "full",
+  "review",
+  "implementation",
+  "debug",
+  "refresh",
+]);
 
 /** Role w UI: klucz i etykieta (kolejność przycisków). */
 export const PACK_ROLES: { key: ContextPackRole; label: string }[] = [
@@ -397,6 +423,7 @@ export const PACK_ROLES: { key: ContextPackRole; label: string }[] = [
   { key: "review", label: "Review" },
   { key: "implementation", label: "Implementacja" },
   { key: "debug", label: "Debug" },
+  { key: "refresh", label: "Odśwież kartę" },
 ];
 
 export type ContextPackDto = {

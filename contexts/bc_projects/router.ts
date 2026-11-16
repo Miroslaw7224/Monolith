@@ -3,6 +3,7 @@ import { handleServiceError } from "@/lib/http/apiError";
 import { parseBody } from "@/lib/http/parseBody";
 import {
   ArchiveDoneInputSchema,
+  CodeSyncMarkInputSchema,
   ContextPackRoleSchema,
   DevlogInputSchema,
   NewProjectInputSchema,
@@ -147,6 +148,26 @@ export async function getContextPack(
     return NextResponse.json(
       toContextPackDto(services.buildContextPack(id, new Date(), role.data))
     );
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function getCodeSyncMap(): Promise<NextResponse> {
+  try {
+    return NextResponse.json({ codeSync: services.listCodeSync() });
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function putCodeSync(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
+  try {
+    const parsed = await parseBody(req, CodeSyncMarkInputSchema);
+    if (parsed.success === false) return parsed.response;
+    const { id } = await ctx.params;
+    const project = await services.markCodeSynced(id, parsed.data.commit);
+    return NextResponse.json(toDetailDto(project));
   } catch (err) {
     return handleServiceError(err);
   }

@@ -67,7 +67,11 @@ function toTopic(p: ReturnType<typeof projectsServices.getProject>): Topic {
   const source: Topic["source"] =
     nextStep || blocker ? "state" : p.whereIStopped ? "index" : "none";
   const confidence: Confidence =
-    p.freshness === "stale" || p.stateConfidence === "unknown" || p.stateConfidence === "low"
+    p.freshness === "stale" ||
+    p.stateConfidence === "unknown" ||
+    p.stateConfidence === "low" ||
+    p.codeSync?.status === "behind" ||
+    p.codeSync?.status === "diverged"
       ? "check"
       : "sure";
   return {
