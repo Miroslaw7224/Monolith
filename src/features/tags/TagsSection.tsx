@@ -198,6 +198,14 @@ export function TagsSection({ apiFetch, userTags, onTagsChange }: TagsSectionPro
                     <span className="flex-1 min-w-0 text-sm text-[var(--text2)] truncate">
                       {item.title || "—"}
                     </span>
+                    {item.aliases && item.aliases.length > 0 && (
+                      <span
+                        className="text-xs text-[var(--text2)] truncate"
+                        title={item.aliases.join(", ")}
+                      >
+                        ≈ {item.aliases.join(", ")}
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() => startEdit(item)}
