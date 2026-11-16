@@ -2,6 +2,10 @@ import React, { useMemo, useState } from "react";
 import { Plus, Search, Settings2 } from "lucide-react";
 import "./tasks.css";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { TaskWorkPanel } from "./TaskWorkPanel";
+import { useMinWidth } from "./useMinWidth";
+import { useBoardLayout } from "./useBoardLayout";
+import { boardColumns, effectiveCollapsed } from "./taskBoardLayout";
 import { TaskTemplatesModal } from "./TaskTemplatesModal";
 import { TaskColumn } from "./TaskColumn";
 import { TaskTiles } from "./TaskTiles";
@@ -54,7 +58,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
     fetchTemplates,
     handleTitleAreaClick,
     handleTitleAreaDoubleClick,
-    saveTaskDetail,
+    saveTaskPatch,
     addTask,
     applyTemplate,
     handleNewTaskTitleKeyDown,
@@ -71,6 +75,13 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
     handleDropOnTask,
     updateDueDate,
   } = useTasksBoard(apiFetch);
+
+  const wide = useMinWidth(1024);
+  const detailTask = detailTaskId ? (tasks.find((x) => x.id === detailTaskId) ?? null) : null;
+  const panelOpen = wide && detailTask !== null;
+  const mode = panelOpen ? "work" : "normal";
+  const { layout, setCollapsed, setHeight } = useBoardLayout();
+  const collapsedMap = effectiveCollapsed(layout, mode);
 
   const formatDate = (iso: string | null | undefined) => {
     if (!iso) return "";
@@ -135,6 +146,55 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
     active: activeCount,
     done: doneCount,
   });
+
+  const renderColumn = (status: TaskStatus) => (
+    <TaskColumn
+      key={status}
+      status={status}
+      title={columnLabels[status]}
+      tasks={tasksByStatus(boardTasks, status)}
+      collapseEnabled={!isSearching && !dueOnly}
+      isDragOverColumn={dragOverColumn === status && dragOverTaskId === null}
+      dragTaskId={dragTaskId}
+      dragOverTaskId={dragOverTaskId}
+      draggable={canDrag && !dueOnly}
+      editingId={editingId}
+      editTitle={editTitle}
+      labels={cardLabels}
+      projectsById={projectsById}
+      formatDate={formatDate}
+      onColumnDragOver={(s) => {
+        setDragOverColumn(s);
+        setDragOverTaskId(null);
+      }}
+      onColumnDrop={handleColumnDrop}
+      onDragStart={setDragTaskId}
+      onDragOverTask={(taskId) => {
+        setDragOverTaskId(taskId);
+        setDragOverColumn(status);
+      }}
+      onDragEnd={handleDragEnd}
+      onDropOnTask={handleDropOnTask}
+      onTitleAreaClick={handleTitleAreaClick}
+      onTitleAreaDoubleClick={handleTitleAreaDoubleClick}
+      onEditTitleChange={setEditTitle}
+      onEditTitleCommit={updateTitle}
+      onEditTitleCancel={() => {
+        setEditingId(null);
+        setEditTitle("");
+      }}
+      onDueDateChange={updateDueDate}
+      onToggleEnergy={toggleEnergy}
+      onToggleUrgent={toggleUrgent}
+      now={tilesNow}
+      onDelete={deleteTask}
+      columnCollapsed={collapsedMap[status]}
+      stacked={mode === "work" && status !== "todo" && status !== "done"}
+      onToggleColumn={setCollapsed}
+      listHeight={layout.heights[status]}
+      onListHeightChange={setHeight}
+    />
+  );
 
   return (
     <div className="zad" data-card="zadania">
@@ -274,63 +334,44 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
           <p className="zad-state zad-state--loading">{t("tasks:tasksLoading")}</p>
         ) : tasks.length === 0 ? (
           <p className="zad-state">{labels.noTasks}</p>
-        ) : boardTasks.length === 0 ? (
+        ) : boardTasks.length === 0 && !panelOpen ? (
           <p className="zad-state">{labels.noSearchResults}</p>
         ) : (
-          <div className="zad-board">
-            {TASK_STATUSES.map((status) => (
-              <TaskColumn
-                key={status}
-                status={status}
-                title={columnLabels[status]}
-                tasks={tasksByStatus(boardTasks, status)}
-                collapseEnabled={!isSearching && !dueOnly}
-                isDragOverColumn={dragOverColumn === status && dragOverTaskId === null}
-                dragTaskId={dragTaskId}
-                dragOverTaskId={dragOverTaskId}
-                draggable={canDrag && !dueOnly}
-                editingId={editingId}
-                editTitle={editTitle}
-                labels={cardLabels}
-                projectsById={projectsById}
-                formatDate={formatDate}
-                onColumnDragOver={(s) => {
-                  setDragOverColumn(s);
-                  setDragOverTaskId(null);
-                }}
-                onColumnDrop={handleColumnDrop}
-                onDragStart={setDragTaskId}
-                onDragOverTask={(taskId) => {
-                  setDragOverTaskId(taskId);
-                  setDragOverColumn(status);
-                }}
-                onDragEnd={handleDragEnd}
-                onDropOnTask={handleDropOnTask}
-                onTitleAreaClick={handleTitleAreaClick}
-                onTitleAreaDoubleClick={handleTitleAreaDoubleClick}
-                onEditTitleChange={setEditTitle}
-                onEditTitleCommit={updateTitle}
-                onEditTitleCancel={() => {
-                  setEditingId(null);
-                  setEditTitle("");
-                }}
-                onDueDateChange={updateDueDate}
-                onToggleEnergy={toggleEnergy}
-                onToggleUrgent={toggleUrgent}
-                now={tilesNow}
-                onDelete={deleteTask}
-              />
-            ))}
+          <div
+            className="zad-board"
+            style={{ "--zad-cols": boardColumns(mode, collapsedMap) } as React.CSSProperties}
+          >
+            {mode === "normal" ? (
+              TASK_STATUSES.map((status) => renderColumn(status))
+            ) : (
+              <>
+                {renderColumn("todo")}
+                <div className="zad-stack">
+                  {(["deferred", "in_progress", "to_review"] as const).map((status) =>
+                    renderColumn(status)
+                  )}
+                </div>
+                {detailTask ? (
+                  <TaskWorkPanel
+                    task={detailTask}
+                    projects={projects}
+                    onClose={() => setDetailTaskId(null)}
+                    onPatch={saveTaskPatch}
+                  />
+                ) : null}
+                {renderColumn("done")}
+              </>
+            )}
           </div>
         )}
       </div>
 
       <TaskDetailModal
-        task={detailTaskId ? (tasks.find((x) => x.id === detailTaskId) ?? null) : null}
-        isOpen={detailTaskId !== null}
+        task={detailTask}
+        isOpen={detailTask !== null && !wide}
         projects={projects}
         onClose={() => setDetailTaskId(null)}
-        onSave={saveTaskDetail}
+        onPatch={saveTaskPatch}
       />
       <TaskTemplatesModal
         isOpen={templatesModalOpen}

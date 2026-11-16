@@ -68,6 +68,7 @@ Frontmatter (po pierwszym zapisie aplikacji bez `generated_by`), nagłówek `# Z
 - Linie bez `id` lub z uszkodzonymi polami nie pojawiają się w aplikacji i nie są zmieniane. Przy duplikacie `id` obowiązuje pierwsza linia.
 - Edytowana linia jest formatowana od nowa: **nieznane pola inline w tej linii giną** (np. `[foo:: x]`; znane: `id`, `status`, `due`, `priority`, `project`, `order`, `link`, `desc`, `created`, `updated`). Dodatkowe informacje wpisuj w `desc`.
 - Przeciąganie zadań (`reorder`) zmienia tylko `order` i tylko w liniach, w których wartość się zmienia; edycja zmienia `updated`.
+- **Checklista testów w `desc`** (spec `2026-11-16-zadania-checklista-panel-design.md`): linie `- [ ] tekst` (do zrobienia), `- [x] tekst` (PASS), `- [!] tekst` (FAIL); wcięcie 2 spacji = podpunkt; linie `> uwaga` bezpośrednio pod punktem to jego komentarz. Reszta tekstu zostaje bez zmian. Aplikacja zapisuje `desc` ucieczkowany (`\n`, `\[`, `\]`), więc zmieniaj go przez aplikację lub API, nie ręcznie w `tasks.md`.
 
 ## Kalendarz: `Calendar/RRRR-MM.yaml`
 

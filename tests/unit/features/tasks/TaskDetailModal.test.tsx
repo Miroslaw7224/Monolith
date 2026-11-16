@@ -1,18 +1,22 @@
 import React from "react";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, act, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, afterEach, beforeEach } from "vitest";
 
 import { TaskDetailModal } from "@/src/features/tasks/TaskDetailModal";
+import type { Task } from "@/src/features/tasks/TasksSection";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
-const fakeTask = {
+const fakeTask: Task = {
   id: "task-1",
   title: "Napisać testy",
   link: "https://example.com",
   description: "Opis zadania",
-  status: "todo" as const,
+  status: "todo",
   due_date: null,
   priority: null,
   order: 0,
@@ -26,185 +30,154 @@ const PROJECTS = [
 ];
 
 describe("TaskDetailModal", () => {
-  let onSave: ReturnType<typeof vi.fn>;
+  let onPatch: ReturnType<typeof vi.fn>;
   let onClose: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    onSave = vi.fn().mockResolvedValue(undefined);
+    onPatch = vi.fn().mockResolvedValue(undefined);
     onClose = vi.fn();
-    vi.clearAllMocks();
   });
 
-  it("renders task title, link and note", () => {
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
+  const renderModal = (task = fakeTask, extra: { projects?: typeof PROJECTS } = {}) =>
+    render(<TaskDetailModal task={task} isOpen onClose={onClose} onPatch={onPatch} {...extra} />);
+
+  it("pokazuje tytuł, link i notatkę", () => {
+    renderModal();
     expect(screen.getByDisplayValue("Napisać testy")).toBeInTheDocument();
     expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Opis zadania")).toBeInTheDocument();
   });
 
-  it("does not render when isOpen is false", () => {
-    render(<TaskDetailModal task={fakeTask} isOpen={false} onClose={onClose} onSave={onSave} />);
+  it("nie renderuje się, gdy zamknięty albo bez zadania", () => {
+    const { unmount } = render(
+      <TaskDetailModal task={fakeTask} isOpen={false} onClose={onClose} onPatch={onPatch} />
+    );
     expect(screen.queryByDisplayValue("Napisać testy")).not.toBeInTheDocument();
-  });
-
-  it("does not render when task is null", () => {
-    render(<TaskDetailModal task={null} isOpen={true} onClose={onClose} onSave={onSave} />);
+    unmount();
+    render(<TaskDetailModal task={null} isOpen onClose={onClose} onPatch={onPatch} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("calls onClose when the X icon button is clicked", async () => {
+  it("nie ma przycisku „Zapisz”; „Zamknij” (ikona i stopka) zamyka", async () => {
     const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-    // There are two "Anuluj" buttons: the icon button (aria-label) and the footer text button
-    const closeBtns = screen.getAllByRole("button", { name: /anuluj/i });
-    // The first one is the icon button in the header
+    renderModal();
+    expect(screen.queryByRole("button", { name: /^zapisz$/i })).not.toBeInTheDocument();
+    const closeBtns = screen.getAllByRole("button", { name: "Zamknij" });
     await user.click(closeBtns[0]);
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it("calls onClose when the cancel text button in footer is clicked", async () => {
-    const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-    // There are two "Anuluj" buttons: the icon button (aria-label) and the footer text button
-    const closeBtns = screen.getAllByRole("button", { name: /anuluj/i });
-    // The last one is the footer cancel button with text content
     await user.click(closeBtns[closeBtns.length - 1]);
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
-  it("calls onSave with updated title when saved", async () => {
-    const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-
-    const titleInput = screen.getByDisplayValue("Napisać testy");
-    await user.clear(titleInput);
-    await user.type(titleInput, "Nowy tytuł");
-
-    const saveBtn = screen.getByRole("button", { name: /zapisz/i });
-    await user.click(saveBtn);
-
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: "Nowy tytuł" }));
+  it("autozapis notatki: jeden zapis 1,5 s po ostatniej zmianie, tylko to pole", async () => {
+    vi.useFakeTimers();
+    renderModal();
+    fireEvent.change(screen.getByLabelText("Notatka"), { target: { value: "Opis zadaniaX" } });
+    expect(onPatch).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(onPatch).toHaveBeenCalledTimes(1);
+    expect(onPatch).toHaveBeenCalledWith("task-1", { description: "Opis zadaniaX" });
+    expect(screen.getByText("Zapisano")).toBeInTheDocument();
   });
 
-  it("calls onSave with current link and note when saved", async () => {
+  it("zamknięcie modala zapisuje oczekującą zmianę (flush)", async () => {
+    vi.useFakeTimers();
+    const { rerender } = renderModal();
+    fireEvent.change(screen.getByLabelText("Notatka"), { target: { value: "Opis zadaniaY" } });
+    rerender(
+      <TaskDetailModal task={fakeTask} isOpen={false} onClose={onClose} onPatch={onPatch} />
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(onPatch).toHaveBeenCalledWith("task-1", { description: "Opis zadaniaY" });
+  });
+
+  it("pusty tytuł nie jest zapisywany i pokazuje błąd", async () => {
+    vi.useFakeTimers();
+    renderModal();
+    fireEvent.change(screen.getByDisplayValue("Napisać testy"), { target: { value: "" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(onPatch).not.toHaveBeenCalled();
+    expect(screen.getByText("Tytuł nie może być pusty")).toBeInTheDocument();
+  });
+
+  it("status zapisuje się od razu jednopolowym patchem", async () => {
     const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
+    renderModal();
+    await user.click(screen.getByRole("button", { name: "W toku" }));
+    expect(onPatch).toHaveBeenCalledWith("task-1", { status: "in_progress" });
+    await user.click(screen.getByRole("button", { name: "Odłożone" }));
+    expect(onPatch).toHaveBeenLastCalledWith("task-1", { status: "deferred" });
+  });
 
-    const saveBtn = screen.getByRole("button", { name: /zapisz/i });
-    await user.click(saveBtn);
-
-    expect(onSave).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Napisać testy",
-        link: "https://example.com",
-        description: "Opis zadania",
-        status: "todo",
-        due_date: null,
-      })
+  it("nieudany zapis statusu cofa wybór w polu", async () => {
+    const user = userEvent.setup();
+    onPatch.mockRejectedValue(new Error("HTTP 500"));
+    renderModal();
+    await user.click(screen.getByRole("button", { name: "W toku" }));
+    expect(await screen.findByText(/Nie zapisano/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "W toku" })).not.toHaveClass(
+      "zad-status-btn--active"
+    );
+    expect(screen.getByRole("button", { name: "Do zrobienia" })).toHaveClass(
+      "zad-status-btn--active"
     );
   });
 
-  it("disables save button when title is empty", async () => {
-    const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-
-    const titleInput = screen.getByDisplayValue("Napisać testy");
-    await user.clear(titleInput);
-
-    const saveBtn = screen.getByRole("button", { name: /zapisz/i });
-    expect(saveBtn).toBeDisabled();
+  it("odhaczenie punktu checklisty zapisuje opis autozapisem", async () => {
+    vi.useFakeTimers();
+    renderModal({ ...fakeTask, description: "- [ ] T-01\n- [ ] T-02" });
+    fireEvent.click(screen.getAllByRole("button", { name: /^Do sprawdzenia:/ })[0]);
+    expect(onPatch).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(onPatch).toHaveBeenCalledWith("task-1", { description: "- [x] T-01\n- [ ] T-02" });
   });
 
-  it("disables save button when title is only whitespace", async () => {
-    const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-
-    const titleInput = screen.getByDisplayValue("Napisać testy");
-    await user.clear(titleInput);
-    await user.type(titleInput, "   ");
-
-    const saveBtn = screen.getByRole("button", { name: /zapisz/i });
-    expect(saveBtn).toBeDisabled();
+  it("błąd zapisu pokazuje komunikat", async () => {
+    vi.useFakeTimers();
+    onPatch.mockRejectedValue(new Error("HTTP 500"));
+    renderModal();
+    fireEvent.change(screen.getByLabelText("Notatka"), { target: { value: "Opis zadaniaZ" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(screen.getByText(/Nie zapisano/)).toBeInTheDocument();
   });
 
-  it("allows changing status via status buttons", async () => {
-    const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-
-    const inProgressBtn = screen.getByRole("button", { name: "W toku" });
-    await user.click(inProgressBtn);
-
-    const saveBtn = screen.getByRole("button", { name: /zapisz/i });
-    await user.click(saveBtn);
-
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ status: "in_progress" }));
-  });
-
-  it("allows moving the task to deferred", async () => {
-    const user = userEvent.setup();
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
-
-    await user.click(screen.getByRole("button", { name: "Odłożone" }));
-    await user.click(screen.getByRole("button", { name: /zapisz/i }));
-
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ status: "deferred" }));
-  });
-
-  it("renders the modal title from translations", () => {
-    render(<TaskDetailModal task={fakeTask} isOpen={true} onClose={onClose} onSave={onSave} />);
+  it("tytuł okna z tłumaczeń", () => {
+    renderModal();
     expect(screen.getByText("Zadanie")).toBeInTheDocument();
   });
+
   describe("projekt zadania", () => {
-    it("zapisuje wybrany projekt", async () => {
+    it("zapisuje wybrany projekt od razu", async () => {
       const user = userEvent.setup();
-      render(
-        <TaskDetailModal
-          task={fakeTask}
-          isOpen={true}
-          projects={PROJECTS}
-          onClose={onClose}
-          onSave={onSave}
-        />
-      );
+      renderModal(fakeTask, { projects: PROJECTS });
       const select = screen.getByLabelText("Projekt");
       expect(select).toHaveValue("");
       await user.selectOptions(select, "monolith");
-      await user.click(screen.getByRole("button", { name: /zapisz/i }));
-      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ project: "monolith" }));
+      expect(onPatch).toHaveBeenCalledWith("task-1", { project: "monolith" });
     });
 
     it("„Bez projektu” zdejmuje projekt (null)", async () => {
       const user = userEvent.setup();
-      render(
-        <TaskDetailModal
-          task={{ ...fakeTask, project: "monolith" }}
-          isOpen={true}
-          projects={PROJECTS}
-          onClose={onClose}
-          onSave={onSave}
-        />
-      );
+      renderModal({ ...fakeTask, project: "monolith" }, { projects: PROJECTS });
       const select = screen.getByLabelText("Projekt");
       expect(select).toHaveValue("monolith");
       await user.selectOptions(select, "");
-      await user.click(screen.getByRole("button", { name: /zapisz/i }));
-      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ project: null }));
+      expect(onPatch).toHaveBeenCalledWith("task-1", { project: null });
     });
 
-    it("nieznane id projektu zostaje wybrane i nie jest po cichu kasowane przy zapisie", async () => {
-      const user = userEvent.setup();
-      render(
-        <TaskDetailModal
-          task={{ ...fakeTask, project: "usuniety-projekt" }}
-          isOpen={true}
-          projects={PROJECTS}
-          onClose={onClose}
-          onSave={onSave}
-        />
-      );
+    it("nieznane id projektu zostaje wybrane i nie jest wysyłane bez zmiany", async () => {
+      renderModal({ ...fakeTask, project: "usuniety-projekt" }, { projects: PROJECTS });
       expect(screen.getByLabelText("Projekt")).toHaveValue("usuniety-projekt");
-      await user.click(screen.getByRole("button", { name: /zapisz/i }));
-      expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ project: "usuniety-projekt" }));
+      expect(onPatch).not.toHaveBeenCalled();
     });
   });
 });
