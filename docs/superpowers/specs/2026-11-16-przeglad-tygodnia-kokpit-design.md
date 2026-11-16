@@ -8,22 +8,22 @@ Raz w tygodniu użytkownik chce zobaczyć, co zrobił w ostatnich 7 dniach, i wy
 
 ## 2. Decyzje
 
-| ID  | Temat                | Decyzja                                                                                                                                                                                                               |
-| --- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Rola AI              | Bez modelu w aplikacji: aplikacja zbiera dane i składa prompt do skopiowania (wybór użytkownika, 2026-11-16). Zero kluczy API i zero wysyłki z aplikacji; spójne z paczką kontekstu i Arsenałem.                      |
-| D2  | Cel przeglądu        | Retrospektywa i focus dla użytkownika, nie raport dla innych (wybór użytkownika). Wariant „raport na daily/tygodniowy” z §8 specu asystenta zostaje w backlogu.                                                       |
-| D3  | Focus                | Jedno zdanie na tydzień w nowym `Cockpit/weeks.yaml` plus istniejące „Zmień aktywne” (`pinned.yaml`, maks. 3). Tematy mają dalej jedno źródło, `weeks.yaml` ich nie dubluje (wybór użytkownika).                      |
-| D4  | Miejsce i widoczność | Panel w Kokpicie, domyślnie zwinięty, bez przypomnień i znaczników „brak focusu” (wybór użytkownika). Zapisany focus widać u góry Kokpitu do końca tygodnia.                                                          |
-| D5  | Okno                 | Ostatnie 7 dni łącznie z dziś. Focus jest przypisany do tygodnia ISO bieżącego dnia (`week_start` = poniedziałek).                                                                                                    |
-| D6  | Prywatność `work`    | Dla projektów `owner: work` do promptu i do panelu idą tylko nazwa i liczby (commity, PR-y). Bez tematów commitów, bez treści zadań i bez treści zamknięć dnia. Ostrzeżenie „dane z firmy” jak przy paczce kontekstu. |
-| D7  | Język promptu        | Zawsze po polsku (treści Vaulta i commity są po polsku; wybór agenta nie zależy od języka interfejsu). Etykiety panelu przez `i18next` w PL i EN.                                                                     |
+| ID  | Temat                | Decyzja                                                                                                                                                                                                                                                                    |
+| --- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Rola AI              | Bez modelu w aplikacji: aplikacja zbiera dane i składa prompt do skopiowania (wybór użytkownika, 2026-11-16). Zero kluczy API i zero wysyłki z aplikacji; spójne z paczką kontekstu i Arsenałem.                                                                           |
+| D2  | Cel przeglądu        | Retrospektywa i focus dla użytkownika, nie raport dla innych (wybór użytkownika). Wariant „raport na daily/tygodniowy” z §8 specu asystenta zostaje w backlogu.                                                                                                            |
+| D3  | Focus                | Jedno zdanie na tydzień w nowym `Cockpit/weeks.yaml` plus istniejące „Zmień aktywne” (`pinned.yaml`, maks. 3). Tematy mają dalej jedno źródło, `weeks.yaml` ich nie dubluje (wybór użytkownika).                                                                           |
+| D4  | Miejsce i widoczność | Panel w Kokpicie, domyślnie zwinięty, bez przypomnień i znaczników „brak focusu” (wybór użytkownika). Zapisany focus widać u góry Kokpitu do końca tygodnia.                                                                                                               |
+| D5  | Okno                 | Ostatnie 7 dni łącznie z dziś. Focus jest przypisany do tygodnia ISO bieżącego dnia (`week_start` = poniedziałek).                                                                                                                                                         |
+| D6  | Prywatność `work`    | Dla projektów z danymi firmy (`hasCompanyData`: `owner: work` albo `type: etat`) do promptu i do panelu idą tylko nazwa i liczby (commity, PR-y). Bez tematów commitów, bez treści zadań i bez treści zamknięć dnia. Ostrzeżenie „dane z firmy” jak przy paczce kontekstu. |
+| D7  | Język promptu        | Zawsze po polsku (treści Vaulta i commity są po polsku; wybór agenta nie zależy od języka interfejsu). Etykiety panelu przez `i18next` w PL i EN.                                                                                                                          |
 
 ## 3. Zawartość zestawienia
 
 Źródła (wszystko tylko do odczytu poza `weeks.yaml`):
 
 1. **Commity i PR-y per projekt** (git): liczby z istniejącego `listGitHistory`, tematy commitów z nowej funkcji (zob. §4). Maks. 15 tematów na projekt, reszta jako „… i N więcej”.
-2. **Zamknięte zadania** w `tasks.md` projektów (`status: done`), których tekst zawiera datę `RRRR-MM-DD` z okna (liczy się ostatnia data w tekście). Daty nie ma w polu, tylko w tekście wpisu, więc w prompcie lista jest opisana jako „przybliżenie”. Zadania ogólne (`Tasks/tasks.md`) są poza zakresem.
+2. **Zamknięte zadania** w `tasks.md` projektów (`done`) z `doneDate` w oknie. `doneDate` parser tablicy czyta z końcowego ` — RRRR-MM-DD` w tekście wpisu; zadanie bez takiej daty na końcu nie wchodzi do zestawienia, więc w prompcie lista jest opisana jako „przybliżenie”. Zadania ogólne (`Tasks/tasks.md`) są poza zakresem.
 3. **Zamknięcia dnia** (`Cockpit/closing.yaml`) z okna: data, zdanie, projekt.
 4. **Review z GitHuba**: zatwierdzone, komentarze i liczba PR-ów z istniejącego `getReviewHistory(7)`. Brak `gh` to `available: false`, bez błędu.
 5. **Spotkania** z kalendarza (`type: meeting`): sama liczba i łączny czas. Bez tytułów, bo wydarzenia nie mają `owner` i tytuł mógłby zawierać dane firmy.
@@ -54,14 +54,14 @@ Architektura: `bc_cockpit/services` woła tylko `services` innych kontekstów (`
 
 ## 5. UI
 
-**`src/features/home/WeekReview.tsx` (nowy):** panel `kok-panel` w lewej kolumnie Kokpitu pod historią commitów, domyślnie zwinięty (nagłówek „Przegląd tygodnia” i chip z liczbą commitów). Po rozwinięciu pobiera `GET /api/cockpit/week-review` i pokazuje: wiersze projektów (nazwa, commity, PR-y, zamknięte zadania; projekty `work` ze znacznikiem „Dane z firmy” i samymi liczbami), zamknięcia dnia, review, spotkania. Niżej:
+**`src/features/home/WeekReview.tsx` (nowy):** panel `kok-panel` w lewej kolumnie Kokpitu pod historią commitów, domyślnie zwinięty (tytuł „Przegląd tygodnia” i przycisk „Pokaż”/„Ukryj”); zwinięty nie pobiera danych. Po pierwszym rozwinięciu pobiera `GET /api/cockpit/week-review` i pokazuje: wiersze projektów (nazwa, commity, PR-y; projekty z danymi firmy ze znacznikiem „Dane z firmy” i samymi liczbami), zamknięcia dnia, review, spotkania. Niżej:
 
-- przycisk **„Kopiuj prompt dla agenta”** (kopiuje `prompt`; przy `containsWork` pod przyciskiem ostrzeżenie „dane z firmy: sprawdź, gdzie wklejasz”, kopiowanie nie jest blokowane);
-- pole **„Focus na ten tydzień”** (jedno zdanie, licznik znaków) i **„Zapisz”**; po zapisie przycisk otwiera istniejące okno „Zmień aktywne”.
+- przycisk **„Kopiuj prompt dla agenta”** (kopiuje `prompt`; przy `containsWork` pod przyciskiem ostrzeżenie „Dane z firmy: sprawdź, gdzie wklejasz.”, kopiowanie nie jest blokowane);
+- pole **„Focus na ten tydzień”** (jedno zdanie, maks. 300 znaków, wstępnie wypełnione zapisanym focusem), przycisk **„Zapisz”** i obok przycisk **„Zmień aktywne tematy”**, który otwiera istniejące okno wyboru (`pinned.yaml`).
 
-Props: `{ apiFetch, day, focus, onFocusSaved }`; `focus` przychodzi z `Cockpit.weekFocus`. Po zapisie Kokpit odświeża się tym samym mechanizmem co po zamknięciu dnia. Zapisany focus wyświetla się u góry Kokpitu jedną linią („Focus tygodnia: …”) i znika od poniedziałku następnego tygodnia (brak rekordu dla bieżącego `week_start`).
+Props: `{ apiFetch, focus, onChangeActive, onFocusSaved }`; `focus` przychodzi z `Cockpit.weekFocus`, a komponent dostaje `key={data.date}`, więc po północy wczytuje się od nowa. Po zapisie Kokpit odświeża się tym samym mechanizmem co po zamknięciu dnia (`loadCockpit`). Zapisany focus wyświetla się u góry Kokpitu jedną linią („Focus tygodnia: …”) i znika od poniedziałku następnego tygodnia (brak rekordu dla bieżącego `week_start`).
 
-**i18n:** `src/i18n/locales/{pl,en}/home.ts`, sekcja `weekReview` (`title`, `chip`, `copyPrompt`, `copied`, `workWarning`, `focusLabel`, `focusSave`, `focusLine`, etykiety sekcji i stany puste); test parytetu kluczy PL/EN już istnieje.
+**i18n:** `src/i18n/locales/{pl,en}/home.ts`, sekcja `weekReview` (`title`, `copyPrompt`, `copyOk`, `workWarning`, `focusLabel`, `focusSave`, `focusLine`, etykiety sekcji i stany puste); test parytetu kluczy PL/EN już istnieje.
 
 ## 6. Prompt (kształt)
 
@@ -100,18 +100,18 @@ Konkretne przypadki z oczekiwanymi wartościami:
 
 - `weekStart`: `2026-11-16` (poniedziałek) → `2026-11-16`; `2026-11-22` (niedziela) → `2026-11-16`; `2026-11-23` → `2026-11-23`; `2027-01-01` (piątek) → `2026-12-28`.
 - Okno: dla `today = 2026-11-16` `from = 2026-11-10`, `to = 2026-11-16`.
-- `listDoneTasksInWindow`: wpis `… — 2026-11-10` wchodzi; `… — 2026-11-09` nie; wpis bez daty nie; wpis z dwiema datami (`2026-11-03` … `2026-11-12`) liczy się po ostatniej (`2026-11-12`, wchodzi); zadanie niezamknięte z datą w oknie nie.
+- `listDoneTasksInWindow`: `doneDate: 2026-11-10` wchodzi (granica `from`); `2026-11-16` wchodzi (granica `to`); `2026-11-09` nie; zadanie `done` bez `doneDate` nie; zadanie niezamknięte nie; zadania ze wszystkich czterech kolumn tablicy.
 - Maskowanie: projekt `owner: work` z 10 commitami i 2 zadaniami daje `commits: 10`, `subjects: []`, `doneTasks: []`, `work: true`; jego zamknięcie dnia ma `text: null`; `containsWork: true`; prompt zawiera linię z liczbami, a nie zawiera żadnego tematu commitu ani treści zadania tego projektu.
 - Prompt: 20 tematów commitów → 15 wypisanych i „… i 5 więcej”; sekcje bez danych pominięte; brak gita → zdanie „dane z gita niedostępne”, bez sekcji commitów.
 - Spotkania: 3 wydarzenia `meeting` po 60 min i 1 `work` → `count: 3`, `minutes: 180`.
 - `setWeekFocus`: pusty tekst lub same spacje → `DomainError`; 301 znaków → `DomainError`; 300 znaków przechodzi; drugi zapis w tym samym tygodniu zastępuje pierwszy (jeden rekord); zapis w innym tygodniu dopisuje drugi rekord.
 - `getCockpit`: `weekFocus` to rekord bieżącego `week_start` albo `null` (focus z poprzedniego tygodnia nie jest pokazywany).
 - Router: `PUT /api/cockpit/week-focus` z pustym ciałem → 400; `GET /api/cockpit/week-review` przy braku gita i `gh` → 200 z `available: false`.
-- UI (`WeekReview.test.tsx`): zwinięty panel nie pobiera danych; rozwinięcie pobiera raz; ostrzeżenie widać tylko przy `containsWork`; „Kopiuj prompt” kopiuje `prompt` do schowka; zapis focusu wysyła `PUT` i woła `onFocusSaved`.
+- UI (`WeekReview.test.tsx`): zwinięty panel nie pobiera danych; rozwinięcie pobiera raz; ostrzeżenie widać tylko przy `containsWork`; „Kopiuj prompt” kopiuje `prompt` do schowka; zapis focusu wysyła `PUT` i woła `onFocusSaved`; „Zmień aktywne tematy” woła `onChangeActive`.
 - i18n: parytet kluczy PL/EN (istniejący test), `weekReview` w obu językach.
 
 ## 9. Ryzyka i odłożone
 
-- **Daty zadań w tekście** są konwencją, nie polem: zadanie bez daty w tekście nie trafi do zestawienia. Świadomie przyjęte (przybliżenie opisane w prompcie); jeśli zacznie przeszkadzać, osobna zmiana formatu zadań.
+- **Data ukończenia zadania** to konwencja końcowego ` — RRRR-MM-DD` w tekście: zadanie bez niej na końcu nie trafi do zestawienia. Świadomie przyjęte (przybliżenie opisane w prompcie); jeśli zacznie przeszkadzać, osobna zmiana formatu zadań.
 - **Tematy commitów** to treść repozytoriów `personal`; trafiają do schowka użytkownika, nie wychodzą z aplikacji.
 - **Jeden zapis na tydzień**: brak historii zmian focusu; poprzednie tygodnie zostają w `weeks.yaml` bez widoku (do ewentualnej retrospektywy później).
