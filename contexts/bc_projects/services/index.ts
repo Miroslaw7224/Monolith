@@ -1,6 +1,7 @@
 import {
   NOW_LIMIT,
   type ContextPack,
+  type CodeSync,
   type ContextPackRole,
   type Freshness,
   type NewProjectInput,
@@ -13,6 +14,7 @@ import {
   type NowTask,
   type Owner,
   type Project,
+  type ProjectState,
   type ProjectType,
   type ProjectWithContent,
   type RegistryEntry,
@@ -24,11 +26,13 @@ import {
   appendDevlogEntry,
   createProjectFiles,
   readAiContext,
+  readCodeSync,
   readDevlog,
   readGitActivity,
   readGitHistory,
   readGitSnapshot,
   readGitSubjects,
+  readHeadSha,
   readIndexRules,
   readProjectBoard,
   readProjectContent,
@@ -345,6 +349,31 @@ function findEntry(id: string): RegistryEntry {
   return entry;
 }
 
+/** Stan karty względem repo. Bez `code_commit` nie dotykamy gita (`no-baseline`). */
+function codeSyncOf(entry: RegistryEntry, state: ProjectState | null): CodeSync {
+  const sha = state?.codeCommit;
+  if (!sha) return { status: "no-baseline" };
+  return readCodeSync(entry, sha);
+}
+
+export function getCodeSync(id: string): CodeSync {
+  const entry = findEntry(id);
+  return codeSyncOf(entry, readProjectState(entry).state);
+}
+
+/** Stany wszystkich projektów po `id`; błąd jednego projektu daje `unavailable` tylko dla niego. */
+export function listCodeSync(): Record<string, CodeSync> {
+  const out: Record<string, CodeSync> = {};
+  for (const entry of readRegistry().entries) {
+    try {
+      out[entry.id] = codeSyncOf(entry, readProjectState(entry).state);
+    } catch {
+      out[entry.id] = { status: "unavailable" };
+    }
+  }
+  return out;
+}
+
 export function getProject(id: string, today: Date = new Date()): ProjectWithContent {
   const entry = findEntry(id);
   const index = readProjectIndex(entry);
@@ -362,6 +391,7 @@ export function getProject(id: string, today: Date = new Date()): ProjectWithCon
     stateVersion: version,
     devlog,
     freshness: freshness(effectiveLastWorked(index.lastWorked, state?.updated), today),
+    codeSync: codeSyncOf(entry, state),
   };
 }
 
@@ -480,10 +510,53 @@ export async function saveState(
       milestoneDue: input.milestoneDue,
       updated: localDateTime(now),
       notes: current?.notes ?? "",
+      codeCommit: current?.codeCommit,
     },
     input.version
   );
   return getProject(id, now);
+}
+
+const SHA_FORMAT = /^[0-9a-f]{7,40}$/;
+const EMPTY_STATE: ProjectState = {
+  branch: "",
+  env: "",
+  blocker: "",
+  nextStep: "",
+  links: [],
+  milestone: "",
+  notes: "",
+};
+
+/**
+ * Zapisuje w `state.md` tylko `code_commit` (nie ustawia `updated`: potwierdzenie sha nie jest pracą
+ * nad projektem i nie może maskować `stale`). Bez `commit` bierze HEAD. Commit musi być równy HEAD
+ * albo jego przodkiem. Brak `state.md` tworzy plik z pustymi polami; zmiana pliku w międzyczasie
+ * daje `ConflictError`.
+ */
+export async function markCodeSynced(
+  id: string,
+  commit?: string,
+  today: Date = new Date()
+): Promise<ProjectWithContent> {
+  const entry = findEntry(id);
+  if (commit !== undefined && !SHA_FORMAT.test(commit)) {
+    throw new DomainError("Zły sha commita (oczekiwano 7–40 znaków szesnastkowych)", 422);
+  }
+  const target = commit ?? readHeadSha(entry);
+  if (target === null) {
+    throw new DomainError("Repozytorium projektu jest niedostępne albo nie ma commitów", 422);
+  }
+  const sync = readCodeSync(entry, target);
+  if (sync.status !== "current" && sync.status !== "behind") {
+    throw new DomainError(
+      `Commit ${target.slice(0, 7)} nie jest równy HEAD ani jego przodkiem w repozytorium projektu`,
+      422
+    );
+  }
+  const { state, version } = readProjectState(entry);
+  writeProjectState(entry, { ...(state ?? EMPTY_STATE), codeCommit: target }, version);
+  return getProject(id, today);
 }
 
 export async function addDevlogEntry(
