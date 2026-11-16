@@ -200,6 +200,11 @@ export function ProjectSaveState(props: {
         ) : null}
       </div>
       <div className="prj-savestate">
+        {project.whereIStopped ? (
+          <StateBox label={t("projects:saveState.whereStopped")} wide>
+            <p className="prj-where">{project.whereIStopped}</p>
+          </StateBox>
+        ) : null}
         <StateBox label={t("projects:saveState.readBranch")}>
           <p className="prj-statebox__val">{dash(state.branch)}</p>
         </StateBox>

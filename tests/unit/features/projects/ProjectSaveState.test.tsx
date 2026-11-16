@@ -67,6 +67,19 @@ describe("ProjectSaveState", () => {
     expect(screen.getByRole("button", { name: "Edytuj" })).toBeInTheDocument();
   });
 
+  it("ze state i wpisem w index.md: „Gdzie skończyłem” nad kaflami", () => {
+    renderIt(project({ state: STATE, stateVersion: "5:h", whereIStopped: "tu skończyłem" }));
+    expect(screen.getByText("Gdzie skończyłem (z index.md)")).toBeInTheDocument();
+    expect(screen.getByText("tu skończyłem")).toBeInTheDocument();
+    expect(screen.getByText("main")).toBeInTheDocument();
+  });
+
+  it("ze state bez wpisu w index.md: bez pustego kafla „Gdzie skończyłem”", () => {
+    renderIt(project({ state: STATE, stateVersion: "5:h", whereIStopped: null }));
+    expect(screen.queryByText("Gdzie skończyłem (z index.md)")).toBeNull();
+    expect(screen.queryByText("Brak wpisu")).toBeNull();
+  });
+
   it("zapis: onSave raz z przyciętymi liniami linków i wersją pliku", async () => {
     const { user, onSave } = renderIt(project({ state: STATE, stateVersion: "5:h" }));
     await user.click(screen.getByRole("button", { name: "Edytuj" }));
