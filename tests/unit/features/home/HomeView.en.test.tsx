@@ -84,6 +84,9 @@ function respond(cockpit: CockpitDto) {
         json: async () => ({ available: false, days: [], total: 0, totalPrs: 0 }),
       });
     }
+    if (url === "/api/cockpit/reviews") {
+      return Promise.resolve({ ok: true, json: async () => ({ available: true, items: [] }) });
+    }
     return Promise.resolve({ ok: true, json: async () => [] });
   });
 }

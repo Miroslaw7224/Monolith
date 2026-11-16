@@ -236,6 +236,9 @@ function respond(cockpit: CockpitDto | "fail") {
     if (url.startsWith("/api/cockpit/commits")) {
       return Promise.resolve({ ok: true, json: async () => HISTORY });
     }
+    if (url === "/api/cockpit/reviews") {
+      return Promise.resolve({ ok: true, json: async () => ({ available: true, items: [] }) });
+    }
     if (url === "/api/projects") {
       return Promise.resolve({
         ok: true,

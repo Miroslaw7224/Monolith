@@ -1361,3 +1361,41 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- Do zrecenzowania ---------- */
+.kok-reviews__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.kok-reviews__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kok-reviews__link {
+  color: var(--text);
+  text-decoration: none;
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.kok-reviews__link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.kok-reviews__ref {
+  color: var(--accent);
+}
+
+.kok-reviews__meta {
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
