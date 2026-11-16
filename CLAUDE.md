@@ -107,6 +107,13 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   Wszystko inne (flagi, pipe, przekierowania, inne komendy, sieć) kończy się kodem 2 i zatwierdza użytkownik.
 - Komenda `/consult <agy|cursor|both> <zadanie>` robi to samo.
 - NIE używaj `agy -p ...` ani `cursor-agent -p ...` przez Basha: to osobne procesy bez kontekstu sesji.
+- **Cursor Agent** działa w panelu workspace `hc` w katalogu Monolith (stan z 2026-11-16: terminal `t1s`, pasek „Composer 2.5”).
+  `hc ls` pokazuje go jako `agent: bash`, bo to powłoka z uruchomionym `cursor-agent`; `ask-helper.sh cursor` znajduje go sam
+  (`hc get <terminal>` → `foreground.argv` zawiera `cursor-agent`), więc **nie podawaj `--target`**. Wołanie:
+  `scripts/ask-helper.sh --role advice|review|task --tier light [--fresh|--keep] cursor "prompt"` (zawsze `--tier light`, zob. pamięć
+  „Cursor: Composer 2.5 bez fast”). Kod 1 „nie znaleziono” = Cursor nie jest uruchomiony w żadnym panelu `hc`: poproś
+  użytkownika o start (`agent` / `cursor-agent` w panelu w katalogu Monolith), nie startuj go sam. Nie czekaj na niego przez `hc wait`
+  (wisi); wynik wraca z `ask-helper.sh` albo z `hc read <terminal>`. Adres terminala zmienia się po restarcie core: sprawdź `hc ls`.
 - Pomocnicy działają w `~/projects/Brain_7224/Monolith`; w prompcie podawaj ścieżki względem tego katalogu,
   a do NEXUS przez `../NEXUS/...` (oba mają odczyt NEXUS). Uprawnienia komend cursora są w globalnym
   `~/.cursor/cli-config.json` (`Brain_7224/.cursor/cli.json` nie jest wczytywany z tego katalogu).
@@ -115,6 +122,13 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   **Zgoda użytkownika (2026-11-13):** wolno mi zatwierdzić (`hc keys <terminal> enter` = „Yes, run command”, jednorazowo)
   polecenia wyłącznie do odczytu, które nic nie zmieniają w kodzie ani w vaulcie: `head`, `cat`, `ls`, `grep`, `rg`, `find`
   (bez `-exec`/`-delete`), `git show|diff|log|status`, `wc`, `sed -n`. Nie wybieram opcji „always allow” (2 i 3).
+  **Zgoda użytkownika (2026-11-16), rozszerzenie:** wolno mi zatwierdzać (jednorazowo, `hc keys <terminal> enter`) **każde
+  polecenie TYLKO DO ODCZYTU, które niczego nie zmienia** (pliki, repozytoria, vault, ustawienia, stan systemu), także spoza
+  listy powyżej, np. `git branch -a`, `git remote -v`, `git -C <ścieżka> …` z podkomendą odczytu, `tree`, `stat`, `file`, `du`, `pwd`.
+  Warunki: przed zatwierdzeniem czytam pełne polecenie w panelu i sam stwierdzam, że nic nie zapisuje, nie kasuje, nie
+  uruchamia kodu, nie łączy się z siecią i nie przekierowuje do pliku (`>`, `>>`, `tee`); zawiłe lub niejednoznaczne
+  polecenia (pipe do interpretera, `-exec`, `xargs` z poleceniem zapisującym, `git branch <nazwa>`, `git remote add`,
+  `git config` z wartością, `sed -i`) traktuję jak zapis. Opcji „always allow” (2 i 3) nadal nie wybieram.
   **Zgoda użytkownika (2026-11-13):** wolno mi też zatwierdzać (jednorazowo, `hc keys <terminal> enter`) polecenia
   testów i sprawdzeń, o które sam poprosiłem pomocnika, gdy działają zgodnie z moim poleceniem i nie modyfikują kodu:
   `npx tsc --noEmit`, `npx vitest run [ścieżki]`, `npm run lint`, `npm run build` (zapisuje tylko `.next/`), a także
