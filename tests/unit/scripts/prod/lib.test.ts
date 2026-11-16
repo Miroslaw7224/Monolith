@@ -158,3 +158,46 @@ describe("prod_port_state", () => {
     }
   });
 });
+
+describe("prod_sync_ref", () => {
+  let remote: string;
+  const rgit = (...a: string[]) =>
+    execFileSync("git", ["-C", remote, ...a], { encoding: "utf8" }).trim();
+
+  beforeEach(() => {
+    git("branch", "-M", "main");
+    remote = fs.mkdtempSync(path.join(os.tmpdir(), "prod-remote-"));
+    execFileSync("git", ["clone", "-q", dir, remote]);
+    rgit("config", "user.email", "t@example.com");
+    rgit("config", "user.name", "t");
+  });
+  afterEach(() => fs.rmSync(remote, { recursive: true, force: true }));
+
+  function remoteCommit(msg: string) {
+    fs.writeFileSync(path.join(remote, `r-${msg}.txt`), msg);
+    rgit("add", ".");
+    rgit("-c", "commit.gpgsign=false", "commit", "-q", "-m", msg);
+  }
+
+  it("bez zdalnego origin: lokalny main", async () => {
+    expect(await call("prod_sync_ref", dir)).toEqual({ code: 0, stdout: "main" });
+  });
+
+  it("origin ma nowsze commity: pobiera je i zwraca origin/main", async () => {
+    git("remote", "add", "origin", remote);
+    remoteCommit("po-merge");
+    expect(await call("prod_sync_ref", dir)).toEqual({ code: 0, stdout: "origin/main" });
+    expect(git("rev-parse", "origin/main")).toBe(rgit("rev-parse", "HEAD"));
+  });
+
+  it("lokalny main ma commit, którego nie ma zdalnie: zostaje lokalny main", async () => {
+    git("remote", "add", "origin", remote);
+    commit("lokalny");
+    expect(await call("prod_sync_ref", dir)).toEqual({ code: 0, stdout: "main" });
+  });
+
+  it("origin niedostępny (offline): lokalny main, bez błędu", async () => {
+    git("remote", "add", "origin", path.join(os.tmpdir(), "nie-ma-takiego-repo"));
+    expect(await call("prod_sync_ref", dir)).toEqual({ code: 0, stdout: "main" });
+  });
+});
