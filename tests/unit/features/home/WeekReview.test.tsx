@@ -143,6 +143,18 @@ describe("WeekReview", () => {
     expect(onChangeActive).toHaveBeenCalledTimes(1);
   });
 
+  test("po nieudanym pobraniu ponowne otwarcie panelu ponawia żądanie", async () => {
+    const apiFetch = vi.fn().mockResolvedValueOnce(fail()).mockResolvedValueOnce(ok(REVIEW));
+    mount({ apiFetch });
+    fireEvent.click(screen.getByRole("button", { name: "Pokaż" }));
+    expect(await screen.findByText("Nie udało się wczytać przeglądu")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ukryj" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pokaż" }));
+    expect(await screen.findByText("Monolith")).toBeTruthy();
+    expect(screen.queryByText("Nie udało się wczytać przeglądu")).toBeNull();
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+  });
+
   test.each([
     ["HTTP 500", () => fail()],
     ["odpowiedź bez projects", () => ok({ git: {} })],

@@ -37,13 +37,19 @@ export function WeekReview({
   useEffect(() => {
     if (!open || requested.current) return;
     requested.current = true;
+    setFailed(false);
+    // po błędzie `requested` wraca na false: ponowne otwarcie panelu ponawia żądanie
+    const fail = () => {
+      requested.current = false;
+      setFailed(true);
+    };
     apiFetch("/api/cockpit/week-review")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((data: WeekReviewDto) => {
         if (data && Array.isArray(data.projects)) setReview(data);
-        else setFailed(true);
+        else fail();
       })
-      .catch(() => setFailed(true));
+      .catch(fail);
   }, [open, apiFetch]);
 
   useEffect(

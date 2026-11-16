@@ -809,7 +809,8 @@ export async function getWeekReview(today: Date = new Date()): Promise<WeekRevie
       .listProjects()
       .projects.map((p) => [p.id, projectsServices.hasCompanyData(p.owner, p.type)] as const)
   );
-  const isCompany = (id: string | null) => id !== null && company.get(id) === true;
+  // fail-closed: projekt spoza rejestru (np. usunięty, a wpisany w zamknięciu dnia) traktujemy jak dane firmy
+  const isCompany = (id: string | null) => id !== null && company.get(id) !== false;
 
   const history = projectsServices.listGitHistory(from, to);
   const sum = (record: Record<string, number>) =>

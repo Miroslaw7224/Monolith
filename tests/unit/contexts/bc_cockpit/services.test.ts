@@ -1889,6 +1889,33 @@ describe("getWeekReview", () => {
     expect(review.prompt).not.toContain("feat: a");
   });
 
+  it("nieznany projekt (brak w rejestrze) jest traktowany jak dane firmy: fail-closed", async () => {
+    mockListGitHistory.mockReturnValue([
+      { projectId: "duch", name: "Duch", days: { "2026-11-11": 4 }, prs: {} },
+    ]);
+    mockListGitSubjects.mockReturnValue([
+      { projectId: "duch", name: "Duch", subjects: ["sekret ducha"] },
+    ]);
+    mockReadClosings.mockReturnValue([
+      { date: "2026-11-12", text: "Zamknięcie ducha", projectId: "duch", commits: 1 },
+    ]);
+    const review = await getWeekReview(MONDAY);
+    expect(review.projects[0]).toMatchObject({ projectId: "duch", work: true, subjects: [] });
+    expect(review.closings).toEqual([{ date: "2026-11-12", text: null, projectId: "duch" }]);
+    expect(review.prompt).not.toContain("sekret ducha");
+    expect(review.prompt).not.toContain("Zamknięcie ducha");
+  });
+
+  it("zamknięcie dnia bez projektu jest pokazywane", async () => {
+    mockReadClosings.mockReturnValue([
+      { date: "2026-11-12", text: "Ogólne zdanie", projectId: null, commits: 1 },
+    ]);
+    const review = await getWeekReview(MONDAY);
+    expect(review.closings).toEqual([
+      { date: "2026-11-12", text: "Ogólne zdanie", projectId: null },
+    ]);
+  });
+
   it("bez gita i gh: sekcje niedostępne, bez wyjątku", async () => {
     mockListGitHistory.mockReturnValue([]);
     mockListGitSubjects.mockReturnValue([]);
