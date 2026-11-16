@@ -1762,3 +1762,13 @@ describe("K1: układ wg makiety", () => {
     expect(tile2).toHaveTextContent("brak nadchodzących spotkań");
   });
 });
+
+describe("panel „Do zrecenzowania”", () => {
+  test("stoi nad osią dnia", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const reviews = await screen.findByRole("region", { name: "Prośby o review" });
+    const axis = screen.getByRole("region", { name: "Oś dnia" });
+    expect(reviews.compareDocumentPosition(axis) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

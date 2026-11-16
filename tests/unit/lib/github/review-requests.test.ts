@@ -27,6 +27,7 @@ const PR = {
   author: { login: "Adiszef-ai", type: "User" },
   repository: { name: "career-guide", nameWithOwner: "crait-p-s-a/career-guide" },
   updatedAt: "2026-11-16T05:58:28Z",
+  state: "open",
 };
 
 beforeEach(() => {
@@ -46,9 +47,17 @@ describe("fetchReviewRequests", () => {
           author: "Adiszef-ai",
           url: "https://github.com/crait-p-s-a/career-guide/pull/1476",
           updatedAt: "2026-11-16T05:58:28Z",
+          state: "open",
         },
       ],
     });
+  });
+
+  it("zmergowany PR z wiszącą prośbą zostaje, ze state merged", async () => {
+    ghReturns(JSON.stringify([{ ...PR, number: 9, state: "merged" }]));
+    const res = await fetchReviewRequests();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items.map((i) => [i.number, i.state])).toEqual([[9, "merged"]]);
   });
 
   it("pusta tablica to ok z pustą listą", async () => {
@@ -81,6 +90,9 @@ describe("fetchReviewRequests", () => {
     ["brak nameWithOwner", { ...PR, repository: { name: "x" } }],
     ["updatedAt nie jest datą", { ...PR, updatedAt: "nie-data" }],
     ["brak updatedAt", { ...PR, updatedAt: undefined }],
+    ["PR zamknięty bez merge'a", { ...PR, state: "closed" }],
+    ["brak state", { ...PR, state: undefined }],
+    ["nieznany state", { ...PR, state: "draft" }],
     ["updatedAt luźny ciąg liczbowy", { ...PR, updatedAt: "1" }],
     ["number zero", { ...PR, number: 0 }],
     ["number ujemny", { ...PR, number: -3 }],
@@ -145,11 +157,14 @@ describe("fetchReviewRequests", () => {
       "search",
       "prs",
       "--review-requested=@me",
-      "--state=open",
+      "--sort",
+      "updated",
+      "--order",
+      "desc",
       "--limit",
-      "30",
+      "100",
       "--json",
-      "number,title,url,author,repository,updatedAt",
+      "number,title,url,author,repository,updatedAt,state",
     ]);
     expect(opts.timeout).toBe(8000);
     expect(opts.maxBuffer).toBe(256 * 1024);

@@ -141,7 +141,7 @@ export type CommitHistory = {
   days: CommitDay[];
 };
 
-/** Otwarty PR z prośbą o review do użytkownika (tylko odczyt z GitHuba). */
+/** PR (otwarty albo zmergowany) z wiszącą prośbą o review do użytkownika (tylko odczyt z GitHuba). */
 export type ReviewRequest = {
   /** `właściciel/repo`. */
   repo: string;
@@ -151,10 +151,15 @@ export type ReviewRequest = {
   url: string;
   /** Data ISO ostatniej zmiany PR-a. */
   updatedAt: string;
+  /** Zmergowany PR nadal czeka na review (zniknie z listy dopiero po review użytkownika). */
+  state: "open" | "merged";
 };
 
-/** Prośby o review; `available: false`, gdy GitHub jest niedostępny (brak `gh`, sieci, logowania). */
-export type ReviewRequests = { available: boolean; items: ReviewRequest[] };
+/**
+ * Prośby o review; `available: false`, gdy GitHub jest niedostępny (brak `gh`, sieci, logowania).
+ * `total` to liczba wszystkich próśb, a `items` może być krótsze (limit listy).
+ */
+export type ReviewRequests = { available: boolean; total: number; items: ReviewRequest[] };
 
 /** Proponowane okno pracy w wolnej części dnia, przypisane do zadania z kolejki (bez zapisu). */
 export type DeepWindow = {

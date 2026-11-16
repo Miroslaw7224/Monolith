@@ -20,6 +20,7 @@ describe("ReviewRequests po angielsku", () => {
       ok: true,
       json: async () => ({
         available: true,
+        total: 5,
         items: [
           {
             repo: "o/r",
@@ -28,6 +29,7 @@ describe("ReviewRequests po angielsku", () => {
             author: "ann",
             url: "https://github.com/o/r/pull/2",
             updatedAt: "2026-11-15T10:00:00Z",
+            state: "merged",
           },
         ],
       }),
@@ -35,6 +37,8 @@ describe("ReviewRequests po angielsku", () => {
     render(<ReviewRequests apiFetch={apiFetch} />);
     expect(await screen.findByText("To review")).toBeTruthy();
     expect(screen.getByRole("link", { name: /o\/r#2/ })).toBeTruthy();
+    expect(screen.getByText("merged")).toBeTruthy();
+    expect(screen.getByText("+4 older")).toBeTruthy();
   });
 
   test("pusta lista: komunikat", async () => {

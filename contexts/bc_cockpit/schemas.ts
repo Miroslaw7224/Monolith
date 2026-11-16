@@ -174,6 +174,7 @@ export function toCommitHistoryDto(h: CommitHistory): CommitHistoryDto {
 export function toReviewRequestsDto(r: ReviewRequests): ReviewRequestsDto {
   return {
     available: r.available,
+    total: r.total,
     items: r.items.map((i) => ({
       repo: i.repo,
       number: i.number,
@@ -181,6 +182,7 @@ export function toReviewRequestsDto(r: ReviewRequests): ReviewRequestsDto {
       author: i.author,
       url: i.url,
       updatedAt: i.updatedAt,
+      state: i.state,
     })),
   };
 }

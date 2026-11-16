@@ -73,6 +73,8 @@ export const home = {
     title: "To review",
     empty: "No review requests",
     error: "Could not load from GitHub",
+    merged: "merged",
+    more: "+{{n}} older",
   },
   common: {
     cancel: "Cancel",

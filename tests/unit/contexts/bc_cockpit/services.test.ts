@@ -1545,11 +1545,13 @@ describe("getReviewRequests", () => {
     author: "a",
     url: `https://github.com/o/r/pull/${n}`,
     updatedAt,
+    state: "open" as const,
   });
 
   it("sortuje malejąco po updatedAt", async () => {
     mockLoadReviewRequests.mockResolvedValue({
       available: true,
+      total: 3,
       items: [
         pr(1, "2026-11-14T10:00:00Z"),
         pr(2, "2026-11-16T10:00:00Z"),
@@ -1561,12 +1563,13 @@ describe("getReviewRequests", () => {
     expect(res.items.map((i) => i.number)).toEqual([2, 3, 1]);
   });
 
-  it("przycina do 20 najnowszych", async () => {
+  it("przycina do 20 najnowszych, total zostaje pełny", async () => {
     const items = Array.from({ length: 25 }, (_, i) =>
       pr(i + 1, new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString())
     ).reverse();
-    mockLoadReviewRequests.mockResolvedValue({ available: true, items });
+    mockLoadReviewRequests.mockResolvedValue({ available: true, total: 25, items });
     const res = await getReviewRequests();
+    expect(res.total).toBe(25);
     expect(MAX_REVIEW_REQUESTS).toBe(20);
     expect(res.items).toHaveLength(20);
     expect(res.items[0].number).toBe(25);
@@ -1574,7 +1577,7 @@ describe("getReviewRequests", () => {
   });
 
   it("niedostępny GitHub przechodzi bez zmian", async () => {
-    mockLoadReviewRequests.mockResolvedValue({ available: false, items: [] });
-    expect(await getReviewRequests()).toEqual({ available: false, items: [] });
+    mockLoadReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
+    expect(await getReviewRequests()).toEqual({ available: false, total: 0, items: [] });
   });
 });

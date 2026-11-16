@@ -65,9 +65,10 @@ export async function upsertClosing(closing: Closing): Promise<void> {
 /** Prośby o review z GitHuba (przez `lib/github`); błąd `gh` to `available: false`, nie wyjątek. */
 export async function loadReviewRequests(): Promise<ReviewRequests> {
   const res = await fetchReviewRequests();
-  if (res.ok === false) return { available: false, items: [] };
+  if (res.ok === false) return { available: false, total: 0, items: [] };
   return {
     available: true,
+    total: res.items.length,
     items: res.items.map((i) => ({
       repo: i.repo,
       number: i.number,
@@ -75,6 +76,7 @@ export async function loadReviewRequests(): Promise<ReviewRequests> {
       author: i.author,
       url: i.url,
       updatedAt: i.updatedAt,
+      state: i.state,
     })),
   };
 }

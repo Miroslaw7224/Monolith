@@ -173,20 +173,21 @@ describe("GET /api/cockpit/reviews", () => {
     author: "a",
     url: "https://github.com/o/r/pull/1",
     updatedAt: "2026-11-16T05:58:28Z",
+    state: "merged" as const,
   };
 
   it("200 z DTO", async () => {
-    mockGetReviewRequests.mockResolvedValue({ available: true, items: [item] });
+    mockGetReviewRequests.mockResolvedValue({ available: true, total: 9, items: [item] });
     const res = await getReviewRequests();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ available: true, items: [item] });
+    expect(await res.json()).toEqual({ available: true, total: 9, items: [item] });
   });
 
   it("200 i available false, gdy GitHub niedostępny (nie 500)", async () => {
-    mockGetReviewRequests.mockResolvedValue({ available: false, items: [] });
+    mockGetReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
     const res = await getReviewRequests();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ available: false, items: [] });
+    expect(await res.json()).toEqual({ available: false, total: 0, items: [] });
   });
 });
 

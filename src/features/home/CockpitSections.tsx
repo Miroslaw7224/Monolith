@@ -648,6 +648,8 @@ export function CockpitSections({
 
       <div className="kok-grid">
         <div className="kok-col">
+          <ReviewRequests apiFetch={apiFetch} />
+
           <section className="kok-panel" aria-label={t("home:cockpit.dayAxisAria")}>
             <div className="kok-panel__head">
               <h3 className="kok-panel__title">
@@ -662,7 +664,6 @@ export function CockpitSections({
             )}
           </section>
 
-          <ReviewRequests apiFetch={apiFetch} />
           <CommitHistory apiFetch={apiFetch} day={data.date} />
         </div>
 

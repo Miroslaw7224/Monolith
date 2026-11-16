@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 
-/** Otwarty PR, w którym użytkownik jest wskazany jako recenzent (spłaszczony wynik `gh`). */
+/** PR (otwarty albo już zmergowany), w którym użytkownik nadal jest wskazanym recenzentem (spłaszczony wynik `gh`). */
 export type GithubReviewRequest = {
   /** `właściciel/repo`. */
   repo: string;
@@ -11,6 +11,8 @@ export type GithubReviewRequest = {
   url: string;
   /** Data ISO ostatniej zmiany PR-a. */
   updatedAt: string;
+  /** Zmergowany PR nadal czeka na review, dopóki użytkownik go nie zostawi. */
+  state: "open" | "merged";
 };
 
 export type ReviewRequestsResult =
@@ -22,11 +24,14 @@ const GH_ARGS = [
   "search",
   "prs",
   "--review-requested=@me",
-  "--state=open",
+  "--sort",
+  "updated",
+  "--order",
+  "desc",
   "--limit",
-  "30",
+  "100",
   "--json",
-  "number,title,url,author,repository,updatedAt",
+  "number,title,url,author,repository,updatedAt,state",
 ];
 /** `gh` podaje daty ISO-8601 (`2026-11-16T05:58:28Z`); luźne ciągi typu „1” odrzucamy. */
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
@@ -94,7 +99,7 @@ function parseItem(raw: unknown): GithubReviewRequest | null {
   if (!r) return null;
   const repo = asObject(r.repository)?.nameWithOwner;
   const login = asObject(r.author)?.login;
-  const { number, title, url, updatedAt } = r;
+  const { number, title, url, updatedAt, state } = r;
   if (typeof repo !== "string" || repo === "") return null;
   if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return null;
   if (typeof title !== "string" || title === "") return null;
@@ -105,6 +110,8 @@ function parseItem(raw: unknown): GithubReviewRequest | null {
     !Number.isFinite(Date.parse(updatedAt))
   )
     return null;
+  // PR zamknięty bez merge'a: review nic już nie da, więc go pomijamy.
+  if (state !== "open" && state !== "merged") return null;
   return {
     repo,
     number,
@@ -112,10 +119,11 @@ function parseItem(raw: unknown): GithubReviewRequest | null {
     author: typeof login === "string" && login !== "" ? login : null,
     url,
     updatedAt,
+    state,
   };
 }
 
-/** Otwarte PR-y z prośbą o review do użytkownika (konto zalogowane w `gh`). Błąd `gh` to `ok: false`, nie wyjątek. */
+/** Otwarte i zmergowane PR-y z wiszącą prośbą o review do użytkownika (konto zalogowane w `gh`), najnowsze pierwsze. Błąd `gh` to `ok: false`, nie wyjątek. */
 export async function fetchReviewRequests(): Promise<ReviewRequestsResult> {
   const run = await runGh();
   if (run.ok === false) return run;

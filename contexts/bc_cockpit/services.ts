@@ -576,7 +576,7 @@ export async function getReviewRequests(): Promise<ReviewRequests> {
   const items = [...res.items]
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
     .slice(0, MAX_REVIEW_REQUESTS);
-  return { available: res.available, items };
+  return { available: res.available, total: res.total, items };
 }
 
 /**

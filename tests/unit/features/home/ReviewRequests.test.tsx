@@ -11,6 +11,7 @@ const ITEMS = [
     author: "Adiszef-ai",
     url: "https://github.com/crait-p-s-a/career-guide/pull/1476",
     updatedAt: "2026-11-16T05:58:28Z",
+    state: "open",
   },
   {
     repo: "o/r",
@@ -19,12 +20,13 @@ const ITEMS = [
     author: null,
     url: "https://github.com/o/r/pull/2",
     updatedAt: "2026-11-15T10:00:00Z",
+    state: "merged",
   },
 ];
 
-const ok = (items: unknown[]) => ({
+const ok = (items: unknown[], total: number = items.length) => ({
   ok: true,
-  json: async () => ({ available: true, items }),
+  json: async () => ({ available: true, total, items }),
 });
 
 function setVisibility(state: "visible" | "hidden") {
@@ -57,6 +59,27 @@ describe("ReviewRequests", () => {
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
     expect(screen.getByRole("link", { name: /o\/r#2/ })).toBeTruthy();
     expect(screen.getByText(/Adiszef-ai/)).toBeTruthy();
+  });
+
+  test("zmergowany PR ma znacznik „scalony”, otwarty go nie ma", async () => {
+    const apiFetch = vi.fn().mockResolvedValue(ok(ITEMS));
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    await screen.findByText("Do zrecenzowania");
+    expect(screen.getAllByText("scalony")).toHaveLength(1);
+  });
+
+  test("chip pokazuje pełną liczbę, a pod listą „+N starszych”", async () => {
+    const apiFetch = vi.fn().mockResolvedValue(ok(ITEMS, 39));
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    expect(await screen.findByText("39")).toBeTruthy();
+    expect(screen.getByText("+37 starszych")).toBeTruthy();
+  });
+
+  test("gdy wszystkie się mieszczą, nie ma wiersza „starszych”", async () => {
+    const apiFetch = vi.fn().mockResolvedValue(ok(ITEMS));
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    await screen.findByText("Do zrecenzowania");
+    expect(screen.queryByText(/starszych/)).toBeNull();
   });
 
   test("pusta lista: komunikat, bez linków", async () => {

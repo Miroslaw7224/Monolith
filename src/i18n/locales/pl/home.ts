@@ -81,6 +81,8 @@ export const home = {
     title: "Do zrecenzowania",
     empty: "Brak próśb o review",
     error: "Nie można pobrać z GitHuba",
+    merged: "scalony",
+    more: "+{{n}} starszych",
   },
   common: {
     cancel: "Anuluj",

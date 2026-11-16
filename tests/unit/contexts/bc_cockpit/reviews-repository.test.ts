@@ -19,13 +19,14 @@ describe("loadReviewRequests", () => {
       author: "ktoś",
       url: "https://github.com/o/r/pull/5",
       updatedAt: "2026-11-16T05:58:28Z",
+      state: "merged",
     };
     mockFetchReviewRequests.mockResolvedValue({ ok: true, items: [item] });
-    expect(await loadReviewRequests()).toEqual({ available: true, items: [item] });
+    expect(await loadReviewRequests()).toEqual({ available: true, total: 1, items: [item] });
   });
 
   it.each(["gh-missing", "gh-error"])("%s to available false z pustą listą", async (reason) => {
     mockFetchReviewRequests.mockResolvedValue({ ok: false, reason });
-    expect(await loadReviewRequests()).toEqual({ available: false, items: [] });
+    expect(await loadReviewRequests()).toEqual({ available: false, total: 0, items: [] });
   });
 });
