@@ -13,6 +13,7 @@ $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\wsl.exe'
 $lnk.Arguments = "-d $Distro -- bash -lc `"cd '$ProdDir' && exec bash scripts/prod/start-prod.sh`""
 $lnk.IconLocation = $IconPath
 $lnk.Description = 'Monolith'
-$lnk.WindowStyle = 1
+# 7 = konsola zminimalizowana (nie wyskakuje na pierwszy plan; błędy start-prod.sh idą do MessageBox).
+$lnk.WindowStyle = 7
 $lnk.Save()
 Write-Output ("Skrót utworzony: " + (Join-Path $desktop 'Monolith.lnk'))

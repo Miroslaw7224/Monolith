@@ -45,7 +45,7 @@ Skrót Windows `Monolith.lnk` ma jedną, cienką komendę: `wsl.exe` wchodzi do 
 
 ### Okno i konsola
 
-- **Podczas budowania i startu** widać konsolę z logiem („Buduję…", „Startuję…"). Konsola zostaje widoczna przez cały czas działania (można ją zminimalizować); automatyczne minimalizowanie dałoby dużo kodu za mało.
+- **Podczas budowania i startu** widać konsolę z logiem („Buduję…", „Startuję…"). Skrót startuje konsolę zminimalizowaną (`WindowStyle = 7`), żeby nie wyskakiwała na pierwszy plan i nie dało się jej łatwo zamknąć przez pomyłkę; log jest w niej dostępny z paska zadań. Zamknięcie konsoli zatrzymuje serwer. Błędy startu (zajęty port, nieudany build bez poprzedniej wersji) `start-prod.sh` pokazuje w oknie Windows (MessageBox z PowerShella), bo ukryta konsola nie zostałaby zauważona.
 - **Błąd builda:** konsola zostaje otwarta z komunikatem błędu. Jeśli istnieje poprzedni udany build, start z nim (z ostrzeżeniem w konsoli); jeśli nie, koniec po naciśnięciu klawisza.
 - **Okno aplikacji:** `msedge.exe --app=http://127.0.0.1:3101` z dedykowanym profilem (`--user-data-dir` w `%LOCALAPPDATA%\Monolith`). Dzięki temu proces Edge jest osobny (skrypt może poczekać na jego zakończenie i wtedy wyłączyć serwer), a Monolith ma własną ikonę na pasku zadań. Skutek uboczny: `localStorage` nowego origin (127.0.0.1:3101) jest pusty, więc motyw i język trzeba ustawić raz.
 
