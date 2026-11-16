@@ -26,7 +26,7 @@ Realny ból: prośba o review cudzego PR-a przychodzi na GitHubie, a Monolith o 
 - `fetchReviewRequests(): Promise<ReviewRequestsResult>`, asynchronicznie przez `execFile` (nie `execFileSync`: zapytanie sieciowe nie może blokować serwera Node).
 - Biała lista: jedyne wywołanie to `gh search prs --review-requested=@me --state=open --limit 30 --json number,title,url,author,repository,updatedAt`, bez powłoki, bez argumentów z zewnątrz.
 - Środowisko: `{ ...process.env, GH_PROMPT_DISABLED: "1", GH_PAGER: "cat", NO_COLOR: "1", GH_NO_UPDATE_NOTIFIER: "1" }` (bez `...process.env` `gh` straciłby `PATH`, `HOME` i sesję logowania; wzór: `execGit` w `lib/git/project-git.ts`). Limit czasu 8 s, `maxBuffer` 256 KB (przekroczenie → `gh-error`).
-- Wynik: `{ ok: true, items }` albo `{ ok: false, reason }`, gdzie `reason` to `"gh-missing"` (`ENOENT`) lub `"gh-error"` (kod wyjścia ≠ 0, limit czasu, nieczytelny JSON). Funkcja nie rzuca wyjątków.
+- Wynik: `{ ok: true, items }` albo `{ ok: false, reason }`, gdzie `reason` to `"gh-missing"` (`ENOENT`) lub `"gh-error"` (kod wyjścia ≠ 0, limit czasu, nieczytelny JSON). `items` są już spłaszczone: `repo` (z `repository.nameWithOwner`), `author` (z `author.login` albo `null`). Funkcja nie rzuca wyjątków.
 - Walidacja wyjścia: JSON → tablica (`SyntaxError` lub inny kształt → `gh-error`); pozycja bez `number`, `title`, `url` lub `repository.nameWithOwner` jest pomijana, tak samo z `updatedAt`, którego `Date.parse` nie daje liczby skończonej (chroni sortowanie i UI przed `NaN`). `author` może być pusty (`null`/brak `login`).
 - `url` trafia do `href`, więc przepuszczamy tylko adresy, dla których `new URL(url)` daje `protocol === "https:"` i `hostname === "github.com"`; inne pozycje pomijamy.
 - Test architektury nie wymaga zmiany: żadna reguła R1–R7 nie wylicza katalogów `lib/` oprócz `lib/nexus`, `lib/http`, `lib/schema`.
@@ -34,7 +34,7 @@ Realny ból: prośba o review cudzego PR-a przychodzi na GitHubie, a Monolith o 
 **Kontekst `bc_cockpit`:**
 
 - `models.ts`: `ReviewRequest = { repo: string; number: number; title: string; author: string | null; url: string; updatedAt: string }` oraz `ReviewRequests = { available: boolean; items: ReviewRequest[] }`.
-- `repositories.ts`: `loadReviewRequests()` woła `lib/github` i mapuje wynik na model (`repository.nameWithOwner` → `repo`, `author.login` → `author`). Błąd `gh` daje `available: false`, `items: []`.
+- `repositories.ts`: `loadReviewRequests()` woła `lib/github` i kopiuje wynik do modelu. Błąd `gh` daje `available: false`, `items: []`.
 - `services.ts`: `getReviewRequests()` sortuje po `updatedAt` malejąco i przycina do `MAX_REVIEW_REQUESTS = 20`.
 - `schemas.ts`: `ReviewRequestDto`, `ReviewRequestsDto` (`available`, `items`) i maper `toReviewRequestsDto` (model → DTO). Plik zostaje bezpieczny dla klienta.
 - `router.ts`: `getReviewRequests()` zwraca zawsze 200; niedostępność GitHuba to `available: false`, nie 500 (jak `available: false` w historii commitów).
@@ -43,10 +43,10 @@ Realny ból: prośba o review cudzego PR-a przychodzi na GitHubie, a Monolith o 
 **UI `src/features/home/`:**
 
 - `ReviewRequests.tsx` (nowy; szkielet pobierania jak w `CommitHistory.tsx`: `apiFetch`, flaga `cancelled`, import z kontekstu tylko `schemas`). W odróżnieniu od `CommitHistory` nie ma propa `day`, a odświeża się cyklicznie: pobiera `/api/cockpit/reviews` przy montowaniu i co 5 min (`setInterval`, tick pomijany przy `document.visibilityState !== "visible"`), a po powrocie karty do widoczności (`visibilitychange`, wzór: `useCodex.ts`) robi jedno odświeżenie od razu. Przy odmontowaniu: `clearInterval`, zdjęcie nasłuchu `visibilitychange`, `cancelled = true`.
-- Wygląd: panel `kok-panel` z nagłówkiem „Do zrecenzowania (N)”. Pozycja: `repo#numer`, tytuł (link `target="_blank" rel="noopener noreferrer"`), autor oraz data i godzina ostatniej zmiany z `updatedAt` istniejącymi `formatShortDate` i `formatTime` z `src/i18n/format.ts` (bez nowych helperów i kluczy z odmianą; „godz. temu” odpada, bo `relativeDays` liczy tylko pełne dni).
+- Wygląd: panel `kok-panel` z nagłówkiem „Do zrecenzowania” i chipem `kok-chip` z liczbą (tylko gdy lista się wczytała). Pozycja: `repo#numer`, tytuł (link `target="_blank" rel="noopener noreferrer"`), autor oraz data i godzina ostatniej zmiany z `updatedAt` istniejącymi `formatShortDate` i `formatTime` z `src/i18n/format.ts` (bez nowych helperów i kluczy z odmianą; „godz. temu” odpada, bo `relativeDays` liczy tylko pełne dni).
 - Stany: 0 PR-ów → „Brak próśb o review”; `available: false`, błąd HTTP ≠ 200 albo odrzucony `apiFetch` → „Nie można pobrać z GitHuba” (inaczej niż `CommitHistory`, które w razie błędu ukrywa panel: tu cichy brak listy to dokładnie ten ból, który spec ma usunąć; reszta Kokpitu działa); przed pierwszą odpowiedzią → nic nie pokazujemy (bez migania).
 - `CockpitSections.tsx`: `<ReviewRequests apiFetch={apiFetch} />` obok `CommitHistory`.
-- `src/i18n/locales/{pl,en}/home.ts`: nowa sekcja `reviews` (jak `history`): `aria`, `title` (z `{{count}}`), `empty`, `error`. Parytet PL/EN pilnuje `tests/unit/i18n/parity.test.ts`.
+- `src/i18n/locales/{pl,en}/home.ts`: nowa sekcja `reviews` (jak `history`): `aria`, `title` (bez parametrów: klucz z `count` uruchamia odmianę liczebnikową), `empty`, `error`. Parytet PL/EN pilnuje `tests/unit/i18n/parity.test.ts`.
 - `home.css`: style listy w konwencji `kok-*`.
 
 **Dokumentacja:** `docs/nexus-vault-formaty-yaml.md` bez zmian (brak zapisu do vaulta). Wzmianka w `CLAUDE.md` o `lib/github/` w liście infrastruktury (`lib/git/`, …).
@@ -69,13 +69,13 @@ Realny ból: prośba o review cudzego PR-a przychodzi na GitHubie, a Monolith o 
 
 - `services.getReviewRequests`: 25 pozycji w losowej kolejności → 20 najnowszych, malejąco po `updatedAt`; `available: false` przechodzi bez zmian;
 - `router.getReviewRequests` (`tests/unit/contexts/bc_cockpit/router.test.ts`, wzór: testy `commits`): błąd `gh` → status 200 i `available: false`;
-- `repositories.loadReviewRequests`: mapowanie `repository.nameWithOwner` → `repo`, `author.login` → `author`; wynik `ok: false` → `available: false`;
+- `repositories.loadReviewRequests`: kopiowanie pól; wynik `ok: false` → `available: false`;
 - `schemas.toReviewRequestsDto`: mapowanie pól.
 
 `tests/unit/features/home/ReviewRequests.test.tsx`:
 
 - przed pierwszą odpowiedzią: brak panelu i komunikatów;
-- lista z 2 PR-ami: link ma `href`, `target="_blank"`, `rel="noopener noreferrer"`; nagłówek „(2)”;
+- lista z 2 PR-ami: link ma `href`, `target="_blank"`, `rel="noopener noreferrer"`; nagłówek „Do zrecenzowania” i chip „2”;
 - pusta lista → „Brak próśb o review”;
 - `available: false`, odpowiedź HTTP 500 i odrzucony `apiFetch` → komunikat o błędzie;
 - odświeżanie: fake timers wg wzoru `HomeView.test.tsx` (`vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"], now })`, `afterEach` → `vi.useRealTimers()`): po 5 min drugie wywołanie `apiFetch`; przy `visibilityState = "hidden"` tick nie woła; zdarzenie `visibilitychange` na `visible` woła od razu;
