@@ -3,6 +3,7 @@ build/
 dist/
 .next/
 .next-*/
+.monolith-start.lock
 coverage/
 .DS_Store
 *.log

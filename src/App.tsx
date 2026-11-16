@@ -4,10 +4,10 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useT } from "@/src/i18n/useT";
 import { useLang } from "@/src/i18n/useLang";
 import { apiFetch } from "@/src/lib/apiFetch";
-import PlanowanieView from "@/src/features/planowanie/PlanowanieView";
 import HomeView from "@/src/features/home/HomeView";
 import { ShellStatusBar } from "@/src/features/home/ShellStatusBar";
 import { MobileNav } from "@/src/components/layout/MobileNav";
@@ -20,9 +20,25 @@ import { buildCardCommands } from "@/src/features/cards/cards";
 import { buildAppCommands } from "@/src/features/cards/appCommands";
 import { FeedbackModal } from "@/src/components/layout/FeedbackModal";
 import { useTheme } from "@/src/components/theme/ThemeProvider";
-import { ProjectsView } from "@/src/features/projects/ProjectsView";
-import { MapView } from "@/src/features/map/MapView";
-import { CodexView } from "@/src/features/codex/CodexView";
+
+/** Widoki poza Kokpitem ładują się dopiero po wejściu w kartę (mniejszy pierwszy bundle). */
+const ViewFallback = () => <div className="flex-1" aria-busy="true" />;
+const ProjectsView = dynamic(
+  () => import("@/src/features/projects/ProjectsView").then((m) => m.ProjectsView),
+  { ssr: false, loading: ViewFallback }
+);
+const MapView = dynamic(() => import("@/src/features/map/MapView").then((m) => m.MapView), {
+  ssr: false,
+  loading: ViewFallback,
+});
+const CodexView = dynamic(() => import("@/src/features/codex/CodexView").then((m) => m.CodexView), {
+  ssr: false,
+  loading: ViewFallback,
+});
+const PlanowanieView = dynamic(() => import("@/src/features/planowanie/PlanowanieView"), {
+  ssr: false,
+  loading: ViewFallback,
+});
 
 export default function App() {
   const { lang, toggleLang } = useLang();
