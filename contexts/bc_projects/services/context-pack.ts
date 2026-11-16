@@ -2,6 +2,7 @@ import type {
   BugEntry,
   ContextPack,
   ContextPackRole,
+  GitRange,
   GitSnapshotResult,
   ProjectWithContent,
   RepoUnavailableReason,
@@ -34,6 +35,8 @@ export type ContextPackInput = {
   warnings: string[];
   /** Rola paczki (zestaw sekcji); brak = `full`. */
   role?: ContextPackRole;
+  /** Zakres commitów od `code_commit` (tylko rola `refresh`). */
+  range?: GitRange;
 };
 
 const FRESHNESS_LABEL = { fresh: "świeży", stale: "nieświeży", unknown: "brak danych" } as const;
@@ -46,6 +49,8 @@ type Knobs = {
   diff: boolean;
   devlog: number;
   rulesMax: number;
+  rangeCommits: number;
+  rangeDiff: number;
 };
 
 export const BUG_CLOSE_HINT =
@@ -63,7 +68,7 @@ function bugBlock(b: BugEntry): string {
   return lines.join("\n");
 }
 
-export type SectionId = "rules" | "state" | "git" | "tasks" | "bugs" | "devlog";
+export type SectionId = "rules" | "state" | "git" | "tasks" | "bugs" | "devlog" | "gitRange";
 
 type RoleProfile = {
   /** Sekcje po nagłówku, w kolejności paczki. */
@@ -113,6 +118,14 @@ export const ROLE_PROFILES: Record<ContextPackRole, RoleProfile> = {
     protectDiff: false,
     rulesMax: 1200,
     bugDetails: true,
+  },
+  refresh: {
+    order: ["rules", "state", "gitRange", "tasks", "bugs"],
+    tasks: { blockers: true, now: true },
+    diff: false,
+    protectDiff: false,
+    rulesMax: 1200,
+    bugDetails: false,
   },
 };
 
@@ -233,6 +246,33 @@ function renderPack(input: ContextPackInput, k: Knobs, profile: RoleProfile): st
       }
       return `## Kod (git)\n\n${parts.join("\n\n")}`;
     },
+    gitRange: () => {
+      const range = input.range;
+      if (range === undefined || range.ok === false) {
+        return "## Zmiany w repo od ostatniej karty\n\nRepozytorium niedostępne albo zakresu commitów nie da się ustalić.";
+      }
+      const short = (sha: string) => sha.slice(0, 7);
+      const title = range.baseline
+        ? `## Zmiany w repo od ostatniej karty (od \`${short(range.baseline)}\`)`
+        : range.baselineLost
+          ? "## Zmiany w repo (sha z karty nie jest już w historii repo; ostatnie commity)"
+          : "## Zmiany w repo (brak punktu odniesienia; ostatnie commity)";
+      const shown = range.commits.slice(0, k.rangeCommits);
+      const hidden = range.total - shown.length;
+      const parts = [
+        `HEAD: \`${short(range.head)}\` · commity w zakresie: ${range.total}`,
+        `Commity:\n${block(shown.join("\n"))}${hidden > 0 ? `\n… i ${hidden} starszych` : ""}`,
+      ];
+      if (range.diffStat !== "") {
+        parts.push(`Zmiany (diff --stat):\n${block(limitLines(range.diffStat, k.rangeDiff))}`);
+      }
+      parts.push(
+        "Instrukcja: na podstawie powyższych commitów zaproponuj poprawki w „Gdzie skończyłem” i zadaniach " +
+          "(nic nie usuwaj bez wskazania commita, który to zamyka). Po zatwierdzeniu ustaw " +
+          `\`code_commit: ${range.head}\` w \`state.md\` projektu.`
+      );
+      return `${title}\n\n${parts.join("\n\n")}`;
+    },
     tasks: () => {
       const blockers = profile.tasks.blockers ? open(project.board.blockers) : [];
       const now = profile.tasks.now ? open(project.board.now) : [];
@@ -286,6 +326,9 @@ export function composeContextPack(
   const logLines = input.git.ok ? lineCount(input.git.snapshot.log) : 0;
   const devlogLength = profile.order.includes("devlog") ? input.project.devlog.length : 0;
   const rulesLength = input.rules?.text.length ?? 0;
+  const hasRange = profile.order.includes("gitRange");
+  const rangeCommits = input.range && input.range.ok ? input.range.commits.length : 0;
+  const rangeDiffLines = input.range && input.range.ok ? lineCount(input.range.diffStat) : 0;
 
   let k: Knobs = {
     diffLines: DIFF_LINES_MAX,
@@ -293,6 +336,8 @@ export function composeContextPack(
     diff: profile.diff,
     devlog: 3,
     rulesMax: profile.rulesMax,
+    rangeCommits: 30,
+    rangeDiff: 40,
   };
   let markdown = renderPack(input, k, profile);
   let truncated = false;
@@ -310,6 +355,8 @@ export function composeContextPack(
   if (over() && stat > 10 && k.diffLines > 10) step({ ...k, diffLines: 10 });
   if (over() && logLines > 3) step({ ...k, logCount: 3 });
   if (over() && stat > 0 && k.diff) step({ ...k, diff: false });
+  if (over() && hasRange && rangeDiffLines > 10) step({ ...k, rangeDiff: 10 });
+  if (over() && hasRange && rangeCommits > 10) step({ ...k, rangeCommits: 10 });
   if (over() && devlogLength > 2) step({ ...k, devlog: 2 });
   if (over() && devlogLength > 1) step({ ...k, devlog: 1 });
   while (over() && rulesLength > RULES_MIN_CHARS && k.rulesMax > RULES_MIN_CHARS) {

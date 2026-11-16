@@ -30,6 +30,7 @@ import {
   readDevlog,
   readGitActivity,
   readGitHistory,
+  readGitRange,
   readGitSnapshot,
   readGitSubjects,
   readHeadSha,
@@ -462,6 +463,7 @@ export function buildContextPack(
     git,
     warnings,
     role,
+    range: role === "refresh" ? readGitRange(entry, project.state?.codeCommit) : undefined,
   });
 }
 

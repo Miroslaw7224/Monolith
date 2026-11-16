@@ -227,5 +227,5 @@ export type ContextPack = {
 };
 
 /** Role paczki kontekstu (zestaw sekcji); `full` to pełna paczka sprzed wprowadzenia ról. */
-export const CONTEXT_PACK_ROLES = ["full", "review", "implementation", "debug"] as const;
+export const CONTEXT_PACK_ROLES = ["full", "review", "implementation", "debug", "refresh"] as const;
 export type ContextPackRole = (typeof CONTEXT_PACK_ROLES)[number];

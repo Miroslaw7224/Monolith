@@ -409,7 +409,13 @@ export function toArchiveDto(p: ProjectWithContent, archived: number): ArchiveDo
 export const PACK_BUDGET_TOKENS = 4000;
 
 /** Role paczki kontekstu; lista zgodna z `CONTEXT_PACK_ROLES` w `models` (pilnuje test). */
-export const ContextPackRoleSchema = z.enum(["full", "review", "implementation", "debug"]);
+export const ContextPackRoleSchema = z.enum([
+  "full",
+  "review",
+  "implementation",
+  "debug",
+  "refresh",
+]);
 
 /** Role w UI: klucz i etykieta (kolejność przycisków). */
 export const PACK_ROLES: { key: ContextPackRole; label: string }[] = [
@@ -417,6 +423,7 @@ export const PACK_ROLES: { key: ContextPackRole; label: string }[] = [
   { key: "review", label: "Review" },
   { key: "implementation", label: "Implementacja" },
   { key: "debug", label: "Debug" },
+  { key: "refresh", label: "Odśwież kartę" },
 ];
 
 export type ContextPackDto = {
