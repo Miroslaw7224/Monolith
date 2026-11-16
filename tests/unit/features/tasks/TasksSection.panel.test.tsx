@@ -93,14 +93,17 @@ test("dwuklik innej karty przełącza panel i zapisuje poprzednią zmianę (flus
   );
 });
 
-test("w trybie roboczym Odłożone, W toku i Do sprawdzenia są w jednym stosie, a Zrobione zwinięte", async () => {
+test("w trybie roboczym kolumny są w dwóch stosach (Do zrobienia nad Odłożone, W toku nad Do sprawdzenia), a Zrobione zwinięte", async () => {
   stubWidth(true);
   const { container } = render(<TasksSection apiFetch={apiFetch} />);
   fireEvent.doubleClick(await screen.findByText("Alpha"));
   await screen.findByRole("complementary");
-  const stack = container.querySelector(".zad-stack");
-  expect(stack).not.toBeNull();
-  expect(stack!.querySelectorAll(".zad-column")).toHaveLength(3);
+  const stacks = Array.from(container.querySelectorAll(".zad-stack"));
+  expect(stacks).toHaveLength(2);
+  const titles = (stack: Element) =>
+    Array.from(stack.querySelectorAll(".zad-column__title-text")).map((el) => el.textContent);
+  expect(titles(stacks[0])).toEqual(["Do zrobienia", "Odłożone"]);
+  expect(titles(stacks[1])).toEqual(["W toku", "Do sprawdzenia"]);
   expect(
     (container.querySelector(".zad-board") as HTMLElement).style.getPropertyValue("--zad-cols")
   ).toBe("1fr 1fr 2fr 3rem");

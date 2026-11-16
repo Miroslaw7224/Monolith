@@ -69,7 +69,7 @@ Bez zmian: `contexts/bc_tasks/*`, `lib/nexus/*`, `app/api/**`, `tests/unit/archi
 
 - `TaskDetailModal.tsx`: wydzielona wspólna treść (pola + checklista) używana przez modal (poniżej 1024 px) i panel; bez przycisku „Zapisz”, z znacznikiem stanu zapisu i „Zamknij”.
 - `useTasksBoard.ts`: `saveTaskDetail` zastąpiony zapisem częściowym `PUT /api/tasks/:id` (schemat `UpdateTaskBodySchema` ma wszystkie pola opcjonalne), błąd zapisu wraca do UI zamiast cichego `console.error`; status, termin i projekt zapisują się od razu jednopolowym `PUT`.
-- `TasksSection.tsx`: gdy panel otwarty i szerokość ≥ 1024 px, układ `todo | stos | panel (2fr) | done`; stos to trzy `TaskColumn` (`deferred`, `in_progress`, `to_review`) w jednym kontenerze, każda nadal jest strefą upuszczenia swojego statusu.
+- `TasksSection.tsx`: gdy panel otwarty i szerokość ≥ 1024 px, układ `stos 1 | stos 2 | panel (2fr) | done`; stos 1 to `todo` nad `deferred`, stos 2 to `in_progress` nad `to_review` (zmiana z 2026-11-16 po uwagach użytkownika), każda kolumna nadal jest strefą upuszczenia swojego statusu i zwija się w pionie.
 - `TaskColumn.tsx`: przycisk zwijania ◂/▸ w nagłówku, tryb zwinięty (pasek, upuszczanie nadal działa), przycisk ↺ wysokości, `ResizeObserver` zapisujący wysokość listy po 300 ms.
 - `tasks.css`: siatka z szablonem z `boardColumns`, style panelu, stosu, zwiniętej kolumny i `resize: vertical`.
 - `src/i18n/locales/pl/tasks.ts`, `en/tasks.ts`: teksty (statusy punktów, Lista/Tekst, kopiowanie, stany zapisu, zwijanie, ↺).

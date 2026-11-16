@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import type { Task } from "./TasksSection";
 import { useT } from "@/src/i18n/useT";
@@ -18,8 +18,15 @@ interface Props {
 export function TaskWorkPanel({ task, projects, onClose, onPatch, onDuplicate }: Props) {
   const t = useT();
   const closeLabel = t("tasks:tasksDetailClose");
+  const ref = useRef<HTMLElement>(null);
+
+  // po otwarciu lub zmianie zadania panel ma być widoczny w całości (tablica przewija się w `.zad`)
+  useEffect(() => {
+    ref.current?.scrollIntoView?.({ block: "nearest" });
+  }, [task.id]);
   return (
     <aside
+      ref={ref}
       className="zad-work-panel"
       aria-label={t("tasks:tasksPanelAria")}
       onKeyDown={(e) => {

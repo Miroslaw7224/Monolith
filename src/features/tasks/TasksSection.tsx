@@ -190,7 +190,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
       now={tilesNow}
       onDelete={deleteTask}
       columnCollapsed={collapsedMap[status]}
-      stacked={mode === "work" && status !== "todo" && status !== "done"}
+      stacked={mode === "work" && status !== "done"}
       onToggleColumn={setCollapsed}
       listHeight={layout.heights[status]}
       onListHeightChange={setHeight}
@@ -346,11 +346,11 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
               TASK_STATUSES.map((status) => renderColumn(status))
             ) : (
               <>
-                {renderColumn("todo")}
                 <div className="zad-stack">
-                  {(["deferred", "in_progress", "to_review"] as const).map((status) =>
-                    renderColumn(status)
-                  )}
+                  {(["todo", "deferred"] as const).map((status) => renderColumn(status))}
+                </div>
+                <div className="zad-stack">
+                  {(["in_progress", "to_review"] as const).map((status) => renderColumn(status))}
                 </div>
                 {detailTask ? (
                   <TaskWorkPanel

@@ -69,6 +69,8 @@
   flex: 1 1 0%;
   min-width: 0;
   box-sizing: border-box;
+  /* wrapper karty ma overflow-hidden: bez własnego przewijania wszystko ponad wysokość okna jest obcięte */
+  overflow-y: auto;
 }
 
 @media (min-width: 768px) {
@@ -427,6 +429,9 @@
   background: var(--surface);
   border: 1px solid var(--accent);
   border-radius: var(--r-md);
+  /* panel zostaje na widoku przy przewijaniu tablicy; wysokość mieści się w oknie */
+  position: sticky;
+  top: var(--s-2);
   max-height: calc(100vh - 8rem);
   overflow: hidden;
 }
