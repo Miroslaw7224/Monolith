@@ -7,7 +7,7 @@ export const shell = {
     notatki: "Notes",
     plotno: "Canvas",
     arsenal: "Arsenal",
-    mapa: "Map",
+    mapa: "NEXUS",
     kodeks: "Codex",
   },
   subTabs: { aria: "Card views" },

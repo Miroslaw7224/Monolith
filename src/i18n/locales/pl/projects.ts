@@ -171,7 +171,7 @@ export const projects = {
     companyData: "Dane z firmy",
     companyProtectedTitle: "Chronione: owner: work w rejestrze",
     companyLabelTitle:
-      "Etykieta z typu Etat; ochronę (Mapa, Notatki, przyszłe AI i eksport) włącza owner: work w rejestrze",
+      "Etykieta z typu Etat; ochronę (NEXUS, Notatki, przyszłe AI i eksport) włącza owner: work w rejestrze",
     resumeTitle: "Przywraca status active w rejestrze",
     pauseTitle: "Ustawia status paused w rejestrze: projekt przestaje wymagać decyzji",
     resumeBtn: "Wznów projekt",

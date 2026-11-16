@@ -32,7 +32,7 @@ describe("CardRail", () => {
   test("klik wybiera kartę", () => {
     const onSelect = vi.fn();
     render(<CardRail activeCard="kokpit" onSelect={onSelect} onOpenPalette={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /Mapa/ }));
+    fireEvent.click(screen.getByRole("button", { name: /NEXUS/ }));
     expect(onSelect).toHaveBeenCalledWith("mapa");
   });
 
@@ -58,7 +58,7 @@ describe("CardRail", () => {
       "Notes",
       "Canvas",
       "Arsenal",
-      "Map",
+      "NEXUS",
       "Codex",
     ]);
     expect(screen.getByRole("button", { name: /Canvas/ })).toHaveAttribute(
