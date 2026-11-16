@@ -143,6 +143,38 @@ describe("composeContextPack", () => {
     expect(pack.markdown).toContain("## Save State");
   });
 
+  it("state.md bez treści (np. sam code_commit z przycisku): nie wypiera „Gdzie skończyłem”", () => {
+    const empty = {
+      branch: "",
+      env: "",
+      blocker: " ",
+      nextStep: "",
+      links: [],
+      milestone: "",
+      notes: "",
+      codeCommit: "abc1234",
+    };
+    const res = composeContextPack(
+      makeInput({ rules: null, project: { ...project, state: empty, whereIStopped: "tu" } }),
+      BIG
+    );
+    expect(res.markdown).not.toContain("## Save State");
+    expect(res.markdown).toContain("## Gdzie skończyłem (brak state.md)\n\ntu");
+  });
+
+  it("state.md z jednym wypełnionym polem dalej daje „Save State”", () => {
+    const onlyMilestone = { ...project.state!, branch: "", env: "", nextStep: "", milestone: "M" };
+    const res = composeContextPack(
+      makeInput({
+        rules: null,
+        project: { ...project, state: onlyMilestone, whereIStopped: "tu" },
+      }),
+      BIG
+    );
+    expect(res.markdown).toContain("## Save State");
+    expect(res.markdown).not.toContain("## Gdzie skończyłem");
+  });
+
   it("bez zasad i bez state.md: fallback „Gdzie skończyłem”", () => {
     const withWhere = composeContextPack(
       makeInput({ rules: null, project: { ...project, state: null, whereIStopped: "tu" } }),
