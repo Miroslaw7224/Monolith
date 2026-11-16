@@ -221,3 +221,36 @@ export type Cockpit = {
   closing: { anchor: Closing | null; today: Closing | null };
   warnings: string[];
 };
+
+/** Focus tygodnia: jedno zdanie z `Cockpit/weeks.yaml`; `weekStart` to poniedziałek tygodnia ISO (`RRRR-MM-DD`). */
+export type WeekFocus = { weekStart: string; text: string };
+
+/** Projekt w przeglądzie tygodnia; dla danych firmy (`work: true`) `subjects` i `doneTasks` są puste. */
+export type WeekReviewProject = {
+  projectId: string;
+  name: string;
+  work: boolean;
+  commits: number;
+  prs: number;
+  subjects: string[];
+  doneTasks: string[];
+};
+
+/** Zamknięcie dnia w przeglądzie; `text: null` dla projektu z danymi firmy. */
+export type WeekReviewClosing = { date: string; text: string | null; projectId: string | null };
+
+/** Zestawienie ostatnich 7 dni (`from`–`to`) i gotowy prompt dla agenta (nic nie jest wysyłane). */
+export type WeekReview = {
+  from: string;
+  to: string;
+  /** Poniedziałek tygodnia, w którym jest `to`. */
+  weekStart: string;
+  git: { available: boolean; commits: number; prs: number };
+  projects: WeekReviewProject[];
+  closings: WeekReviewClosing[];
+  reviews: { available: boolean; approved: number; comments: number; prs: number };
+  meetings: { count: number; minutes: number };
+  /** Jest projekt albo zamknięcie dnia z danymi firmy (do ostrzeżenia przy kopiowaniu). */
+  containsWork: boolean;
+  prompt: string;
+};

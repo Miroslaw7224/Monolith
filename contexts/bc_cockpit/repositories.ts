@@ -1,7 +1,7 @@
 import { fetchReviewRequests } from "@/lib/github/review-requests";
 import { fetchMyReviews } from "@/lib/github/my-reviews";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import type { Closing, MyReview, Pinned, ReviewRequests } from "./models";
+import type { Closing, MyReview, Pinned, ReviewRequests, WeekFocus } from "./models";
 
 const FILE = "Cockpit/pinned.yaml";
 const LIST_KEY = "projects";
@@ -60,6 +60,31 @@ export async function upsertClosing(closing: Closing): Promise<void> {
     if (closing.projectId) entry.project = closing.projectId;
     if (closing.commits !== null) entry.commits = closing.commits;
     return [...kept, entry].sort((a, b) => text(a.date).localeCompare(text(b.date)));
+  });
+}
+
+const WEEKS_FILE = "Cockpit/weeks.yaml";
+const WEEKS_KEY = "weeks";
+
+/** Wpisy rosnąco po `week_start`; wpisy bez poprawnej daty lub tekstu (ręczna edycja) są pomijane. */
+export function readWeekFocuses(): WeekFocus[] {
+  const result: WeekFocus[] = [];
+  for (const item of readList(WEEKS_FILE, WEEKS_KEY)) {
+    const weekStart = text(item.week_start);
+    const body = text(item.text);
+    if (!DAY_RE.test(weekStart) || body === "") continue;
+    result.push({ weekStart, text: body });
+  }
+  return result.sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+}
+
+/** Jeden wpis na tydzień: ten sam `week_start` nadpisuje poprzedni. Plik, który się nie parsuje, nie jest nadpisywany. */
+export async function upsertWeekFocus(focus: WeekFocus): Promise<void> {
+  await updateList(WEEKS_FILE, WEEKS_KEY, (items) => {
+    const kept = items.filter((i) => text(i.week_start) !== focus.weekStart);
+    return [...kept, { week_start: focus.weekStart, text: focus.text }].sort((a, b) =>
+      text(a.week_start).localeCompare(text(b.week_start))
+    );
   });
 }
 
