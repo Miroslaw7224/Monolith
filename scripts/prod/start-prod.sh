@@ -18,7 +18,13 @@ cd "$ROOT" || exit 1
 log() { printf '[monolith] %s\n' "$*"; }
 die() {
   log "BŁĄD: $*"
-  read -r -n 1 -p "Naciśnij dowolny klawisz, aby zamknąć… " _ || true
+  if [[ "${MONOLITH_NO_WINDOW:-0}" == "1" || "${MONOLITH_BUILD_ONLY:-0}" == "1" || ! -x "$PS" ]]; then
+    read -r -n 1 -p "Naciśnij dowolny klawisz, aby zamknąć… " _ || true
+  else
+    # Konsola ze skrótu startuje zminimalizowana, więc błąd pokazujemy w oknie Windows.
+    local msg="${*//\'/\'\'}"
+    "$PS" -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; [void][System.Windows.Forms.MessageBox]::Show('$msg (szczegóły w konsoli na pasku zadań)', 'Monolith', 'OK', 'Error')" || true
+  fi
   exit 1
 }
 
