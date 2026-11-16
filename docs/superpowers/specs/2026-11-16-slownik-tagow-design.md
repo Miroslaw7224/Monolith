@@ -76,4 +76,6 @@ Vitest, `tests/unit/` (konkretne przypadki):
 
 **Poza zakresem:** podpowiedzi tagów w formularzach zasobów, pola `kind` i `scope`, edycja aliasów w UI, wymuszanie słownika (walidacja odrzucająca nieznane tagi), kolor wydarzenia wynikający z tagu, kolory dla tagów z zasobów.
 
+**Ryzyko przyjęte świadomie (wyścig):** dwa równoległe żądania z tym samym nowym tagiem mogą dopisać go do słownika dwa razy (`createUserTag` nie sprawdza unikalności); vault jest jednoużytkownikowy, a odczyt słownika przy duplikacie wybiera pierwszy wpis, więc skutek jest kosmetyczny.
+
 **Ryzyko przyjęte świadomie:** po migracji podpowiedzi tagów w kalendarzu pokażą ponad 25 tagów, w tym tematyczne (`Backend`, `RAG`). Jeśli to zacznie przeszkadzać, dodamy filtr w UI albo `scope`; do tego czasu bez rozbudowy.

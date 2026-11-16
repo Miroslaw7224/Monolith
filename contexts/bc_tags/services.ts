@@ -59,11 +59,19 @@ export function resolveTagNames(
   return { tags, missing };
 }
 
-/** Sprowadza nazwy do kanonicznych i dopisuje nieznane tagi do słownika (bez koloru). */
-export async function resolveTags(names: readonly unknown[]): Promise<string[]> {
-  if (names.length === 0) return [];
+/**
+ * Sprowadza nazwy do kanonicznych i dopisuje nieznane tagi do słownika (bez koloru).
+ * Wejście z HTTP bywa niepoprawne: tekst zamiast listy to jeden tag, inna wartość spoza listy to brak tagów.
+ */
+export async function resolveTags(names: unknown): Promise<string[]> {
+  const list: readonly unknown[] = Array.isArray(names)
+    ? names
+    : typeof names === "string"
+      ? [names]
+      : [];
+  if (list.length === 0) return [];
   const dictionary = await repositories.getUserTags();
-  const { tags, missing } = resolveTagNames(names, dictionary);
+  const { tags, missing } = resolveTagNames(list, dictionary);
   for (const tag of missing) {
     await repositories.createUserTag({ tag, title: tag });
   }
