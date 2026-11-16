@@ -36,14 +36,14 @@ Brak dostępu do gita to sekcja pominięta, a w prompcie jedno zdanie „dane z 
 
 **Kontekst `bc_projects` (`services/`):**
 
-- `listGitSubjects(from, to): { projectId; name; owner; subjects: string[] }[]`, wołane tylko przez `bc_cockpit/services`.
-- `listDoneTasksInWindow(from, to): { projectId; name; owner; tasks: string[] }[]`: zadania `done` z datą w oknie (reguła z §3 pkt 2).
+- `listGitSubjects(from, to): { projectId; name; subjects: string[] }[]`, wołane tylko przez `bc_cockpit/services`.
+- `listDoneTasksInWindow(from, to): { projectId; name; tasks: string[] }[]`: zadania `done` z datą w oknie (reguła z §3 pkt 2).
 
 **Kontekst `bc_calendar` (`services`):** istniejące `getCalendarEvents` wystarcza (okno dat, filtr `type === "meeting"` po stronie `bc_cockpit/services`).
 
 **Kontekst `bc_cockpit`:**
 
-- `models.ts`: `WeekFocus = { weekStart: string; text: string }`; `WeekReviewProject = { projectId; name; work: boolean; commits; prs; subjects: string[]; doneTasks: string[] }` (dla `work` tablice puste); `WeekReview = { from; to; weekStart; git: { available; total; prs }; projects: WeekReviewProject[]; closings: { date; text: string | null; projectId: string | null }[]; reviews: { available; approved; comments; prs }; meetings: { count; minutes }; containsWork: boolean; prompt: string }` (`text: null` dla zamknięć projektu `work`). `Cockpit` dostaje pole `weekFocus: WeekFocus | null` dla bieżącego tygodnia.
+- `models.ts`: `WeekFocus = { weekStart: string; text: string }`; `WeekReviewProject = { projectId; name; work: boolean; commits; prs; subjects: string[]; doneTasks: string[] }` (dla `work` tablice puste); `WeekReview = { from; to; weekStart; git: { available; commits; prs }; projects: WeekReviewProject[]; closings: { date; text: string | null; projectId: string | null }[]; reviews: { available; approved; comments; prs }; meetings: { count; minutes }; containsWork: boolean; prompt: string }` (`text: null` dla zamknięć projektu `work`). `Cockpit` dostaje pole `weekFocus: WeekFocus | null` dla bieżącego tygodnia.
 - `repositories.ts`: `readWeekFocuses(): WeekFocus[]`, `upsertWeekFocus(focus): Promise<void>` na `Cockpit/weeks.yaml` (`version: 1`, `weeks: [{ week_start, text }]`; zapis przez `yaml-store`, jeden rekord na `week_start`).
 - `services.ts`: `weekStart(date: string): string` (poniedziałek tygodnia ISO), `getWeekReview(today = new Date())` (zbiera dane z §3, maskuje `work`, składa `prompt`), `setWeekFocus(text, today = new Date())` (przycinanie, walidacja: niepusty, maks. `MAX_FOCUS_TEXT` = 300 jak `MAX_CLOSING_TEXT`, inaczej `DomainError`), rozszerzenie `getCockpit` o `weekFocus`. Składanie promptu to osobna, czysta funkcja `composeWeekPrompt(review)` w `services.ts` (do wydzielenia do folderu `services/`, gdyby plik urósł ponad rozsądek).
 - `schemas.ts`: `WeekFocusInputSchema` (`{ text: string }`), `WeekReviewDto`, `WeekFocusDto`, mapery.

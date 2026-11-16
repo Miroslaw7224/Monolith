@@ -407,13 +407,6 @@ export type WeekReview = {
 };
 ```
 
-W tym samym pliku, w typie `Cockpit`, tuż przed `warnings: string[];` dodaj:
-
-```ts
-/** Focus bieżącego tygodnia ISO z `Cockpit/weeks.yaml`; `null`, gdy go nie zapisano. */
-weekFocus: WeekFocus | null;
-```
-
 - [ ] **Step 2: Napisz test repozytorium (czerwony)**
 
 W `tests/unit/contexts/bc_cockpit/repositories.test.ts` dopisz `readWeekFocuses` i `upsertWeekFocus` do importu z `@/contexts/bc_cockpit/repositories` i na końcu pliku dodaj:
@@ -503,8 +496,6 @@ Expected: PASS.
 git add contexts/bc_cockpit/models.ts contexts/bc_cockpit/repositories.ts tests/unit/contexts/bc_cockpit/repositories.test.ts
 git commit -m "feat(cockpit): modele przeglądu tygodnia i Cockpit/weeks.yaml" -m "Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 ```
-
-Uwaga: po tym kroku `npx tsc --noEmit` zgłosi błędy (`Cockpit.weekFocus` jeszcze nie ustawiane, fixtury testów). Naprawia to Task 4; nie commituj poprawek tsc osobno.
 
 ---
 
@@ -618,7 +609,7 @@ describe("getCockpit: weekFocus", () => {
 });
 ```
 
-W `tests/unit/contexts/bc_cockpit/schemas.test.ts`: w obiekcie `model` (przed `warnings: ["uwaga"],`) dopisz `weekFocus: { weekStart: "2026-11-16", text: "Domknąć tagi" },`, a w oczekiwanej liście kluczy `Object.keys(dto).sort()` dopisz `"weekFocus",` między `"topics"` a `"warnings"`.
+W `tests/unit/contexts/bc_cockpit/schemas.test.ts`: w obiekcie `model` (przed `warnings: ["uwaga"],`) dopisz `weekFocus: { weekStart: "2026-11-16", text: "Domknąć tagi" },`, a w oczekiwanej liście kluczy `Object.keys(dto).sort()` dopisz `"weekFocus",` między `"warnings"` a `"windows"` (kolejność alfabetyczna po `.sort()`).
 
 W fixturach `router.test.ts`, `HomeView.test.tsx`, `HomeView.en.test.tsx` w każdym literale `Cockpit`/`CockpitDto` (miejsca z `closing: {` ... `warnings`) dopisz `weekFocus: null,` przed `warnings`.
 
@@ -627,7 +618,16 @@ W fixturach `router.test.ts`, `HomeView.test.tsx`, `HomeView.en.test.tsx` w każ
 Run: `npx vitest run tests/unit/contexts/bc_cockpit 2>&1 | tail -40`
 Expected: FAIL (brak `weekStart`, `setWeekFocus`, `MAX_FOCUS_TEXT`, pole `weekFocus`).
 
-- [ ] **Step 4: Implementacja w `services.ts`**
+- [ ] **Step 4a: Pole `weekFocus` w modelu `Cockpit`**
+
+W `contexts/bc_cockpit/models.ts`, w typie `Cockpit`, tuż przed `warnings: string[];` dodaj linie (zmiana jest w tym zadaniu, a nie w Task 3, żeby każdy commit przechodził `tsc`):
+
+```
+  /** Focus bieżącego tygodnia ISO z `Cockpit/weeks.yaml`; `null`, gdy go nie zapisano. */
+  weekFocus: WeekFocus | null;
+```
+
+- [ ] **Step 4b: Implementacja w `services.ts`**
 
 W `contexts/bc_cockpit/services.ts`: dopisz `type WeekFocus` do importu z `./models`. Pod sekcją „zamknięcie dnia” (po `loadClosing`) dodaj:
 
@@ -1982,16 +1982,14 @@ Uwaga do testów: etykieta `label` ma klasę `kok-week__sub`, a nagłówek zamkn
 - [ ] **Step 5: `HomeView.tsx`**
 
 1. W `<CockpitSections ... />` dopisz `onWeekFocusSaved={() => void loadCockpit()}` (po `onQueueChanged`).
-2. Pod `</header>` (przed blokiem `{loading && cockpit === null ? ...`) dodaj:
+2. Pod `</header>` (przed blokiem `{loading && cockpit === null ? ...`) dodaj fragment JSX (blok bez znacznika języka, bo prettier zamienia samotny `{ ... }` w instrukcję):
 
-```tsx
-{
-  cockpit?.weekFocus ? (
-    <p className="kok-weekfocus">
-      {t("home:weekReview.focusLine", { text: cockpit.weekFocus.text })}
-    </p>
-  ) : null;
-}
+```
+        {cockpit?.weekFocus ? (
+          <p className="kok-weekfocus">
+            {t("home:weekReview.focusLine", { text: cockpit.weekFocus.text })}
+          </p>
+        ) : null}
 ```
 
 - [ ] **Step 6: CSS**
