@@ -1,11 +1,13 @@
-import React, { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RotateCcw } from "lucide-react";
 import type { Task } from "./TasksSection";
 import type { TaskStatus } from "./taskOrderUtils";
 import { getVisibleColumnTasks } from "./taskOrderUtils";
 import { TaskCard } from "./TaskCard";
 import type { TaskEnergy } from "./taskEnergyUtils";
 import type { TaskProject } from "./useTasksBoard";
+import { clampHeight } from "./taskBoardLayout";
+import { useT } from "@/src/i18n/useT";
 
 interface TaskColumnProps {
   status: TaskStatus;
@@ -42,6 +44,14 @@ interface TaskColumnProps {
   onToggleUrgent: (taskId: string) => void;
   now: Date;
   onDelete: (taskId: string) => void;
+  /** Kolumna zwinięta do paska (poziomo) lub samego nagłówka (w stosie). */
+  columnCollapsed: boolean;
+  /** Kolumna w stosie trybu roboczego: zwija się w pionie. */
+  stacked?: boolean;
+  onToggleColumn: (status: TaskStatus, collapsed: boolean) => void;
+  /** Własna wysokość listy kart w px; `undefined` = automatyczna. */
+  listHeight: number | undefined;
+  onListHeightChange: (status: TaskStatus, px: number | null) => void;
 }
 
 export function TaskColumn({
@@ -74,8 +84,39 @@ export function TaskColumn({
   onToggleUrgent,
   now,
   onDelete,
+  columnCollapsed,
+  stacked = false,
+  onToggleColumn,
+  listHeight,
+  onListHeightChange,
 }: TaskColumnProps) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  const heightRef = useRef(listHeight);
+  heightRef.current = listHeight;
+
+  // użytkownik ciągnie uchwyt `resize: vertical`: przeglądarka ustawia inline `height`;
+  // zapisujemy po 300 ms ciszy. Zmiany wysokości od samej treści (bez inline height) ignorujemy.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const observer = new ResizeObserver(() => {
+      if (!el.style.height) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        const px = clampHeight(el.getBoundingClientRect().height);
+        if (px !== heightRef.current) onListHeightChange(status, px);
+      }, 300);
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (timer) clearTimeout(timer);
+    };
+  }, [status, onListHeightChange, columnCollapsed]);
+
   const { visibleTasks, hiddenCount, isCollapsed, canCollapse } = getVisibleColumnTasks(
     tasks,
     expanded,
@@ -84,7 +125,12 @@ export function TaskColumn({
 
   return (
     <div
-      className={["zad-column", isDragOverColumn ? "zad-column--drop-target" : ""]
+      className={[
+        "zad-column",
+        isDragOverColumn ? "zad-column--drop-target" : "",
+        columnCollapsed ? "zad-column--collapsed" : "",
+        stacked ? "zad-column--stacked" : "",
+      ]
         .filter(Boolean)
         .join(" ")}
       onDragOver={(e) => {
@@ -102,39 +148,78 @@ export function TaskColumn({
         <span className={`zad-dot zad-dot--${status}`} aria-hidden="true" />
         <span className="zad-column__title-text">{title}</span>
         <span className="zad-column__count">{tasks.length}</span>
+        {listHeight !== undefined && !columnCollapsed ? (
+          <button
+            type="button"
+            className="zad-btn zad-btn--ghost zad-btn--sm zad-column__tool"
+            aria-label={t("tasks:tasksColumnResetHeight")}
+            onClick={() => onListHeightChange(status, null)}
+          >
+            <RotateCcw className="w-3 h-3" aria-hidden />
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="zad-btn zad-btn--ghost zad-btn--sm zad-column__tool"
+          aria-label={
+            columnCollapsed ? t("tasks:tasksColumnExpand") : t("tasks:tasksColumnCollapse")
+          }
+          aria-expanded={!columnCollapsed}
+          onClick={() => onToggleColumn(status, !columnCollapsed)}
+        >
+          {stacked ? (
+            columnCollapsed ? (
+              <ChevronDown className="w-3 h-3" aria-hidden />
+            ) : (
+              <ChevronUp className="w-3 h-3" aria-hidden />
+            )
+          ) : columnCollapsed ? (
+            <ChevronRight className="w-3 h-3" aria-hidden />
+          ) : (
+            <ChevronLeft className="w-3 h-3" aria-hidden />
+          )}
+        </button>
       </h3>
-      <ul className="zad-column__list">
-        {visibleTasks.map((task) => (
-          <TaskCard
-            key={task.id}
-            task={task}
-            isDragging={dragTaskId === task.id}
-            isDragOver={dragOverTaskId === task.id && dragTaskId !== task.id}
-            draggable={draggable}
-            isDone={status === "done"}
-            editingId={editingId}
-            editTitle={editTitle}
-            labels={labels}
-            project={task.project ? projectsById.get(task.project) : undefined}
-            formatDate={formatDate}
-            onDragStart={onDragStart}
-            onDragOver={onDragOverTask}
-            onDragEnd={onDragEnd}
-            onDropOnTask={(taskId) => onDropOnTask(taskId, status)}
-            onTitleAreaClick={onTitleAreaClick}
-            onTitleAreaDoubleClick={onTitleAreaDoubleClick}
-            onEditTitleChange={onEditTitleChange}
-            onEditTitleCommit={onEditTitleCommit}
-            onEditTitleCancel={onEditTitleCancel}
-            onDueDateChange={onDueDateChange}
-            onToggleEnergy={onToggleEnergy}
-            onToggleUrgent={onToggleUrgent}
-            now={now}
-            onDelete={onDelete}
-          />
-        ))}
-      </ul>
-      {isCollapsed ? (
+      {columnCollapsed ? null : (
+        <ul
+          ref={listRef}
+          className={["zad-column__list", listHeight !== undefined ? "zad-column__list--sized" : ""]
+            .filter(Boolean)
+            .join(" ")}
+          style={listHeight !== undefined ? { height: `${listHeight}px` } : undefined}
+        >
+          {visibleTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              isDragging={dragTaskId === task.id}
+              isDragOver={dragOverTaskId === task.id && dragTaskId !== task.id}
+              draggable={draggable}
+              isDone={status === "done"}
+              editingId={editingId}
+              editTitle={editTitle}
+              labels={labels}
+              project={task.project ? projectsById.get(task.project) : undefined}
+              formatDate={formatDate}
+              onDragStart={onDragStart}
+              onDragOver={onDragOverTask}
+              onDragEnd={onDragEnd}
+              onDropOnTask={(taskId) => onDropOnTask(taskId, status)}
+              onTitleAreaClick={onTitleAreaClick}
+              onTitleAreaDoubleClick={onTitleAreaDoubleClick}
+              onEditTitleChange={onEditTitleChange}
+              onEditTitleCommit={onEditTitleCommit}
+              onEditTitleCancel={onEditTitleCancel}
+              onDueDateChange={onDueDateChange}
+              onToggleEnergy={onToggleEnergy}
+              onToggleUrgent={onToggleUrgent}
+              now={now}
+              onDelete={onDelete}
+            />
+          ))}
+        </ul>
+      )}
+      {!columnCollapsed && isCollapsed ? (
         <button
           type="button"
           onClick={() => setExpanded(true)}
@@ -144,7 +229,7 @@ export function TaskColumn({
           {labels.showMore(hiddenCount)}
         </button>
       ) : null}
-      {expanded && canCollapse ? (
+      {!columnCollapsed && expanded && canCollapse ? (
         <button
           type="button"
           onClick={() => setExpanded(false)}

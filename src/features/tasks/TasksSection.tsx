@@ -80,7 +80,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
   const detailTask = detailTaskId ? (tasks.find((x) => x.id === detailTaskId) ?? null) : null;
   const panelOpen = wide && detailTask !== null;
   const mode = panelOpen ? "work" : "normal";
-  const { layout } = useBoardLayout();
+  const { layout, setCollapsed, setHeight } = useBoardLayout();
   const collapsedMap = effectiveCollapsed(layout, mode);
 
   const formatDate = (iso: string | null | undefined) => {
@@ -188,6 +188,11 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
       onToggleUrgent={toggleUrgent}
       now={tilesNow}
       onDelete={deleteTask}
+      columnCollapsed={collapsedMap[status]}
+      stacked={mode === "work" && status !== "todo" && status !== "done"}
+      onToggleColumn={setCollapsed}
+      listHeight={layout.heights[status]}
+      onListHeightChange={setHeight}
     />
   );
 

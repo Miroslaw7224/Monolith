@@ -512,6 +512,44 @@
   flex: 1;
 }
 
+.zad-column__tool {
+  padding: 2px 4px;
+  min-height: 0;
+}
+
+.zad-column__list {
+  overflow: auto;
+  resize: vertical;
+}
+
+.zad-column__list--sized {
+  flex: 0 0 auto;
+}
+
+/* poniżej 1024 px zwinięcie chowa tylko karty (nagłówek zostaje) */
+.zad-column--collapsed {
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  /* zwinięty pasek w poziomie: nazwa i liczba pionowo */
+  .zad-column--collapsed:not(.zad-column--stacked) {
+    min-height: 12rem;
+    padding: var(--s-2);
+    align-items: center;
+  }
+  .zad-column--collapsed:not(.zad-column--stacked) .zad-column__title {
+    flex-direction: column;
+    border-bottom: 0;
+    margin: 0;
+    padding: 0;
+  }
+  .zad-column--collapsed:not(.zad-column--stacked) .zad-column__title-text {
+    writing-mode: vertical-rl;
+    flex: 0 1 auto;
+  }
+}
+
 /* ---------- Kropki statusu (.zad-dot) ---------- */
 .zad-dot {
   width: 7px;
