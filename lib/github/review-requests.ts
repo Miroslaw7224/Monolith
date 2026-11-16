@@ -28,6 +28,8 @@ const GH_ARGS = [
   "--json",
   "number,title,url,author,repository,updatedAt",
 ];
+/** `gh` podaje daty ISO-8601 (`2026-11-16T05:58:28Z`); luźne ciągi typu „1” odrzucamy. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 const TIMEOUT_MS = 8000;
 const MAX_BUFFER = 256 * 1024;
 
@@ -67,11 +69,17 @@ function runGh(): Promise<Run> {
   });
 }
 
-/** `url` trafia do `href`, więc przepuszczamy tylko `https://github.com/...`. */
+/** `url` trafia do `href`, więc przepuszczamy tylko `https://github.com/...` (bez portu i danych logowania). */
 function isGithubUrl(raw: string): boolean {
   try {
     const u = new URL(raw);
-    return u.protocol === "https:" && u.hostname === "github.com";
+    return (
+      u.protocol === "https:" &&
+      u.hostname === "github.com" &&
+      u.port === "" &&
+      u.username === "" &&
+      u.password === ""
+    );
   } catch {
     return false;
   }
@@ -88,10 +96,15 @@ function parseItem(raw: unknown): GithubReviewRequest | null {
   const login = asObject(r.author)?.login;
   const { number, title, url, updatedAt } = r;
   if (typeof repo !== "string" || repo === "") return null;
-  if (typeof number !== "number" || !Number.isInteger(number)) return null;
+  if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return null;
   if (typeof title !== "string" || title === "") return null;
   if (typeof url !== "string" || !isGithubUrl(url)) return null;
-  if (typeof updatedAt !== "string" || !Number.isFinite(Date.parse(updatedAt))) return null;
+  if (
+    typeof updatedAt !== "string" ||
+    !ISO_DATE.test(updatedAt) ||
+    !Number.isFinite(Date.parse(updatedAt))
+  )
+    return null;
   return {
     repo,
     number,

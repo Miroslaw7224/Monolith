@@ -81,11 +81,25 @@ describe("fetchReviewRequests", () => {
     ["brak nameWithOwner", { ...PR, repository: { name: "x" } }],
     ["updatedAt nie jest datą", { ...PR, updatedAt: "nie-data" }],
     ["brak updatedAt", { ...PR, updatedAt: undefined }],
+    ["updatedAt luźny ciąg liczbowy", { ...PR, updatedAt: "1" }],
+    ["number zero", { ...PR, number: 0 }],
+    ["number ujemny", { ...PR, number: -3 }],
+    ["url z portem", { ...PR, url: "https://github.com:8443/o/r/pull/1" }],
+    ["url z userinfo", { ...PR, url: "https://user:pass@github.com/o/r/pull/1" }],
+    ["element niebędący obiektem", "tekst"],
+    ["element null", null],
   ])("pomija pozycję: %s", async (_name, bad) => {
     ghReturns(JSON.stringify([bad, { ...PR, number: 7 }]));
     const res = await fetchReviewRequests();
     if (res.ok === false) throw new Error("oczekiwano ok");
     expect(res.items.map((i) => i.number)).toEqual([7]);
+  });
+
+  it("pusty login autora to author null", async () => {
+    ghReturns(JSON.stringify([{ ...PR, author: { login: "" } }]));
+    const res = await fetchReviewRequests();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items.map((i) => i.author)).toEqual([null]);
   });
 
   it("ENOENT to gh-missing", async () => {
@@ -100,6 +114,13 @@ describe("fetchReviewRequests", () => {
     ["JSON niebędący tablicą", () => ghReturns('{"a":1}')],
   ])("gh-error: %s", async (_name, setup) => {
     setup();
+    expect(await fetchReviewRequests()).toEqual({ ok: false, reason: "gh-error" });
+  });
+
+  it("błąd bez kodu (limit czasu: killed, SIGTERM) to gh-error", async () => {
+    mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, done: Done) => {
+      done(Object.assign(new Error("timeout"), { killed: true, signal: "SIGTERM" }), "", "");
+    });
     expect(await fetchReviewRequests()).toEqual({ ok: false, reason: "gh-error" });
   });
 
