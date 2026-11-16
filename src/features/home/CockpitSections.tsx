@@ -14,6 +14,7 @@ import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
 import { ReviewHistory } from "./ReviewHistory";
 import { ReviewRequests } from "./ReviewRequests";
+import { WeekReview } from "./WeekReview";
 import {
   briefLines,
   hhmm,
@@ -414,6 +415,7 @@ export function CockpitSections({
   onOpenProject,
   onInboxChanged,
   onQueueChanged,
+  onWeekFocusSaved,
   onOpenTasks,
   focusInbox,
   onInboxFocused,
@@ -425,6 +427,7 @@ export function CockpitSections({
   onOpenProject: (id: string) => void;
   onInboxChanged: () => void;
   onQueueChanged: () => void;
+  onWeekFocusSaved: () => void;
   onOpenTasks: () => void;
   focusInbox?: boolean;
   onInboxFocused?: () => void;
@@ -667,6 +670,13 @@ export function CockpitSections({
 
           <ReviewHistory apiFetch={apiFetch} day={data.date} />
           <CommitHistory apiFetch={apiFetch} day={data.date} />
+          <WeekReview
+            key={data.date}
+            apiFetch={apiFetch}
+            focus={data.weekFocus}
+            onChangeActive={onChangeActive}
+            onFocusSaved={onWeekFocusSaved}
+          />
         </div>
 
         <section className="kok-focus" aria-label={t("home:cockpit.focusAria")}>

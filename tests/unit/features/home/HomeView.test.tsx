@@ -1224,7 +1224,7 @@ describe("K1: układ wg makiety", () => {
         {
           ...FULL.events[0],
           id: "next",
-          title: "Przegląd tygodnia",
+          title: "Retro zespołu",
           startMinutes: 630,
           brief: "- Wybrać focus\n\n• Decyzja o fiszkach\nGP-002",
         },
@@ -1233,7 +1233,7 @@ describe("K1: układ wg makiety", () => {
     };
     respond(withBriefs);
     render(<HomeView {...defaultProps} />);
-    await screen.findByText("Przegląd tygodnia");
+    await screen.findByText("Retro zespołu");
     const blocks = screen.getAllByLabelText("Brief");
     expect(blocks).toHaveLength(1);
     const items = within(blocks[0]).getAllByRole("listitem");
@@ -1800,4 +1800,22 @@ describe("panel „Do zrecenzowania”", () => {
     const axis = screen.getByRole("region", { name: "Oś dnia" });
     expect(reviews.compareDocumentPosition(axis) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+});
+
+test("pokazuje focus tygodnia u góry Kokpitu; bez focusu nie ma linii", async () => {
+  respond({ ...EMPTY, weekFocus: { weekStart: "2026-11-09", text: "Domknąć słownik tagów" } });
+  render(<HomeView {...defaultProps} />);
+  expect(await screen.findByText("Focus tygodnia: Domknąć słownik tagów")).toBeInTheDocument();
+  cleanup();
+  respond(EMPTY);
+  render(<HomeView {...defaultProps} />);
+  await screen.findByText("Przypnij projekty");
+  expect(screen.queryByText(/Focus tygodnia:/)).toBeNull();
+});
+
+test("panel Przegląd tygodnia jest w Kokpicie, zwinięty, i nie pobiera danych", async () => {
+  render(<HomeView {...defaultProps} />);
+  const panel = await screen.findByRole("region", { name: "Przegląd tygodnia" });
+  expect(within(panel).getByRole("button", { name: "Pokaż" })).toBeInTheDocument();
+  expect(mockApiFetch).not.toHaveBeenCalledWith("/api/cockpit/week-review");
 });
