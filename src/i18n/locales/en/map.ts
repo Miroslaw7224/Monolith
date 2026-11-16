@@ -1,8 +1,8 @@
 export const map = {
-  mapTitle: "Map",
-  mapSubtitle: "NEXUS network: projects, knowledge, and agents.",
-  mapLoading: "Loading map…",
-  mapLoadFailed: "Failed to load map: {{error}}",
+  mapTitle: "NEXUS",
+  mapSubtitle: "Network of links: projects, knowledge, and agents.",
+  mapLoading: "Loading the NEXUS network…",
+  mapLoadFailed: "Failed to load the NEXUS network: {{error}}",
   mapTileNeurons: "NEXUS neurons",
   mapTileNeuronsMeta: "{{knowledge}} Knowledge · {{ai2030}} AI-2030 · {{projects}} in projects",
   mapTileDeps: "Dependencies",

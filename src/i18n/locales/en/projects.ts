@@ -161,7 +161,7 @@ export const projects = {
     companyData: "Company data",
     companyProtectedTitle: "Protected: owner: work in registry",
     companyLabelTitle:
-      "Label from Day job type; protection (Map, Notes, future AI and export) is enabled by owner: work in registry",
+      "Label from Day job type; protection (NEXUS, Notes, future AI and export) is enabled by owner: work in registry",
     resumeTitle: "Restores active status in registry",
     pauseTitle: "Sets paused status in registry: project no longer needs a decision",
     resumeBtn: "Resume project",
