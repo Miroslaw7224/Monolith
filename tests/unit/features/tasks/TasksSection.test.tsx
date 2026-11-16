@@ -191,17 +191,20 @@ test("zadanie z znanym projektem ma kolor i znacznik rodzaju, bez projektu i z n
   expect((await card("Ogólne")).className).not.toMatch(/zad-card--kind/);
 });
 
-test("zapis okna zadania nie wysyła pola project, gdy projekt się nie zmienił", async () => {
+test("autozapis okna zadania wysyła tylko zmienione pole (bez project)", async () => {
   render(<TasksSection apiFetch={apiFetch} />);
   fireEvent.doubleClick(await screen.findByText("Alpha"));
   const dialog = await screen.findByRole("dialog");
-  fireEvent.click(within(dialog).getByRole("button", { name: "Zapisz" }));
+  fireEvent.change(within(dialog).getByLabelText("Notatka"), { target: { value: "Nowa notatka" } });
 
-  await waitFor(() => {
-    const call = apiFetch.mock.calls.find(
-      ([url, opts]) => url === "/api/tasks/a" && opts?.method === "PUT"
-    );
-    expect(call).toBeTruthy();
-    expect(JSON.parse(call![1].body)).not.toHaveProperty("project");
-  });
+  await waitFor(
+    () => {
+      const call = apiFetch.mock.calls.find(
+        ([url, opts]) => url === "/api/tasks/a" && opts?.method === "PUT"
+      );
+      expect(call).toBeTruthy();
+      expect(JSON.parse(call![1].body)).toEqual({ description: "Nowa notatka" });
+    },
+    { timeout: 3000 }
+  );
 });

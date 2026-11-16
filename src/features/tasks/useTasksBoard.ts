@@ -10,6 +10,16 @@ import type { ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
 /** Projekt z rejestru w zakresie potrzebnym do wyboru i koloru zadania. */
 export type TaskProject = Pick<ProjectSummaryDto, "id" | "name" | "kind">;
 
+/** Częściowa zmiana zadania wysyłana jednym `PUT /api/tasks/:id`. */
+export type TaskPatch = Partial<{
+  title: string;
+  link: string;
+  description: string;
+  status: Task["status"];
+  due_date: string | null;
+  project: string | null;
+}>;
+
 export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => Promise<Response>) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,50 +138,29 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     setDetailTaskId(task.id);
   };
 
-  const saveTaskDetail = async (payload: {
-    title: string;
-    link: string;
-    description: string;
-    status: Task["status"];
-    due_date: string | null;
-    project: string | null;
-  }) => {
-    if (!detailTaskId) return;
-    // projekt wysyłamy tylko po zmianie: ręcznie wpisane, niepoprawne id nie może blokować zapisu reszty pól (400)
-    const current = tasks.find((x) => x.id === detailTaskId)?.project ?? null;
-    const projectChanged = payload.project !== current;
-    try {
-      await apiFetch(`/api/tasks/${detailTaskId}`, {
+  const saveTaskPatch = useCallback(
+    async (id: string, patch: TaskPatch): Promise<void> => {
+      const res = await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: payload.title,
-          link: payload.link,
-          description: payload.description,
-          status: payload.status,
-          due_date: payload.due_date,
-          ...(projectChanged ? { project: payload.project } : {}),
-        }),
+        body: JSON.stringify(patch),
       });
+      if (res && res.ok === false) throw new Error(`HTTP ${res.status}`);
+      const { project, ...rest } = patch;
       setTasks((prev) =>
         prev.map((x) =>
-          x.id === detailTaskId
+          x.id === id
             ? {
                 ...x,
-                title: payload.title,
-                link: payload.link,
-                description: payload.description,
-                status: payload.status,
-                due_date: payload.due_date,
-                ...(projectChanged ? { project: payload.project ?? undefined } : {}),
+                ...rest,
+                ...(project !== undefined ? { project: project ?? undefined } : {}),
               }
             : x
         )
       );
-    } catch (err) {
-      console.error("Save task detail failed", err);
-    }
-  };
+    },
+    [apiFetch]
+  );
 
   const addTask = async () => {
     const title = newTaskTitle.trim();
@@ -407,7 +396,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     fetchTemplates,
     handleTitleAreaClick,
     handleTitleAreaDoubleClick,
-    saveTaskDetail,
+    saveTaskPatch,
     addTask,
     applyTemplate,
     handleNewTaskTitleKeyDown,

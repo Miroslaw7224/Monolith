@@ -54,7 +54,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
     fetchTemplates,
     handleTitleAreaClick,
     handleTitleAreaDoubleClick,
-    saveTaskDetail,
+    saveTaskPatch,
     addTask,
     applyTemplate,
     handleNewTaskTitleKeyDown,
@@ -330,7 +330,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
         isOpen={detailTaskId !== null}
         projects={projects}
         onClose={() => setDetailTaskId(null)}
-        onSave={saveTaskDetail}
+        onPatch={saveTaskPatch}
       />
       <TaskTemplatesModal
         isOpen={templatesModalOpen}
