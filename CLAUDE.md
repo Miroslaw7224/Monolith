@@ -7,6 +7,13 @@ Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/
 Formaty plików vaulta (kalendarz, zadania, notatki, tagi…), to, jak agent ma dodawać wydarzenia kalendarza przez API, oraz przepis dodawania i zamykania bugów (`bugs.md`, skill `bug-projektu`):
 `docs/nexus-vault-formaty-yaml.md`; czytaj ten plik zamiast wnioskować format z kodu.
 
+## Uruchamianie z pulpitu
+
+Ikona „Monolith" (Windows) startuje wersję produkcyjną `main` z osobnego worktree `~/projects/Brain_7224/Monolith-prod`
+na porcie 3101; `npm run dev` (3100) działa niezależnie. Skrypty: `scripts/prod/` (instalacja: `bash scripts/prod/setup-prod.sh`
+z głównego katalogu po merge'u do `main`). Zmiana kodu trafia do ikony po merge'u do `main` (przy starcie robi się build).
+Spec: `docs/superpowers/specs/2026-11-16-aplikacja-desktopowa-skrot-design.md`.
+
 ## Struktura kodu
 
 Kod domeny leży w `contexts/bc_<nazwa>/` (ADR-021, spec `docs/superpowers/specs/2026-11-12-struktura-kontekstow-design.md`).
