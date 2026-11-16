@@ -35,12 +35,13 @@ command -v node >/dev/null || die "brak node w PATH (skrót woła bash -lc; spra
 exec 9>"$ROOT/.monolith-start.lock"
 flock 9
 
-# Worktree prod zawsze na aktualnym main. Skrypt może się przy tym zmienić na dysku, więc po
+# Worktree prod zawsze na aktualnym main (po `fetch`: merge na GitHubie bez `git pull` też trafia do ikony,
+# zob. `prod_sync_ref`). Skrypt może się przy tym zmienić na dysku, więc po
 # checkoutcie uruchamiamy go od nowa (bash czyta skrypty w trakcie wykonywania); fd 9 z blokadą przechodzi dalej.
 if [[ -z "${MONOLITH_SYNCED:-}" ]]; then
   # Zabezpieczenie: `checkout -f` kasuje lokalne zmiany, więc tylko w worktree prod (nigdy w katalogu dev).
   [[ "$(basename "$ROOT")" == "Monolith-prod" ]] || die "start-prod.sh działa tylko w katalogu Monolith-prod (checkout -f)"
-  git -C "$ROOT" checkout -q -f --detach main || die "git checkout main nie powiódł się"
+  git -C "$ROOT" checkout -q -f --detach "$(prod_sync_ref "$ROOT")" || die "git checkout main nie powiódł się"
   MONOLITH_SYNCED=1 exec bash "$ROOT/scripts/prod/start-prod.sh" "$@"
 fi
 

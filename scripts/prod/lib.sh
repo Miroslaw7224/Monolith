@@ -63,3 +63,17 @@ prod_port_state() {
     *) echo busy ;;
   esac
 }
+
+# Ref, z którego ma działać prod. Najpierw `git fetch origin main` (limit 10 s, bez pytań o hasło;
+# brak sieci albo origin nie przeszkadza), potem `origin/main`, gdy lokalny `main` jest jego przodkiem
+# (merge na GitHubie bez `git pull`), a w pozostałych przypadkach lokalny `main` (np. commity tylko lokalne).
+prod_sync_ref() {
+  local root="$1"
+  GIT_TERMINAL_PROMPT=0 timeout 10 git -C "$root" fetch -q origin main 2>/dev/null || true
+  if git -C "$root" rev-parse -q --verify refs/remotes/origin/main >/dev/null 2>&1 &&
+    git -C "$root" merge-base --is-ancestor main origin/main 2>/dev/null; then
+    echo origin/main
+  else
+    echo main
+  fi
+}
