@@ -1,23 +1,9 @@
 import { buildKnowledgeLinkIndex, normalizeHost } from "@/contexts/bc_nexus_docs/services";
+import { resolveTags } from "@/contexts/bc_tags/services";
 import * as repositories from "./repositories";
-import { TAG_MERGE_MAP, type Resource } from "./models";
+import type { Resource } from "./models";
 
 // ── zasoby ──────────────────────────────────────────────────────────────────────
-
-export function normalizeTags(tags: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const raw of tags) {
-    const trimmed = raw.trim();
-    if (trimmed === "") continue;
-    const tag = TAG_MERGE_MAP[trimmed.toLowerCase()] ?? trimmed;
-    const key = tag.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(tag);
-  }
-  return out;
-}
 
 export async function addResource(data: {
   description: string;
@@ -31,7 +17,7 @@ export async function addResource(data: {
     url: data.url,
     title,
     thumbnailUrl,
-    tags: normalizeTags(data.tags ?? []),
+    tags: await resolveTags(data.tags ?? []),
     ...(data.noteId != null && { noteId: data.noteId }),
   });
 }
@@ -76,7 +62,7 @@ export async function updateResource(
 ): Promise<void> {
   return repositories.updateResource(resourceId, {
     ...data,
-    ...(data.tags !== undefined && { tags: normalizeTags(data.tags) }),
+    ...(data.tags !== undefined && { tags: await resolveTags(data.tags) }),
   });
 }
 

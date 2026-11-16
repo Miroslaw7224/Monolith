@@ -13,6 +13,7 @@ const mockCreateCalendarEvent = vi.hoisted(() => vi.fn());
 const mockUpdateCalendarEvent = vi.hoisted(() => vi.fn());
 const mockDeleteCalendarEvent = vi.hoisted(() => vi.fn());
 const mockGetTasks = vi.hoisted(() => vi.fn());
+const mockResolveTags = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_calendar/repositories", () => ({
   getCalendarEvents: (...args: unknown[]) => mockGetCalendarEvents(...args),
@@ -25,6 +26,10 @@ vi.mock("@/contexts/bc_tasks/services", () => ({
   getTasks: (...args: unknown[]) => mockGetTasks(...args),
 }));
 
+vi.mock("@/contexts/bc_tags/services", () => ({
+  resolveTags: (...args: unknown[]) => mockResolveTags(...args),
+}));
+
 describe("calendarService", () => {
   beforeEach(() => {
     mockGetCalendarEvents.mockReset();
@@ -32,6 +37,8 @@ describe("calendarService", () => {
     mockUpdateCalendarEvent.mockReset();
     mockDeleteCalendarEvent.mockReset();
     mockGetTasks.mockReset();
+    mockResolveTags.mockReset();
+    mockResolveTags.mockImplementation(async (names: string[]) => names);
     mockGetTasks.mockResolvedValue([]);
   });
 
@@ -283,6 +290,44 @@ describe("calendarService", () => {
       mockDeleteCalendarEvent.mockRejectedValue(new Error("Delete failed"));
 
       await expect(deleteCalendarEvent("e1")).rejects.toThrow("Delete failed");
+    });
+  });
+
+  describe("tagi wydarzeń", () => {
+    const base = {
+      date: "2026-11-18",
+      start_minutes: 540,
+      duration_minutes: 60,
+      title: "Spotkanie",
+      color: "#3B82F6",
+    };
+
+    it("createCalendarEvent zapisuje tagi zwrócone przez resolveTags", async () => {
+      mockResolveTags.mockResolvedValue(["Agenci AI"]);
+      mockCreateCalendarEvent.mockResolvedValue({ id: "e1" });
+      await createCalendarEvent({ ...base, tags: ["agent ai"] });
+      expect(mockResolveTags).toHaveBeenCalledWith(["agent ai"]);
+      expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ tags: ["Agenci AI"] })
+      );
+    });
+
+    it("updateCalendarEvent z tags woła resolveTags", async () => {
+      mockResolveTags.mockResolvedValue(["Praca własna"]);
+      mockUpdateCalendarEvent.mockResolvedValue({ id: "e1" });
+      await updateCalendarEvent("e1", { tags: ["Projekty"] });
+      expect(mockResolveTags).toHaveBeenCalledWith(["Projekty"]);
+      expect(mockUpdateCalendarEvent).toHaveBeenCalledWith(
+        "e1",
+        expect.objectContaining({ tags: ["Praca własna"] })
+      );
+    });
+
+    it("updateCalendarEvent bez tags nie woła resolveTags i nie dodaje klucza tags", async () => {
+      mockUpdateCalendarEvent.mockResolvedValue({ id: "e1" });
+      await updateCalendarEvent("e1", { title: "Nowy tytuł" });
+      expect(mockResolveTags).not.toHaveBeenCalled();
+      expect(mockUpdateCalendarEvent.mock.calls[0][1]).not.toHaveProperty("tags");
     });
   });
 });

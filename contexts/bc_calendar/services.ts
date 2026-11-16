@@ -1,5 +1,6 @@
 import { DomainError } from "@/lib/errors";
 import * as taskService from "@/contexts/bc_tasks/services";
+import * as tagService from "@/contexts/bc_tags/services";
 import type { CalendarEntry } from "./models";
 import * as repositories from "./repositories";
 
@@ -89,6 +90,7 @@ export async function createCalendarEvent(data: {
   assertDurationMultipleOf15(data.duration_minutes);
   return repositories.createCalendarEvent({
     ...data,
+    tags: await tagService.resolveTags(data.tags),
     link: normalizeLink(data.link),
     brief: normalizeBrief(data.brief),
   });
@@ -111,6 +113,7 @@ export async function updateCalendarEvent(
   assertDurationMultipleOf15(data.duration_minutes);
   return repositories.updateCalendarEvent(id, {
     ...data,
+    ...(data.tags !== undefined && { tags: await tagService.resolveTags(data.tags) }),
     link: normalizeLink(data.link),
     brief: normalizeBrief(data.brief),
   });

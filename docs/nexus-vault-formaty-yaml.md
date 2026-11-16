@@ -4,7 +4,7 @@ Aplikacja czyta i zapisuje pliki w `NEXUS/Vault/` (ścieżka z `NEXUS_VAULT_PATH
 
 | Plik                       | Klucz listy | Pola rekordu (kolejność)                                                                                         |
 | -------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------- |
-| `Resources/tags.yaml`      | `tags`      | `id`, `tag`, `title`, `color` (opcjonalne), `created`                                                            |
+| `Resources/tags.yaml`      | `tags`      | `id`, `tag`, `title`, `color` (opcjonalne), `aliases`\*, `created`                                               |
 | `Tasks/templates.yaml`     | `templates` | `id`, `label`, `title`, `link`, `created`                                                                        |
 | `Resources/resources.yaml` | `resources` | `id`, `title`, `url`, `description`, `tags`, `favorite`, `thumbnail_url`\*, `note_id`\*, `created`, `updated`    |
 | `Arsenal/courses.yaml`     | `courses`   | `id`, `title`, `url`, `provider`\*, `status`, `completed`\*, `certificate_url`\*, `certificate_file`\*, `note`\* |
@@ -23,6 +23,13 @@ Struktura pliku: `version: 1`, lista rekordów pod kluczem. Czas to tekst ISO 86
 - Odczyt jest posortowany niezależnie od kolejności w pliku: tagi i szablony rosnąco po `created`, zasoby malejąco po `created`; remisy po `id`.
 - Vault jest jednoużytkownikowy; `userId` nie istnieje (usunięty w 0d-1).
 - Ręcznie wpisane `favorite: yes` jest czytane jako tekst (YAML 1.2), czyli nie jako „ulubiony”. Używaj `true`/`false`.
+
+## Tagi: słownik i synonimy
+
+- `aliases` to lista synonimów nazwy `tag`, porównywanych bez względu na wielkość liter; klucz jest pomijany, gdy brak synonimów.
+- Kalendarz (`Calendar/*.yaml`) i zasoby (`Resources/resources.yaml`) trzymają w `tags` **nazwy kanoniczne**.
+- Zapis przez API sprowadza synonimy do nazw kanonicznych, usuwa duplikaty i dopisuje nieznane tagi do `tags.yaml` (bez `color`, `title` = nazwa); ręczny zapis plików tego **nie** robi, więc dopisz tag do słownika sam.
+- Synonimy dopisuje się ręcznie lub przez agenta, UI ich nie edytuje.
 
 ## Kursy: `Arsenal/courses.yaml`
 
@@ -90,7 +97,7 @@ events:
 | `start_minutes`    | tak      | minuty od północy czasu lokalnego, liczba: 09:00 = `540`, 19:00 = `1140`, 20:00 = `1200`                                     |
 | `duration_minutes` | tak      | minuty, **wielokrotność 15** (inaczej API odrzuca; ręczny zapis to omija, więc pilnuj sam)                                   |
 | `title`            | tak      | tekst; brak = pusty                                                                                                          |
-| `tags`             | tak      | lista tekstów (może być `[]`); to nazwy, nie id tagów z `Resources/tags.yaml`                                                |
+| `tags`             | tak      | lista nazw kanonicznych tagów (może być `[]`); to nazwy, nie id tagów z `Resources/tags.yaml`                                |
 | `color`            | tak      | `"#RRGGBB"`; domyślnie `"#3B82F6"`                                                                                           |
 | `type`             | tak      | `work` albo `meeting`; każda inna wartość jest czytana jako `work`                                                           |
 | `created`          | tak      | ISO 8601 UTC (`2026-11-13T20:27:15.954Z`)                                                                                    |

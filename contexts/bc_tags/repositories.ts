@@ -19,12 +19,30 @@ const normTag = (value: unknown): string => str(value).trim().replace(/^#/, "");
 const normColor = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim() ? value.trim() : undefined;
 
+/** Synonimy: przycięte, bez `#`, bez pustych, duplikatów (bez wielkości liter) i nazwy kanonicznej. */
+function toAliases(value: unknown, canonical: string): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const seen = new Set<string>([canonical.toLowerCase()]);
+  const out: string[] = [];
+  for (const raw of value) {
+    const alias = normTag(raw);
+    const key = alias.toLowerCase();
+    if (alias === "" || seen.has(key)) continue;
+    seen.add(key);
+    out.push(alias);
+  }
+  return out.length > 0 ? out : undefined;
+}
+
 function toTag(record: YamlRecord): UserTag {
+  const tag = normTag(record.tag);
+  const aliases = toAliases(record.aliases, tag);
   return {
     id: str(record.id),
-    tag: normTag(record.tag),
+    tag,
     title: str(record.title).trim(),
     color: optStr(record.color),
+    ...(aliases ? { aliases } : {}),
     created_at: optStr(record.created),
   };
 }

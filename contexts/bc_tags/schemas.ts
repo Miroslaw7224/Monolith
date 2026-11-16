@@ -27,6 +27,7 @@ export type UserTagDto = {
   tag: string;
   title: string;
   color?: string;
+  aliases?: string[];
   created_at?: string;
 };
 
@@ -36,6 +37,7 @@ export function toUserTagDto(tag: UserTag): UserTagDto {
     tag: tag.tag,
     title: tag.title,
     color: tag.color,
+    aliases: tag.aliases,
     created_at: tag.created_at,
   };
 }

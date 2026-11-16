@@ -6,6 +6,7 @@ const mockGetAll = vi.hoisted(() => vi.fn());
 const mockDelete = vi.hoisted(() => vi.fn());
 const mockUpdate = vi.hoisted(() => vi.fn());
 const mockLinkIndex = vi.hoisted(() => vi.fn());
+const mockResolveTags = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_resources/repositories", () => ({
   addResource: (...a: unknown[]) => mockAdd(...a),
@@ -25,6 +26,10 @@ vi.mock("@/contexts/bc_nexus_docs/services", () => ({
   },
 }));
 
+vi.mock("@/contexts/bc_tags/services", () => ({
+  resolveTags: (...a: unknown[]) => mockResolveTags(...a),
+}));
+
 import {
   addResource,
   getResources,
@@ -34,7 +39,6 @@ import {
   decodeHtmlEntities,
   hostTitle,
   isBlockedTitle,
-  normalizeTags,
 } from "@/contexts/bc_resources/services";
 
 describe("bc_resources services (resources)", () => {
@@ -44,6 +48,8 @@ describe("bc_resources services (resources)", () => {
     mockDelete.mockReset();
     mockUpdate.mockReset();
     mockLinkIndex.mockReset();
+    mockResolveTags.mockReset();
+    mockResolveTags.mockImplementation(async (names: string[]) => names);
     mockLinkIndex.mockReturnValue({ hostToPath: new Map(), paths: new Set() });
     vi.stubGlobal(
       "fetch",
@@ -244,16 +250,26 @@ describe("bc_resources services (resources)", () => {
   });
 
   describe("tagi w addResource/updateResource", () => {
-    it("addResource zapisuje znormalizowane tagi", async () => {
+    it("addResource zapisuje tagi zwrócone przez resolveTags", async () => {
+      mockResolveTags.mockResolvedValue(["Learning"]);
       mockAdd.mockImplementation(async (p: Record<string, unknown>) => ({ id: "r5", ...p }));
       await addResource({ description: "d", url: "https://example.com", tags: ["kurs", "nauka"] });
+      expect(mockResolveTags).toHaveBeenCalledWith(["kurs", "nauka"]);
       expect(mockAdd).toHaveBeenCalledWith(expect.objectContaining({ tags: ["Learning"] }));
     });
-    it("updateResource normalizuje tagi, a bez tagów ich nie dotyka", async () => {
+    it("addResource bez tagów woła resolveTags z pustą listą", async () => {
+      mockAdd.mockImplementation(async (p: Record<string, unknown>) => ({ id: "r6", ...p }));
+      await addResource({ description: "d", url: "https://example.com" });
+      expect(mockResolveTags).toHaveBeenCalledWith([]);
+    });
+    it("updateResource scala tagi przez resolveTags, a bez tagów ich nie dotyka", async () => {
       mockUpdate.mockResolvedValue(undefined);
+      mockResolveTags.mockResolvedValue(["Learning"]);
       await updateResource("r1", { tags: ["Kursy", "kurs"] });
       expect(mockUpdate).toHaveBeenCalledWith("r1", { tags: ["Learning"] });
+      mockResolveTags.mockClear();
       await updateResource("r1", { isFavorite: true });
+      expect(mockResolveTags).not.toHaveBeenCalled();
       expect(mockUpdate).toHaveBeenLastCalledWith("r1", { isFavorite: true });
     });
   });
@@ -279,21 +295,6 @@ describe("pomocnicze tytułu", () => {
     expect(decodeHtmlEntities("&amp;#39;")).toBe("&#39;");
     expect(() => decodeHtmlEntities("&#99999999;")).not.toThrow();
     expect(decodeHtmlEntities("&#99999999; &#x110000;")).toBe("&#99999999; &#x110000;");
-  });
-});
-
-describe("normalizeTags", () => {
-  it("scala warianty wg mapy bez względu na wielkość liter", () => {
-    expect(normalizeTags(["kurs", "Nauka", "Learning", "Moje projekty"])).toEqual([
-      "Learning",
-      "Projekty",
-    ]);
-  });
-  it("trimuje, usuwa puste i duplikaty bez względu na wielkość liter, zachowuje kolejność", () => {
-    expect(normalizeTags([" AI ", "", "ai", "Chat", "API", "api"])).toEqual(["AI", "Chat", "API"]);
-  });
-  it("zwraca pustą tablicę dla pustego wejścia", () => {
-    expect(normalizeTags([])).toEqual([]);
   });
 });
 
