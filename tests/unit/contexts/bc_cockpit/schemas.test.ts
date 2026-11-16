@@ -8,6 +8,7 @@ import {
   toCockpitDto,
   toCommitHistoryDto,
   toPinnedDto,
+  toReviewHistoryDto,
   toReviewRequestsDto,
 } from "@/contexts/bc_cockpit/schemas";
 
@@ -248,5 +249,29 @@ describe("toReviewRequestsDto", () => {
       total: 0,
       items: [],
     });
+  });
+});
+
+describe("toReviewHistoryDto", () => {
+  const history = {
+    from: "2026-11-10",
+    to: "2026-11-11",
+    available: true,
+    approved: 2,
+    comments: 1,
+    prs: 2,
+    days: [
+      { date: "2026-11-10", approved: 2, comments: 0 },
+      { date: "2026-11-11", approved: 0, comments: 1 },
+    ],
+  };
+
+  it("kopiuje pola i odrzuca nadmiarowe", () => {
+    const dto = toReviewHistoryDto({
+      ...history,
+      extra: 1,
+      days: history.days.map((d) => ({ ...d, extra: 1 })),
+    } as never);
+    expect(dto).toEqual(history);
   });
 });

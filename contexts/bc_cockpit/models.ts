@@ -161,6 +161,34 @@ export type ReviewRequest = {
  */
 export type ReviewRequests = { available: boolean; total: number; items: ReviewRequest[] };
 
+/** Własne review użytkownika na PR-ze (tylko odczyt z GitHuba). */
+export type MyReview = {
+  /** `właściciel/repo`. */
+  repo: string;
+  number: number;
+  state: "APPROVED" | "COMMENTED" | "CHANGES_REQUESTED";
+  /** Data ISO złożenia review. */
+  submittedAt: string;
+};
+
+/** Review jednego dnia lokalnego: zatwierdzone i komentarze (każde review osobno). */
+export type ReviewDay = { date: string; approved: number; comments: number };
+
+/**
+ * Historia review dzień po dniu. `prs` to liczba różnych PR-ów zrecenzowanych w okresie
+ * (także z żądaniem zmian, które nie ma osobnego słupka). `available: false`, gdy GitHub
+ * jest niedostępny (wtedy `days` jest puste).
+ */
+export type ReviewHistory = {
+  from: string;
+  to: string;
+  available: boolean;
+  approved: number;
+  comments: number;
+  prs: number;
+  days: ReviewDay[];
+};
+
 /** Proponowane okno pracy w wolnej części dnia, przypisane do zadania z kolejki (bez zapisu). */
 export type DeepWindow = {
   startMinutes: number;

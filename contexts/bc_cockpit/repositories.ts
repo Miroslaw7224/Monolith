@@ -1,6 +1,7 @@
 import { fetchReviewRequests } from "@/lib/github/review-requests";
+import { fetchMyReviews } from "@/lib/github/my-reviews";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import type { Closing, Pinned, ReviewRequests } from "./models";
+import type { Closing, MyReview, Pinned, ReviewRequests } from "./models";
 
 const FILE = "Cockpit/pinned.yaml";
 const LIST_KEY = "projects";
@@ -77,6 +78,26 @@ export async function loadReviewRequests(): Promise<ReviewRequests> {
       url: i.url,
       updatedAt: i.updatedAt,
       state: i.state,
+    })),
+  };
+}
+
+/**
+ * Własne review z PR-ów zmienionych od `updatedSince` (`RRRR-MM-DD`), przez `lib/github`;
+ * błąd `gh` to `available: false`, nie wyjątek.
+ */
+export async function loadMyReviews(
+  updatedSince: string
+): Promise<{ available: boolean; reviews: MyReview[] }> {
+  const res = await fetchMyReviews(updatedSince);
+  if (res.ok === false) return { available: false, reviews: [] };
+  return {
+    available: true,
+    reviews: res.reviews.map((r) => ({
+      repo: r.repo,
+      number: r.number,
+      state: r.state,
+      submittedAt: r.submittedAt,
     })),
   };
 }

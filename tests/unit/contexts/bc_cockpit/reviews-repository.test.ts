@@ -2,9 +2,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockFetchReviewRequests = vi.hoisted(() => vi.fn());
+const mockFetchMyReviews = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/github/review-requests", () => ({ fetchReviewRequests: mockFetchReviewRequests }));
+vi.mock("@/lib/github/my-reviews", () => ({ fetchMyReviews: mockFetchMyReviews }));
 
-import { loadReviewRequests } from "@/contexts/bc_cockpit/repositories";
+import { loadMyReviews, loadReviewRequests } from "@/contexts/bc_cockpit/repositories";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -28,5 +30,24 @@ describe("loadReviewRequests", () => {
   it.each(["gh-missing", "gh-error"])("%s to available false z pustą listą", async (reason) => {
     mockFetchReviewRequests.mockResolvedValue({ ok: false, reason });
     expect(await loadReviewRequests()).toEqual({ available: false, total: 0, items: [] });
+  });
+});
+
+describe("loadMyReviews", () => {
+  it("ok: kopiuje review, available true; przekazuje updatedSince", async () => {
+    const review = {
+      repo: "o/r",
+      number: 5,
+      state: "APPROVED",
+      submittedAt: "2026-11-15T18:34:24Z",
+    };
+    mockFetchMyReviews.mockResolvedValue({ ok: true, reviews: [review] });
+    expect(await loadMyReviews("2026-11-09")).toEqual({ available: true, reviews: [review] });
+    expect(mockFetchMyReviews).toHaveBeenCalledWith("2026-11-09");
+  });
+
+  it.each(["gh-missing", "gh-error"])("%s to available false z pustą listą", async (reason) => {
+    mockFetchMyReviews.mockResolvedValue({ ok: false, reason });
+    expect(await loadMyReviews("2026-11-09")).toEqual({ available: false, reviews: [] });
   });
 });

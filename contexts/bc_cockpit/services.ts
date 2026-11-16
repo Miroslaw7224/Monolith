@@ -19,6 +19,7 @@ import {
   type Pinned,
   type ProjectKind,
   type QueueGroup,
+  type ReviewHistory,
   type ReviewRequests,
   type QueueSource,
   type QueueItem,
@@ -562,6 +563,55 @@ export async function getCommitHistory(
     available: true,
     total: result.reduce((sum, d) => sum + d.total, 0),
     totalPrs: result.reduce((sum, d) => sum + d.prs, 0),
+    days: result,
+  };
+}
+
+// ── historia review ────────────────────────────────────────────────────────────
+
+/**
+ * Review użytkownika dzień po dniu za ostatnie `days` dni (łącznie z dziś), dzień w strefie lokalnej.
+ * Zatwierdzone (`APPROVED`) i komentarze (`COMMENTED`) liczone osobno; `CHANGES_REQUESTED` wchodzi
+ * tylko do liczby różnych PR-ów.
+ */
+export async function getReviewHistory(
+  days: number,
+  today: Date = new Date()
+): Promise<ReviewHistory> {
+  if (!Number.isInteger(days) || days < 1 || days > MAX_HISTORY_DAYS) {
+    throw new DomainError(`days musi być liczbą całkowitą 1–${MAX_HISTORY_DAYS}`);
+  }
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    dates.push(localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - i)));
+  }
+  const from = dates[0];
+  const to = dates[dates.length - 1];
+  // zapas jednego dnia na strefy czasowe: GitHub filtruje `updated:` po dacie UTC
+  const updatedSince = localDate(
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() - days)
+  );
+  const res = await repositories.loadMyReviews(updatedSince);
+  if (!res.available) {
+    return { from, to, available: false, approved: 0, comments: 0, prs: 0, days: [] };
+  }
+  const perDay = new Map(dates.map((date) => [date, { date, approved: 0, comments: 0 }]));
+  const prs = new Set<string>();
+  for (const review of res.reviews) {
+    const day = perDay.get(localDate(new Date(review.submittedAt)));
+    if (!day) continue;
+    prs.add(`${review.repo}#${review.number}`);
+    if (review.state === "APPROVED") day.approved += 1;
+    else if (review.state === "COMMENTED") day.comments += 1;
+  }
+  const result = dates.map((date) => perDay.get(date)!);
+  return {
+    from,
+    to,
+    available: true,
+    approved: result.reduce((sum, d) => sum + d.approved, 0),
+    comments: result.reduce((sum, d) => sum + d.comments, 0),
+    prs: prs.size,
     days: result,
   };
 }
