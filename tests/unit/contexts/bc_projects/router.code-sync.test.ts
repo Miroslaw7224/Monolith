@@ -12,7 +12,7 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   markCodeSynced: mockMarkCodeSynced,
 }));
 
-import { GET as mapGET } from "@/app/api/projects/code-sync/route";
+import { GET as mapGET, dynamic as mapDynamic } from "@/app/api/projects/code-sync/route";
 import { PUT as markPUT } from "@/app/api/projects/[id]/code-sync/route";
 
 const HEAD = "f".repeat(40);
@@ -48,6 +48,10 @@ beforeEach(() => {
 });
 
 describe("GET /api/projects/code-sync", () => {
+  it("trasa jest dynamiczna (bez tego build produkcyjny zamraża mapę stanów)", () => {
+    expect(mapDynamic).toBe("force-dynamic");
+  });
+
   it("mapa stanów po id", async () => {
     mockListCodeSync.mockReturnValue({ a: { status: "no-baseline" } });
     const res = await mapGET();
