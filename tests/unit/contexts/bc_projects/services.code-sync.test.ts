@@ -94,6 +94,11 @@ describe("getCodeSync / getProject", () => {
     expect(getCodeSync("a")).toEqual({ status: "behind", ahead: 2, head: HEAD });
     expect(mockReadCodeSync).toHaveBeenCalledWith(entry, SHA);
   });
+  it("ręcznie wpisany, niepoprawny code_commit: unknown-sha bez pytania gita", () => {
+    mockReadProjectState.mockReturnValue({ state: state({ codeCommit: "xyz" }), version: VERSION });
+    expect(getCodeSync("a")).toEqual({ status: "unknown-sha" });
+    expect(mockReadCodeSync).not.toHaveBeenCalled();
+  });
   it("getProject dołącza codeSync", () => {
     mockReadProjectState.mockReturnValue({ state: state({ codeCommit: SHA }), version: VERSION });
     mockReadCodeSync.mockReturnValue({ status: "current", head: HEAD });

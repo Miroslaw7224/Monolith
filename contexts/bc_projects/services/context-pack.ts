@@ -259,10 +259,12 @@ function renderPack(input: ContextPackInput, k: Knobs, profile: RoleProfile): st
           : "## Zmiany w repo (brak punktu odniesienia; ostatnie commity)";
       const shown = range.commits.slice(0, k.rangeCommits);
       const hidden = range.total - shown.length;
-      const parts = [
-        `HEAD: \`${short(range.head)}\` · commity w zakresie: ${range.total}`,
-        `Commity:\n${block(shown.join("\n"))}${hidden > 0 ? `\n… i ${hidden} starszych` : ""}`,
-      ];
+      const parts = [`HEAD: \`${short(range.head)}\` · commity w zakresie: ${range.total}`];
+      parts.push(
+        shown.length === 0
+          ? "Brak nowych commitów w zakresie."
+          : `Commity:\n${block(shown.join("\n"))}${hidden > 0 ? `\n… i ${hidden} starszych` : ""}`
+      );
       if (range.diffStat !== "") {
         parts.push(`Zmiany (diff --stat):\n${block(limitLines(range.diffStat, k.rangeDiff))}`);
       }

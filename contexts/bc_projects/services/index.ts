@@ -354,6 +354,8 @@ function findEntry(id: string): RegistryEntry {
 function codeSyncOf(entry: RegistryEntry, state: ProjectState | null): CodeSync {
   const sha = state?.codeCommit;
   if (!sha) return { status: "no-baseline" };
+  // Ręcznie wpisany śmieć (literówka) nie jest sha: `unknown-sha` zostawia przycisk naprawy w UI.
+  if (!/^[0-9a-f]{7,40}$/i.test(sha)) return { status: "unknown-sha" };
   return readCodeSync(entry, sha);
 }
 

@@ -34,6 +34,27 @@ describe("useCodeSync", () => {
     expect(second.result.current).toEqual({});
   });
 
+  it("spóźniona mapa nie nadpisuje świeższego wpisu ze szczegółów", async () => {
+    let resolve: (r: Response) => void = () => {};
+    const apiFetch = vi.fn().mockReturnValue(new Promise<Response>((r) => (resolve = r)));
+    const detail = { id: "a", codeSync: { status: "current", head: HEAD } } as ProjectDetailDto;
+    const { result, rerender } = renderHook(
+      ({ d }: { d: ProjectDetailDto | null }) => useCodeSync(apiFetch, true, d),
+      { initialProps: { d: null as ProjectDetailDto | null } }
+    );
+    rerender({ d: detail });
+    await waitFor(() => expect(result.current.a).toEqual({ status: "current", head: HEAD }));
+    resolve({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          codeSync: { a: { status: "no-baseline" }, b: { status: "unknown-sha" } },
+        }),
+    } as Response);
+    await waitFor(() => expect(result.current.b).toEqual({ status: "unknown-sha" }));
+    expect(result.current.a).toEqual({ status: "current", head: HEAD });
+  });
+
   it("codeSync ze szczegółów wybranego projektu nadpisuje wpis w mapie", async () => {
     const apiFetch = vi.fn().mockReturnValue(json({ codeSync: { a: { status: "no-baseline" } } }));
     const detail = { id: "a", codeSync: { status: "current", head: HEAD } } as ProjectDetailDto;

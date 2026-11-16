@@ -95,6 +95,14 @@ describe("rola refresh", () => {
     expect(markdown).toContain("… i 15 starszych");
   });
 
+  it("zero commitów w zakresie: opis zamiast pustego bloku kodu", () => {
+    const { markdown } = composeContextPack(
+      input({ range: range({ commits: [], total: 0, diffStat: "" }) })
+    );
+    expect(markdown).toContain("Brak nowych commitów");
+    expect(markdown).not.toContain("Commity:");
+  });
+
   it("bez punktu odniesienia i z utraconym sha: osobne opisy", () => {
     const none = composeContextPack(input({ range: range({ baseline: null }) })).markdown;
     expect(none).toContain("brak punktu odniesienia");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CodeSyncDto, ProjectDetailDto } from "@/contexts/bc_projects/schemas";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
@@ -16,6 +16,8 @@ export function useCodeSync(
   detail: ProjectDetailDto | null
 ): Record<string, CodeSyncDto> {
   const [map, setMap] = useState<Record<string, CodeSyncDto>>({});
+  // Wpisy ze szczegółów są świeższe niż mapa: spóźniona odpowiedź GET ich nie nadpisuje.
+  const fromDetail = useRef<Record<string, CodeSyncDto>>({});
 
   useEffect(() => {
     if (!enabled) return;
@@ -25,7 +27,7 @@ export function useCodeSync(
         const res = await apiFetch("/api/projects/code-sync");
         if (!res.ok) return;
         const body = (await res.json()) as { codeSync?: Record<string, CodeSyncDto> };
-        if (!cancelled && body.codeSync) setMap(body.codeSync);
+        if (!cancelled && body.codeSync) setMap({ ...body.codeSync, ...fromDetail.current });
       } catch {
         // brak znaczników zamiast błędu listy
       }
@@ -38,7 +40,9 @@ export function useCodeSync(
   const id = detail?.id;
   const sync = detail?.codeSync;
   useEffect(() => {
-    if (id && sync) setMap((m) => ({ ...m, [id]: sync }));
+    if (!id || !sync) return;
+    fromDetail.current[id] = sync;
+    setMap((m) => ({ ...m, [id]: sync }));
   }, [id, sync]);
 
   return map;
