@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/src/components/theme/ThemeProvider";
 import { I18nProvider } from "@/src/i18n/I18nProvider";
 
 export const metadata: Metadata = {
-  title: "Monolith · Offline Nexus Core",
+  title: "Monolith",
   description:
     "Jedno miejsce na dokumenty i notatki. Chat z AI po swojej bazie wiedzy — odpowiedzi w sekundach, ze wskazaniem źródła. Dla freelancerów.",
 };
