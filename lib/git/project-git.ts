@@ -111,6 +111,39 @@ export function commitsByDay(
   return { ok: true, days };
 }
 
+/**
+ * Tematy commitów (bez merge'y, lokalne gałęzie, bez duplikatów, najnowsze pierwsze) w zakresie
+ * `from`–`to` włącznie (`RRRR-MM-DD`, czas lokalny). Zły format daty rzuca, jak w `commitsByDay`.
+ */
+export function commitSubjects(
+  repoDir: string,
+  from: string,
+  to: string
+): { ok: true; subjects: string[] } | { ok: false } {
+  if (!DAY_RE.test(from)) throw new Error(`git: zła data (oczekiwano RRRR-MM-DD): ${from}`);
+  if (!DAY_RE.test(to)) throw new Error(`git: zła data (oczekiwano RRRR-MM-DD): ${to}`);
+  if (from > to) throw new Error(`git: zły zakres dat: ${from} > ${to}`);
+  const res = execGit(repoDir, [
+    "log",
+    "--branches",
+    "--no-merges",
+    "--format=%H%x09%s",
+    `--since=${from}T00:00:00`,
+    `--until=${to}T23:59:59`,
+  ]);
+  if (res.status !== 0) return { ok: false };
+  const seen = new Set<string>();
+  const subjects: string[] = [];
+  for (const line of res.stdout.split("\n")) {
+    const [hash, ...rest] = line.split("\t");
+    const subject = rest.join("\t").trim();
+    if (!hash || seen.has(hash)) continue;
+    seen.add(hash);
+    if (subject !== "") subjects.push(subject);
+  }
+  return { ok: true, subjects };
+}
+
 const PR_MERGE = /^Merge pull request #\d+/;
 const PR_SQUASH = /\(#\d+\)\s*$/;
 
