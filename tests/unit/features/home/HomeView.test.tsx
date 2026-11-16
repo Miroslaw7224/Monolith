@@ -1778,12 +1778,17 @@ describe("K1: układ wg makiety", () => {
 });
 
 describe("panel „Do zrecenzowania”", () => {
-  test("historia review stoi nad listą „Do zrecenzowania”", async () => {
+  test("kolejność w lewej kolumnie: Do zrecenzowania, oś dnia, Review, Commity", async () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);
-    const history = await screen.findByRole("region", { name: "Historia review" });
-    const list = screen.getByRole("region", { name: "Prośby o review" });
-    expect(history.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await screen.findByRole("region", { name: "Historia review" });
+    const names = ["Prośby o review", "Oś dnia", "Historia review", "Historia commitów"];
+    const panels = await Promise.all(names.map((name) => screen.findByRole("region", { name })));
+    for (let i = 0; i < panels.length - 1; i++) {
+      expect(
+        panels[i].compareDocumentPosition(panels[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
   });
 
   test("stoi nad osią dnia", async () => {
