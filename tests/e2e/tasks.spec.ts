@@ -5,11 +5,8 @@ test.describe("Task Management", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 20000 });
 
-    // Navigate to Tasks tab
-    await page
-      .locator("aside")
-      .getByRole("button", { name: /^(Zadania|Tasks)$/ })
-      .click();
+    // Karta Zadania: skrót Alt+3 (pasek boczny zmienił układ, selektor po nazwie przestał pasować)
+    await page.keyboard.press("Alt+3");
     // Wait for the title input to appear
     await expect(page.getByPlaceholder(/nazwa zadania|task name/i)).toBeVisible({
       timeout: 15000,
@@ -34,11 +31,11 @@ test.describe("Task Management", () => {
     await expect(page.getByText(originalTitle)).toBeVisible({ timeout: 10000 });
 
     await page.getByText(originalTitle).first().dblclick();
-    const dialog = page.locator('[role="dialog"]');
-    await expect(dialog).toBeVisible({ timeout: 5000 });
+    // od 1024 px zadanie otwiera się w panelu, poniżej w oknie; zmiana zapisuje się sama
+    const detail = page.locator('aside[aria-label], [role="dialog"]');
+    await expect(detail).toBeVisible({ timeout: 5000 });
 
-    await dialog.locator("#task-detail-title-field").fill(updatedTitle);
-    await page.getByRole("button", { name: /^(Zapisz|Save)$/i }).click();
+    await detail.locator("#task-detail-title-field").fill(updatedTitle);
 
     await expect(page.locator("li", { hasText: updatedTitle })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(originalTitle)).toHaveCount(0, { timeout: 10000 });
@@ -86,5 +83,24 @@ test.describe("Task Management", () => {
     await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
 
     await expect(page.getByText(templateTitle)).toBeVisible({ timeout: 10000 });
+  });
+
+  test("odhacza punkt checklisty i widzi Zapisano", async ({ page }) => {
+    const title = `E2E Checklist ${Date.now()}`;
+    await page.getByPlaceholder(/nazwa zadania|task name/i).fill(title);
+    await page.getByRole("button", { name: /^(Dodaj|Add)$/ }).click();
+    await expect(page.getByText(title)).toBeVisible({ timeout: 10000 });
+
+    await page.getByText(title).first().dblclick();
+    const note = page.locator("#task-detail-note");
+    await expect(note).toBeVisible({ timeout: 5000 });
+    await note.fill("- [ ] T-01: pierwszy\n- [ ] T-02: drugi");
+
+    await page.getByRole("button", { name: /^(Lista|List)$/ }).click();
+    await page
+      .getByRole("button", { name: /^(Do sprawdzenia|Unchecked):/ })
+      .first()
+      .click();
+    await expect(page.getByText(/^(Zapisano|Saved)$/)).toBeVisible({ timeout: 5000 });
   });
 });
