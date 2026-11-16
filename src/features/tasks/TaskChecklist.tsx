@@ -143,6 +143,7 @@ export function TaskChecklist({ title, value, onChange }: Props) {
                   rows={1}
                   value={itemComment(line)}
                   placeholder={t("tasks:tasksChecklistCommentPlaceholder")}
+                  aria-label={`${t("tasks:tasksChecklistCommentPlaceholder")} ${line.text}`}
                   onChange={(e) =>
                     onChange(serializeChecklist(setItemComment(model, index, e.target.value)))
                   }

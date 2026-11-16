@@ -100,6 +100,7 @@ export function TaskDetailContent({ task, projects, onPatch }: TaskDetailContent
             <button
               key={opt.value}
               type="button"
+              aria-pressed={status === opt.value}
               onClick={() => {
                 setStatus(opt.value);
                 void draft.saveNow({ status: opt.value }).then((ok) => {
