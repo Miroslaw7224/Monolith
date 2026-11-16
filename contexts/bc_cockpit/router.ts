@@ -11,6 +11,8 @@ import {
   toCockpitDto,
   toCommitHistoryDto,
   toPinnedDto,
+  toReviewHistoryDto,
+  toReviewRequestsDto,
 } from "./schemas";
 import * as services from "./services";
 
@@ -60,6 +62,29 @@ export async function getCommits(request: NextRequest): Promise<NextResponse> {
       throw new DomainError(`days musi być liczbą całkowitą 1–${MAX_HISTORY_DAYS}`);
     }
     return NextResponse.json(toCommitHistoryDto(await services.getCommitHistory(days)));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** `?days=` (liczba całkowita 1–90, domyślnie 7); inna wartość to 400. Awaria `gh` to 200 z `available: false`. */
+export async function getReviewHistory(request: NextRequest): Promise<NextResponse> {
+  const raw = request.nextUrl.searchParams.get("days");
+  const days = raw === null ? DEFAULT_HISTORY_DAYS : Number(raw);
+  try {
+    if (!Number.isInteger(days) || days < 1 || days > MAX_HISTORY_DAYS) {
+      throw new DomainError(`days musi być liczbą całkowitą 1–${MAX_HISTORY_DAYS}`);
+    }
+    return NextResponse.json(toReviewHistoryDto(await services.getReviewHistory(days)));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** GET: lista próśb o review z GitHuba; niedostępny `gh` to 200 z `available: false`, nie błąd. */
+export async function getReviewRequests(): Promise<NextResponse> {
+  try {
+    return NextResponse.json(toReviewRequestsDto(await services.getReviewRequests()));
   } catch (err) {
     return handleServiceError(err);
   }

@@ -236,6 +236,23 @@ function respond(cockpit: CockpitDto | "fail") {
     if (url.startsWith("/api/cockpit/commits")) {
       return Promise.resolve({ ok: true, json: async () => HISTORY });
     }
+    if (url.startsWith("/api/cockpit/review-history")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          from: "2026-11-13",
+          to: "2026-11-13",
+          available: true,
+          approved: 1,
+          comments: 0,
+          prs: 1,
+          days: [{ date: "2026-11-13", approved: 1, comments: 0 }],
+        }),
+      });
+    }
+    if (url === "/api/cockpit/reviews") {
+      return Promise.resolve({ ok: true, json: async () => ({ available: true, items: [] }) });
+    }
     if (url === "/api/projects") {
       return Promise.resolve({
         ok: true,
@@ -1757,5 +1774,28 @@ describe("K1: układ wg makiety", () => {
       await screen.findByText("Następne spotkanie", { selector: ".kok-tile__label" })
     ).closest(".kok-tile") as HTMLElement;
     expect(tile2).toHaveTextContent("brak nadchodzących spotkań");
+  });
+});
+
+describe("panel „Do zrecenzowania”", () => {
+  test("kolejność w lewej kolumnie: Do zrecenzowania, oś dnia, Review, Commity", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByRole("region", { name: "Historia review" });
+    const names = ["Prośby o review", "Oś dnia", "Historia review", "Historia commitów"];
+    const panels = await Promise.all(names.map((name) => screen.findByRole("region", { name })));
+    for (let i = 0; i < panels.length - 1; i++) {
+      expect(
+        panels[i].compareDocumentPosition(panels[i + 1]) & Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
+    }
+  });
+
+  test("stoi nad osią dnia", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const reviews = await screen.findByRole("region", { name: "Prośby o review" });
+    const axis = screen.getByRole("region", { name: "Oś dnia" });
+    expect(reviews.compareDocumentPosition(axis) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

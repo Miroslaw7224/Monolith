@@ -1361,3 +1361,61 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- Do zrecenzowania ---------- */
+.kok-reviews__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.kok-reviews__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kok-reviews__link {
+  color: var(--text);
+  text-decoration: none;
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.kok-reviews__link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.kok-reviews__ref {
+  color: var(--accent);
+}
+
+.kok-reviews__meta {
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+  color: var(--muted);
+}
+
+/* Historia commitów i review: długie opisy w nagłówku łamią się na 2 linie zamiast nachodzić na siebie. */
+.kok-history .kok-panel__head {
+  flex-wrap: wrap;
+  row-gap: var(--s-2);
+}
+
+.kok-history .kok-panel__tools {
+  flex-wrap: wrap;
+  row-gap: var(--s-1);
+  min-width: 0;
+}
+
+.kok-history .kok-chip {
+  height: auto;
+  min-height: 20px;
+  padding-block: 3px;
+  line-height: 1.3;
+  white-space: normal;
+}

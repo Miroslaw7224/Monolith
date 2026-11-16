@@ -17,12 +17,16 @@ const mockListGitHistory = vi.hoisted(() => vi.fn());
 const mockCountOpen = vi.hoisted(() => vi.fn());
 const mockCompleteNowTask = vi.hoisted(() => vi.fn());
 const mockUpdateTask = vi.hoisted(() => vi.fn());
+const mockLoadReviewRequests = vi.hoisted(() => vi.fn());
+const mockLoadMyReviews = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
   writePinned: mockWritePinned,
   readClosings: mockReadClosings,
   upsertClosing: mockUpsertClosing,
+  loadReviewRequests: mockLoadReviewRequests,
+  loadMyReviews: mockLoadMyReviews,
 }));
 vi.mock("@/contexts/bc_projects/services", () => ({
   getProject: mockGetProject,
@@ -50,6 +54,9 @@ import {
   withEnergy,
   planWindows,
   getCommitHistory,
+  getReviewRequests,
+  getReviewHistory,
+  MAX_REVIEW_REQUESTS,
   getCockpit,
   isPlausibleDate,
   localDate,
@@ -1531,4 +1538,149 @@ describe("kolejka: zadanie ogólne z projektem (spec zadań ogólnych, P4)", () 
     // loadTopics/pin nie czytają listy przy pustych przypięciach, więc kolejka nie może jej wołać
     expect(mockListProjects).not.toHaveBeenCalled();
   });
+});
+
+describe("getReviewRequests", () => {
+  const pr = (n: number, updatedAt: string) => ({
+    repo: "o/r",
+    number: n,
+    title: `PR ${n}`,
+    author: "a",
+    url: `https://github.com/o/r/pull/${n}`,
+    updatedAt,
+    state: "open" as const,
+  });
+
+  it("sortuje malejąco po updatedAt", async () => {
+    mockLoadReviewRequests.mockResolvedValue({
+      available: true,
+      total: 3,
+      items: [
+        pr(1, "2026-11-14T10:00:00Z"),
+        pr(2, "2026-11-16T10:00:00Z"),
+        pr(3, "2026-11-15T10:00:00Z"),
+      ],
+    });
+    const res = await getReviewRequests();
+    expect(res.available).toBe(true);
+    expect(res.items.map((i) => i.number)).toEqual([2, 3, 1]);
+  });
+
+  it("przycina do 20 najnowszych, total zostaje pełny", async () => {
+    const items = Array.from({ length: 25 }, (_, i) =>
+      pr(i + 1, new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString())
+    ).reverse();
+    mockLoadReviewRequests.mockResolvedValue({ available: true, total: 25, items });
+    const res = await getReviewRequests();
+    expect(res.total).toBe(25);
+    expect(MAX_REVIEW_REQUESTS).toBe(20);
+    expect(res.items).toHaveLength(20);
+    expect(res.items[0].number).toBe(25);
+    expect(res.items[19].number).toBe(6);
+  });
+
+  it("niedostępny GitHub przechodzi bez zmian", async () => {
+    mockLoadReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
+    expect(await getReviewRequests()).toEqual({ available: false, total: 0, items: [] });
+  });
+});
+
+describe("getReviewHistory", () => {
+  const TODAY_REVIEWS = new Date(2026, 10, 16, 10, 0);
+  const at = (day: number, h: number, m = 0, month = 10) =>
+    new Date(2026, month, day, h, m).toISOString();
+  const rv = (
+    number: number,
+    state: "APPROVED" | "COMMENTED" | "CHANGES_REQUESTED",
+    submittedAt: string
+  ) => ({ repo: "o/r", number, state, submittedAt });
+
+  it("liczy zatwierdzone i komentarze dzień po dniu, sumy i różne PR-y", async () => {
+    mockLoadMyReviews.mockResolvedValue({
+      available: true,
+      reviews: [
+        rv(1, "APPROVED", at(15, 18, 34)),
+        rv(1, "COMMENTED", at(15, 10)),
+        rv(2, "COMMENTED", at(14, 12)),
+        rv(3, "APPROVED", at(16, 9)),
+        rv(4, "CHANGES_REQUESTED", at(12, 12)),
+        rv(5, "APPROVED", at(9, 12)),
+        rv(6, "APPROVED", at(17, 12)),
+      ],
+    });
+    const h = await getReviewHistory(7, TODAY_REVIEWS);
+    expect(h.available).toBe(true);
+    expect(h.from).toBe("2026-11-10");
+    expect(h.to).toBe("2026-11-16");
+    expect(h.days.map((d) => d.date)).toEqual([
+      "2026-11-10",
+      "2026-11-11",
+      "2026-11-12",
+      "2026-11-13",
+      "2026-11-14",
+      "2026-11-15",
+      "2026-11-16",
+    ]);
+    expect(h.days.map((d) => [d.approved, d.comments])).toEqual([
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 1],
+      [1, 1],
+      [1, 0],
+    ]);
+    expect(h.approved).toBe(2);
+    expect(h.comments).toBe(2);
+    expect(h.prs).toBe(4);
+  });
+
+  it("różne repozytoria z tym samym numerem to dwa różne PR-y", async () => {
+    mockLoadMyReviews.mockResolvedValue({
+      available: true,
+      reviews: [
+        { repo: "o/r", number: 1, state: "APPROVED", submittedAt: at(15, 10) },
+        { repo: "x/y", number: 1, state: "COMMENTED", submittedAt: at(15, 11) },
+      ],
+    });
+    expect((await getReviewHistory(7, TODAY_REVIEWS)).prs).toBe(2);
+  });
+
+  it("granica doby wg strefy lokalnej: 00:30 dnia 16 wchodzi, 23:30 dnia 9 odpada", async () => {
+    mockLoadMyReviews.mockResolvedValue({
+      available: true,
+      reviews: [rv(1, "APPROVED", at(16, 0, 30)), rv(2, "APPROVED", at(9, 23, 30))],
+    });
+    const h = await getReviewHistory(7, TODAY_REVIEWS);
+    expect(h.days[6]).toEqual({ date: "2026-11-16", approved: 1, comments: 0 });
+    expect(h.approved).toBe(1);
+    expect(h.prs).toBe(1);
+  });
+
+  it("prosi repozytorium o PR-y zmienione od dnia przed początkiem zakresu", async () => {
+    mockLoadMyReviews.mockResolvedValue({ available: true, reviews: [] });
+    await getReviewHistory(7, TODAY_REVIEWS);
+    expect(mockLoadMyReviews).toHaveBeenCalledWith("2026-11-09");
+  });
+
+  it("niedostępny GitHub: available false, puste dni i zera", async () => {
+    mockLoadMyReviews.mockResolvedValue({ available: false, reviews: [] });
+    expect(await getReviewHistory(7, TODAY_REVIEWS)).toEqual({
+      from: "2026-11-10",
+      to: "2026-11-16",
+      available: false,
+      approved: 0,
+      comments: 0,
+      prs: 0,
+      days: [],
+    });
+  });
+
+  it.each([0, 91, 2.5, -1])(
+    "days=%s to DomainError, repozytorium nie jest wołane",
+    async (days) => {
+      await expect(getReviewHistory(days, TODAY_REVIEWS)).rejects.toThrow(DomainError);
+      expect(mockLoadMyReviews).not.toHaveBeenCalled();
+    }
+  );
 });

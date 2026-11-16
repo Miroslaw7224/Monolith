@@ -1,5 +1,7 @@
+import { fetchReviewRequests } from "@/lib/github/review-requests";
+import { fetchMyReviews } from "@/lib/github/my-reviews";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import type { Closing, Pinned } from "./models";
+import type { Closing, MyReview, Pinned, ReviewRequests } from "./models";
 
 const FILE = "Cockpit/pinned.yaml";
 const LIST_KEY = "projects";
@@ -59,4 +61,43 @@ export async function upsertClosing(closing: Closing): Promise<void> {
     if (closing.commits !== null) entry.commits = closing.commits;
     return [...kept, entry].sort((a, b) => text(a.date).localeCompare(text(b.date)));
   });
+}
+
+/** Prośby o review z GitHuba (przez `lib/github`); błąd `gh` to `available: false`, nie wyjątek. */
+export async function loadReviewRequests(): Promise<ReviewRequests> {
+  const res = await fetchReviewRequests();
+  if (res.ok === false) return { available: false, total: 0, items: [] };
+  return {
+    available: true,
+    total: res.items.length,
+    items: res.items.map((i) => ({
+      repo: i.repo,
+      number: i.number,
+      title: i.title,
+      author: i.author,
+      url: i.url,
+      updatedAt: i.updatedAt,
+      state: i.state,
+    })),
+  };
+}
+
+/**
+ * Własne review z PR-ów zmienionych od `updatedSince` (`RRRR-MM-DD`), przez `lib/github`;
+ * błąd `gh` to `available: false`, nie wyjątek.
+ */
+export async function loadMyReviews(
+  updatedSince: string
+): Promise<{ available: boolean; reviews: MyReview[] }> {
+  const res = await fetchMyReviews(updatedSince);
+  if (res.ok === false) return { available: false, reviews: [] };
+  return {
+    available: true,
+    reviews: res.reviews.map((r) => ({
+      repo: r.repo,
+      number: r.number,
+      state: r.state,
+      submittedAt: r.submittedAt,
+    })),
+  };
 }

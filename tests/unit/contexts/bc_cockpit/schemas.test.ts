@@ -8,6 +8,8 @@ import {
   toCockpitDto,
   toCommitHistoryDto,
   toPinnedDto,
+  toReviewHistoryDto,
+  toReviewRequestsDto,
 } from "@/contexts/bc_cockpit/schemas";
 
 describe("PinnedInputSchema", () => {
@@ -218,5 +220,58 @@ describe("CompleteQueueItemSchema", () => {
     [{ type: "inne", taskId: "x" }],
   ])("odrzuca %j", (body) => {
     expect(CompleteQueueItemSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe("toReviewRequestsDto", () => {
+  const item = {
+    repo: "o/r",
+    number: 1,
+    title: "t",
+    author: null,
+    url: "https://github.com/o/r/pull/1",
+    updatedAt: "2026-11-16T05:58:28Z",
+    state: "open" as const,
+  };
+
+  it("kopiuje pola i odrzuca nadmiarowe", () => {
+    const dto = toReviewRequestsDto({
+      available: true,
+      total: 7,
+      items: [{ ...item, extra: 1 }],
+    } as never);
+    expect(dto).toEqual({ available: true, total: 7, items: [item] });
+  });
+
+  it("niedostępny GitHub: available false, pusta lista", () => {
+    expect(toReviewRequestsDto({ available: false, total: 0, items: [] })).toEqual({
+      available: false,
+      total: 0,
+      items: [],
+    });
+  });
+});
+
+describe("toReviewHistoryDto", () => {
+  const history = {
+    from: "2026-11-10",
+    to: "2026-11-11",
+    available: true,
+    approved: 2,
+    comments: 1,
+    prs: 2,
+    days: [
+      { date: "2026-11-10", approved: 2, comments: 0 },
+      { date: "2026-11-11", approved: 0, comments: 1 },
+    ],
+  };
+
+  it("kopiuje pola i odrzuca nadmiarowe", () => {
+    const dto = toReviewHistoryDto({
+      ...history,
+      extra: 1,
+      days: history.days.map((d) => ({ ...d, extra: 1 })),
+    } as never);
+    expect(dto).toEqual(history);
   });
 });

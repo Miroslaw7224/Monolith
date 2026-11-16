@@ -9,6 +9,8 @@ const mockCloseDay = vi.hoisted(() => vi.fn());
 const mockCompleteQueueItem = vi.hoisted(() => vi.fn());
 const mockSetQueueItemEnergy = vi.hoisted(() => vi.fn());
 const mockGetCommitHistory = vi.hoisted(() => vi.fn());
+const mockGetReviewRequests = vi.hoisted(() => vi.fn());
+const mockGetReviewHistory = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCockpit: mockGetCockpit,
   setPinned: mockSetPinned,
@@ -16,6 +18,8 @@ vi.mock("@/contexts/bc_cockpit/services", () => ({
   completeQueueItem: mockCompleteQueueItem,
   setQueueItemEnergy: mockSetQueueItemEnergy,
   getCommitHistory: mockGetCommitHistory,
+  getReviewRequests: mockGetReviewRequests,
+  getReviewHistory: mockGetReviewHistory,
 }));
 
 import {
@@ -23,6 +27,8 @@ import {
   setQueueEnergy,
   getCockpit,
   getCommits,
+  getReviewRequests,
+  getReviewHistory,
   putClosing,
   putPinned,
 } from "@/contexts/bc_cockpit/router";
@@ -159,6 +165,72 @@ describe("GET /api/cockpit/commits", () => {
   it.each(["?days=0", "?days=abc", "?days=91", "?days=2.5"])("400 dla %s", async (qs) => {
     expect((await getCommits(get(qs))).status).toBe(400);
     expect(mockGetCommitHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/cockpit/reviews", () => {
+  const item = {
+    repo: "o/r",
+    number: 1,
+    title: "t",
+    author: "a",
+    url: "https://github.com/o/r/pull/1",
+    updatedAt: "2026-11-16T05:58:28Z",
+    state: "merged" as const,
+  };
+
+  it("200 z DTO", async () => {
+    mockGetReviewRequests.mockResolvedValue({ available: true, total: 9, items: [item] });
+    const res = await getReviewRequests();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: true, total: 9, items: [item] });
+  });
+
+  it("200 i available false, gdy GitHub niedostępny (nie 500)", async () => {
+    mockGetReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
+    const res = await getReviewRequests();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: false, total: 0, items: [] });
+  });
+});
+
+describe("GET /api/cockpit/review-history", () => {
+  const get = (qs = "") => new NextRequest(`http://localhost/api/cockpit/review-history${qs}`);
+  const history = {
+    from: "a",
+    to: "b",
+    available: true,
+    approved: 1,
+    comments: 2,
+    prs: 3,
+    days: [],
+  };
+
+  it("domyślnie 7 dni, 200 z DTO", async () => {
+    mockGetReviewHistory.mockResolvedValue(history);
+    const res = await getReviewHistory(get());
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(history);
+    expect(mockGetReviewHistory).toHaveBeenCalledWith(7);
+  });
+
+  it("przekazuje ?days=30", async () => {
+    mockGetReviewHistory.mockResolvedValue(history);
+    await getReviewHistory(get("?days=30"));
+    expect(mockGetReviewHistory).toHaveBeenCalledWith(30);
+  });
+
+  it.each(["?days=0", "?days=abc", "?days=91", "?days=2.5"])("400 dla %s", async (qs) => {
+    expect((await getReviewHistory(get(qs))).status).toBe(400);
+    expect(mockGetReviewHistory).not.toHaveBeenCalled();
+  });
+
+  it("200 i available false, gdy GitHub niedostępny (nie 500)", async () => {
+    const down = { ...history, available: false, approved: 0, comments: 0, prs: 0 };
+    mockGetReviewHistory.mockResolvedValue(down);
+    const res = await getReviewHistory(get());
+    expect(res.status).toBe(200);
+    expect((await res.json()).available).toBe(false);
   });
 });
 
