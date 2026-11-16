@@ -5,14 +5,26 @@ import { TaskChecklist } from "./TaskChecklist";
 import { useTaskDraft } from "./useTaskDraft";
 import type { TaskPatch } from "./useTasksBoard";
 
+export type DuplicateHandler = (
+  suffix: string,
+  current: { title: string; link: string; description: string }
+) => Promise<Task>;
+
 export interface TaskDetailContentProps {
   task: Task;
   projects: { id: string; name: string }[];
   onPatch: (taskId: string, patch: TaskPatch) => Promise<void>;
+  /** Kopiowanie zadania z dopiskiem; bez tego propa przycisk się nie pokazuje. */
+  onDuplicate?: DuplicateHandler;
 }
 
 /** Pola zadania z autozapisem; wspólne dla modala (< 1024 px) i panelu roboczego. Montować z `key={task.id}`. */
-export function TaskDetailContent({ task, projects, onPatch }: TaskDetailContentProps) {
+export function TaskDetailContent({
+  task,
+  projects,
+  onPatch,
+  onDuplicate,
+}: TaskDetailContentProps) {
   const t = useT();
   const draft = useTaskDraft({
     taskId: task.id,
@@ -26,6 +38,32 @@ export function TaskDetailContent({ task, projects, onPatch }: TaskDetailContent
   const [status, setStatus] = useState<Task["status"]>(task.status);
   const [dueDate, setDueDate] = useState(task.due_date ?? "");
   const [project, setProject] = useState(task.project ?? "");
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copySuffix, setCopySuffix] = useState("");
+  const [copyBusy, setCopyBusy] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+  const [copiedTitle, setCopiedTitle] = useState<string | null>(null);
+
+  const createCopy = async () => {
+    const suffix = copySuffix.trim();
+    if (!onDuplicate || !suffix || copyBusy) return;
+    setCopyBusy(true);
+    setCopyError(false);
+    try {
+      const created = await onDuplicate(suffix, {
+        title: draft.values.title.trim() || task.title,
+        link: draft.values.link.trim(),
+        description: draft.values.description.trim(),
+      });
+      setCopiedTitle(created.title);
+      setCopyOpen(false);
+      setCopySuffix("");
+    } catch {
+      setCopyError(true);
+    } finally {
+      setCopyBusy(false);
+    }
+  };
 
   // zmiana z zewnątrz (przeciągnięcie karty, data na karcie) odświeża pola
   useEffect(() => {
@@ -168,6 +206,65 @@ export function TaskDetailContent({ task, projects, onPatch }: TaskDetailContent
         value={draft.values.description}
         onChange={(next) => draft.setField("description", next)}
       />
+
+      {onDuplicate ? (
+        <div className="zad-copy">
+          {copyOpen ? (
+            <div className="zad-copy__row">
+              <input
+                type="text"
+                value={copySuffix}
+                onChange={(e) => setCopySuffix(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void createCopy();
+                  }
+                }}
+                placeholder={t("tasks:tasksCopySuffixPlaceholder")}
+                aria-label={t("tasks:tasksCopySuffixPlaceholder")}
+                className="zad-input"
+              />
+              <button
+                type="button"
+                onClick={() => void createCopy()}
+                disabled={copyBusy || copySuffix.trim() === ""}
+                className="zad-btn zad-btn--primary zad-btn--sm"
+              >
+                {t("tasks:tasksCopyCreate")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCopyOpen(false);
+                  setCopyError(false);
+                }}
+                className="zad-btn zad-btn--ghost zad-btn--sm"
+              >
+                {t("tasks:tasksCopyCancel")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setCopyOpen(true);
+                setCopiedTitle(null);
+              }}
+              className="zad-btn zad-btn--ghost zad-btn--sm"
+            >
+              {t("tasks:tasksCopyButton")}
+            </button>
+          )}
+          <p className="zad-save-state" role="status" aria-live="polite">
+            {copyError
+              ? t("tasks:tasksCopyError")
+              : copiedTitle !== null
+                ? t("tasks:tasksCopyDone", { title: copiedTitle })
+                : ""}
+          </p>
+        </div>
+      ) : null}
 
       <p className="zad-save-state" role="status" aria-live="polite">
         {stateText}

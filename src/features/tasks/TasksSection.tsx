@@ -59,6 +59,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
     handleTitleAreaClick,
     handleTitleAreaDoubleClick,
     saveTaskPatch,
+    duplicateTask,
     addTask,
     applyTemplate,
     handleNewTaskTitleKeyDown,
@@ -357,6 +358,9 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
                     projects={projects}
                     onClose={() => setDetailTaskId(null)}
                     onPatch={saveTaskPatch}
+                    onDuplicate={(suffix, current) =>
+                      duplicateTask(detailTask!.id, suffix, current)
+                    }
                   />
                 ) : null}
                 {renderColumn("done")}
@@ -372,6 +376,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
         projects={projects}
         onClose={() => setDetailTaskId(null)}
         onPatch={saveTaskPatch}
+        onDuplicate={(suffix, current) => duplicateTask(detailTask!.id, suffix, current)}
       />
       <TaskTemplatesModal
         isOpen={templatesModalOpen}

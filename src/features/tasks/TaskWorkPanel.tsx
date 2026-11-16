@@ -4,16 +4,18 @@ import type { Task } from "./TasksSection";
 import { useT } from "@/src/i18n/useT";
 import { TaskDetailContent } from "./TaskDetailContent";
 import type { TaskPatch } from "./useTasksBoard";
+import type { DuplicateHandler } from "./TaskDetailContent";
 
 interface Props {
   task: Task;
   projects: { id: string; name: string }[];
   onClose: () => void;
   onPatch: (taskId: string, patch: TaskPatch) => Promise<void>;
+  onDuplicate?: DuplicateHandler;
 }
 
 /** Panel roboczy zadania w siatce tablicy (od 1024 px); ta sama treść co modal. */
-export function TaskWorkPanel({ task, projects, onClose, onPatch }: Props) {
+export function TaskWorkPanel({ task, projects, onClose, onPatch, onDuplicate }: Props) {
   const t = useT();
   const closeLabel = t("tasks:tasksDetailClose");
   return (
@@ -36,7 +38,13 @@ export function TaskWorkPanel({ task, projects, onClose, onPatch }: Props) {
         </button>
       </div>
       <div className="zad-work-panel__body">
-        <TaskDetailContent key={task.id} task={task} projects={projects} onPatch={onPatch} />
+        <TaskDetailContent
+          key={task.id}
+          task={task}
+          projects={projects}
+          onPatch={onPatch}
+          onDuplicate={onDuplicate}
+        />
       </div>
     </aside>
   );
