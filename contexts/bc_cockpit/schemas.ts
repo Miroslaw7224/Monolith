@@ -12,6 +12,7 @@ import type {
   ReviewRequest,
   ReviewRequests,
   Topic,
+  WeekFocus,
 } from "./models";
 
 // ── wejście ────────────────────────────────────────────────────────────────────
@@ -27,6 +28,11 @@ export const PinnedInputSchema = looseObject({
 export const ClosingInputSchema = looseObject({
   text: z.string().trim().min(1, "text required").max(300, "Maksymalnie 300 znaków"),
   projectId: z.string().trim().min(1).nullish(),
+});
+
+/** Limit 300 znaków = `MAX_FOCUS_TEXT` z services (zgodność pilnuje test). */
+export const WeekFocusInputSchema = looseObject({
+  text: z.string().trim().min(1, "text required").max(300, "Maksymalnie 300 znaków"),
 });
 
 export const CompleteQueueItemSchema = looseObject({
@@ -65,6 +71,7 @@ export type DeepWindowDto = DeepWindow;
 export type CockpitDto = Cockpit;
 export type PinnedDto = Pinned;
 export type ClosingDto = Closing;
+export type WeekFocusDto = WeekFocus;
 export type CommitHistoryDto = CommitHistory;
 export type ReviewHistoryDto = ReviewHistory;
 export type ReviewRequestDto = ReviewRequest;
@@ -149,12 +156,17 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       anchor: c.closing.anchor ? toClosingDto(c.closing.anchor) : null,
       today: c.closing.today ? toClosingDto(c.closing.today) : null,
     },
+    weekFocus: c.weekFocus ? toWeekFocusDto(c.weekFocus) : null,
     warnings: [...c.warnings],
   };
 }
 
 export function toClosingDto(c: Closing): ClosingDto {
   return { date: c.date, text: c.text, projectId: c.projectId, commits: c.commits };
+}
+
+export function toWeekFocusDto(w: WeekFocus): WeekFocusDto {
+  return { weekStart: w.weekStart, text: w.text };
 }
 
 export function toCommitHistoryDto(h: CommitHistory): CommitHistoryDto {

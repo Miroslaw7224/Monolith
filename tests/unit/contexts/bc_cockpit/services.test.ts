@@ -19,6 +19,10 @@ const mockCompleteNowTask = vi.hoisted(() => vi.fn());
 const mockUpdateTask = vi.hoisted(() => vi.fn());
 const mockLoadReviewRequests = vi.hoisted(() => vi.fn());
 const mockLoadMyReviews = vi.hoisted(() => vi.fn());
+const mockReadWeekFocuses = vi.hoisted(() => vi.fn());
+const mockUpsertWeekFocus = vi.hoisted(() => vi.fn());
+const mockListGitSubjects = vi.hoisted(() => vi.fn());
+const mockListDoneTasks = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
@@ -27,6 +31,8 @@ vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   upsertClosing: mockUpsertClosing,
   loadReviewRequests: mockLoadReviewRequests,
   loadMyReviews: mockLoadMyReviews,
+  readWeekFocuses: mockReadWeekFocuses,
+  upsertWeekFocus: mockUpsertWeekFocus,
 }));
 vi.mock("@/contexts/bc_projects/services", () => ({
   getProject: mockGetProject,
@@ -34,6 +40,8 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listProjects: mockListProjects,
   listGitActivity: mockListGitActivity,
   listGitHistory: mockListGitHistory,
+  listGitSubjects: mockListGitSubjects,
+  listDoneTasksInWindow: mockListDoneTasks,
   completeNowTask: mockCompleteNowTask,
   rewriteNowTask: mockRewriteNowTask,
   projectKind: (owner: string, type?: string) => type ?? (owner === "work" ? "etat" : "wlasny"),
@@ -62,6 +70,9 @@ import {
   localDate,
   pickNextMeeting,
   setPinned,
+  MAX_FOCUS_TEXT,
+  setWeekFocus,
+  weekStart,
 } from "@/contexts/bc_cockpit/services";
 
 /** 00:30 lokalnie: jedyna data „dziś” ma być 2026-11-13 (UTC byłoby 12-go). */
@@ -108,6 +119,10 @@ beforeEach(() => {
   mockCountOpen.mockReturnValue(0);
   mockReadClosings.mockReturnValue([]);
   mockUpsertClosing.mockResolvedValue(undefined);
+  mockReadWeekFocuses.mockReturnValue([]);
+  mockUpsertWeekFocus.mockResolvedValue(undefined);
+  mockListGitSubjects.mockReturnValue([]);
+  mockListDoneTasks.mockReturnValue([]);
   mockListProjects.mockReturnValue({
     projects: [{ id: "nexus" }, { id: "monolith" }],
     warnings: [],
@@ -1683,4 +1698,61 @@ describe("getReviewHistory", () => {
       expect(mockLoadMyReviews).not.toHaveBeenCalled();
     }
   );
+});
+
+describe("weekStart", () => {
+  it.each([
+    ["2026-11-16", "2026-11-16"], // poniedziałek
+    ["2026-11-22", "2026-11-16"], // niedziela
+    ["2026-11-23", "2026-11-23"], // następny poniedziałek
+    ["2027-01-01", "2026-12-28"], // piątek, przez przełom roku
+  ])("%s → %s", (day, expected) => {
+    expect(weekStart(day)).toBe(expected);
+  });
+});
+
+describe("setWeekFocus", () => {
+  it("zapisuje przycięte zdanie pod poniedziałkiem bieżącego tygodnia", async () => {
+    const focus = await setWeekFocus({ text: "  Domknąć   słownik tagów " }, TODAY);
+    expect(focus).toEqual({ weekStart: "2026-11-09", text: "Domknąć słownik tagów" });
+    expect(mockUpsertWeekFocus).toHaveBeenCalledWith(focus);
+  });
+
+  it("pusty tekst i same spacje to DomainError", async () => {
+    await expect(setWeekFocus({ text: "" }, TODAY)).rejects.toThrow(DomainError);
+    await expect(setWeekFocus({ text: "   " }, TODAY)).rejects.toThrow(DomainError);
+    expect(mockUpsertWeekFocus).not.toHaveBeenCalled();
+  });
+
+  it("300 znaków przechodzi, 301 to DomainError", async () => {
+    expect(MAX_FOCUS_TEXT).toBe(300);
+    await expect(setWeekFocus({ text: "a".repeat(300) }, TODAY)).resolves.toBeDefined();
+    await expect(setWeekFocus({ text: "a".repeat(301) }, TODAY)).rejects.toThrow(DomainError);
+  });
+});
+
+describe("getCockpit: weekFocus", () => {
+  it("zwraca focus bieżącego tygodnia (TODAY = piątek 2026-11-13, poniedziałek 2026-11-09)", async () => {
+    mockReadWeekFocuses.mockReturnValue([
+      { weekStart: "2026-11-02", text: "Poprzedni" },
+      { weekStart: "2026-11-09", text: "Bieżący" },
+    ]);
+    const cockpit = await getCockpit(TODAY);
+    expect(cockpit.weekFocus).toEqual({ weekStart: "2026-11-09", text: "Bieżący" });
+    expect(cockpit.warnings).toEqual([]);
+  });
+
+  it("focus z poprzedniego tygodnia nie jest pokazywany", async () => {
+    mockReadWeekFocuses.mockReturnValue([{ weekStart: "2026-11-02", text: "Poprzedni" }]);
+    expect((await getCockpit(TODAY)).weekFocus).toBeNull();
+  });
+
+  it("uszkodzony plik to ostrzeżenie i `null`, nie wyjątek", async () => {
+    mockReadWeekFocuses.mockImplementation(() => {
+      throw new Error("weeks.yaml: zły YAML");
+    });
+    const cockpit = await getCockpit(TODAY);
+    expect(cockpit.weekFocus).toBeNull();
+    expect(cockpit.warnings).toContain("Focus tygodnia: weeks.yaml: zły YAML");
+  });
 });

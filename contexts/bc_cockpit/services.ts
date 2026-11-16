@@ -25,6 +25,7 @@ import {
   type QueueItem,
   type QueueItemProject,
   type Topic,
+  type WeekFocus,
 } from "./models";
 import * as repositories from "./repositories";
 
@@ -459,6 +460,33 @@ function loadClosing(date: string, warnings: string[]): Cockpit["closing"] {
   }
 }
 
+// ── focus tygodnia ─────────────────────────────────────────────────────────────
+
+export const MAX_FOCUS_TEXT = 300;
+
+/** Przesuwa dzień `RRRR-MM-DD` o `delta` dni (kalendarz lokalny, odporne na zmianę czasu). */
+function shiftDay(day: string, delta: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return localDate(new Date(y, m - 1, d + delta));
+}
+
+/** Poniedziałek tygodnia ISO, w którym jest dzień `RRRR-MM-DD`. */
+export function weekStart(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const sinceMonday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+  return shiftDay(day, -sinceMonday);
+}
+
+function loadWeekFocus(date: string, warnings: string[]): WeekFocus | null {
+  try {
+    const start = weekStart(date);
+    return repositories.readWeekFocuses().find((w) => w.weekStart === start) ?? null;
+  } catch (err) {
+    warnings.push(`Focus tygodnia: ${reason(err)}`);
+    return null;
+  }
+}
+
 // ── API serwisu ────────────────────────────────────────────────────────────────
 
 /** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
@@ -475,6 +503,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const git = loadGit(today, topics, warnings);
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
+  const weekFocus = loadWeekFocus(date, warnings);
   const windows = planWindows(events, queue, today.getHours() * 60 + today.getMinutes());
   return {
     date,
@@ -487,6 +516,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
     inbox,
     windows,
     closing,
+    weekFocus,
     warnings,
   };
 }
@@ -527,6 +557,19 @@ export async function closeDay(
   const closing: Closing = { date: localDate(today), text, projectId: input.projectId, commits };
   await repositories.upsertClosing(closing);
   return closing;
+}
+
+/** Zapisuje focus bieżącego tygodnia ISO (nadpisuje wcześniejszy z tego samego tygodnia). */
+export async function setWeekFocus(
+  input: { text: string },
+  today: Date = new Date()
+): Promise<WeekFocus> {
+  const text = input.text.replace(/\s+/g, " ").trim();
+  if (text === "") throw new DomainError("Wpisz jedno zdanie");
+  if (text.length > MAX_FOCUS_TEXT) throw new DomainError(`Maksymalnie ${MAX_FOCUS_TEXT} znaków`);
+  const focus: WeekFocus = { weekStart: weekStart(localDate(today)), text };
+  await repositories.upsertWeekFocus(focus);
+  return focus;
 }
 
 // ── historia commitów ──────────────────────────────────────────────────────────

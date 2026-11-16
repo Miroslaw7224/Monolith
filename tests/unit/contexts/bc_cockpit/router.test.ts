@@ -57,6 +57,7 @@ describe("GET /api/cockpit", () => {
       inbox: null,
       windows: [],
       closing: { anchor: null, today: null },
+      weekFocus: null,
       warnings: ["x"],
     });
     const res = await getCockpit();
@@ -72,6 +73,7 @@ describe("GET /api/cockpit", () => {
       inbox: null,
       windows: [],
       closing: { anchor: null, today: null },
+      weekFocus: null,
       warnings: ["x"],
     });
   });

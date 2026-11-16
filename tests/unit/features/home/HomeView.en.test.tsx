@@ -65,6 +65,7 @@ const cockpitWithEnergyQueue: CockpitDto = {
   inbox: null,
   windows: [],
   closing: { anchor: null, today: null },
+  weekFocus: null,
   warnings: [],
 };
 

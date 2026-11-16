@@ -219,6 +219,8 @@ export type Cockpit = {
   windows: DeepWindow[];
   /** `anchor`: najnowsze zamknięcie sprzed dziś („Zaczep z wczoraj”); `today`: dzisiejsze, jeśli jest. */
   closing: { anchor: Closing | null; today: Closing | null };
+  /** Focus bieżącego tygodnia ISO z `Cockpit/weeks.yaml`; `null`, gdy go nie zapisano. */
+  weekFocus: WeekFocus | null;
   warnings: string[];
 };
 

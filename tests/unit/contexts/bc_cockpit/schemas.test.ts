@@ -143,6 +143,7 @@ describe("mapery DTO", () => {
       anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
       today: null,
     },
+    weekFocus: { weekStart: "2026-11-16", text: "Domknąć tagi" },
     warnings: ["uwaga"],
   };
 
@@ -160,6 +161,7 @@ describe("mapery DTO", () => {
       "queue",
       "topics",
       "warnings",
+      "weekFocus",
       "windows",
     ]);
   });

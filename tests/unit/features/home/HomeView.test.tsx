@@ -15,6 +15,7 @@ const EMPTY: CockpitDto = {
   inbox: null,
   windows: [],
   closing: { anchor: null, today: null },
+  weekFocus: null,
   warnings: [],
 };
 
@@ -165,6 +166,7 @@ const FULL: CockpitDto = {
     anchor: { date: "2026-11-12", text: "Zacząć od K6", projectId: "nexus", commits: 4 },
     today: null,
   },
+  weekFocus: null,
   warnings: ['Zadanie "Stare": pominięto błędny termin 0006-08-26'],
 };
 
