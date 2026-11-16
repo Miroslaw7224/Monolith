@@ -205,3 +205,80 @@ export function snapshotRepo(repoDir: string): SnapshotResult {
     },
   };
 }
+
+const SHA_RE = /^[0-9a-f]{7,40}$/;
+
+/** Sha commita (7–40 znaków szesnastkowych) w małych literach; `null`, gdy to coś innego (np. opcja gita, nazwa gałęzi). */
+export function normalizeSha(raw: string): string | null {
+  const sha = raw.trim().toLowerCase();
+  return SHA_RE.test(sha) ? sha : null;
+}
+
+/** Pełny sha HEAD; `ok: false` dla repo bez commitów i błędu gita. */
+export function headSha(repoDir: string): { ok: true; sha: string } | { ok: false } {
+  const res = execGit(repoDir, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+  const sha = res.stdout.trim();
+  return res.status === 0 && SHA_RE.test(sha) ? { ok: true, sha } : { ok: false };
+}
+
+export type RelationToHead =
+  | { kind: "ancestor"; ahead: number } // ahead = 0: sha jest równy HEAD
+  | { kind: "diverged" } // obiekt istnieje, ale nie jest przodkiem HEAD (inna gałąź, amend)
+  | { kind: "missing" } // brak obiektu (rebase, force-push, shallow clone) albo repo bez HEAD
+  | { kind: "error" }; // niepoprawny sha, git niedostępny, limit czasu
+
+function countCommits(repoDir: string, range: string): number | null {
+  const res = execGit(repoDir, ["rev-list", "--count", range]);
+  if (res.status !== 0) return null;
+  const n = Number.parseInt(res.stdout.trim(), 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+/**
+ * Relacja commita `rawSha` do HEAD. `rev-list --count sha..HEAD` samo nie wystarcza: dla sha spoza
+ * historii HEAD zwraca dodatni licznik bez błędu, więc najpierw `merge-base --is-ancestor`
+ * (0 = przodek, 1 = nie, 128 = brak obiektu). Niepoprawny sha nie trafia do gita.
+ */
+export function relationToHead(repoDir: string, rawSha: string): RelationToHead {
+  const sha = normalizeSha(rawSha);
+  if (sha === null) return { kind: "error" };
+  const anc = execGit(repoDir, ["merge-base", "--is-ancestor", sha, "HEAD"]);
+  if (anc.status === 1) return { kind: "diverged" };
+  if (anc.status === 128) return { kind: "missing" };
+  if (anc.status !== 0) return { kind: "error" };
+  const ahead = countCommits(repoDir, `${sha}..HEAD`);
+  return ahead === null ? { kind: "error" } : { kind: "ancestor", ahead };
+}
+
+/**
+ * Do `limit` ostatnich commitów (`<abbrev> <temat>`, najnowszy pierwszy) w zakresie `rawSha..HEAD`
+ * oraz ich pełna liczba w zakresie. `rawSha: null` = od początku historii.
+ */
+export function commitsInRange(
+  repoDir: string,
+  rawSha: string | null,
+  limit: number
+): { ok: true; lines: string[]; total: number } | { ok: false } {
+  let range = "HEAD";
+  if (rawSha !== null) {
+    const sha = normalizeSha(rawSha);
+    if (sha === null) return { ok: false };
+    range = `${sha}..HEAD`;
+  }
+  const n = Math.max(1, Math.floor(limit));
+  const log = execGit(repoDir, ["log", "--oneline", "--no-decorate", "-n", String(n), range, "--"]);
+  const total = countCommits(repoDir, range);
+  if (log.status !== 0 || total === null) return { ok: false };
+  return { ok: true, lines: log.stdout.split("\n").filter((l) => l.trim() !== ""), total };
+}
+
+/** `git diff --stat rawSha..HEAD` (zmiany w commitach, bez working tree). */
+export function diffStatInRange(
+  repoDir: string,
+  rawSha: string
+): { ok: true; stat: string } | { ok: false } {
+  const sha = normalizeSha(rawSha);
+  if (sha === null) return { ok: false };
+  const res = execGit(repoDir, ["diff", "--stat", "--no-ext-diff", `${sha}..HEAD`, "--"]);
+  return res.status === 0 ? { ok: true, stat: res.stdout.trimEnd() } : { ok: false };
+}
