@@ -192,6 +192,14 @@ export function demoteHeadings(text: string): string {
     .join("\n");
 }
 
+/**
+ * `state.md` bez treści (puste pola, np. plik założony przez „Oznacz jako zaktualizowaną”) nie wypiera
+ * „Gdzie skończyłem” z `index.md`: tak samo jak w Kokpicie.
+ */
+function hasStateContent(s: NonNullable<ProjectWithContent["state"]>): boolean {
+  return [s.branch, s.env, s.blocker, s.nextStep, s.milestone].some((v) => v.trim() !== "");
+}
+
 const block = (text: string) => `\`\`\`\n${text}\n\`\`\``;
 
 function renderPack(input: ContextPackInput, k: Knobs, profile: RoleProfile): string {
@@ -214,7 +222,7 @@ function renderPack(input: ContextPackInput, k: Knobs, profile: RoleProfile): st
       return `## Zasady projektu (źródło: ${rules.source})\n\n${text}`;
     },
     state: () => {
-      if (project.state) {
+      if (project.state && hasStateContent(project.state)) {
         const s = project.state;
         const lines = [
           `Branch: ${s.branch || "—"} · Środowisko: ${s.env || "—"}`,
