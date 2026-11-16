@@ -8,6 +8,7 @@ import { NewProjectDialog } from "./NewProjectDialog";
 import { ProjectList } from "./ProjectList";
 import { buildProjectTiles } from "./projectTiles";
 import { useContextPack } from "./useContextPack";
+import { useCodeSync } from "./useCodeSync";
 import { useProjects } from "./useProjects";
 import { registryProjectsLabel } from "./projectsFormat";
 import { useT } from "@/src/i18n/useT";
@@ -36,9 +37,12 @@ export function ProjectsView(props: {
     createProject,
     tasksOp,
     archiveDone,
+    markCodeSynced,
     loadContextPack,
     reloadDetail,
   } = useProjects(props.apiFetch, props.initialProjectId ?? null);
+
+  const codeSync = useCodeSync(props.apiFetch, status === "ready", detail);
 
   const [query, setQuery] = useState("");
   const visibleProjects = useMemo(() => {
@@ -156,6 +160,7 @@ export function ProjectsView(props: {
                   selectedId={selectedId}
                   onSelect={select}
                   onSetStatus={changeStatus}
+                  codeSync={codeSync}
                 />
               )}
             </>
@@ -184,6 +189,7 @@ export function ProjectsView(props: {
                 setProjectStatus,
                 tasksOp,
                 archiveDone,
+                markCodeSynced,
                 loadContextPack,
                 reloadDetail,
               }}

@@ -1,9 +1,14 @@
 "use client";
 
 import React from "react";
-import type { ProjectStatusChangeDto, ProjectSummaryDto } from "@/contexts/bc_projects/schemas";
+import type {
+  CodeSyncDto,
+  ProjectStatusChangeDto,
+  ProjectSummaryDto,
+} from "@/contexts/bc_projects/schemas";
 import { projectKindLabel } from "@/src/i18n/projectKind";
 import { useT } from "@/src/i18n/useT";
+import { CodeSyncMarker } from "./ProjectCodeSync";
 import { isPaused, needsDecision } from "./projectTiles";
 
 export function ProjectList(props: {
@@ -11,8 +16,10 @@ export function ProjectList(props: {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onSetStatus: (id: string, status: ProjectStatusChangeDto) => void;
+  /** Stany kart względem repo po `id`; brak wpisu = bez znacznika. */
+  codeSync?: Record<string, CodeSyncDto>;
 }): React.JSX.Element {
-  const { projects, selectedId, onSelect, onSetStatus } = props;
+  const { projects, selectedId, onSelect, onSetStatus, codeSync } = props;
   const t = useT();
 
   return (
@@ -59,6 +66,7 @@ export function ProjectList(props: {
                   {project.stateConfidence ? (
                     <span className="prj-item__conf">{project.stateConfidence}</span>
                   ) : null}
+                  <CodeSyncMarker sync={codeSync?.[project.id]} />
                 </span>
               </button>
               {decide ? (

@@ -191,7 +191,7 @@ describe("paczka kontekstu: role", () => {
     );
   const roleButton = (name: string) => screen.getByRole("button", { name });
 
-  it("pokazuje cztery role, „Pełna” wciśnięta", async () => {
+  it("pokazuje pięć ról, „Pełna” wciśnięta", async () => {
     renderIt(roleLoad());
     await screen.findByText("3 200 / 4 000 tokenów");
     const group = screen.getByRole("group", { name: "Rola paczki" });
@@ -199,7 +199,7 @@ describe("paczka kontekstu: role", () => {
       within(group)
         .getAllByRole("button")
         .map((b) => b.textContent)
-    ).toEqual(["Pełna", "Review", "Implementacja", "Debug"]);
+    ).toEqual(["Pełna", "Review", "Implementacja", "Debug", "Odśwież kartę"]);
     expect(roleButton("Pełna")).toHaveAttribute("aria-pressed", "true");
   });
 
