@@ -570,7 +570,7 @@ export async function getCommitHistory(
 
 export const MAX_REVIEW_REQUESTS = 20;
 
-/** Otwarte prośby o review z GitHuba: najnowsze pierwsze, maksymalnie `MAX_REVIEW_REQUESTS`. */
+/** Prośby o review z GitHuba (PR-y otwarte i zmergowane): najnowsze pierwsze, maksymalnie `MAX_REVIEW_REQUESTS`. */
 export async function getReviewRequests(): Promise<ReviewRequests> {
   const res = await repositories.loadReviewRequests();
   const items = [...res.items]

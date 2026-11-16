@@ -14,7 +14,7 @@ type State =
   | { status: "ok"; items: ReviewRequestDto[]; total: number };
 
 /**
- * Otwarte PR-y z prośbą o review do użytkownika (z GitHuba przez `gh`, tylko odczyt).
+ * Otwarte i zmergowane PR-y z wiszącą prośbą o review do użytkownika (z GitHuba przez `gh`, tylko odczyt).
  * W odróżnieniu od `CommitHistory` błąd pobrania jest widoczny: cichy brak listy oznaczałby
  * przegapioną prośbę, czyli dokładnie ten problem, który panel ma usunąć.
  */
@@ -36,7 +36,9 @@ export function ReviewRequests({ apiFetch }: { apiFetch: ApiFetch }) {
             setState({
               status: "ok",
               items: data.items,
-              total: Math.max(data.total, data.items.length),
+              total: Number.isFinite(data.total)
+                ? Math.max(data.total, data.items.length)
+                : data.items.length,
             });
           } else {
             setState({ status: "error" });

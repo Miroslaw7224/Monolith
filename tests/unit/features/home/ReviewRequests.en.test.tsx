@@ -47,7 +47,7 @@ describe("ReviewRequests po angielsku", () => {
     });
     const apiFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ available: true, items: [] }),
+      json: async () => ({ available: true, total: 0, items: [] }),
     });
     render(<ReviewRequests apiFetch={apiFetch} />);
     expect(await screen.findByText("No review requests")).toBeTruthy();

@@ -6,7 +6,7 @@ Data: 2026-11-16. Status: szkic do przeglądu. Rozwija spec Kokpitu 2-1 (`2026-1
 
 Aplikacja ma pomagać zarządzać czasem i pracą, bez zbędnych bajerów (wypowiedź użytkownika, 2026-11-15).
 
-Realny ból: prośba o review cudzego PR-a przychodzi na GitHubie, a Monolith o niej nie wie, więc łatwo ją przegapić. Rozwiązanie: w Kokpicie sekcja **„Do zrecenzowania (N)”** z otwartymi PR-ami, w których użytkownik jest wskazany jako recenzent. Bez zapisu do vaulta.
+Realny ból: prośba o review cudzego PR-a przychodzi na GitHubie, a Monolith o niej nie wie, więc łatwo ją przegapić. Rozwiązanie: w Kokpicie sekcja **„Do zrecenzowania (N)”** z PR-ami (otwartymi i już zmergowanymi), w których użytkownik nadal jest wskazanym recenzentem, czyli jeszcze nie zostawił review. Bez zapisu do vaulta.
 
 ## 2. Decyzje (brainstorming 2026-11-16)
 
@@ -96,3 +96,4 @@ Powiadomienia systemowe i dźwięk; wpis do Inboxu; pamiętanie „już widział
 - Brak `gh` lub wygasła sesja (`gh auth login`) kończy się komunikatem „Nie można pobrać z GitHuba”, bez szczegółów błędu w UI.
 - Tytuły PR-ów z pracy są widoczne na ekranie Kokpitu (decyzja D2); jeśli to zacznie przeszkadzać (np. przy pokazywaniu ekranu), wróć do opcji B/C z brainstormingu.
 - Dziś wisi 39 próśb, prawie wszystkie zmergowane i zaległe od tygodni. Znikają po review na GitHubie (wystarczy review typu „Comment”). Do tego czasu panel pokazuje je jako zaległość (decyzja D7: bez limitu wieku, żeby nie gubić PR-a zmergowanego przed review).
+- Zapytanie pobiera maksymalnie 100 PR-ów (`--limit 100`), więc `total` nie przekroczy 100; PR-y zamknięte bez merge'a zużywają część tej puli. Przy realnej liczbie próśb rzędu dziesiątek to wystarcza.

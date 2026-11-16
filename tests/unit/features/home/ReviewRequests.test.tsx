@@ -75,6 +75,17 @@ describe("ReviewRequests", () => {
     expect(screen.getByText("+37 starszych")).toBeTruthy();
   });
 
+  test("odpowiedź bez poprawnego total: chip pokazuje liczbę pozycji, nie NaN", async () => {
+    const apiFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ available: true, items: ITEMS }),
+    });
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    expect(await screen.findByText("2")).toBeTruthy();
+    expect(screen.queryByText("NaN")).toBeNull();
+    expect(screen.queryByText(/starszych/)).toBeNull();
+  });
+
   test("gdy wszystkie się mieszczą, nie ma wiersza „starszych”", async () => {
     const apiFetch = vi.fn().mockResolvedValue(ok(ITEMS));
     render(<ReviewRequests apiFetch={apiFetch} />);
