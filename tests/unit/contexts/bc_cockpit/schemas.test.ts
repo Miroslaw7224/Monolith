@@ -8,6 +8,7 @@ import {
   toCockpitDto,
   toCommitHistoryDto,
   toPinnedDto,
+  toReviewRequestsDto,
 } from "@/contexts/bc_cockpit/schemas";
 
 describe("PinnedInputSchema", () => {
@@ -218,5 +219,31 @@ describe("CompleteQueueItemSchema", () => {
     [{ type: "inne", taskId: "x" }],
   ])("odrzuca %j", (body) => {
     expect(CompleteQueueItemSchema.safeParse(body).success).toBe(false);
+  });
+});
+
+describe("toReviewRequestsDto", () => {
+  const item = {
+    repo: "o/r",
+    number: 1,
+    title: "t",
+    author: null,
+    url: "https://github.com/o/r/pull/1",
+    updatedAt: "2026-11-16T05:58:28Z",
+  };
+
+  it("kopiuje pola i odrzuca nadmiarowe", () => {
+    const dto = toReviewRequestsDto({
+      available: true,
+      items: [{ ...item, extra: 1 }],
+    } as never);
+    expect(dto).toEqual({ available: true, items: [item] });
+  });
+
+  it("niedostępny GitHub: available false, pusta lista", () => {
+    expect(toReviewRequestsDto({ available: false, items: [] })).toEqual({
+      available: false,
+      items: [],
+    });
   });
 });

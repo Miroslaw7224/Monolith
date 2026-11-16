@@ -11,6 +11,7 @@ import {
   toCockpitDto,
   toCommitHistoryDto,
   toPinnedDto,
+  toReviewRequestsDto,
 } from "./schemas";
 import * as services from "./services";
 
@@ -60,6 +61,15 @@ export async function getCommits(request: NextRequest): Promise<NextResponse> {
       throw new DomainError(`days musi być liczbą całkowitą 1–${MAX_HISTORY_DAYS}`);
     }
     return NextResponse.json(toCommitHistoryDto(await services.getCommitHistory(days)));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** GET: lista próśb o review z GitHuba; niedostępny `gh` to 200 z `available: false`, nie błąd. */
+export async function getReviewRequests(): Promise<NextResponse> {
+  try {
+    return NextResponse.json(toReviewRequestsDto(await services.getReviewRequests()));
   } catch (err) {
     return handleServiceError(err);
   }

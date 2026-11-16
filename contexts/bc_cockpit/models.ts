@@ -141,6 +141,21 @@ export type CommitHistory = {
   days: CommitDay[];
 };
 
+/** Otwarty PR z prośbą o review do użytkownika (tylko odczyt z GitHuba). */
+export type ReviewRequest = {
+  /** `właściciel/repo`. */
+  repo: string;
+  number: number;
+  title: string;
+  author: string | null;
+  url: string;
+  /** Data ISO ostatniej zmiany PR-a. */
+  updatedAt: string;
+};
+
+/** Prośby o review; `available: false`, gdy GitHub jest niedostępny (brak `gh`, sieci, logowania). */
+export type ReviewRequests = { available: boolean; items: ReviewRequest[] };
+
 /** Proponowane okno pracy w wolnej części dnia, przypisane do zadania z kolejki (bez zapisu). */
 export type DeepWindow = {
   startMinutes: number;

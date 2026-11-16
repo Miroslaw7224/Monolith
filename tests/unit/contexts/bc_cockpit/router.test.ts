@@ -9,6 +9,7 @@ const mockCloseDay = vi.hoisted(() => vi.fn());
 const mockCompleteQueueItem = vi.hoisted(() => vi.fn());
 const mockSetQueueItemEnergy = vi.hoisted(() => vi.fn());
 const mockGetCommitHistory = vi.hoisted(() => vi.fn());
+const mockGetReviewRequests = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCockpit: mockGetCockpit,
   setPinned: mockSetPinned,
@@ -16,6 +17,7 @@ vi.mock("@/contexts/bc_cockpit/services", () => ({
   completeQueueItem: mockCompleteQueueItem,
   setQueueItemEnergy: mockSetQueueItemEnergy,
   getCommitHistory: mockGetCommitHistory,
+  getReviewRequests: mockGetReviewRequests,
 }));
 
 import {
@@ -23,6 +25,7 @@ import {
   setQueueEnergy,
   getCockpit,
   getCommits,
+  getReviewRequests,
   putClosing,
   putPinned,
 } from "@/contexts/bc_cockpit/router";
@@ -159,6 +162,31 @@ describe("GET /api/cockpit/commits", () => {
   it.each(["?days=0", "?days=abc", "?days=91", "?days=2.5"])("400 dla %s", async (qs) => {
     expect((await getCommits(get(qs))).status).toBe(400);
     expect(mockGetCommitHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/cockpit/reviews", () => {
+  const item = {
+    repo: "o/r",
+    number: 1,
+    title: "t",
+    author: "a",
+    url: "https://github.com/o/r/pull/1",
+    updatedAt: "2026-11-16T05:58:28Z",
+  };
+
+  it("200 z DTO", async () => {
+    mockGetReviewRequests.mockResolvedValue({ available: true, items: [item] });
+    const res = await getReviewRequests();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: true, items: [item] });
+  });
+
+  it("200 i available false, gdy GitHub niedostępny (nie 500)", async () => {
+    mockGetReviewRequests.mockResolvedValue({ available: false, items: [] });
+    const res = await getReviewRequests();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: false, items: [] });
   });
 });
 

@@ -8,6 +8,8 @@ import type {
   DeepWindow,
   Pinned,
   QueueGroup,
+  ReviewRequest,
+  ReviewRequests,
   Topic,
 } from "./models";
 
@@ -63,6 +65,8 @@ export type CockpitDto = Cockpit;
 export type PinnedDto = Pinned;
 export type ClosingDto = Closing;
 export type CommitHistoryDto = CommitHistory;
+export type ReviewRequestDto = ReviewRequest;
+export type ReviewRequestsDto = ReviewRequests;
 
 export function toCockpitDto(c: Cockpit): CockpitDto {
   return {
@@ -163,6 +167,20 @@ export function toCommitHistoryDto(h: CommitHistory): CommitHistoryDto {
       total: d.total,
       prs: d.prs,
       projects: d.projects.map((p) => ({ projectId: p.projectId, name: p.name, count: p.count })),
+    })),
+  };
+}
+
+export function toReviewRequestsDto(r: ReviewRequests): ReviewRequestsDto {
+  return {
+    available: r.available,
+    items: r.items.map((i) => ({
+      repo: i.repo,
+      number: i.number,
+      title: i.title,
+      author: i.author,
+      url: i.url,
+      updatedAt: i.updatedAt,
     })),
   };
 }

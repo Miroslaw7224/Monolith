@@ -17,12 +17,14 @@ const mockListGitHistory = vi.hoisted(() => vi.fn());
 const mockCountOpen = vi.hoisted(() => vi.fn());
 const mockCompleteNowTask = vi.hoisted(() => vi.fn());
 const mockUpdateTask = vi.hoisted(() => vi.fn());
+const mockLoadReviewRequests = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
   writePinned: mockWritePinned,
   readClosings: mockReadClosings,
   upsertClosing: mockUpsertClosing,
+  loadReviewRequests: mockLoadReviewRequests,
 }));
 vi.mock("@/contexts/bc_projects/services", () => ({
   getProject: mockGetProject,
@@ -50,6 +52,8 @@ import {
   withEnergy,
   planWindows,
   getCommitHistory,
+  getReviewRequests,
+  MAX_REVIEW_REQUESTS,
   getCockpit,
   isPlausibleDate,
   localDate,
@@ -1530,5 +1534,47 @@ describe("kolejka: zadanie ogólne z projektem (spec zadań ogólnych, P4)", () 
     await getCockpit(TODAY);
     // loadTopics/pin nie czytają listy przy pustych przypięciach, więc kolejka nie może jej wołać
     expect(mockListProjects).not.toHaveBeenCalled();
+  });
+});
+
+describe("getReviewRequests", () => {
+  const pr = (n: number, updatedAt: string) => ({
+    repo: "o/r",
+    number: n,
+    title: `PR ${n}`,
+    author: "a",
+    url: `https://github.com/o/r/pull/${n}`,
+    updatedAt,
+  });
+
+  it("sortuje malejąco po updatedAt", async () => {
+    mockLoadReviewRequests.mockResolvedValue({
+      available: true,
+      items: [
+        pr(1, "2026-11-14T10:00:00Z"),
+        pr(2, "2026-11-16T10:00:00Z"),
+        pr(3, "2026-11-15T10:00:00Z"),
+      ],
+    });
+    const res = await getReviewRequests();
+    expect(res.available).toBe(true);
+    expect(res.items.map((i) => i.number)).toEqual([2, 3, 1]);
+  });
+
+  it("przycina do 20 najnowszych", async () => {
+    const items = Array.from({ length: 25 }, (_, i) =>
+      pr(i + 1, new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString())
+    ).reverse();
+    mockLoadReviewRequests.mockResolvedValue({ available: true, items });
+    const res = await getReviewRequests();
+    expect(MAX_REVIEW_REQUESTS).toBe(20);
+    expect(res.items).toHaveLength(20);
+    expect(res.items[0].number).toBe(25);
+    expect(res.items[19].number).toBe(6);
+  });
+
+  it("niedostępny GitHub przechodzi bez zmian", async () => {
+    mockLoadReviewRequests.mockResolvedValue({ available: false, items: [] });
+    expect(await getReviewRequests()).toEqual({ available: false, items: [] });
   });
 });

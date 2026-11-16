@@ -1,5 +1,6 @@
+import { fetchReviewRequests } from "@/lib/github/review-requests";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import type { Closing, Pinned } from "./models";
+import type { Closing, Pinned, ReviewRequests } from "./models";
 
 const FILE = "Cockpit/pinned.yaml";
 const LIST_KEY = "projects";
@@ -59,4 +60,21 @@ export async function upsertClosing(closing: Closing): Promise<void> {
     if (closing.commits !== null) entry.commits = closing.commits;
     return [...kept, entry].sort((a, b) => text(a.date).localeCompare(text(b.date)));
   });
+}
+
+/** Prośby o review z GitHuba (przez `lib/github`); błąd `gh` to `available: false`, nie wyjątek. */
+export async function loadReviewRequests(): Promise<ReviewRequests> {
+  const res = await fetchReviewRequests();
+  if (res.ok === false) return { available: false, items: [] };
+  return {
+    available: true,
+    items: res.items.map((i) => ({
+      repo: i.repo,
+      number: i.number,
+      title: i.title,
+      author: i.author,
+      url: i.url,
+      updatedAt: i.updatedAt,
+    })),
+  };
 }

@@ -19,6 +19,7 @@ import {
   type Pinned,
   type ProjectKind,
   type QueueGroup,
+  type ReviewRequests,
   type QueueSource,
   type QueueItem,
   type QueueItemProject,
@@ -563,6 +564,19 @@ export async function getCommitHistory(
     totalPrs: result.reduce((sum, d) => sum + d.prs, 0),
     days: result,
   };
+}
+
+// ── prośby o review ────────────────────────────────────────────────────────────
+
+export const MAX_REVIEW_REQUESTS = 20;
+
+/** Otwarte prośby o review z GitHuba: najnowsze pierwsze, maksymalnie `MAX_REVIEW_REQUESTS`. */
+export async function getReviewRequests(): Promise<ReviewRequests> {
+  const res = await repositories.loadReviewRequests();
+  const items = [...res.items]
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .slice(0, MAX_REVIEW_REQUESTS);
+  return { available: res.available, items };
 }
 
 /**
