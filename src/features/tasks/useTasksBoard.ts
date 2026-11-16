@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import type { Task } from "./TasksSection";
 import type { TaskTemplate } from "./TaskTemplatesModal";
 import { matchTaskSearch, normalizeTaskFields } from "./taskInputUtils";
+import { resetChecklist } from "./taskChecklist";
 import { URGENT_PRIORITY } from "./taskPriorityUtils";
 import { toggleTaskEnergy, type TaskEnergy } from "./taskEnergyUtils";
 import { computeTaskOrderAfterDrop, type TaskStatus } from "./taskOrderUtils";
@@ -160,6 +161,36 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
       );
     },
     [apiFetch]
+  );
+
+  /** Kopia zadania z dopiskiem: ten sam link, projekt, termin, priorytet; checklista wyzerowana. */
+  const duplicateTask = useCallback(
+    async (
+      sourceId: string,
+      suffix: string,
+      current: { title: string; link: string; description: string }
+    ): Promise<Task> => {
+      const source = tasks.find((x) => x.id === sourceId);
+      const res = await apiFetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${current.title} (${suffix})`,
+          link: current.link,
+          description: resetChecklist(current.description),
+          ...(source?.priority != null ? { priority: source.priority } : {}),
+          ...(source?.project ? { project: source.project } : {}),
+          ...(source?.due_date ? { due_date: source.due_date } : {}),
+        }),
+      });
+      if (res && res.ok === false) throw new Error(`HTTP ${res.status}`);
+      const created = await res.json();
+      const { link, description } = normalizeTaskFields(created);
+      const task: Task = { ...created, link, description };
+      setTasks((prev) => [task, ...prev]);
+      return task;
+    },
+    [apiFetch, tasks]
   );
 
   const addTask = async () => {
@@ -397,6 +428,7 @@ export function useTasksBoard(apiFetch: (url: string, options?: RequestInit) => 
     handleTitleAreaClick,
     handleTitleAreaDoubleClick,
     saveTaskPatch,
+    duplicateTask,
     addTask,
     applyTemplate,
     handleNewTaskTitleKeyDown,

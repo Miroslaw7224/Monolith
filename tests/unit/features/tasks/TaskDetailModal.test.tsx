@@ -180,4 +180,87 @@ describe("TaskDetailModal", () => {
       expect(onPatch).not.toHaveBeenCalled();
     });
   });
+
+  describe("kopiowanie zadania", () => {
+    const created = { ...fakeTask, id: "task-2", title: "Napisać testy (iPhone)" };
+    let onDuplicate: ReturnType<typeof vi.fn>;
+
+    const renderCopy = () => {
+      onDuplicate = vi.fn().mockResolvedValue(created);
+      return render(
+        <TaskDetailModal
+          task={fakeTask}
+          isOpen
+          onClose={onClose}
+          onPatch={onPatch}
+          onDuplicate={onDuplicate}
+        />
+      );
+    };
+
+    it("bez onDuplicate nie ma przycisku kopiowania", () => {
+      renderModal();
+      expect(screen.queryByRole("button", { name: "Kopiuj zadanie" })).not.toBeInTheDocument();
+    });
+
+    it("dopisek i „Utwórz kopię” wywołują onDuplicate z bieżącymi polami i pokazują komunikat", async () => {
+      const user = userEvent.setup();
+      renderCopy();
+      await user.click(screen.getByRole("button", { name: "Kopiuj zadanie" }));
+      await user.type(screen.getByPlaceholderText("Dopisek (np. iPhone)"), "iPhone");
+      await user.click(screen.getByRole("button", { name: "Utwórz kopię" }));
+      expect(onDuplicate).toHaveBeenCalledWith("iPhone", {
+        title: "Napisać testy",
+        link: "https://example.com",
+        description: "Opis zadania",
+      });
+      expect(
+        await screen.findByText("Utworzono kopię: Napisać testy (iPhone)")
+      ).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText("Dopisek (np. iPhone)")).not.toBeInTheDocument();
+    });
+
+    it("kopia bierze niezapisaną jeszcze treść pól; pusty tytuł zastępuje ostatni zapisany", async () => {
+      const user = userEvent.setup();
+      renderCopy();
+      fireEvent.change(screen.getByLabelText("Notatka"), { target: { value: "Nowy opis" } });
+      fireEvent.change(screen.getByDisplayValue("Napisać testy"), { target: { value: "  " } });
+      await user.click(screen.getByRole("button", { name: "Kopiuj zadanie" }));
+      await user.type(screen.getByPlaceholderText("Dopisek (np. iPhone)"), "iPad{Enter}");
+      expect(onDuplicate).toHaveBeenCalledWith("iPad", {
+        title: "Napisać testy",
+        link: "https://example.com",
+        description: "Nowy opis",
+      });
+    });
+
+    it("pusty dopisek blokuje „Utwórz kopię”", async () => {
+      const user = userEvent.setup();
+      renderCopy();
+      await user.click(screen.getByRole("button", { name: "Kopiuj zadanie" }));
+      expect(screen.getByRole("button", { name: "Utwórz kopię" })).toBeDisabled();
+      await user.type(screen.getByPlaceholderText("Dopisek (np. iPhone)"), "   ");
+      expect(screen.getByRole("button", { name: "Utwórz kopię" })).toBeDisabled();
+    });
+
+    it("błąd pokazuje komunikat i zostawia wypełnione pole", async () => {
+      const user = userEvent.setup();
+      renderCopy();
+      onDuplicate.mockRejectedValue(new Error("HTTP 500"));
+      await user.click(screen.getByRole("button", { name: "Kopiuj zadanie" }));
+      await user.type(screen.getByPlaceholderText("Dopisek (np. iPhone)"), "iPhone");
+      await user.click(screen.getByRole("button", { name: "Utwórz kopię" }));
+      expect(await screen.findByText(/Nie udało się utworzyć kopii/)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Dopisek (np. iPhone)")).toHaveValue("iPhone");
+    });
+
+    it("Anuluj zamyka wiersz bez tworzenia kopii", async () => {
+      const user = userEvent.setup();
+      renderCopy();
+      await user.click(screen.getByRole("button", { name: "Kopiuj zadanie" }));
+      await user.click(screen.getByRole("button", { name: "Anuluj" }));
+      expect(screen.queryByPlaceholderText("Dopisek (np. iPhone)")).not.toBeInTheDocument();
+      expect(onDuplicate).not.toHaveBeenCalled();
+    });
+  });
 });

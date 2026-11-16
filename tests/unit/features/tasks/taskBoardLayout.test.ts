@@ -101,11 +101,13 @@ describe("boardColumns", () => {
     );
   });
 
-  it("tryb roboczy: todo | stos | panel 2fr | done", () => {
+  it("tryb roboczy: stos 1 | stos 2 | panel 2fr | done (zwinięcie kolumn w stosie nie zmienia siatki)", () => {
     expect(boardColumns("work", open)).toBe("1fr 1fr 2fr 1fr");
     expect(boardColumns("work", effectiveCollapsed(DEFAULT_LAYOUT, "work"))).toBe(
       "1fr 1fr 2fr 3rem"
     );
-    expect(boardColumns("work", { ...open, todo: true })).toBe("3rem 1fr 2fr 1fr");
+    expect(boardColumns("work", { ...open, todo: true, in_progress: true })).toBe(
+      "1fr 1fr 2fr 1fr"
+    );
   });
 });

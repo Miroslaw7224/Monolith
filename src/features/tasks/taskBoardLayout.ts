@@ -68,9 +68,12 @@ export function effectiveCollapsed(
   return result;
 }
 
-/** Szablon `grid-template-columns`. Tryb roboczy: todo | stos (deferred, in_progress, to_review) | panel | done. */
+/**
+ * Szablon `grid-template-columns`. Tryb roboczy: stos 1 (todo, deferred) | stos 2 (in_progress,
+ * to_review) | panel | done; kolumny w stosach zwijają się w pionie, więc nie zmieniają siatki.
+ */
 export function boardColumns(mode: BoardMode, collapsed: Record<TaskStatus, boolean>): string {
   const track = (status: TaskStatus) => (collapsed[status] ? COLLAPSED_TRACK : "1fr");
-  if (mode === "work") return [track("todo"), "1fr", "2fr", track("done")].join(" ");
+  if (mode === "work") return ["1fr", "1fr", "2fr", track("done")].join(" ");
   return TASK_STATUSES.map(track).join(" ");
 }

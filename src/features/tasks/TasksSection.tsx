@@ -59,6 +59,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
     handleTitleAreaClick,
     handleTitleAreaDoubleClick,
     saveTaskPatch,
+    duplicateTask,
     addTask,
     applyTemplate,
     handleNewTaskTitleKeyDown,
@@ -189,7 +190,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
       now={tilesNow}
       onDelete={deleteTask}
       columnCollapsed={collapsedMap[status]}
-      stacked={mode === "work" && status !== "todo" && status !== "done"}
+      stacked={mode === "work" && status !== "done"}
       onToggleColumn={setCollapsed}
       listHeight={layout.heights[status]}
       onListHeightChange={setHeight}
@@ -345,11 +346,11 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
               TASK_STATUSES.map((status) => renderColumn(status))
             ) : (
               <>
-                {renderColumn("todo")}
                 <div className="zad-stack">
-                  {(["deferred", "in_progress", "to_review"] as const).map((status) =>
-                    renderColumn(status)
-                  )}
+                  {(["todo", "deferred"] as const).map((status) => renderColumn(status))}
+                </div>
+                <div className="zad-stack">
+                  {(["in_progress", "to_review"] as const).map((status) => renderColumn(status))}
                 </div>
                 {detailTask ? (
                   <TaskWorkPanel
@@ -357,6 +358,9 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
                     projects={projects}
                     onClose={() => setDetailTaskId(null)}
                     onPatch={saveTaskPatch}
+                    onDuplicate={(suffix, current) =>
+                      duplicateTask(detailTask!.id, suffix, current)
+                    }
                   />
                 ) : null}
                 {renderColumn("done")}
@@ -372,6 +376,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
         projects={projects}
         onClose={() => setDetailTaskId(null)}
         onPatch={saveTaskPatch}
+        onDuplicate={(suffix, current) => duplicateTask(detailTask!.id, suffix, current)}
       />
       <TaskTemplatesModal
         isOpen={templatesModalOpen}

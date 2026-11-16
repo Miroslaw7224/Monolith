@@ -10,6 +10,7 @@ import {
   exportMarkdown,
   itemLevel,
   itemComment,
+  resetChecklist,
   type ItemLine,
 } from "@/src/features/tasks/taskChecklist";
 
@@ -144,5 +145,18 @@ describe("exportMarkdown", () => {
   });
   it("opis bez punktów: tytuł i akapit, bez podsumowania", () => {
     expect(exportMarkdown("T", "Zwykła notatka")).toBe("# T\n\nZwykła notatka");
+  });
+});
+
+describe("resetChecklist", () => {
+  it("zeruje statusy i usuwa komentarze, reszta bajt w bajt", () => {
+    expect(resetChecklist("W\n- [x] A\n  > ok\n- [!] B")).toBe("W\n- [ ] A\n- [ ] B");
+  });
+  it("zachowuje wcięcia podpunktów", () => {
+    expect(resetChecklist("- [x] A\n  - [!] B\n    > uwaga")).toBe("- [ ] A\n  - [ ] B");
+  });
+  it("opis bez punktów i pusty bez zmian", () => {
+    expect(resetChecklist("Zwykła notatka\n> cytat")).toBe("Zwykła notatka\n> cytat");
+    expect(resetChecklist("")).toBe("");
   });
 });

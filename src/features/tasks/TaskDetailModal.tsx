@@ -4,6 +4,7 @@ import type { Task } from "./TasksSection";
 import { useT } from "@/src/i18n/useT";
 import { TaskDetailContent } from "./TaskDetailContent";
 import type { TaskPatch } from "./useTasksBoard";
+import type { DuplicateHandler } from "./TaskDetailContent";
 
 export interface TaskDetailModalProps {
   task: Task | null;
@@ -12,6 +13,7 @@ export interface TaskDetailModalProps {
   projects?: { id: string; name: string }[];
   onClose: () => void;
   onPatch: (taskId: string, patch: TaskPatch) => Promise<void>;
+  onDuplicate?: DuplicateHandler;
 }
 
 export function TaskDetailModal({
@@ -20,6 +22,7 @@ export function TaskDetailModal({
   projects = [],
   onClose,
   onPatch,
+  onDuplicate,
 }: TaskDetailModalProps) {
   const t = useT();
   if (!isOpen || !task) return null;
@@ -58,7 +61,13 @@ export function TaskDetailModal({
         </div>
 
         <div className="zad-modal__body">
-          <TaskDetailContent key={task.id} task={task} projects={projects} onPatch={onPatch} />
+          <TaskDetailContent
+            key={task.id}
+            task={task}
+            projects={projects}
+            onPatch={onPatch}
+            onDuplicate={onDuplicate}
+          />
         </div>
 
         <div className="zad-modal__footer">

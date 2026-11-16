@@ -69,6 +69,8 @@
   flex: 1 1 0%;
   min-width: 0;
   box-sizing: border-box;
+  /* wrapper karty ma overflow-hidden: bez własnego przewijania wszystko ponad wysokość okna jest obcięte */
+  overflow-y: auto;
 }
 
 @media (min-width: 768px) {
@@ -427,6 +429,9 @@
   background: var(--surface);
   border: 1px solid var(--accent);
   border-radius: var(--r-md);
+  /* panel zostaje na widoku przy przewijaniu tablicy; wysokość mieści się w oknie */
+  position: sticky;
+  top: var(--s-2);
   max-height: calc(100vh - 8rem);
   overflow: hidden;
 }
@@ -937,6 +942,26 @@
   min-height: 1.2em;
   font: 500 var(--fs-xs) / 1.2 var(--font-mono);
   color: var(--muted);
+}
+
+.zad-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  align-items: flex-start;
+}
+
+.zad-copy__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: center;
+  width: 100%;
+}
+
+.zad-copy__row .zad-input {
+  flex: 1 1 10rem;
+  min-width: 0;
 }
 
 .zad-checklist {

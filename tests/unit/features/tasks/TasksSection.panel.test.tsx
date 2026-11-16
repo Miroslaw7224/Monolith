@@ -23,7 +23,11 @@ afterEach(() => {
 beforeEach(() => {
   localStorage.clear();
   apiFetch.mockReset();
-  apiFetch.mockImplementation(async (url: string) => {
+  apiFetch.mockImplementation(async (url: string, opts?: RequestInit) => {
+    if (url === "/api/tasks" && opts?.method === "POST") {
+      const body = JSON.parse(opts.body as string);
+      return { ok: true, json: async () => ({ id: "n1", status: "todo", ...body }) };
+    }
     if (url === "/api/tasks") {
       return {
         ok: true,
@@ -41,10 +45,11 @@ beforeEach(() => {
             id: "b",
             title: "Beta",
             link: "",
-            description: "",
+            description: "Wstęp\n- [x] T-01\n  > ok\n- [!] T-02",
             status: "todo",
-            due_date: null,
-            priority: null,
+            due_date: "2026-11-20",
+            priority: 1,
+            project: "monolith",
           },
         ],
       };
@@ -88,14 +93,17 @@ test("dwuklik innej karty przełącza panel i zapisuje poprzednią zmianę (flus
   );
 });
 
-test("w trybie roboczym Odłożone, W toku i Do sprawdzenia są w jednym stosie, a Zrobione zwinięte", async () => {
+test("w trybie roboczym kolumny są w dwóch stosach (Do zrobienia nad Odłożone, W toku nad Do sprawdzenia), a Zrobione zwinięte", async () => {
   stubWidth(true);
   const { container } = render(<TasksSection apiFetch={apiFetch} />);
   fireEvent.doubleClick(await screen.findByText("Alpha"));
   await screen.findByRole("complementary");
-  const stack = container.querySelector(".zad-stack");
-  expect(stack).not.toBeNull();
-  expect(stack!.querySelectorAll(".zad-column")).toHaveLength(3);
+  const stacks = Array.from(container.querySelectorAll(".zad-stack"));
+  expect(stacks).toHaveLength(2);
+  const titles = (stack: Element) =>
+    Array.from(stack.querySelectorAll(".zad-column__title-text")).map((el) => el.textContent);
+  expect(titles(stacks[0])).toEqual(["Do zrobienia", "Odłożone"]);
+  expect(titles(stacks[1])).toEqual(["W toku", "Do sprawdzenia"]);
   expect(
     (container.querySelector(".zad-board") as HTMLElement).style.getPropertyValue("--zad-cols")
   ).toBe("1fr 1fr 2fr 3rem");
@@ -119,4 +127,32 @@ test("wyszukiwanie bez wyników nie zamyka otwartego panelu", async () => {
     target: { value: "zzz-brak" },
   });
   expect(screen.getByRole("complementary", { name: "Panel zadania" })).toBeInTheDocument();
+});
+
+test("Kopiuj zadanie tworzy kopię z dopiskiem, wyzerowaną checklistą i skopiowanymi polami", async () => {
+  stubWidth(true);
+  render(<TasksSection apiFetch={apiFetch} />);
+  fireEvent.doubleClick(await screen.findByText("Beta"));
+  const panel = await screen.findByRole("complementary", { name: "Panel zadania" });
+  fireEvent.click(within(panel).getByRole("button", { name: "Kopiuj zadanie" }));
+  fireEvent.change(within(panel).getByPlaceholderText("Dopisek (np. iPhone)"), {
+    target: { value: "iPhone" },
+  });
+  fireEvent.click(within(panel).getByRole("button", { name: "Utwórz kopię" }));
+
+  await waitFor(() => {
+    const call = apiFetch.mock.calls.find(
+      ([url, opts]) => url === "/api/tasks" && opts?.method === "POST"
+    );
+    expect(call).toBeTruthy();
+    expect(JSON.parse(call![1].body)).toEqual({
+      title: "Beta (iPhone)",
+      link: "",
+      description: "Wstęp\n- [ ] T-01\n- [ ] T-02",
+      priority: 1,
+      project: "monolith",
+      due_date: "2026-11-20",
+    });
+  });
+  expect(await screen.findByText("Beta (iPhone)")).toBeInTheDocument();
 });

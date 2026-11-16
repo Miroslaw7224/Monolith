@@ -107,6 +107,16 @@ export function setItemComment(
   return replaceLine(model, index, { ...line, commentRaw });
 }
 
+/** Opis do skopiowania: wszystkie punkty wracają do `todo`, komentarze znikają, reszta bez zmian. */
+export function resetChecklist(desc: string): string {
+  const model = parseChecklist(desc);
+  return serializeChecklist({
+    lines: model.lines.map((line) =>
+      line.type === "item" ? { ...line, status: "todo", commentRaw: [] } : line
+    ),
+  });
+}
+
 export function countItems(model: ChecklistModel): { pass: number; fail: number; todo: number } {
   const counts = { pass: 0, fail: 0, todo: 0 };
   for (const line of model.lines) if (line.type === "item") counts[line.status] += 1;
