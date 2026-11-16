@@ -19,14 +19,14 @@ Cel: jeden słownik, w którym tag znaczy to samo na wydarzeniu i na zasobie, be
 
 ## 2. Podjęte decyzje
 
-| #   | Decyzja            | Wybór                                                                                                                                                     |
-| --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T1  | Pojęcie tagu       | Jedno: ten sam tag na wydarzeniu i na zasobie. Bez pól `kind` i `scope` (brak dowodu na ból; wrócimy, jeśli podpowiedzi w kalendarzu zaczną przeszkadzać) |
-| T2  | Charakter słownika | Podpowiada, nie wymusza. Nowy tag można wpisać dowolnie i dopisuje się do słownika automatycznie (bez koloru). Synonimy zastępują zaszyty `TAG_MERGE_MAP` |
-| T3  | Migracja           | Jednorazowa, wykonana przez agenta jako osobne zadanie z kontrolą `git diff` w repo NEXUS, po wdrożeniu kodu. Bez kodu migracyjnego w aplikacji           |
-| T4  | Kolizje nazw       | `Agent AI` → `Agenci AI`; `Projekty` i `moje projekty` → `Praca własna`; `kurs`, `kursy`, `nauka` → `Learning` (dotychczasowa mapa zasobów)               |
-| T5  | Kolory             | Opcjonalne i tylko w słowniku. Tagi dopisane z zasobów bez koloru, w UI neutralne. Kolor wydarzenia zostaje osobnym polem wydarzenia                      |
-| T6  | Edycja synonimów   | Tylko poza UI (agent lub ręcznie w `tags.yaml`). Sekcja Tagi aliasy pokazuje, ale ich nie edytuje                                                         |
+| #   | Decyzja            | Wybór                                                                                                                                                                                                                                                       |
+| --- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | Pojęcie tagu       | Jedno: ten sam tag na wydarzeniu i na zasobie. Bez pól `kind` i `scope` (brak dowodu na ból; wrócimy, jeśli podpowiedzi w kalendarzu zaczną przeszkadzać)                                                                                                   |
+| T2  | Charakter słownika | Podpowiada, nie wymusza. Nowy tag można wpisać dowolnie i dopisuje się do słownika automatycznie (bez koloru). Synonimy zastępują zaszyty `TAG_MERGE_MAP`                                                                                                   |
+| T3  | Migracja           | Jednorazowa, wykonana przez agenta jako osobne zadanie z kontrolą `git diff` w repo NEXUS, po wdrożeniu kodu. Bez kodu migracyjnego w aplikacji                                                                                                             |
+| T4  | Kolizje nazw       | `Agent AI` → `Agenci AI`; `Projekty` i `moje projekty` → `Praca własna`; `kurs`, `kursy`, `nauka` → `Learning` (dotychczasowa mapa zasobów); rekord `Kursy` ze słownika scalony w `Learning` (jego kolor przechodzi na `Learning`, `Kursy` zostaje aliasem) |
+| T5  | Kolory             | Opcjonalne i tylko w słowniku. Tagi dopisane z zasobów bez koloru, w UI neutralne. Kolor wydarzenia zostaje osobnym polem wydarzenia                                                                                                                        |
+| T6  | Edycja synonimów   | Tylko poza UI (agent lub ręcznie w `tags.yaml`). Sekcja Tagi aliasy pokazuje, ale ich nie edytuje                                                                                                                                                           |
 
 ## 3. Dane (`Resources/tags.yaml`)
 
@@ -56,7 +56,7 @@ Osobne zadanie agenta w repo NEXUS, z kontrolą `git diff`, zgodnie z `docs/nexu
 
 1. Dopisać do `Resources/tags.yaml` wszystkie tagi użyte w zasobach oraz `Crait`.
 2. Scalić: `Agent AI` → `Agenci AI` (4 zasoby); `Projekty` → `Praca własna` (3 zasoby); `kurs`, `kursy`, `nauka` → `Learning`.
-3. Uzupełnić `aliases` zgodnie z punktem 2 (`Agenci AI`: `Agent AI`; `Praca własna`: `Projekty`, `moje projekty`; `Learning`: `kurs`, `kursy`, `nauka`).
+3. Uzupełnić `aliases` zgodnie z punktem 2 (`Agenci AI`: `Agent AI`; `Praca własna`: `Projekty`, `moje projekty`; `Learning`: `Kursy`, `kurs`, `nauka`; rekord `Kursy` usunięty, kolor `#00ffee` przejęty przez `Learning`).
 4. Tytuł tagu `Career Guide` („QA Tester”) pozostaje bez zmian.
 5. Zaktualizować opis formatu w `docs/nexus-vault-formaty-yaml.md` (pole `aliases`, zasada „nowy tag dopisuje się sam”).
 
