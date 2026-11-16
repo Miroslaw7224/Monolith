@@ -7,7 +7,9 @@ import {
   type ProjectLinksInput,
   type ProjectStatusChange,
   type GitActivity,
+  type DoneTasks,
   type GitHistory,
+  type GitSubjects,
   type NowTask,
   type Owner,
   type Project,
@@ -26,6 +28,7 @@ import {
   readGitActivity,
   readGitHistory,
   readGitSnapshot,
+  readGitSubjects,
   readIndexRules,
   readProjectBoard,
   readProjectContent,
@@ -290,6 +293,43 @@ export function listGitHistory(from: string, to: string): GitHistory[] {
           prs: history.prs,
         });
       }
+    } catch {
+      // jeden zepsuty projekt nie wyłącza pozostałych
+    }
+  }
+  return result;
+}
+
+/**
+ * Tematy commitów po projektach (zakres `from`–`to` włącznie) z dostępnym repozytorium.
+ * Błąd jednego projektu go pomija; błąd rejestru leci wyżej.
+ */
+export function listGitSubjects(from: string, to: string): GitSubjects[] {
+  const result: GitSubjects[] = [];
+  for (const entry of readRegistry().entries) {
+    try {
+      const res = readGitSubjects(entry, from, to);
+      if (res.ok) result.push({ projectId: entry.id, name: entry.name, subjects: res.subjects });
+    } catch {
+      // jeden zepsuty projekt nie wyłącza pozostałych
+    }
+  }
+  return result;
+}
+
+/**
+ * Zamknięte zadania (`done` z `doneDate` w `from`–`to` włącznie) ze wszystkich czterech kolumn
+ * tablicy projektu. Zadanie bez końcowej daty ` — RRRR-MM-DD` nie ma `doneDate`, więc go nie ma.
+ */
+export function listDoneTasksInWindow(from: string, to: string): DoneTasks[] {
+  const result: DoneTasks[] = [];
+  for (const entry of readRegistry().entries) {
+    try {
+      const board = readProjectBoard(entry);
+      const tasks = [...board.blockers, ...board.now, ...board.next, ...board.icebox]
+        .filter((t) => t.done && t.doneDate !== undefined && t.doneDate >= from && t.doneDate <= to)
+        .map((t) => t.text);
+      if (tasks.length > 0) result.push({ projectId: entry.id, name: entry.name, tasks });
     } catch {
       // jeden zepsuty projekt nie wyłącza pozostałych
     }
