@@ -103,4 +103,44 @@ describe("TaskColumn: zwijanie i wysokość", () => {
       screen.queryByRole("button", { name: "Przywróć automatyczną wysokość" })
     ).not.toBeInTheDocument();
   });
+
+  describe("uchwyt wysokości", () => {
+    const rect = (h: number) =>
+      vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+        height: h,
+      } as DOMRect);
+    const ptr = (type: string, clientY: number) => new MouseEvent(type, { bubbles: true, clientY });
+    afterEach(() => vi.restoreAllMocks());
+
+    it("przeciągnięcie zmienia wysokość na żywo i zapisuje ją po puszczeniu", () => {
+      rect(200);
+      const p = props();
+      const { container } = render(<TaskColumn {...p} />);
+      const handle = screen.getByRole("separator", { name: "Zmień wysokość kolumny" });
+      fireEvent(handle, ptr("pointerdown", 100));
+      fireEvent(handle, ptr("pointermove", 160));
+      expect(container.querySelector(".zad-column__list")).toHaveStyle({ height: "260px" });
+      expect(p.onListHeightChange).not.toHaveBeenCalled();
+      fireEvent(handle, ptr("pointerup", 160));
+      expect(p.onListHeightChange).toHaveBeenCalledWith("todo", 260);
+    });
+
+    it("strzałki zmieniają wysokość o 40 px, dwuklik przywraca automatyczną", () => {
+      rect(200);
+      const p = props();
+      render(<TaskColumn {...p} />);
+      const handle = screen.getByRole("separator", { name: "Zmień wysokość kolumny" });
+      fireEvent.keyDown(handle, { key: "ArrowDown" });
+      expect(p.onListHeightChange).toHaveBeenLastCalledWith("todo", 240);
+      fireEvent.keyDown(handle, { key: "ArrowUp" });
+      expect(p.onListHeightChange).toHaveBeenLastCalledWith("todo", 160);
+      fireEvent.doubleClick(handle);
+      expect(p.onListHeightChange).toHaveBeenLastCalledWith("todo", null);
+    });
+
+    it("zwinięta kolumna nie ma uchwytu", () => {
+      render(<TaskColumn {...props({ columnCollapsed: true })} />);
+      expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+    });
+  });
 });

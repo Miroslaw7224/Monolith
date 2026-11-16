@@ -39,6 +39,8 @@ export const tasks = {
   tasksColumnCollapse: "Zwiń kolumnę",
   tasksColumnExpand: "Rozwiń kolumnę",
   tasksColumnResetHeight: "Przywróć automatyczną wysokość",
+  tasksColumnResize: "Zmień wysokość kolumny",
+  tasksColumnResizeHint: "Przeciągnij, aby zmienić wysokość (dwuklik: automatyczna)",
   tasksCopyButton: "Kopiuj zadanie",
   tasksCopySuffixPlaceholder: "Dopisek (np. iPhone)",
   tasksCopyCreate: "Utwórz kopię",

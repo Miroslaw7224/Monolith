@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, RotateCcw } from "lucide-react";
 import type { Task } from "./TasksSection";
 import type { TaskStatus } from "./taskOrderUtils";
@@ -93,29 +93,33 @@ export function TaskColumn({
   const t = useT();
   const [expanded, setExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement>(null);
-  const heightRef = useRef(listHeight);
-  heightRef.current = listHeight;
+  const [dragHeight, setDragHeight] = useState<number | null>(null);
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+  const shownHeight = dragHeight ?? listHeight;
 
-  // użytkownik ciągnie uchwyt `resize: vertical`: przeglądarka ustawia inline `height`;
-  // zapisujemy po 300 ms ciszy. Zmiany wysokości od samej treści (bez inline height) ignorujemy.
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const observer = new ResizeObserver(() => {
-      if (!el.style.height) return;
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        const px = clampHeight(el.getBoundingClientRect().height);
-        if (px !== heightRef.current) onListHeightChange(status, px);
-      }, 300);
-    });
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      if (timer) clearTimeout(timer);
-    };
-  }, [status, onListHeightChange, columnCollapsed]);
+  const currentHeight = () => listRef.current?.getBoundingClientRect().height ?? 0;
+
+  const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    dragRef.current = { startY: e.clientY, startH: currentHeight() };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    e.preventDefault();
+  };
+  const onHandlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (d) setDragHeight(clampHeight(d.startH + e.clientY - d.startY));
+  };
+  const endDrag = (commit: boolean) => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (d && commit && dragHeight !== null) onListHeightChange(status, dragHeight);
+    setDragHeight(null);
+  };
+  const onHandleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === "ArrowDown" ? 40 : e.key === "ArrowUp" ? -40 : 0;
+    if (!step) return;
+    e.preventDefault();
+    onListHeightChange(status, clampHeight(currentHeight() + step));
+  };
 
   const { visibleTasks, hiddenCount, isCollapsed, canCollapse } = getVisibleColumnTasks(
     tasks,
@@ -183,10 +187,13 @@ export function TaskColumn({
       {columnCollapsed ? null : (
         <ul
           ref={listRef}
-          className={["zad-column__list", listHeight !== undefined ? "zad-column__list--sized" : ""]
+          className={[
+            "zad-column__list",
+            shownHeight !== undefined ? "zad-column__list--sized" : "",
+          ]
             .filter(Boolean)
             .join(" ")}
-          style={listHeight !== undefined ? { height: `${listHeight}px` } : undefined}
+          style={shownHeight !== undefined ? { height: `${shownHeight}px` } : undefined}
         >
           {visibleTasks.map((task) => (
             <TaskCard
@@ -218,6 +225,22 @@ export function TaskColumn({
             />
           ))}
         </ul>
+      )}
+      {columnCollapsed ? null : (
+        <div
+          className="zad-column__handle"
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label={t("tasks:tasksColumnResize")}
+          tabIndex={0}
+          title={t("tasks:tasksColumnResizeHint")}
+          onPointerDown={onHandlePointerDown}
+          onPointerMove={onHandlePointerMove}
+          onPointerUp={() => endDrag(true)}
+          onPointerCancel={() => endDrag(false)}
+          onKeyDown={onHandleKeyDown}
+          onDoubleClick={() => onListHeightChange(status, null)}
+        />
       )}
       {!columnCollapsed && isCollapsed ? (
         <button
