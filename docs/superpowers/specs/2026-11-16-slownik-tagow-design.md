@@ -46,7 +46,7 @@ Kontekst `bc_tags` (pięć plików wg ADR-021) i dwaj klienci:
   4. każdy nieznany tag dopisuje do słownika (`title` = nazwa, bez koloru) i zwraca jego nazwę bez zmian.
 - **`bc_resources/services.ts`:** `normalizeTags` woła `bc_tags/services.resolveTags` zamiast `TAG_MERGE_MAP`. Mapa jest usuwana z `models.ts`, a jej wpisy trafiają do `aliases` w migracji.
 - **`bc_calendar/services.ts`:** tworzenie i edycja wydarzenia przechodzą przez `resolveTags`.
-- **UI:** `ResourceAddForm` i `ResourceEditModal` podpowiadają tagi ze słownika (`/api/tags`); kalendarz już to robi. Sekcja Tagi (`TagsSection`) pokazuje aliasy tylko do odczytu.
+- **UI:** kalendarz już podpowiada tagi ze słownika. Pola tagów w formularzach zasobów (`ResourceAddForm`, `ResourceEditModal`) to zwykły tekst rozdzielany przecinkami, więc podpowiedzi w nich są poza zakresem (synonimy i tak scala serwer). Sekcja Tagi (`TagsSection`) pokazuje aliasy tylko do odczytu. Znak `#` na początku nazwy jest przy dopasowaniu pomijany (jak w `bc_tags`).
 
 Zgodność z architekturą: wołanie `services` innego kontekstu jest dozwolone, UI importuje tylko `schemas`, test architektury nie jest zmieniany. Błąd zapisu słownika przerywa cały zapis (ten sam kod błędu co dziś, 409 po wyczerpaniu ponowień), bo zapis wydarzenia lub zasobu z niedopisanym tagiem zostawiłby niespójny stan.
 
@@ -74,6 +74,6 @@ Vitest, `tests/unit/` (konkretne przypadki):
 
 ## 7. Poza zakresem i ryzyka
 
-**Poza zakresem:** pola `kind` i `scope`, edycja aliasów w UI, wymuszanie słownika (walidacja odrzucająca nieznane tagi), kolor wydarzenia wynikający z tagu, kolory dla tagów z zasobów.
+**Poza zakresem:** podpowiedzi tagów w formularzach zasobów, pola `kind` i `scope`, edycja aliasów w UI, wymuszanie słownika (walidacja odrzucająca nieznane tagi), kolor wydarzenia wynikający z tagu, kolory dla tagów z zasobów.
 
 **Ryzyko przyjęte świadomie:** po migracji podpowiedzi tagów w kalendarzu pokażą ponad 25 tagów, w tym tematyczne (`Backend`, `RAG`). Jeśli to zacznie przeszkadzać, dodamy filtr w UI albo `scope`; do tego czasu bez rozbudowy.
