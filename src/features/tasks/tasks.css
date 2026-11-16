@@ -522,13 +522,48 @@
   min-height: 0;
 }
 
+/* domyślnie lista kończy się na wysokości okna i przewija się w środku; własną wysokość ustawia uchwyt pod listą */
 .zad-column__list {
-  overflow: auto;
-  resize: vertical;
+  overflow-y: auto;
+  max-height: max(18rem, calc(100vh - 16rem));
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
 }
 
 .zad-column__list--sized {
   flex: 0 0 auto;
+  max-height: none;
+  min-height: 0;
+}
+
+.zad-column__handle {
+  flex: 0 0 auto;
+  height: 14px;
+  margin-top: var(--s-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+  border-radius: var(--r-sm, 4px);
+}
+
+.zad-column__handle::before {
+  content: "";
+  width: 44px;
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--line);
+  transition: background 0.15s var(--ease);
+}
+
+.zad-column__handle:hover::before,
+.zad-column__handle:focus-visible::before {
+  background: var(--accent);
+}
+
+.zad-column__handle:focus-visible {
+  outline: 1px solid var(--accent);
 }
 
 /* poniżej 1024 px zwinięcie chowa tylko karty (nagłówek zostaje) */

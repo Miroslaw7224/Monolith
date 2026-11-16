@@ -39,6 +39,8 @@ export const tasks = {
   tasksColumnCollapse: "Collapse column",
   tasksColumnExpand: "Expand column",
   tasksColumnResetHeight: "Reset to automatic height",
+  tasksColumnResize: "Resize column height",
+  tasksColumnResizeHint: "Drag to resize (double-click: automatic)",
   tasksCopyButton: "Copy task",
   tasksCopySuffixPlaceholder: "Suffix (e.g. iPhone)",
   tasksCopyCreate: "Create copy",
