@@ -180,6 +180,12 @@ export type GitHistory = {
   prs: Record<string, number>;
 };
 
+/** Tematy commitów projektu z zakresu dat (najnowsze pierwsze). */
+export type GitSubjects = { projectId: string; name: string; subjects: string[] };
+
+/** Zadania `done` projektu z `doneDate` w zakresie dat (kolejność kolumn tablicy). */
+export type DoneTasks = { projectId: string; name: string; tasks: string[] };
+
 export type RepoRulesResult =
   | { ok: true; text: string }
   | { ok: false; reason: RepoUnavailableReason | "no-file" | "unsafe-file" };

@@ -21,6 +21,7 @@ import {
 } from "@/contexts/bc_projects/models";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 import {
+  commitSubjects,
   commitsByDay,
   commitsSince,
   currentBranch,
@@ -450,6 +451,17 @@ export function readGitHistory(
   if (commits.ok === false) return { ok: false };
   const prs = mergedPrsByDay(repo.path, from, to);
   return { ok: true, days: commits.days, prs: prs.ok ? prs.prs : {} };
+}
+
+/** Tematy commitów projektu z zakresu `from`–`to` (`RRRR-MM-DD`); brak repo albo błąd gita to `ok: false`. */
+export function readGitSubjects(
+  entry: RegistryEntry,
+  from: string,
+  to: string
+): { ok: true; subjects: string[] } | { ok: false } {
+  const repo = resolveRepoPath(entry.localPath);
+  if (repo.ok === false) return { ok: false };
+  return commitSubjects(repo.path, from, to);
 }
 
 /** `CLAUDE.md` z repozytorium projektu (zwykły plik, do 64 KB). */

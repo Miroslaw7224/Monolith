@@ -25,6 +25,10 @@ import {
   type QueueItem,
   type QueueItemProject,
   type Topic,
+  type WeekFocus,
+  type WeekReview,
+  type WeekReviewClosing,
+  type WeekReviewProject,
 } from "./models";
 import * as repositories from "./repositories";
 
@@ -459,6 +463,33 @@ function loadClosing(date: string, warnings: string[]): Cockpit["closing"] {
   }
 }
 
+// ── focus tygodnia ─────────────────────────────────────────────────────────────
+
+export const MAX_FOCUS_TEXT = 300;
+
+/** Przesuwa dzień `RRRR-MM-DD` o `delta` dni (kalendarz lokalny, odporne na zmianę czasu). */
+function shiftDay(day: string, delta: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return localDate(new Date(y, m - 1, d + delta));
+}
+
+/** Poniedziałek tygodnia ISO, w którym jest dzień `RRRR-MM-DD`. */
+export function weekStart(day: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const sinceMonday = (new Date(y, m - 1, d).getDay() + 6) % 7;
+  return shiftDay(day, -sinceMonday);
+}
+
+function loadWeekFocus(date: string, warnings: string[]): WeekFocus | null {
+  try {
+    const start = weekStart(date);
+    return repositories.readWeekFocuses().find((w) => w.weekStart === start) ?? null;
+  } catch (err) {
+    warnings.push(`Focus tygodnia: ${reason(err)}`);
+    return null;
+  }
+}
+
 // ── API serwisu ────────────────────────────────────────────────────────────────
 
 /** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
@@ -475,6 +506,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const git = loadGit(today, topics, warnings);
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
+  const weekFocus = loadWeekFocus(date, warnings);
   const windows = planWindows(events, queue, today.getHours() * 60 + today.getMinutes());
   return {
     date,
@@ -487,6 +519,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
     inbox,
     windows,
     closing,
+    weekFocus,
     warnings,
   };
 }
@@ -527,6 +560,19 @@ export async function closeDay(
   const closing: Closing = { date: localDate(today), text, projectId: input.projectId, commits };
   await repositories.upsertClosing(closing);
   return closing;
+}
+
+/** Zapisuje focus bieżącego tygodnia ISO (nadpisuje wcześniejszy z tego samego tygodnia). */
+export async function setWeekFocus(
+  input: { text: string },
+  today: Date = new Date()
+): Promise<WeekFocus> {
+  const text = input.text.replace(/\s+/g, " ").trim();
+  if (text === "") throw new DomainError("Wpisz jedno zdanie");
+  if (text.length > MAX_FOCUS_TEXT) throw new DomainError(`Maksymalnie ${MAX_FOCUS_TEXT} znaków`);
+  const focus: WeekFocus = { weekStart: weekStart(localDate(today)), text };
+  await repositories.upsertWeekFocus(focus);
+  return focus;
 }
 
 // ── historia commitów ──────────────────────────────────────────────────────────
@@ -677,4 +723,182 @@ export async function completeQueueItem(source: QueueSource): Promise<void> {
     return;
   }
   await projectsServices.completeNowTask(source.projectId, source.text, source.occurrence);
+}
+
+// ── przegląd tygodnia ──────────────────────────────────────────────────────────
+
+export const WEEK_REVIEW_DAYS = 7;
+export const MAX_WEEK_SUBJECTS = 15;
+
+/**
+ * Prompt dla agenta (Markdown, zawsze po polsku). Sekcje bez danych są pomijane. Nic nie jest
+ * wysyłane: tekst trafia do schowka użytkownika. Dane firmy są tu już zamaskowane przez `getWeekReview`.
+ */
+export function composeWeekPrompt(r: Omit<WeekReview, "prompt">): string {
+  const head = [
+    `# Przegląd tygodnia ${r.from} – ${r.to}`,
+    "",
+    "Zrób retrospektywę: co zostało domknięte, co wisi bez ruchu, na czym straciłem czas.",
+    `Zaproponuj 1–3 tematy focusu na tydzień od ${r.weekStart} (jedno zdanie każdy).`,
+    "Dane pochodzą z mojego vaulta i gita; lista zamkniętych zadań to przybliżenie (liczą się tylko wpisy z datą na końcu).",
+  ];
+  const sections: string[][] = [];
+
+  const commits = ["## Commity i PR-y"];
+  const active = r.projects.filter((p) => p.commits > 0 || p.prs > 0);
+  if (!r.git.available) commits.push("Dane z gita niedostępne.");
+  else if (active.length === 0) commits.push("Brak commitów w tym oknie.");
+  for (const p of active) {
+    commits.push(
+      `- ${p.name}${p.work ? " (dane z firmy)" : ""} — commity: ${p.commits}, PR: ${p.prs}`
+    );
+    const shown = p.subjects.slice(0, MAX_WEEK_SUBJECTS);
+    for (const subject of shown) commits.push(`  - ${subject}`);
+    if (p.subjects.length > shown.length) {
+      commits.push(`  - … i ${p.subjects.length - shown.length} więcej`);
+    }
+  }
+  sections.push(commits);
+
+  const done = r.projects.filter((p) => p.doneTasks.length > 0);
+  if (done.length > 0) {
+    const lines = ["## Zamknięte zadania (przybliżenie)"];
+    for (const p of done) {
+      lines.push(`- ${p.name}`);
+      for (const task of p.doneTasks) lines.push(`  - ${task}`);
+    }
+    sections.push(lines);
+  }
+
+  if (r.closings.length > 0) {
+    sections.push([
+      "## Zamknięcia dnia",
+      ...r.closings.map((c) => `- ${c.date}: ${c.text ?? "(dane z firmy, treść pominięta)"}`),
+    ]);
+  }
+
+  if (r.reviews.available) {
+    sections.push([
+      "## Review",
+      `Zatwierdzone: ${r.reviews.approved}, komentarze: ${r.reviews.comments}, PR-y: ${r.reviews.prs}`,
+    ]);
+  }
+
+  if (r.meetings.count > 0) {
+    sections.push([
+      "## Spotkania",
+      `Spotkań: ${r.meetings.count}, łącznie ${r.meetings.minutes} min`,
+    ]);
+  }
+
+  if (r.containsWork) sections.push(["Uwaga: projekty z danymi firmy są tylko jako liczby."]);
+
+  return [head.join("\n"), ...sections.map((section) => section.join("\n"))].join("\n\n");
+}
+
+/**
+ * Zestawienie ostatnich 7 dni (łącznie z dziś) i prompt dla agenta. Każde źródło osobno: brak gita,
+ * `gh`, kalendarza albo zamknięć dnia daje pustą sekcję, nie wyjątek (błąd rejestru projektów leci wyżej).
+ * Projekty z danymi firmy (`hasCompanyData`) trafiają tylko jako nazwa i liczby.
+ */
+export async function getWeekReview(today: Date = new Date()): Promise<WeekReview> {
+  const to = localDate(today);
+  const from = shiftDay(to, -(WEEK_REVIEW_DAYS - 1));
+  const company = new Map(
+    projectsServices
+      .listProjects()
+      .projects.map((p) => [p.id, projectsServices.hasCompanyData(p.owner, p.type)] as const)
+  );
+  // fail-closed: projekt spoza rejestru (np. usunięty, a wpisany w zamknięciu dnia) traktujemy jak dane firmy
+  const isCompany = (id: string | null) => id !== null && company.get(id) !== false;
+
+  const history = projectsServices.listGitHistory(from, to);
+  const sum = (record: Record<string, number>) =>
+    Object.values(record).reduce((total, n) => total + n, 0);
+  const rows = new Map<string, WeekReviewProject>();
+  const ensure = (projectId: string, name: string): WeekReviewProject => {
+    let row = rows.get(projectId);
+    if (!row) {
+      row = {
+        projectId,
+        name,
+        work: isCompany(projectId),
+        commits: 0,
+        prs: 0,
+        subjects: [],
+        doneTasks: [],
+      };
+      rows.set(projectId, row);
+    }
+    return row;
+  };
+  for (const h of history) {
+    const commits = sum(h.days);
+    const prs = sum(h.prs);
+    if (commits === 0 && prs === 0) continue;
+    const row = ensure(h.projectId, h.name);
+    row.commits = commits;
+    row.prs = prs;
+  }
+  for (const s of projectsServices.listGitSubjects(from, to)) {
+    const row = rows.get(s.projectId);
+    if (row && !row.work) row.subjects = s.subjects;
+  }
+  for (const d of projectsServices.listDoneTasksInWindow(from, to)) {
+    if (isCompany(d.projectId) || d.tasks.length === 0) continue;
+    ensure(d.projectId, d.name).doneTasks = d.tasks;
+  }
+  const projects = [...rows.values()].sort(
+    (a, b) => b.commits - a.commits || a.name.localeCompare(b.name, "pl")
+  );
+
+  let closings: WeekReviewClosing[] = [];
+  try {
+    closings = repositories
+      .readClosings()
+      .filter((c) => c.date >= from && c.date <= to)
+      .map((c) => ({
+        date: c.date,
+        text: isCompany(c.projectId) ? null : c.text,
+        projectId: c.projectId,
+      }));
+  } catch {
+    closings = [];
+  }
+
+  let meetings = { count: 0, minutes: 0 };
+  try {
+    const entries = await calendarServices.getCalendarEvents({ startDate: from, endDate: to });
+    const own = entries.filter((e) => e.type === "meeting" && e.date >= from && e.date <= to);
+    meetings = {
+      count: own.length,
+      minutes: own.reduce((total, e) => total + e.duration_minutes, 0),
+    };
+  } catch {
+    meetings = { count: 0, minutes: 0 };
+  }
+
+  const reviewHistory = await getReviewHistory(WEEK_REVIEW_DAYS, today);
+
+  const review: Omit<WeekReview, "prompt"> = {
+    from,
+    to,
+    weekStart: weekStart(to),
+    git: {
+      available: history.length > 0,
+      commits: projects.reduce((total, p) => total + p.commits, 0),
+      prs: projects.reduce((total, p) => total + p.prs, 0),
+    },
+    projects,
+    closings,
+    reviews: {
+      available: reviewHistory.available,
+      approved: reviewHistory.approved,
+      comments: reviewHistory.comments,
+      prs: reviewHistory.prs,
+    },
+    meetings,
+    containsWork: projects.some((p) => p.work) || closings.some((c) => c.text === null),
+  };
+  return { ...review, prompt: composeWeekPrompt(review) };
 }

@@ -5,6 +5,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  commitSubjects,
   commitsByDay,
   commitsSince,
   currentBranch,
@@ -213,6 +214,52 @@ describe("commitsByDay", () => {
     expect(() => commitsByDay(r.dir, "--all", "2026-11-13")).toThrow(/data/);
     expect(() => commitsByDay(r.dir, "2026-11-01", "x")).toThrow(/data/);
     expect(() => commitsByDay(r.dir, "2026-11-13", "2026-11-01")).toThrow(/zakres/);
+  });
+});
+
+describe("commitSubjects", () => {
+  it("zwraca tematy commitów z zakresu dat włącznie, najnowsze pierwsze", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("za wcześnie", "2026-11-09");
+    r.write("a.txt", "2");
+    r.commit("feat: dwa", "2026-11-10");
+    r.write("a.txt", "3");
+    r.commit("fix: trzy", "2026-11-12");
+    r.write("a.txt", "4");
+    r.commit("za późno", "2026-11-17");
+    expect(commitSubjects(r.dir, "2026-11-10", "2026-11-16")).toEqual({
+      ok: true,
+      subjects: ["fix: trzy", "feat: dwa"],
+    });
+  });
+
+  it("liczy commity z innych lokalnych gałęzi raz", () => {
+    const r = repos.create();
+    r.write("a.txt", "1");
+    r.commit("c1", "2026-11-10");
+    execFileSync("git", ["checkout", "-q", "-b", "feat/x"], { cwd: r.dir });
+    r.write("b.txt", "2");
+    r.commit("c2", "2026-11-11");
+    execFileSync("git", ["checkout", "-q", "main"], { cwd: r.dir });
+    expect(commitSubjects(r.dir, "2026-11-10", "2026-11-11")).toEqual({
+      ok: true,
+      subjects: ["c2", "c1"],
+    });
+  });
+
+  it("repo bez commitów: pusto; katalog bez .git: błąd; zła data: wyjątek", () => {
+    const r = repos.create();
+    expect(commitSubjects(r.dir, "2026-11-01", "2026-11-13")).toEqual({ ok: true, subjects: [] });
+    const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
+    try {
+      expect(commitSubjects(plain, "2026-11-01", "2026-11-13")).toEqual({ ok: false });
+    } finally {
+      fs.rmSync(plain, { recursive: true, force: true });
+    }
+    expect(() => commitSubjects(r.dir, "--all", "2026-11-13")).toThrow(/data/);
+    expect(() => commitSubjects(r.dir, "2026-11-01", "x")).toThrow(/data/);
+    expect(() => commitSubjects(r.dir, "2026-11-13", "2026-11-01")).toThrow(/zakres/);
   });
 });
 

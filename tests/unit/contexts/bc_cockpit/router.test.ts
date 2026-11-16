@@ -11,6 +11,8 @@ const mockSetQueueItemEnergy = vi.hoisted(() => vi.fn());
 const mockGetCommitHistory = vi.hoisted(() => vi.fn());
 const mockGetReviewRequests = vi.hoisted(() => vi.fn());
 const mockGetReviewHistory = vi.hoisted(() => vi.fn());
+const mockGetWeekReview = vi.hoisted(() => vi.fn());
+const mockSetWeekFocus = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCockpit: mockGetCockpit,
   setPinned: mockSetPinned,
@@ -20,6 +22,8 @@ vi.mock("@/contexts/bc_cockpit/services", () => ({
   getCommitHistory: mockGetCommitHistory,
   getReviewRequests: mockGetReviewRequests,
   getReviewHistory: mockGetReviewHistory,
+  getWeekReview: mockGetWeekReview,
+  setWeekFocus: mockSetWeekFocus,
 }));
 
 import {
@@ -29,6 +33,8 @@ import {
   getCommits,
   getReviewRequests,
   getReviewHistory,
+  getWeekReview,
+  putWeekFocus,
   putClosing,
   putPinned,
 } from "@/contexts/bc_cockpit/router";
@@ -57,6 +63,7 @@ describe("GET /api/cockpit", () => {
       inbox: null,
       windows: [],
       closing: { anchor: null, today: null },
+      weekFocus: null,
       warnings: ["x"],
     });
     const res = await getCockpit();
@@ -72,6 +79,7 @@ describe("GET /api/cockpit", () => {
       inbox: null,
       windows: [],
       closing: { anchor: null, today: null },
+      weekFocus: null,
       warnings: ["x"],
     });
   });
@@ -309,5 +317,48 @@ describe("POST /api/cockpit/queue/energy", () => {
     mockSetQueueItemEnergy.mockRejectedValueOnce(new ConflictError("Zadanie zmieniło się w pliku"));
     const res = await setQueueEnergy(postE({ type: "task", taskId: "t", energy: "deep" }));
     expect(res.status).toBe(409);
+  });
+});
+
+describe("GET /api/cockpit/week-review", () => {
+  it("200 z zestawieniem", async () => {
+    mockGetWeekReview.mockResolvedValue({
+      from: "2026-11-10",
+      to: "2026-11-16",
+      weekStart: "2026-11-16",
+      git: { available: false, commits: 0, prs: 0 },
+      projects: [],
+      closings: [],
+      reviews: { available: false, approved: 0, comments: 0, prs: 0 },
+      meetings: { count: 0, minutes: 0 },
+      containsWork: false,
+      prompt: "# P",
+    });
+    const res = await getWeekReview();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.git.available).toBe(false);
+    expect(body.prompt).toBe("# P");
+  });
+
+  it("błąd serwisu przechodzi przez handleServiceError", async () => {
+    mockGetWeekReview.mockRejectedValue(new ConflictError("x"));
+    expect((await getWeekReview()).status).toBe(409);
+  });
+});
+
+describe("PUT /api/cockpit/week-focus", () => {
+  it("zapisuje focus i zwraca go", async () => {
+    mockSetWeekFocus.mockResolvedValue({ weekStart: "2026-11-16", text: "Tagi" });
+    const res = await putWeekFocus(put({ text: "Tagi" }));
+    expect(res.status).toBe(200);
+    expect(mockSetWeekFocus).toHaveBeenCalledWith({ text: "Tagi" });
+    expect(await res.json()).toEqual({ weekStart: "2026-11-16", text: "Tagi" });
+  });
+
+  it("puste ciało i pusty tekst to 400", async () => {
+    expect((await putWeekFocus(put({}))).status).toBe(400);
+    expect((await putWeekFocus(put({ text: "  " }))).status).toBe(400);
+    expect(mockSetWeekFocus).not.toHaveBeenCalled();
   });
 });

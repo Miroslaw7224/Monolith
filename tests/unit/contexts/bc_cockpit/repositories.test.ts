@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   readClosings,
   readPinned,
+  readWeekFocuses,
   upsertClosing,
+  upsertWeekFocus,
   writePinned,
 } from "@/contexts/bc_cockpit/repositories";
 import { formatYamlList } from "@/lib/nexus/yaml-lists";
@@ -129,5 +131,41 @@ describe("readClosings / upsertClosing", () => {
       upsertClosing({ date: "2026-11-12", text: "x", projectId: null, commits: null })
     ).rejects.toThrow(CLOSING);
     expect(vault.read(CLOSING)).toBe(broken);
+  });
+});
+
+describe("weeks.yaml", () => {
+  const WEEKS = "Cockpit/weeks.yaml";
+
+  it("brak pliku to pusta lista", () => {
+    expect(readWeekFocuses()).toEqual([]);
+  });
+
+  it("zapis i odczyt: jeden rekord na tydzień, rosnąco po week_start", async () => {
+    await upsertWeekFocus({ weekStart: "2026-11-16", text: "Domknąć tagi" });
+    await upsertWeekFocus({ weekStart: "2026-11-09", text: "Kokpit" });
+    await upsertWeekFocus({ weekStart: "2026-11-16", text: "Przegląd tygodnia" });
+    expect(readWeekFocuses()).toEqual([
+      { weekStart: "2026-11-09", text: "Kokpit" },
+      { weekStart: "2026-11-16", text: "Przegląd tygodnia" },
+    ]);
+  });
+
+  it("pomija wpisy bez poprawnego week_start lub tekstu (ręczna edycja)", () => {
+    vault.write(
+      WEEKS,
+      formatYamlList("weeks", [
+        { week_start: "2026-11-16", text: "Dobry" },
+        { week_start: "jutro", text: "Zła data" },
+        { week_start: "2026-11-09", text: " " },
+        { text: "Bez daty" },
+      ])
+    );
+    expect(readWeekFocuses()).toEqual([{ weekStart: "2026-11-16", text: "Dobry" }]);
+  });
+
+  it("uszkodzony YAML to błąd (serwis zamienia go na ostrzeżenie)", () => {
+    vault.write(WEEKS, "weeks: [unclosed\n");
+    expect(() => readWeekFocuses()).toThrow();
   });
 });

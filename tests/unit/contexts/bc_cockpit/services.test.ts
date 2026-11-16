@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, NotFoundError } from "@/lib/errors";
+import type { WeekReview } from "@/contexts/bc_cockpit/models";
 
 const mockReadPinned = vi.hoisted(() => vi.fn());
 const mockWritePinned = vi.hoisted(() => vi.fn());
@@ -19,6 +20,10 @@ const mockCompleteNowTask = vi.hoisted(() => vi.fn());
 const mockUpdateTask = vi.hoisted(() => vi.fn());
 const mockLoadReviewRequests = vi.hoisted(() => vi.fn());
 const mockLoadMyReviews = vi.hoisted(() => vi.fn());
+const mockReadWeekFocuses = vi.hoisted(() => vi.fn());
+const mockUpsertWeekFocus = vi.hoisted(() => vi.fn());
+const mockListGitSubjects = vi.hoisted(() => vi.fn());
+const mockListDoneTasks = vi.hoisted(() => vi.fn());
 
 vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readPinned: mockReadPinned,
@@ -27,6 +32,8 @@ vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   upsertClosing: mockUpsertClosing,
   loadReviewRequests: mockLoadReviewRequests,
   loadMyReviews: mockLoadMyReviews,
+  readWeekFocuses: mockReadWeekFocuses,
+  upsertWeekFocus: mockUpsertWeekFocus,
 }));
 vi.mock("@/contexts/bc_projects/services", () => ({
   getProject: mockGetProject,
@@ -34,6 +41,8 @@ vi.mock("@/contexts/bc_projects/services", () => ({
   listProjects: mockListProjects,
   listGitActivity: mockListGitActivity,
   listGitHistory: mockListGitHistory,
+  listGitSubjects: mockListGitSubjects,
+  listDoneTasksInWindow: mockListDoneTasks,
   completeNowTask: mockCompleteNowTask,
   rewriteNowTask: mockRewriteNowTask,
   projectKind: (owner: string, type?: string) => type ?? (owner === "work" ? "etat" : "wlasny"),
@@ -62,6 +71,12 @@ import {
   localDate,
   pickNextMeeting,
   setPinned,
+  MAX_FOCUS_TEXT,
+  MAX_WEEK_SUBJECTS,
+  composeWeekPrompt,
+  getWeekReview,
+  setWeekFocus,
+  weekStart,
 } from "@/contexts/bc_cockpit/services";
 
 /** 00:30 lokalnie: jedyna data „dziś” ma być 2026-11-13 (UTC byłoby 12-go). */
@@ -108,6 +123,10 @@ beforeEach(() => {
   mockCountOpen.mockReturnValue(0);
   mockReadClosings.mockReturnValue([]);
   mockUpsertClosing.mockResolvedValue(undefined);
+  mockReadWeekFocuses.mockReturnValue([]);
+  mockUpsertWeekFocus.mockResolvedValue(undefined);
+  mockListGitSubjects.mockReturnValue([]);
+  mockListDoneTasks.mockReturnValue([]);
   mockListProjects.mockReturnValue({
     projects: [{ id: "nexus" }, { id: "monolith" }],
     warnings: [],
@@ -1683,4 +1702,334 @@ describe("getReviewHistory", () => {
       expect(mockLoadMyReviews).not.toHaveBeenCalled();
     }
   );
+});
+
+describe("weekStart", () => {
+  it.each([
+    ["2026-11-16", "2026-11-16"], // poniedziałek
+    ["2026-11-22", "2026-11-16"], // niedziela
+    ["2026-11-23", "2026-11-23"], // następny poniedziałek
+    ["2027-01-01", "2026-12-28"], // piątek, przez przełom roku
+  ])("%s → %s", (day, expected) => {
+    expect(weekStart(day)).toBe(expected);
+  });
+});
+
+describe("setWeekFocus", () => {
+  it("zapisuje przycięte zdanie pod poniedziałkiem bieżącego tygodnia", async () => {
+    const focus = await setWeekFocus({ text: "  Domknąć   słownik tagów " }, TODAY);
+    expect(focus).toEqual({ weekStart: "2026-11-09", text: "Domknąć słownik tagów" });
+    expect(mockUpsertWeekFocus).toHaveBeenCalledWith(focus);
+  });
+
+  it("pusty tekst i same spacje to DomainError", async () => {
+    await expect(setWeekFocus({ text: "" }, TODAY)).rejects.toThrow(DomainError);
+    await expect(setWeekFocus({ text: "   " }, TODAY)).rejects.toThrow(DomainError);
+    expect(mockUpsertWeekFocus).not.toHaveBeenCalled();
+  });
+
+  it("300 znaków przechodzi, 301 to DomainError", async () => {
+    expect(MAX_FOCUS_TEXT).toBe(300);
+    await expect(setWeekFocus({ text: "a".repeat(300) }, TODAY)).resolves.toBeDefined();
+    await expect(setWeekFocus({ text: "a".repeat(301) }, TODAY)).rejects.toThrow(DomainError);
+  });
+});
+
+describe("getCockpit: weekFocus", () => {
+  it("zwraca focus bieżącego tygodnia (TODAY = piątek 2026-11-13, poniedziałek 2026-11-09)", async () => {
+    mockReadWeekFocuses.mockReturnValue([
+      { weekStart: "2026-11-02", text: "Poprzedni" },
+      { weekStart: "2026-11-09", text: "Bieżący" },
+    ]);
+    const cockpit = await getCockpit(TODAY);
+    expect(cockpit.weekFocus).toEqual({ weekStart: "2026-11-09", text: "Bieżący" });
+    expect(cockpit.warnings).toEqual([]);
+  });
+
+  it("focus z poprzedniego tygodnia nie jest pokazywany", async () => {
+    mockReadWeekFocuses.mockReturnValue([{ weekStart: "2026-11-02", text: "Poprzedni" }]);
+    expect((await getCockpit(TODAY)).weekFocus).toBeNull();
+  });
+
+  it("uszkodzony plik to ostrzeżenie i `null`, nie wyjątek", async () => {
+    mockReadWeekFocuses.mockImplementation(() => {
+      throw new Error("weeks.yaml: zły YAML");
+    });
+    const cockpit = await getCockpit(TODAY);
+    expect(cockpit.weekFocus).toBeNull();
+    expect(cockpit.warnings).toContain("Focus tygodnia: weeks.yaml: zły YAML");
+  });
+});
+
+const MONDAY = new Date(2026, 10, 16, 12, 0); // okno 2026-11-10 … 2026-11-16
+
+const meeting = (id: string, date: string, type = "meeting") => ({
+  id,
+  date,
+  start_minutes: 600,
+  duration_minutes: 60,
+  title: `Spotkanie ${id}`,
+  tags: [],
+  color: "#fff",
+  type,
+});
+
+describe("getWeekReview", () => {
+  beforeEach(() => {
+    mockListProjects.mockReturnValue({
+      projects: [
+        { id: "monolith", name: "Monolith", owner: "personal", type: undefined },
+        { id: "firma", name: "Firma", owner: "work", type: undefined },
+      ],
+      warnings: [],
+    });
+    mockListGitHistory.mockReturnValue([
+      {
+        projectId: "monolith",
+        name: "Monolith",
+        days: { "2026-11-12": 3, "2026-11-14": 2 },
+        prs: { "2026-11-14": 1 },
+      },
+      { projectId: "firma", name: "Firma", days: { "2026-11-11": 10 }, prs: {} },
+    ]);
+    mockListGitSubjects.mockReturnValue([
+      { projectId: "monolith", name: "Monolith", subjects: ["feat: a", "fix: b"] },
+      { projectId: "firma", name: "Firma", subjects: ["tajny temat"] },
+    ]);
+    mockListDoneTasks.mockReturnValue([
+      { projectId: "monolith", name: "Monolith", tasks: ["Zrobione zadanie"] },
+      { projectId: "firma", name: "Firma", tasks: ["Tajne zadanie"] },
+    ]);
+    mockReadClosings.mockReturnValue([
+      { date: "2026-11-09", text: "za wcześnie", projectId: null, commits: 1 },
+      { date: "2026-11-12", text: "Zaczep Monolith", projectId: "monolith", commits: 2 },
+      { date: "2026-11-13", text: "Tajne zamknięcie", projectId: "firma", commits: 1 },
+    ]);
+    mockGetCalendarEvents.mockResolvedValue([
+      meeting("1", "2026-11-11"),
+      meeting("2", "2026-11-12"),
+      meeting("3", "2026-11-13"),
+      meeting("4", "2026-11-13", "work"),
+      meeting("5", "2026-11-14", "task_deadline"),
+    ]);
+    const submittedAt = new Date(2026, 10, 12, 10, 0).toISOString();
+    mockLoadMyReviews.mockResolvedValue({
+      available: true,
+      reviews: [
+        { repo: "o/r", number: 1, state: "APPROVED", submittedAt },
+        { repo: "o/r", number: 2, state: "COMMENTED", submittedAt },
+      ],
+    });
+  });
+
+  it("zbiera dane z okna 7 dni i liczy sumy", async () => {
+    const review = await getWeekReview(MONDAY);
+    expect(review.from).toBe("2026-11-10");
+    expect(review.to).toBe("2026-11-16");
+    expect(review.weekStart).toBe("2026-11-16");
+    expect(mockListGitHistory).toHaveBeenCalledWith("2026-11-10", "2026-11-16");
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith({
+      startDate: "2026-11-10",
+      endDate: "2026-11-16",
+    });
+    expect(review.git).toEqual({ available: true, commits: 15, prs: 1 });
+    expect(review.reviews).toEqual({ available: true, approved: 1, comments: 1, prs: 2 });
+    expect(review.meetings).toEqual({ count: 3, minutes: 180 });
+    expect(review.closings.map((c) => c.date)).toEqual(["2026-11-12", "2026-11-13"]);
+  });
+
+  it("projekty: malejąco po commitach; zwykły ma tematy i zadania", async () => {
+    const review = await getWeekReview(MONDAY);
+    expect(review.projects.map((p) => p.projectId)).toEqual(["firma", "monolith"]);
+    expect(review.projects[1]).toEqual({
+      projectId: "monolith",
+      name: "Monolith",
+      work: false,
+      commits: 5,
+      prs: 1,
+      subjects: ["feat: a", "fix: b"],
+      doneTasks: ["Zrobione zadanie"],
+    });
+  });
+
+  it("dane firmy: tylko nazwa i liczby; zamknięcie dnia bez treści; w prompcie nie ma sekretów", async () => {
+    const review = await getWeekReview(MONDAY);
+    expect(review.projects[0]).toEqual({
+      projectId: "firma",
+      name: "Firma",
+      work: true,
+      commits: 10,
+      prs: 0,
+      subjects: [],
+      doneTasks: [],
+    });
+    expect(review.closings[1]).toEqual({ date: "2026-11-13", text: null, projectId: "firma" });
+    expect(review.containsWork).toBe(true);
+    expect(review.prompt).toContain("Firma (dane z firmy) — commity: 10, PR: 0");
+    expect(review.prompt).toContain("Zaczep Monolith");
+    expect(review.prompt).toContain("feat: a");
+    expect(review.prompt).toContain("Zrobione zadanie");
+    for (const secret of ["tajny temat", "Tajne zadanie", "Tajne zamknięcie"]) {
+      expect(review.prompt).not.toContain(secret);
+    }
+  });
+
+  it("projekt `type: etat` też jest maskowany (hasCompanyData)", async () => {
+    mockListProjects.mockReturnValue({
+      projects: [
+        { id: "monolith", name: "Monolith", owner: "personal", type: "etat" },
+        { id: "firma", name: "Firma", owner: "work", type: undefined },
+      ],
+      warnings: [],
+    });
+    const review = await getWeekReview(MONDAY);
+    const monolith = review.projects.find((p) => p.projectId === "monolith");
+    expect(monolith?.work).toBe(true);
+    expect(monolith?.subjects).toEqual([]);
+    expect(review.prompt).not.toContain("feat: a");
+  });
+
+  it("nieznany projekt (brak w rejestrze) jest traktowany jak dane firmy: fail-closed", async () => {
+    mockListGitHistory.mockReturnValue([
+      { projectId: "duch", name: "Duch", days: { "2026-11-11": 4 }, prs: {} },
+    ]);
+    mockListGitSubjects.mockReturnValue([
+      { projectId: "duch", name: "Duch", subjects: ["sekret ducha"] },
+    ]);
+    mockReadClosings.mockReturnValue([
+      { date: "2026-11-12", text: "Zamknięcie ducha", projectId: "duch", commits: 1 },
+    ]);
+    const review = await getWeekReview(MONDAY);
+    expect(review.projects[0]).toMatchObject({ projectId: "duch", work: true, subjects: [] });
+    expect(review.closings).toEqual([{ date: "2026-11-12", text: null, projectId: "duch" }]);
+    expect(review.prompt).not.toContain("sekret ducha");
+    expect(review.prompt).not.toContain("Zamknięcie ducha");
+  });
+
+  it("zamknięcie dnia bez projektu jest pokazywane", async () => {
+    mockReadClosings.mockReturnValue([
+      { date: "2026-11-12", text: "Ogólne zdanie", projectId: null, commits: 1 },
+    ]);
+    const review = await getWeekReview(MONDAY);
+    expect(review.closings).toEqual([
+      { date: "2026-11-12", text: "Ogólne zdanie", projectId: null },
+    ]);
+  });
+
+  it("bez gita i gh: sekcje niedostępne, bez wyjątku", async () => {
+    mockListGitHistory.mockReturnValue([]);
+    mockListGitSubjects.mockReturnValue([]);
+    mockListDoneTasks.mockReturnValue([]);
+    mockLoadMyReviews.mockResolvedValue({ available: false, reviews: [] });
+    const review = await getWeekReview(MONDAY);
+    expect(review.git).toEqual({ available: false, commits: 0, prs: 0 });
+    expect(review.reviews.available).toBe(false);
+    expect(review.projects).toEqual([]);
+    expect(review.prompt).toContain("Dane z gita niedostępne.");
+    expect(review.prompt).not.toContain("## Review");
+  });
+
+  it("awaria zamknięć dnia albo kalendarza nie przerywa przeglądu", async () => {
+    mockReadClosings.mockImplementation(() => {
+      throw new Error("closing.yaml");
+    });
+    mockGetCalendarEvents.mockRejectedValue(new Error("kalendarz"));
+    const review = await getWeekReview(MONDAY);
+    expect(review.closings).toEqual([]);
+    expect(review.meetings).toEqual({ count: 0, minutes: 0 });
+  });
+});
+
+describe("composeWeekPrompt", () => {
+  const base = (over: Partial<Omit<WeekReview, "prompt">> = {}): Omit<WeekReview, "prompt"> => ({
+    from: "2026-11-10",
+    to: "2026-11-16",
+    weekStart: "2026-11-16",
+    git: { available: true, commits: 20, prs: 0 },
+    projects: [],
+    closings: [],
+    reviews: { available: false, approved: 0, comments: 0, prs: 0 },
+    meetings: { count: 0, minutes: 0 },
+    containsWork: false,
+    ...over,
+  });
+
+  it("nagłówek i instrukcja dla agenta", () => {
+    const prompt = composeWeekPrompt(base());
+    expect(prompt).toContain("# Przegląd tygodnia 2026-11-10 – 2026-11-16");
+    expect(prompt).toContain("Zaproponuj 1–3 tematy focusu na tydzień od 2026-11-16");
+  });
+
+  it("20 tematów commitów: wypisuje 15 i „… i 5 więcej”", () => {
+    const subjects = Array.from({ length: 20 }, (_, i) => `temat ${i + 1}`);
+    const prompt = composeWeekPrompt(
+      base({
+        projects: [
+          {
+            projectId: "m",
+            name: "Monolith",
+            work: false,
+            commits: 20,
+            prs: 2,
+            subjects,
+            doneTasks: [],
+          },
+        ],
+      })
+    );
+    expect(MAX_WEEK_SUBJECTS).toBe(15);
+    expect(prompt).toContain("- Monolith — commity: 20, PR: 2");
+    expect(prompt).toContain("  - temat 15");
+    expect(prompt).not.toContain("  - temat 16");
+    expect(prompt).toContain("  - … i 5 więcej");
+  });
+
+  it("sekcje bez danych są pomijane, z danymi pojawiają się w kolejności", () => {
+    const empty = composeWeekPrompt(base());
+    for (const heading of [
+      "## Zamknięte zadania",
+      "## Zamknięcia dnia",
+      "## Review",
+      "## Spotkania",
+    ]) {
+      expect(empty).not.toContain(heading);
+    }
+    expect(empty).not.toContain("Uwaga:");
+    const full = composeWeekPrompt(
+      base({
+        projects: [
+          {
+            projectId: "m",
+            name: "M",
+            work: false,
+            commits: 1,
+            prs: 0,
+            subjects: [],
+            doneTasks: ["Z1"],
+          },
+        ],
+        closings: [
+          { date: "2026-11-12", text: "Zaczep", projectId: null },
+          { date: "2026-11-13", text: null, projectId: "f" },
+        ],
+        reviews: { available: true, approved: 2, comments: 1, prs: 3 },
+        meetings: { count: 2, minutes: 90 },
+        containsWork: true,
+      })
+    );
+    const order = [
+      "## Commity i PR-y",
+      "## Zamknięte zadania (przybliżenie)",
+      "## Zamknięcia dnia",
+      "## Review",
+      "## Spotkania",
+      "Uwaga:",
+    ].map((h) => full.indexOf(h));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(full).toContain("- 2026-11-12: Zaczep");
+    expect(full).toContain("- 2026-11-13: (dane z firmy, treść pominięta)");
+    expect(full).toContain("Zatwierdzone: 2, komentarze: 1, PR-y: 3");
+    expect(full).toContain("Spotkań: 2, łącznie 90 min");
+  });
 });

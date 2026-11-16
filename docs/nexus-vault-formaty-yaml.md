@@ -127,6 +127,21 @@ Zapisuj **przez API** działającej aplikacji (`http://127.0.0.1:3100`), nie rę
 - Zasady zapisu jak w pozostałych plikach YAML (nieznane klucze rekordu przeżywają, komentarze giną, uszkodzony plik nie jest nadpisywany).
 - Terminy zadań (`due`) nie są zapisywane w kalendarzu: aplikacja dolicza je w locie.
 
+## Focus tygodnia: `Cockpit/weeks.yaml`
+
+Jedno zdanie na tydzień, zapisywane z panelu „Przegląd tygodnia” w Kokpicie. Plik zapisuje aplikacja.
+
+```yaml
+version: 1
+weeks:
+  - week_start: "2026-11-16" # poniedziałek tygodnia ISO
+    text: Domknąć słownik tagów
+```
+
+- Jeden rekord na `week_start`; ponowny zapis w tym samym tygodniu nadpisuje wpis.
+- Kokpit pokazuje tylko rekord bieżącego tygodnia; starsze zostają w pliku.
+- Wpisy bez poprawnej daty `RRRR-MM-DD` albo bez tekstu są pomijane.
+
 ## Notatki: `Notes/<slug>.md`
 
 Frontmatter (`id`, `title`, `created`, `updated`, `tags`), pusta linia, potem treść w **Markdownie**. Przykład:

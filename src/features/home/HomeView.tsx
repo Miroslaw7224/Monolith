@@ -121,6 +121,12 @@ export default function HomeView({
           </div>
         </header>
 
+        {cockpit?.weekFocus ? (
+          <p className="kok-weekfocus">
+            {t("home:weekReview.focusLine", { text: cockpit.weekFocus.text })}
+          </p>
+        ) : null}
+
         {loading && cockpit === null ? (
           <p className="kok-state">…</p>
         ) : cockpit === null ? (
@@ -144,6 +150,7 @@ export default function HomeView({
               onOpenProject={(id) => onOpenProject?.(id)}
               onInboxChanged={() => void loadCockpit()}
               onQueueChanged={() => void loadCockpit()}
+              onWeekFocusSaved={() => void loadCockpit()}
               onOpenTasks={() => onOpenTasks?.()}
               focusInbox={focusInbox}
               onInboxFocused={onInboxFocused}
