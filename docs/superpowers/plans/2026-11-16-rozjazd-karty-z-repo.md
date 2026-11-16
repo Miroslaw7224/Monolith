@@ -26,11 +26,7 @@
 - [ ] **Step 1: Utwórz gałąź z gałęzi specu**
 
 ```bash
-git checkout docs/rozjazd-karty-z-repo-spec
-git add docs/superpowers/plans/2026-11-16-rozjazd-karty-z-repo.md
-git commit -m "docs(plan): rozjazd karty projektu z repozytorium
-
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+git checkout docs/rozjazd-karty-z-repo-spec   # zawiera spec i ten plan
 git checkout -b feat/rozjazd-karty-z-repo
 ```
 
