@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { ReviewHistory } from "@/src/features/home/ReviewHistory";
 
@@ -56,6 +56,38 @@ describe("ReviewHistory", () => {
     const apiFetch = vi.fn().mockResolvedValue(response());
     render(<ReviewHistory apiFetch={apiFetch} day="2026-11-16" />);
     expect(await screen.findByText("Nie można pobrać z GitHuba")).toBeTruthy();
+  });
+
+  test("dzień z samymi komentarzami nie ma wiodącej kropki nad słupkiem", async () => {
+    const only = {
+      ...HISTORY,
+      days: [{ date: "2026-11-16", approved: 0, comments: 2 }],
+      approved: 0,
+      comments: 2,
+      prs: 1,
+    };
+    const apiFetch = vi.fn().mockResolvedValue(ok(only));
+    const { container } = render(<ReviewHistory apiFetch={apiFetch} day="2026-11-16" />);
+    await screen.findByText("Review");
+    const value = container.querySelector(".kok-history__value") as HTMLElement;
+    expect(value.textContent?.trim()).toBe("2");
+  });
+
+  test("starsza odpowiedź po zmianie dnia nie nadpisuje nowszej", async () => {
+    let resolveOld: (v: unknown) => void = () => {};
+    const newer = { ...HISTORY, approved: 9 };
+    const apiFetch = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise((r) => (resolveOld = r)))
+      .mockResolvedValueOnce(ok(newer));
+    const { rerender } = render(<ReviewHistory apiFetch={apiFetch} day="2026-11-16" />);
+    rerender(<ReviewHistory apiFetch={apiFetch} day="2026-11-17" />);
+    expect(await screen.findByText(/^9 zatw\./)).toBeTruthy();
+    await act(async () => {
+      resolveOld(ok(HISTORY));
+    });
+    expect(screen.getByText(/^9 zatw\./)).toBeTruthy();
+    expect(screen.queryByText(/^3 zatw\./)).toBeNull();
   });
 
   test("odrzucony apiFetch pokazuje komunikat", async () => {

@@ -1635,6 +1635,17 @@ describe("getReviewHistory", () => {
     expect(h.prs).toBe(4);
   });
 
+  it("różne repozytoria z tym samym numerem to dwa różne PR-y", async () => {
+    mockLoadMyReviews.mockResolvedValue({
+      available: true,
+      reviews: [
+        { repo: "o/r", number: 1, state: "APPROVED", submittedAt: at(15, 10) },
+        { repo: "x/y", number: 1, state: "COMMENTED", submittedAt: at(15, 11) },
+      ],
+    });
+    expect((await getReviewHistory(7, TODAY_REVIEWS)).prs).toBe(2);
+  });
+
   it("granica doby wg strefy lokalnej: 00:30 dnia 16 wchodzi, 23:30 dnia 9 odpada", async () => {
     mockLoadMyReviews.mockResolvedValue({
       available: true,

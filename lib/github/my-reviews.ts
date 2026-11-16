@@ -21,6 +21,8 @@ const QUERY =
 /** Odpowiedź bywa duża (do 100 PR-ów z review), więc bufor większy niż domyślny. */
 const MAX_BUFFER = 1024 * 1024;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** GitHub podaje daty ISO-8601 (`2026-11-15T18:34:24Z`); luźne ciągi typu „1” odrzucamy. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 const STATES = new Set(["APPROVED", "COMMENTED", "CHANGES_REQUESTED"]);
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -45,12 +47,16 @@ export async function fetchMyReviews(updatedSince: string): Promise<MyReviewsRes
     MAX_BUFFER
   );
   if (run.ok === false) return run;
-  let data: Record<string, unknown> | null;
+  let body: Record<string, unknown> | null;
   try {
-    data = asObject(asObject(JSON.parse(run.stdout))?.data);
+    body = asObject(JSON.parse(run.stdout));
   } catch {
     return { ok: false, reason: "gh-error" };
   }
+  // częściowy błąd GraphQL (np. SAML) nie może wyglądać jak komplet danych
+  if (Array.isArray(body?.errors) && body.errors.length > 0)
+    return { ok: false, reason: "gh-error" };
+  const data = asObject(body?.data);
   const login = asObject(data?.viewer)?.login;
   const nodes = asObject(data?.search)?.nodes;
   if (typeof login !== "string" || login === "" || !Array.isArray(nodes)) {
@@ -70,7 +76,8 @@ export async function fetchMyReviews(updatedSince: string): Promise<MyReviewsRes
       if (!r || asObject(r.author)?.login !== login) continue;
       const { state, submittedAt } = r;
       if (typeof state !== "string" || !STATES.has(state)) continue;
-      if (typeof submittedAt !== "string" || !Number.isFinite(Date.parse(submittedAt))) continue;
+      if (typeof submittedAt !== "string" || !ISO_DATE.test(submittedAt)) continue;
+      if (!Number.isFinite(Date.parse(submittedAt))) continue;
       reviews.push({ repo, number, state: state as MyReview["state"], submittedAt });
     }
   }

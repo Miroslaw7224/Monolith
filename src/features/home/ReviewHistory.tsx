@@ -106,7 +106,12 @@ export function ReviewHistory({ apiFetch, day }: { apiFetch: ApiFetch; day: stri
             <div key={d.date} className="kok-history__col">
               <span className="kok-history__value">
                 <b className="kok-history__commit-value">{d.approved || ""}</b>
-                {d.comments > 0 ? <b className="kok-history__pr-value"> · {d.comments}</b> : null}
+                {d.comments > 0 ? (
+                  <b className="kok-history__pr-value">
+                    {d.approved > 0 ? " · " : ""}
+                    {d.comments}
+                  </b>
+                ) : null}
               </span>
               <div className="kok-history__pair">
                 <div

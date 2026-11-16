@@ -61,6 +61,7 @@ describe("fetchMyReviews", () => {
     ["DISMISSED", review({ state: "DISMISSED" })],
     ["brak submittedAt", review({ submittedAt: null })],
     ["zła data", review({ submittedAt: "nie-data" })],
+    ["luźny ciąg liczbowy zamiast ISO", review({ submittedAt: "1" })],
     ["brak autora", review({ author: null })],
   ])("pomija review: %s", async (_name, bad) => {
     ghReturns(payload([pr(1, [bad, review({ state: "COMMENTED" })])]));
@@ -98,6 +99,23 @@ describe("fetchMyReviews", () => {
     ghReturns("{nie json");
     expect(await fetchMyReviews("2026-11-09")).toEqual({ ok: false, reason: "gh-error" });
     ghReturns('{"data":{}}');
+    expect(await fetchMyReviews("2026-11-09")).toEqual({ ok: false, reason: "gh-error" });
+  });
+
+  it("pole errors w odpowiedzi GraphQL to gh-error (niepełne dane)", async () => {
+    ghReturns(
+      JSON.stringify({
+        data: { viewer: { login: "me" }, search: { nodes: [pr(1, [review()])] } },
+        errors: [{ message: "partial failure" }],
+      })
+    );
+    expect(await fetchMyReviews("2026-11-09")).toEqual({ ok: false, reason: "gh-error" });
+  });
+
+  it("kod wyjścia gh ≠ 0 to gh-error", async () => {
+    mockExecFile.mockImplementation((_c: string, _a: string[], _o: object, done: Done) => {
+      done(Object.assign(new Error("exit 1"), { code: 1 }), "", "");
+    });
     expect(await fetchMyReviews("2026-11-09")).toEqual({ ok: false, reason: "gh-error" });
   });
 
