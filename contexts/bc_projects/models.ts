@@ -54,9 +54,34 @@ export type ProjectState = {
   milestoneDue?: string;
   /** `YYYY-MM-DDTHH:mm`, ustawia serwer */
   updated?: string;
+  /** Pełny sha commita repo, z którym zgadza się karta (YAML: `code_commit`); brak = bez punktu odniesienia. */
+  codeCommit?: string;
   /** Treść pliku pod frontmatterem. */
   notes: string;
 };
+
+/** Stan karty względem HEAD repo projektu (`head` = pełny sha HEAD). */
+export type CodeSync =
+  | { status: "current"; head: string }
+  | { status: "behind"; ahead: number; head: string }
+  | { status: "diverged"; head: string }
+  | { status: "no-baseline" } // brak `code_commit` w `state.md` albo brak `state.md`
+  | { status: "unknown-sha" } // sha poza repo (rebase, force-push, shallow clone)
+  | { status: "unavailable" }; // brak `local_path`, repo niedostępne, repo bez commitów, błąd gita
+
+/** Zakres commitów dla paczki „odśwież kartę”. `baseline: null` = bez sha (ostatnie commity). */
+export type GitRange =
+  | {
+      ok: true;
+      head: string;
+      baseline: string | null;
+      /** `code_commit` jest, ale nie jest przodkiem HEAD: pokazujemy ostatnie commity. */
+      baselineLost: boolean;
+      commits: string[];
+      total: number;
+      diffStat: string;
+    }
+  | { ok: false };
 
 export type DevlogEntry = { date: string | null; title: string; why: string };
 
@@ -145,6 +170,8 @@ export type ProjectWithContent = Project & {
   state: ProjectState | null;
   stateVersion: VersionToken | null;
   devlog: DevlogEntry[];
+  /** Stan karty względem repo; brak = nie policzono. */
+  codeSync?: CodeSync;
 };
 
 // ── paczka kontekstu dla agenta (etap 1-4) ──────────────────────────────────────
