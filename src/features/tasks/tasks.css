@@ -867,6 +867,97 @@
   color: var(--muted);
 }
 
+.zad-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.zad-checklist__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.zad-checklist__counter {
+  font: 600 var(--fs-xs) / 1 var(--font-mono);
+  color: var(--accent-text);
+}
+
+.zad-checklist__tools {
+  margin-left: auto;
+  display: flex;
+  gap: var(--s-1);
+}
+
+.zad-btn--active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.zad-checklist__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.zad-checklist__text {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.zad-checklist__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+
+.zad-checklist__label {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+}
+
+.zad-checklist__status {
+  flex: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  font: 700 var(--fs-md) / 1 var(--font-mono);
+  cursor: pointer;
+}
+
+.zad-checklist__status--pass {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.zad-checklist__status--fail {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.zad-checklist__comment {
+  display: block;
+  width: calc(100% - 2.25rem);
+  margin: var(--s-1) 0 0 2.25rem;
+  min-height: 1.75rem;
+  resize: vertical;
+  padding: 4px var(--s-2);
+  background: transparent;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font: 400 var(--fs-xs) / 1.4 var(--font-body);
+}
+
 .zad-modal__footer {
   display: flex;
   justify-content: flex-end;

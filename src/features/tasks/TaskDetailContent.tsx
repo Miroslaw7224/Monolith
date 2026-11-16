@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Task } from "./TasksSection";
 import { useT } from "@/src/i18n/useT";
+import { TaskChecklist } from "./TaskChecklist";
 import { useTaskDraft } from "./useTaskDraft";
 import type { TaskPatch } from "./useTasksBoard";
 
@@ -161,19 +162,11 @@ export function TaskDetailContent({ task, projects, onPatch }: TaskDetailContent
         </select>
       </div>
 
-      <div className="zad-field">
-        <label htmlFor="task-detail-note" className="zad-label">
-          {t("tasks:tasksDetailNoteLabel")}
-        </label>
-        <textarea
-          id="task-detail-note"
-          value={draft.values.description}
-          onChange={(e) => draft.setField("description", e.target.value)}
-          placeholder={t("tasks:tasksDetailNotePlaceholder")}
-          rows={6}
-          className="zad-textarea"
-        />
-      </div>
+      <TaskChecklist
+        title={draft.values.title.trim() || task.title}
+        value={draft.values.description}
+        onChange={(next) => draft.setField("description", next)}
+      />
 
       <p className="zad-save-state" role="status" aria-live="polite">
         {stateText}

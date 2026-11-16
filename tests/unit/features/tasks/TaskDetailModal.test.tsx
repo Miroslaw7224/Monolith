@@ -128,6 +128,17 @@ describe("TaskDetailModal", () => {
     );
   });
 
+  it("odhaczenie punktu checklisty zapisuje opis autozapisem", async () => {
+    vi.useFakeTimers();
+    renderModal({ ...fakeTask, description: "- [ ] T-01\n- [ ] T-02" });
+    fireEvent.click(screen.getAllByRole("button", { name: /^Do sprawdzenia:/ })[0]);
+    expect(onPatch).not.toHaveBeenCalled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+    expect(onPatch).toHaveBeenCalledWith("task-1", { description: "- [x] T-01\n- [ ] T-02" });
+  });
+
   it("błąd zapisu pokazuje komunikat", async () => {
     vi.useFakeTimers();
     onPatch.mockRejectedValue(new Error("HTTP 500"));
