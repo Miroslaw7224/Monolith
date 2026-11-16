@@ -137,4 +137,70 @@ describe("tags repository", () => {
       expect.objectContaining({ id: tag.id, tag: "no", title }),
     ]);
   });
+
+  it("czyta aliases: przycina, zdejmuje #, pomija puste, duplikaty i nazwę kanoniczną", async () => {
+    vault.write(
+      FILE,
+      formatYamlList(
+        "tags",
+        [
+          {
+            id: "tagC",
+            tag: "Agenci AI",
+            title: "Agenci AI",
+            aliases: ["Agent AI", "agenci ai", "", "  ", "#Agent AI", "Agenci AI", "agent"],
+            created: "2026-03-03T10:00:00.000Z",
+          },
+        ],
+        GENERATED_BY_IMPORT
+      )
+    );
+    const [tag] = await getUserTags();
+    expect(tag.aliases).toEqual(["Agent AI", "agent"]);
+  });
+
+  it("rekord bez aliases (lub z pustą listą) nie ma klucza aliases", async () => {
+    seed();
+    vault.write(
+      FILE,
+      formatYamlList(
+        "tags",
+        [
+          {
+            id: "tagD",
+            tag: "Delta",
+            title: "D",
+            aliases: [],
+            created: "2026-03-04T10:00:00.000Z",
+          },
+        ],
+        GENERATED_BY_IMPORT
+      )
+    );
+    const [tag] = await getUserTags();
+    expect(tag).not.toHaveProperty("aliases");
+  });
+
+  it("updateUserTag zachowuje aliases zapisane w pliku", async () => {
+    vault.write(
+      FILE,
+      formatYamlList(
+        "tags",
+        [
+          {
+            id: "tagE",
+            tag: "Echo",
+            title: "E",
+            aliases: ["Eko"],
+            created: "2026-03-05T10:00:00.000Z",
+          },
+        ],
+        GENERATED_BY_IMPORT
+      )
+    );
+    await updateUserTag("tagE", { title: "Echo 2" });
+    const raw = readList(FILE, "tags").find((r) => r.id === "tagE");
+    expect(raw?.aliases).toEqual(["Eko"]);
+    expect(raw?.title).toBe("Echo 2");
+  });
 });
