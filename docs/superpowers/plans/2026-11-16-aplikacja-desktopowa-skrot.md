@@ -249,7 +249,7 @@ Zamień `title: "Monolith · Offline Nexus Core",` na:
 - [ ] **Step 5: Uruchom test, typy i lint**
 
 Run: `npx vitest run tests/unit/desktop-shell.static.test.ts`
-Expected: PASS (5 testów).
+Expected: PASS (6 testów: 4 widoki + `HomeView` + tytuł).
 
 Run: `npx tsc --noEmit`
 Expected: bez błędów. Gdy `dynamic(...)` zgłasza niezgodność typów propsów, sprawdź eksport (`named` vs `default`) w pliku widoku i popraw `.then((m) => m.<Nazwa>)`.
@@ -590,8 +590,28 @@ die() {
   exit 1
 }
 
-state="$(prod_port_state "$PORT")"
-[[ "$state" == "busy" ]] && die "port $PORT jest zajęty przez inny program"
+command -v node >/dev/null || die "brak node w PATH (skrót woła bash -lc; sprawdź ~/.profile)"
+
+# Blokada: drugie kliknięcie ikony czeka, aż pierwsze skończy checkout/install/build/start serwera,
+# a potem widzi działający serwer (state=monolith) i tylko otwiera okno.
+exec 9>"$ROOT/.monolith-start.lock"
+flock 9
+
+# Worktree prod zawsze na aktualnym main. Skrypt może się przy tym zmienić na dysku, więc po
+# checkoutcie uruchamiamy go od nowa (bash czyta skrypty w trakcie wykonywania); fd 9 z blokadą przechodzi dalej.
+if [[ -z "${MONOLITH_SYNCED:-}" ]]; then
+  # Zabezpieczenie: `checkout -f` kasuje lokalne zmiany, więc tylko w worktree prod (nigdy w katalogu dev).
+  [[ "$(basename "$ROOT")" == "Monolith-prod" ]] || die "start-prod.sh działa tylko w katalogu Monolith-prod (checkout -f)"
+  git -C "$ROOT" checkout -q -f --detach main || die "git checkout main nie powiódł się"
+  MONOLITH_SYNCED=1 exec bash "$ROOT/scripts/prod/start-prod.sh" "$@"
+fi
+
+# Tryb samego builda (setup-prod.sh) nie patrzy na port: ma zbudować także, gdy serwer już działa.
+state="free"
+if [[ "${MONOLITH_BUILD_ONLY:-0}" != "1" ]]; then
+  state="$(prod_port_state "$PORT")"
+  [[ "$state" == "busy" ]] && die "port $PORT jest zajęty przez inny program"
+fi
 
 SERVER_PID=""
 if [[ "$state" == "free" ]]; then
@@ -613,13 +633,15 @@ if [[ "$state" == "free" ]]; then
       [[ "${MONOLITH_BUILD_ONLY:-0}" == "1" ]] && die "build nie powiódł się"
       DIST="$(prod_latest_ok_dist "$ROOT")"
       [[ -n "$DIST" ]] || die "build nie powiódł się i nie ma poprzedniej wersji"
-      log "OSTRZEŻENIE: build nie powiódł się, uruchamiam poprzednią wersję ($DIST)"
+      log "OSTRZEŻENIE: build nie powiódł się, uruchamiam poprzednią wersję ($DIST)."
+      log "Uwaga: node_modules i pliki worktree są już z nowego main, więc możliwy rozjazd ze starym buildem."
     fi
   fi
   [[ "${MONOLITH_BUILD_ONLY:-0}" == "1" ]] && { log "Build gotowy ($DIST)."; exit 0; }
 
   log "Startuję serwer: $URL"
-  NEXT_DIST_DIR="$DIST" "$NEXT" start -p "$PORT" -H 127.0.0.1 &
+  # 9>&-: serwer nie dziedziczy blokady (inaczej trzymałby ją przez cały czas działania)
+  NEXT_DIST_DIR="$DIST" "$NEXT" start -p "$PORT" -H 127.0.0.1 9>&- &
   SERVER_PID=$!
   trap 'kill "$SERVER_PID" 2>/dev/null' EXIT
 
@@ -632,6 +654,7 @@ if [[ "$state" == "free" ]]; then
   [[ $ready -eq 1 ]] || die "serwer nie odpowiedział w 60 s"
   curl -s -o /dev/null -m 30 "$URL/api/cockpit" || true # prewarm
 fi
+exec 9>&- # zwolnij blokadę: kolejne kliknięcie ma tylko otworzyć okno
 
 if [[ "${MONOLITH_NO_WINDOW:-0}" == "1" ]]; then
   log "Serwer działa: $URL (Ctrl+C kończy)"
@@ -817,7 +840,8 @@ $shell = New-Object -ComObject WScript.Shell
 $lnk = $shell.CreateShortcut((Join-Path $desktop 'Monolith.lnk'))
 $lnk.TargetPath = Join-Path $env:SystemRoot 'System32\wsl.exe'
 # Cienka komenda: ustaw worktree na main (-f: katalog jest zarządzany maszynowo) i uruchom skrypt z repo.
-$lnk.Arguments = "-d $Distro -- bash -lc `"cd $ProdDir && git checkout -q -f --detach main && exec bash scripts/prod/start-prod.sh`""
+# Checkout main robi sam start-prod.sh (pod blokadą i z komunikatem błędu).
+$lnk.Arguments = "-d $Distro -- bash -lc `"cd '$ProdDir' && exec bash scripts/prod/start-prod.sh`""
 $lnk.IconLocation = $IconPath
 $lnk.Description = 'Monolith'
 $lnk.WindowStyle = 1
@@ -863,7 +887,7 @@ PROD="$(dirname "$MAIN")/Monolith-prod"
 [[ -f "$MAIN/.env" ]] || { echo "Brak $MAIN/.env (potrzebny NEXUS_VAULT_PATH)" >&2; exit 1; }
 grep -q '^NEXUS_VAULT_PATH=' "$MAIN/.env" || { echo "W .env brak NEXUS_VAULT_PATH" >&2; exit 1; }
 
-if [[ ! -d "$PROD" ]]; then
+if [[ ! -e "$PROD/.git" ]]; then # nie -d: pusty katalog po przerwanym setupie też wymaga `worktree add`
   git -C "$MAIN" worktree add --detach "$PROD" main
 fi
 [[ -e "$PROD/.env" ]] || ln -s "$MAIN/.env" "$PROD/.env"
@@ -915,7 +939,11 @@ W `docs/superpowers/specs/2026-11-16-aplikacja-desktopowa-skrot-design.md` popra
 
 1. w „Start ze skrótu", punkt 1: znacznik to nazwa katalogu builda `.next-<12 znaków HEAD>` ze znacznikiem `.monolith-ok` (hash `package-lock.json` służy tylko do decyzji o `npm ci`); zostają 2 ostatnie udane buildy, a build, który się nie powiódł, nie niszczy poprzedniej wersji;
 2. w „Okno i konsola": konsola zostaje widoczna przez cały czas działania (można ją zminimalizować), bez automatycznego minimalizowania;
-3. w „Start ze skrótu": komenda w skrócie używa `git checkout -q -f --detach main` (`-f`, bo build mógł zmodyfikować śledzone pliki).
+3. w „Start ze skrótu": komenda w skrócie to tylko `cd '<Monolith-prod>' && exec bash scripts/prod/start-prod.sh`; `git checkout -q -f --detach main` robi sam `start-prod.sh` (`-f`, bo build mógł zmodyfikować śledzone pliki) pod blokadą `flock` i uruchamia się od nowa po checkoutcie (skrypt mógł się zmienić);
+4. ścieżka skryptu: `scripts/prod/start-prod.sh` (nie `scripts/start-prod.sh`);
+5. ikona: `.ico` powstaje z `app/apple-icon.png` (nie z `app/icon.svg`);
+6. „Testy": lazy loading pilnuje test statyczny (regex po `src/App.tsx`), nie test renderujący `App`;
+7. w „Okno i konsola" usuń zdanie o minimalizowaniu konsoli po otwarciu okna (punkt 2 wyżej); w „Start ze skrótu" dopisz blokadę `flock` przeciw podwójnemu kliknięciu.
 
 - [ ] **Step 3: Pełna weryfikacja**
 
@@ -965,6 +993,12 @@ Zmerge'uj dowolną drobną zmianę do `main`, kliknij ikonę. Expected: w konsol
 - [ ] **Step 6: Dwa tryby równolegle**
 
 Uruchom `npm run dev` w katalogu `Monolith` (3100) i kliknij ikonę (3101). Expected: obie wersje działają, żadna nie psuje drugiej.
+
+- [ ] **Step 6a: Kontrole z review**
+
+(a) Podwójne kliknięcie ikony w czasie builda: drugie okno czeka na blokadę i po starcie serwera tylko otwiera okno; w `ps` jest jeden `next build`.
+(b) Po zamknięciu okna: `ps aux | grep -E 'next|node' | grep 3101` nie pokazuje osieroconych procesów.
+(c) Skrót znajduje `node` (konsola nie pisze „brak node w PATH"); jeśli pisze, dopisz ładowanie nvm do `~/.profile`.
 
 - [ ] **Step 7: Pomiar końcowy**
 
