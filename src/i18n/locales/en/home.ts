@@ -76,6 +76,17 @@ export const home = {
     merged: "merged",
     more: "+{{n}} older",
   },
+  reviewHistory: {
+    aria: "Review history",
+    title: "Reviews",
+    titleSuffix: " · recent days",
+    legendApproved: "approved",
+    legendComments: "comments",
+    chip: "{{approved}} approved · {{comments}} comments · {{prs}} PRs · {{days}} days",
+    barEmpty: "{{date}}: no reviews",
+    barDay: "{{date}}: approved {{approved}}, comments {{comments}}",
+    error: "Could not load from GitHub",
+  },
   common: {
     cancel: "Cancel",
     save: "Save",

@@ -84,6 +84,20 @@ function respond(cockpit: CockpitDto) {
         json: async () => ({ available: false, days: [], total: 0, totalPrs: 0 }),
       });
     }
+    if (url.startsWith("/api/cockpit/review-history")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          from: "2026-11-13",
+          to: "2026-11-13",
+          available: true,
+          approved: 1,
+          comments: 0,
+          prs: 1,
+          days: [{ date: "2026-11-13", approved: 1, comments: 0 }],
+        }),
+      });
+    }
     if (url === "/api/cockpit/reviews") {
       return Promise.resolve({ ok: true, json: async () => ({ available: true, items: [] }) });
     }

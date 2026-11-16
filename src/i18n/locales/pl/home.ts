@@ -84,6 +84,17 @@ export const home = {
     merged: "scalony",
     more: "+{{n}} starszych",
   },
+  reviewHistory: {
+    aria: "Historia review",
+    title: "Review",
+    titleSuffix: " · ostatnie dni",
+    legendApproved: "zatwierdzone",
+    legendComments: "komentarze",
+    chip: "{{approved}} zatw. · {{comments}} kom. · {{prs}} PR · {{days}} dni",
+    barEmpty: "{{date}}: brak review",
+    barDay: "{{date}}: zatwierdzone {{approved}}, komentarze {{comments}}",
+    error: "Nie można pobrać z GitHuba",
+  },
   common: {
     cancel: "Anuluj",
     save: "Zapisz",

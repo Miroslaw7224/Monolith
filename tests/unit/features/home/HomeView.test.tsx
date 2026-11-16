@@ -236,6 +236,20 @@ function respond(cockpit: CockpitDto | "fail") {
     if (url.startsWith("/api/cockpit/commits")) {
       return Promise.resolve({ ok: true, json: async () => HISTORY });
     }
+    if (url.startsWith("/api/cockpit/review-history")) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          from: "2026-11-13",
+          to: "2026-11-13",
+          available: true,
+          approved: 1,
+          comments: 0,
+          prs: 1,
+          days: [{ date: "2026-11-13", approved: 1, comments: 0 }],
+        }),
+      });
+    }
     if (url === "/api/cockpit/reviews") {
       return Promise.resolve({ ok: true, json: async () => ({ available: true, items: [] }) });
     }
@@ -1764,6 +1778,14 @@ describe("K1: układ wg makiety", () => {
 });
 
 describe("panel „Do zrecenzowania”", () => {
+  test("historia review stoi nad listą „Do zrecenzowania”", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    const history = await screen.findByRole("region", { name: "Historia review" });
+    const list = screen.getByRole("region", { name: "Prośby o review" });
+    expect(history.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   test("stoi nad osią dnia", async () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);

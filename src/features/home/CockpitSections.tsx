@@ -12,6 +12,7 @@ import { EnergySwitch } from "./EnergySwitch";
 import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
+import { ReviewHistory } from "./ReviewHistory";
 import { ReviewRequests } from "./ReviewRequests";
 import {
   briefLines,
@@ -648,6 +649,7 @@ export function CockpitSections({
 
       <div className="kok-grid">
         <div className="kok-col">
+          <ReviewHistory apiFetch={apiFetch} day={data.date} />
           <ReviewRequests apiFetch={apiFetch} />
 
           <section className="kok-panel" aria-label={t("home:cockpit.dayAxisAria")}>
