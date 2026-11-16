@@ -24,11 +24,14 @@ export function ReviewRequests({ apiFetch }: { apiFetch: ApiFetch }) {
 
   useEffect(() => {
     let cancelled = false;
+    /** Numer ostatniego zapytania: starsza odpowiedź nie nadpisuje nowszej. */
+    let latest = 0;
     const load = () => {
+      const id = ++latest;
       apiFetch("/api/cockpit/reviews")
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
         .then((data: ReviewRequestsDto) => {
-          if (cancelled) return;
+          if (cancelled || id !== latest) return;
           if (data && data.available === true && Array.isArray(data.items)) {
             setState({ status: "ok", items: data.items });
           } else {
@@ -36,7 +39,7 @@ export function ReviewRequests({ apiFetch }: { apiFetch: ApiFetch }) {
           }
         })
         .catch(() => {
-          if (!cancelled) setState({ status: "error" });
+          if (!cancelled && id === latest) setState({ status: "error" });
         });
     };
     const reloadIfVisible = () => {

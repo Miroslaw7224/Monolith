@@ -117,6 +117,31 @@ describe("ReviewRequests", () => {
     expect(apiFetch).toHaveBeenCalledTimes(2);
   });
 
+  test("starsza odpowiedź nie nadpisuje nowszej (nakładające się zapytania)", async () => {
+    let resolveOld: (v: unknown) => void = () => {};
+    let resolveNew: (v: unknown) => void = () => {};
+    const apiFetch = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise((r) => (resolveOld = r)))
+      .mockImplementationOnce(() => new Promise((r) => (resolveNew = r)));
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      resolveNew(ok([ITEMS[1]]));
+    });
+    expect(await screen.findByRole("link", { name: /o\/r#2/ })).toBeTruthy();
+
+    await act(async () => {
+      resolveOld(ok([ITEMS[0]]));
+    });
+    expect(screen.queryByRole("link", { name: /career-guide#1476/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /o\/r#2/ })).toBeTruthy();
+  });
+
   test("po odmontowaniu: brak zapytań (interwał i nasłuch zdjęte)", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
     const apiFetch = vi.fn().mockResolvedValue(ok(ITEMS));
