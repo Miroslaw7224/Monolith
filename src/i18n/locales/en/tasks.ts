@@ -35,6 +35,7 @@ export const tasks = {
   tasksChecklistStatusPass: "PASS: click to mark FAIL",
   tasksChecklistStatusFail: "FAIL: click to clear",
   tasksChecklistCounter: "PASS {{pass}} · FAIL {{fail}} · {{todo}} left",
+  tasksPanelAria: "Task panel",
   tasksDetailStatusLabel: "Status",
   tasksDetailProjectLabel: "Project",
   tasksNoProject: "No project",

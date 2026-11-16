@@ -409,8 +409,42 @@
 
 @media (min-width: 1024px) {
   .zad-board {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: var(--zad-cols, repeat(5, minmax(0, 1fr)));
   }
+}
+
+.zad-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.zad-work-panel {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  max-height: calc(100vh - 8rem);
+  overflow: hidden;
+}
+
+.zad-work-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.zad-work-panel__body {
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  overflow-y: auto;
 }
 
 .zad-column {

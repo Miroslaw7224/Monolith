@@ -1,0 +1,43 @@
+import React from "react";
+import { X } from "lucide-react";
+import type { Task } from "./TasksSection";
+import { useT } from "@/src/i18n/useT";
+import { TaskDetailContent } from "./TaskDetailContent";
+import type { TaskPatch } from "./useTasksBoard";
+
+interface Props {
+  task: Task;
+  projects: { id: string; name: string }[];
+  onClose: () => void;
+  onPatch: (taskId: string, patch: TaskPatch) => Promise<void>;
+}
+
+/** Panel roboczy zadania w siatce tablicy (od 1024 px); ta sama treść co modal. */
+export function TaskWorkPanel({ task, projects, onClose, onPatch }: Props) {
+  const t = useT();
+  const closeLabel = t("tasks:tasksDetailClose");
+  return (
+    <aside
+      className="zad-work-panel"
+      aria-label={t("tasks:tasksPanelAria")}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      <div className="zad-work-panel__head">
+        <h3 className="zad-modal__title">{t("tasks:tasksDetailModalTitle")}</h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="zad-btn zad-btn--ghost zad-btn--sm"
+          aria-label={closeLabel}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="zad-work-panel__body">
+        <TaskDetailContent key={task.id} task={task} projects={projects} onPatch={onPatch} />
+      </div>
+    </aside>
+  );
+}
