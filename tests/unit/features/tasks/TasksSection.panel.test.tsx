@@ -109,3 +109,14 @@ test("przycisk Zamknij zamyka panel", async () => {
   fireEvent.click(within(panel).getAllByRole("button", { name: "Zamknij" })[0]);
   expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
 });
+
+test("wyszukiwanie bez wyników nie zamyka otwartego panelu", async () => {
+  stubWidth(true);
+  render(<TasksSection apiFetch={apiFetch} />);
+  fireEvent.doubleClick(await screen.findByText("Alpha"));
+  await screen.findByRole("complementary", { name: "Panel zadania" });
+  fireEvent.change(screen.getByPlaceholderText("Szukaj zadań…"), {
+    target: { value: "zzz-brak" },
+  });
+  expect(screen.getByRole("complementary", { name: "Panel zadania" })).toBeInTheDocument();
+});

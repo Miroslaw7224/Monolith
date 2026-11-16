@@ -334,7 +334,7 @@ export function TasksSection({ apiFetch }: TasksSectionProps) {
           <p className="zad-state zad-state--loading">{t("tasks:tasksLoading")}</p>
         ) : tasks.length === 0 ? (
           <p className="zad-state">{labels.noTasks}</p>
-        ) : boardTasks.length === 0 ? (
+        ) : boardTasks.length === 0 && !panelOpen ? (
           <p className="zad-state">{labels.noSearchResults}</p>
         ) : (
           <div
