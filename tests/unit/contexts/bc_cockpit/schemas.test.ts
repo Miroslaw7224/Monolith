@@ -10,6 +10,8 @@ import {
   toPinnedDto,
   toReviewHistoryDto,
   toReviewRequestsDto,
+  toWeekReviewDto,
+  WeekFocusInputSchema,
 } from "@/contexts/bc_cockpit/schemas";
 
 describe("PinnedInputSchema", () => {
@@ -275,5 +277,47 @@ describe("toReviewHistoryDto", () => {
       days: history.days.map((d) => ({ ...d, extra: 1 })),
     } as never);
     expect(dto).toEqual(history);
+  });
+});
+
+describe("WeekFocusInputSchema", () => {
+  it("limit 300 znaków (jak MAX_FOCUS_TEXT w services, pilnuje go test serwisu)", () => {
+    expect(WeekFocusInputSchema.safeParse({ text: "a".repeat(300) }).success).toBe(true);
+    expect(WeekFocusInputSchema.safeParse({ text: "a".repeat(301) }).success).toBe(false);
+  });
+
+  it("pusty tekst i brak pola to błąd; spacje są przycinane", () => {
+    expect(WeekFocusInputSchema.safeParse({ text: "   " }).success).toBe(false);
+    expect(WeekFocusInputSchema.safeParse({}).success).toBe(false);
+    const ok = WeekFocusInputSchema.safeParse({ text: "  Tagi " });
+    expect(ok.success && ok.data.text).toBe("Tagi");
+  });
+});
+
+describe("toWeekReviewDto", () => {
+  it("kopiuje kształt i nie wpuszcza dodatkowych pól", () => {
+    const review = {
+      from: "2026-11-10",
+      to: "2026-11-16",
+      weekStart: "2026-11-16",
+      git: { available: true, commits: 5, prs: 1 },
+      projects: [
+        {
+          projectId: "m",
+          name: "Monolith",
+          work: false,
+          commits: 5,
+          prs: 1,
+          subjects: ["feat: a"],
+          doneTasks: ["Z"],
+        },
+      ],
+      closings: [{ date: "2026-11-12", text: null, projectId: "f" }],
+      reviews: { available: true, approved: 1, comments: 2, prs: 3 },
+      meetings: { count: 2, minutes: 90 },
+      containsWork: true,
+      prompt: "# P",
+    };
+    expect(toWeekReviewDto({ ...review, extra: "x" } as typeof review)).toEqual(review);
   });
 });

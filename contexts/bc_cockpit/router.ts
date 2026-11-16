@@ -13,6 +13,9 @@ import {
   toPinnedDto,
   toReviewHistoryDto,
   toReviewRequestsDto,
+  toWeekFocusDto,
+  toWeekReviewDto,
+  WeekFocusInputSchema,
 } from "./schemas";
 import * as services from "./services";
 
@@ -43,6 +46,25 @@ export async function putClosing(request: NextRequest): Promise<NextResponse> {
       projectId: parsed.data.projectId ?? null,
     });
     return NextResponse.json(toClosingDto(closing));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function getWeekReview(): Promise<NextResponse> {
+  try {
+    return NextResponse.json(toWeekReviewDto(await services.getWeekReview()));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+export async function putWeekFocus(request: NextRequest): Promise<NextResponse> {
+  const parsed = await parseBody(request, WeekFocusInputSchema, { details: false });
+  if (parsed.success === false) return parsed.response;
+  try {
+    const focus = await services.setWeekFocus({ text: parsed.data.text });
+    return NextResponse.json(toWeekFocusDto(focus));
   } catch (err) {
     return handleServiceError(err);
   }
