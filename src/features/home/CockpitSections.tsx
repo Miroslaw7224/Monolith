@@ -12,6 +12,7 @@ import { EnergySwitch } from "./EnergySwitch";
 import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
+import { ReviewRequests } from "./ReviewRequests";
 import {
   briefLines,
   hhmm,
@@ -661,6 +662,7 @@ export function CockpitSections({
             )}
           </section>
 
+          <ReviewRequests apiFetch={apiFetch} />
           <CommitHistory apiFetch={apiFetch} day={data.date} />
         </div>
 

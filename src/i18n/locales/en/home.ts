@@ -68,6 +68,12 @@ export const home = {
     barDay: "{{date}}: {{commits}} ({{projects}})",
     barPr: ", {{count}} PR",
   },
+  reviews: {
+    aria: "Review requests",
+    title: "To review",
+    empty: "No review requests",
+    error: "Could not load from GitHub",
+  },
   common: {
     cancel: "Cancel",
     save: "Save",
