@@ -34,13 +34,23 @@ export function buildKillCommand(source: SourceName, pid: number | null): string
   return source === "wsl" ? `kill ${pid}` : `Stop-Process -Id ${pid}`;
 }
 
-/** D8: maskuje sekrety, potem ucina do 200 znaków. */
+/** D8 (rozszerzone po review): maskuje sekrety, potem ucina do 200 znaków. */
 export function redactCommand(command: string | null): string | null {
   if (command === null) return null;
   const masked = command
-    .replace(/(--(?:token|password|secret|api-key)=)\S+/gi, "$1***")
-    .replace(/(\b[A-Za-z0-9_]*(?:TOKEN|PASSWORD|SECRET)=)\S+/gi, "$1***")
-    .replace(/(:\/\/[^\s:@/]+:)[^\s@/]+@/g, "$1***@");
+    // Flagi długie: `--token=x` oraz `--token x` (cmdline z /proc jest łączony spacją);
+    // wartość po spacji nie może zaczynać się od `-`, żeby nie zjeść następnej flagi.
+    .replace(
+      /(--(?:token|password|passwd|pass|pwd|secret|api-key|apikey|auth|authorization|bearer)(?:=|\s+(?=[^-\s])))\S+/gi,
+      "$1***"
+    )
+    // Zmienne środowiskowe tylko na początku tokenu (nie w środku URL-a z `?api_key=`).
+    .replace(/((?<=^|\s)[A-Za-z0-9_]*(?:TOKEN|PASSWORD|SECRET|KEY)=)\S+/gi, "$1***")
+    .replace(
+      /([?&](?:token|access_token|api_key|apikey|key|password|pass|secret)=)[^&\s]+/gi,
+      "$1***"
+    )
+    .replace(/(:\/\/[^\s:@/]*:)[^\s@/]+@/g, "$1***@");
   return masked.slice(0, MAX_COMMAND);
 }
 

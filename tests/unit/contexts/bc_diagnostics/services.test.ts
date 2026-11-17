@@ -65,6 +65,27 @@ describe("redactCommand", () => {
       "API_TOKEN=*** DB_PASSWORD=*** node a.js"
     );
   });
+  it("maskuje flagi z wartością po spacji (cmdline z /proc jest łączony spacją)", () => {
+    expect(redactCommand("srv --token abc --port 80")).toBe("srv --token *** --port 80");
+    expect(redactCommand("srv --password hunter2 --pwd x --auth y")).toBe(
+      "srv --password *** --pwd *** --auth ***"
+    );
+  });
+  it("nie zjada kolejnej flagi ani zwykłych portów", () => {
+    expect(redactCommand("srv --password --port 80")).toBe("srv --password --port 80");
+    expect(redactCommand("srv -p 3000 --port 3000 --passport x")).toBe(
+      "srv -p 3000 --port 3000 --passport x"
+    );
+  });
+  it("maskuje zmienne *KEY= i sekrety w query URL", () => {
+    expect(redactCommand("API_KEY=abc node a.js")).toBe("API_KEY=*** node a.js");
+    expect(redactCommand("curl https://h/x?api_key=abc&a=1&token=t")).toBe(
+      "curl https://h/x?api_key=***&a=1&token=***"
+    );
+  });
+  it("maskuje hasło w URL bez loginu", () => {
+    expect(redactCommand("redis://:haslo@host:6379")).toBe("redis://:***@host:6379");
+  });
   it("maskuje hasło w URL", () => {
     expect(redactCommand("x postgres://user:haslo@host/db")).toBe("x postgres://user:***@host/db");
   });

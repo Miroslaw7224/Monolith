@@ -99,6 +99,56 @@ describe("DiagnosticsView", () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(2));
   });
 
+  it("błąd API pokazuje komunikat", async () => {
+    const apiFetch = vi
+      .fn()
+      .mockImplementation(
+        async () => new Response(JSON.stringify({ error: "zepsute" }), { status: 500 })
+      );
+    render(<DiagnosticsView apiFetch={apiFetch} />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Nie udało się pobrać portów: zepsute"
+    );
+  });
+
+  it("filtr bez wyników pokazuje komunikat o filtrze", async () => {
+    render(<DiagnosticsView apiFetch={fetchOf(body([port({})]))} />);
+    await screen.findByText("node");
+    await userEvent.type(screen.getByRole("searchbox", { name: "Filtr portów" }), "zzz");
+    expect(screen.getByText("Brak wyników dla filtra.")).toBeInTheDocument();
+  });
+
+  it("pusta nazwa procesu pokazuje (nieznany)", async () => {
+    render(<DiagnosticsView apiFetch={fetchOf(body([port({ process: "" })]))} />);
+    expect(await screen.findByText("(nieznany)")).toBeInTheDocument();
+  });
+
+  it("odrzucony schowek pokazuje komunikat o błędzie kopiowania", async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error("denied"));
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<DiagnosticsView apiFetch={fetchOf(body([port({})]))} />);
+    await userEvent.click(await screen.findByRole("button", { name: /Kopiuj kill/ }));
+    expect(await screen.findByText("Nie udało się skopiować")).toBeInTheDocument();
+  });
+
+  it("sortowanie po procesie zmienia kolejność wierszy", async () => {
+    render(
+      <DiagnosticsView
+        apiFetch={fetchOf(
+          body([
+            port({ port: 80, process: "zeta", pid: 1 }),
+            port({ port: 90, process: "alfa", pid: 2 }),
+          ])
+        )}
+      />
+    );
+    await screen.findByText("zeta");
+    const firstPort = () => document.querySelector("tbody tr .diag-port")?.textContent;
+    expect(firstPort()).toBe("80");
+    await userEvent.selectOptions(screen.getByRole("combobox"), "process");
+    expect(firstPort()).toBe("90");
+  });
+
   it("pusta lista pokazuje komunikat", async () => {
     render(<DiagnosticsView apiFetch={fetchOf(body([]))} />);
     expect(await screen.findByText("Brak nasłuchujących portów.")).toBeInTheDocument();
