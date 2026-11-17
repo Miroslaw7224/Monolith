@@ -10,6 +10,7 @@ import {
   meetingsLabel,
   projectsLabel,
   minutesUntil,
+  minutesToHm,
   relativeDays,
   weekNumber,
 } from "@/src/features/home/cockpitFormat";
@@ -34,6 +35,24 @@ describe("minutesUntil", () => {
   it("różnica do startu, ujemna gdy minęło", () => {
     expect(minutesUntil(588, 630)).toBe(42);
     expect(minutesUntil(700, 630)).toBe(-70);
+  });
+});
+
+describe("minutesToHm", () => {
+  it("poniżej godziny: same minuty", () => {
+    expect(minutesToHm(0)).toBe("0 min");
+    expect(minutesToHm(42)).toBe("42 min");
+    expect(minutesToHm(59)).toBe("59 min");
+  });
+  it("od godziny: godziny i minuty, pełne godziny bez minut", () => {
+    expect(minutesToHm(60)).toBe("1 h");
+    expect(minutesToHm(75)).toBe("1 h 15 min");
+    expect(minutesToHm(515)).toBe("8 h 35 min");
+    expect(minutesToHm(1440)).toBe("24 h");
+  });
+  it("ujemne i ułamkowe wartości nie psują napisu", () => {
+    expect(minutesToHm(-5)).toBe("0 min");
+    expect(minutesToHm(89.6)).toBe("1 h 30 min");
   });
 });
 

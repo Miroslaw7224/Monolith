@@ -39,6 +39,15 @@ export function minutesUntil(nowMinutes: number, startMinutes: number): number {
   return startMinutes - nowMinutes;
 }
 
+/** Odliczanie czytelne dla człowieka: „42 min”, „1 h”, „8 h 35 min”; wartości ujemne dają „0 min”. */
+export function minutesToHm(minutes: number): string {
+  const total = Math.max(0, Math.round(minutes));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}
+
 /** Pełne dni od `fromIso` do dziś; `null` dla braku lub błędnej daty. Przyszłość liczy się jak 0. */
 function daysAgo(fromIso: string | null, today: Date): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(fromIso ?? "");
