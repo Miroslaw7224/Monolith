@@ -17,6 +17,7 @@ describe("GET /api/diagnostics/ports", () => {
       generatedAt: "2026-11-17T10:00:00.000Z",
       sources: { wsl: { ok: true }, windows: { ok: true } },
       ports: [],
+      groups: [],
     });
     const res = await GET();
     expect(res.status).toBe(200);
@@ -24,6 +25,7 @@ describe("GET /api/diagnostics/ports", () => {
       generatedAt: "2026-11-17T10:00:00.000Z",
       sources: { wsl: { ok: true }, windows: { ok: true } },
       ports: [],
+      groups: [],
     });
   });
 

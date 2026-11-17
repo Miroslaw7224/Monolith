@@ -5,6 +5,7 @@ import type { SourceEntry, SourceRead } from "@/contexts/bc_diagnostics/models";
 const mockWsl = vi.hoisted(() => vi.fn());
 const mockWin = vi.hoisted(() => vi.fn());
 const mockProjects = vi.hoisted(() => vi.fn());
+const mockSubdirs = vi.hoisted(() => vi.fn());
 vi.mock("@/contexts/bc_projects/services", () => ({
   listProjects: mockProjects,
   isWorkProject: (p: { owner: string }) => p.owner === "work",
@@ -12,6 +13,7 @@ vi.mock("@/contexts/bc_projects/services", () => ({
 vi.mock("@/contexts/bc_diagnostics/repositories", () => ({
   readWsl: mockWsl,
   readWindows: mockWin,
+  readSubdirs: mockSubdirs,
 }));
 
 import {
@@ -31,6 +33,7 @@ const entry = (o: Partial<SourceEntry> = {}): SourceEntry => ({
   path: null,
   commandLine: null,
   cwd: null,
+  ancestors: [],
   ...o,
 });
 const project = (id: string, localPath: string, owner: "personal" | "work" = "personal") => ({
@@ -46,6 +49,7 @@ beforeEach(() => {
   mockWsl.mockReset().mockResolvedValue(ok());
   mockWin.mockReset().mockResolvedValue(ok());
   mockProjects.mockReset().mockReturnValue({ projects: [], warnings: [] });
+  mockSubdirs.mockReset().mockResolvedValue([]);
 });
 
 describe("classifyExposure", () => {
@@ -333,6 +337,161 @@ describe("listPorts", () => {
       withProjects(project("a", "/home/u"));
       mockWin.mockResolvedValue(ok(entry({ source: "windows", process: "postgres" })));
       expect((await listPorts({ now: NOW, home: HOME })).ports[0].project).toBeNull();
+    });
+  });
+
+  describe("rola, sierota, wspólny rodzic i brakująca rola", () => {
+    const HOME = "/home/u";
+    const ROOT = "/home/u/projects/TesterAI";
+    const withProject = () =>
+      mockProjects.mockReturnValue({ projects: [project("tester-ai", ROOT)], warnings: [] });
+    const run = async (...entries: SourceEntry[]) => {
+      mockWsl.mockResolvedValue(ok(...entries));
+      return listPorts({ now: NOW, home: HOME });
+    };
+    const at = (sub: string, o: Partial<SourceEntry> = {}) =>
+      entry({ cwd: sub === "" ? ROOT : `${ROOT}/${sub}`, ...o });
+
+    it("id wiersza to źródło|PID|port", async () => {
+      const { ports } = await run(entry({ pid: 7, port: 81 }));
+      expect(ports[0].id).toBe("wsl|7|81");
+    });
+
+    it.each([
+      ["frontend", "frontend"],
+      ["client/src", "frontend"],
+      ["backend", "backend"],
+      ["server", "backend"],
+      ["docs", null],
+      ["", null],
+    ])("rola z katalogu: %s → %s", async (sub, role) => {
+      withProject();
+      const { ports } = await run(at(sub));
+      expect(ports[0].role).toBe(role);
+    });
+
+    it("rola z komendy, gdy katalog nic nie mówi", async () => {
+      withProject();
+      const back = await run(
+        at("", { process: "python", commandLine: "python -m uvicorn main:app" })
+      );
+      expect(back.ports[0].role).toBe("backend");
+      const front = await run(
+        at("", { process: "node", commandLine: "node ./node_modules/.bin/vite" })
+      );
+      expect(front.ports[0].role).toBe("frontend");
+      const next = await run(at("", { process: "next-server (v1", commandLine: null }));
+      expect(next.ports[0].role).toBeNull();
+    });
+
+    it("bez projektu nie ma roli", async () => {
+      const { ports } = await run(
+        entry({ cwd: "/tmp/x", process: "python", commandLine: "uvicorn x:y" })
+      );
+      expect(ports[0].role).toBeNull();
+    });
+
+    it.each([
+      [[{ pid: 1, name: "systemd" }], true],
+      [
+        [
+          { pid: 487, name: "systemd" },
+          { pid: 1, name: "systemd" },
+        ],
+        true,
+      ],
+      [
+        [
+          { pid: 50, name: "bash" },
+          { pid: 1, name: "systemd" },
+        ],
+        false,
+      ],
+      [[], false],
+    ])("sierota dla przodków %j → %s", async (ancestors, orphan) => {
+      withProject();
+      const { ports } = await run(at("frontend", { ancestors }));
+      expect(ports[0].orphan).toBe(orphan);
+    });
+
+    it("proces bez projektu nie jest oznaczany jako sierota", async () => {
+      const { ports } = await run(entry({ ancestors: [{ pid: 1, name: "systemd" }] }));
+      expect(ports[0].orphan).toBe(false);
+    });
+
+    it("grupa: wspólny rodzic (np. concurrently) dla dwóch procesów projektu", async () => {
+      withProject();
+      const common = [
+        { pid: 20, name: "node" },
+        { pid: 1, name: "systemd" },
+      ];
+      const { groups } = await run(
+        at("frontend", { pid: 1, port: 5173, ancestors: [{ pid: 11, name: "sh" }, ...common] }),
+        at("backend", { pid: 2, port: 8001, ancestors: [{ pid: 12, name: "sh" }, ...common] })
+      );
+      expect(groups).toEqual([
+        { projectId: "tester-ai", launcher: { pid: 20, name: "node" }, missingRole: null },
+      ]);
+    });
+
+    it("grupa: wspólny jest tylko systemd albo jeden proces → brak launchera", async () => {
+      withProject();
+      const sys = [{ pid: 1, name: "systemd" }];
+      const two = await run(
+        at("frontend", { pid: 1, port: 5173, ancestors: [{ pid: 11, name: "sh" }, ...sys] }),
+        at("backend", { pid: 2, port: 8001, ancestors: [{ pid: 12, name: "sh" }, ...sys] })
+      );
+      expect(two.groups[0].launcher).toBeNull();
+      const one = await run(at("frontend", { ancestors: [{ pid: 20, name: "node" }, ...sys] }));
+      expect(one.groups[0].launcher).toBeNull();
+    });
+
+    it("grupy tylko dla projektów, które mają wiersze; osobne projekty nie mieszają się", async () => {
+      mockProjects.mockReturnValue({
+        projects: [project("tester-ai", ROOT), project("mono", "/home/u/projects/Monolith")],
+        warnings: [],
+      });
+      const { groups } = await run(
+        at("frontend", { port: 5173 }),
+        entry({ cwd: "/home/u/projects/Monolith", port: 3100, pid: 9 }),
+        entry({ cwd: "/tmp/inne", port: 9999, pid: 10 })
+      );
+      expect(groups.map((g) => g.projectId).sort()).toEqual(["mono", "tester-ai"]);
+    });
+
+    it("brakująca rola: projekt ma frontend i backend, a działa tylko frontend", async () => {
+      withProject();
+      mockSubdirs.mockResolvedValue(["frontend", "backend", "docs"]);
+      const { groups } = await run(at("frontend", { port: 5173 }));
+      expect(groups[0].missingRole).toBe("backend");
+      expect(mockSubdirs).toHaveBeenCalledWith(ROOT);
+    });
+
+    it("brakująca rola: odwrotnie (działa tylko backend)", async () => {
+      withProject();
+      mockSubdirs.mockResolvedValue(["frontend", "backend"]);
+      const { groups } = await run(at("backend", { port: 8001 }));
+      expect(groups[0].missingRole).toBe("frontend");
+    });
+
+    it("brak brakującej roli: działają obie, projekt nie ma obu katalogów albo odczyt się nie udał", async () => {
+      withProject();
+      mockSubdirs.mockResolvedValue(["frontend", "backend"]);
+      const both = await run(at("frontend", { port: 5173 }), at("backend", { pid: 2, port: 8001 }));
+      expect(both.groups[0].missingRole).toBeNull();
+      mockSubdirs.mockResolvedValue(["frontend"]);
+      const noBackendDir = await run(at("frontend", { port: 5173 }));
+      expect(noBackendDir.groups[0].missingRole).toBeNull();
+      mockSubdirs.mockResolvedValue([]);
+      const unreadable = await run(at("frontend", { port: 5173 }));
+      expect(unreadable.groups[0].missingRole).toBeNull();
+    });
+
+    it("projekt ze ścieżką -prod szuka podkatalogów w głównym katalogu projektu", async () => {
+      withProject();
+      mockSubdirs.mockResolvedValue(["frontend", "backend"]);
+      await run(entry({ cwd: `${ROOT}-prod/frontend`, port: 5173 }));
+      expect(mockSubdirs).toHaveBeenCalledWith(ROOT);
     });
   });
 

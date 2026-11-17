@@ -13,6 +13,7 @@ describe("listWslListeners", () => {
       run,
       readCmdline,
       readCwd: vi.fn().mockResolvedValue(null),
+      readAncestors: vi.fn().mockResolvedValue([]),
     });
     expect(run).toHaveBeenCalledWith("ss", ["-ltnpH"], 8000);
     expect(readCmdline).toHaveBeenCalledTimes(1);
@@ -30,6 +31,7 @@ describe("listWslListeners", () => {
       run,
       readCmdline: vi.fn().mockResolvedValue(null),
       readCwd: vi.fn().mockResolvedValue(null),
+      readAncestors: vi.fn().mockResolvedValue([]),
     });
     expect(r.ok && r.listeners[0].commandLine).toBeNull();
   });
@@ -41,6 +43,7 @@ describe("listWslListeners", () => {
       run,
       readCmdline: vi.fn().mockResolvedValue(null),
       readCwd,
+      readAncestors: vi.fn().mockResolvedValue([]),
     });
     expect(readCwd).toHaveBeenCalledTimes(1);
     expect(readCwd).toHaveBeenCalledWith(2562323);
@@ -49,9 +52,36 @@ describe("listWslListeners", () => {
     expect(r.listeners[1].cwd).toBeNull();
   });
 
+  it("dopisuje przodków procesu raz na PID; wiersz bez PID ma pustą listę", async () => {
+    const run = vi.fn().mockResolvedValue({ ok: true, stdout: SS });
+    const chain = [
+      { pid: 100, name: "sh" },
+      { pid: 1, name: "systemd" },
+    ];
+    const readAncestors = vi.fn().mockResolvedValue(chain);
+    const r = await listWslListeners({
+      run,
+      readCmdline: vi.fn().mockResolvedValue(null),
+      readCwd: vi.fn().mockResolvedValue(null),
+      readAncestors,
+    });
+    expect(readAncestors).toHaveBeenCalledTimes(1);
+    expect(readAncestors).toHaveBeenCalledWith(2562323);
+    if (!r.ok) throw new Error("oczekiwano ok");
+    expect(r.listeners[0].ancestors).toEqual(chain);
+    expect(r.listeners[1].ancestors).toEqual([]);
+  });
+
   it("propaguje niepowodzenie uruchomienia", async () => {
     const run = vi.fn().mockResolvedValue({ ok: false, reason: "missing" });
-    expect(await listWslListeners({ run, readCmdline: vi.fn(), readCwd: vi.fn() })).toEqual({
+    expect(
+      await listWslListeners({
+        run,
+        readCmdline: vi.fn(),
+        readCwd: vi.fn(),
+        readAncestors: vi.fn(),
+      })
+    ).toEqual({
       ok: false,
       reason: "missing",
     });

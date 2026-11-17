@@ -5,8 +5,10 @@ const mockWsl = vi.hoisted(() => vi.fn());
 const mockWin = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/ports/wsl", () => ({ listWslListeners: mockWsl }));
 vi.mock("@/lib/ports/windows", () => ({ listWindowsListeners: mockWin }));
+const mockDirs = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/ports/proc", () => ({ listSubdirectories: mockDirs }));
 
-import { readWindows, readWsl } from "@/contexts/bc_diagnostics/repositories";
+import { readSubdirs, readWindows, readWsl } from "@/contexts/bc_diagnostics/repositories";
 
 beforeEach(() => {
   mockWsl.mockReset();
@@ -26,6 +28,7 @@ describe("repositories", () => {
           path: null,
           commandLine: null,
           cwd: "/srv/app",
+          ancestors: [{ pid: 1, name: "systemd" }],
         },
       ],
     });
@@ -41,6 +44,7 @@ describe("repositories", () => {
           path: null,
           commandLine: null,
           cwd: "/srv/app",
+          ancestors: [{ pid: 1, name: "systemd" }],
         },
       ],
     });
@@ -49,5 +53,13 @@ describe("repositories", () => {
   it("niepowodzenie źródła przechodzi bez zmian", async () => {
     mockWin.mockResolvedValue({ ok: false, reason: "missing" });
     expect(await readWindows()).toEqual({ ok: false, reason: "missing" });
+  });
+});
+
+describe("readSubdirs", () => {
+  it("deleguje do lib/ports/proc", async () => {
+    mockDirs.mockResolvedValue(["frontend", "backend"]);
+    expect(await readSubdirs("/srv/app")).toEqual(["frontend", "backend"]);
+    expect(mockDirs).toHaveBeenCalledWith("/srv/app");
   });
 });

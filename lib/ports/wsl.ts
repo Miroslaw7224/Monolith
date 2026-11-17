@@ -1,12 +1,14 @@
 import { readFile, readlink } from "node:fs/promises";
 import { parseSs } from "./parse-ss";
+import { readAncestors } from "./proc";
 import { runCommand, type RunFn } from "./run";
-import type { SourceResult } from "./types";
+import type { ProcessRef, SourceResult } from "./types";
 
 export interface WslDeps {
   run: RunFn;
   readCmdline: (pid: number) => Promise<string | null>;
   readCwd: (pid: number) => Promise<string | null>;
+  readAncestors: (pid: number) => Promise<ProcessRef[]>;
 }
 
 async function readProcCmdline(pid: number): Promise<string | null> {
@@ -35,6 +37,7 @@ const DEFAULT_DEPS: WslDeps = {
   run: runCommand,
   readCmdline: readProcCmdline,
   readCwd: readProcCwd,
+  readAncestors: (pid) => readAncestors(pid),
 };
 
 /** Porty LISTEN w WSL: `ss -ltnpH` + `/proc/<pid>/cmdline`. Nigdy nie rzuca. */
@@ -43,20 +46,34 @@ export async function listWslListeners(deps: WslDeps = DEFAULT_DEPS): Promise<So
   if (res.ok === false) return { ok: false, reason: res.reason };
   const listeners = parseSs(res.stdout);
   const pids = [...new Set(listeners.flatMap((l) => (l.pid === null ? [] : [l.pid])))];
-  const details = new Map<number, { commandLine: string | null; cwd: string | null }>(
+  const details = new Map<
+    number,
+    { commandLine: string | null; cwd: string | null; ancestors: ProcessRef[] }
+  >(
     await Promise.all(
       pids.map(
         async (pid) =>
-          [pid, { commandLine: await deps.readCmdline(pid), cwd: await deps.readCwd(pid) }] as const
+          [
+            pid,
+            {
+              commandLine: await deps.readCmdline(pid),
+              cwd: await deps.readCwd(pid),
+              ancestors: await deps.readAncestors(pid),
+            },
+          ] as const
       )
     )
   );
   return {
     ok: true,
-    listeners: listeners.map((l) => ({
-      ...l,
-      commandLine: l.pid === null ? null : (details.get(l.pid)?.commandLine ?? null),
-      cwd: l.pid === null ? null : (details.get(l.pid)?.cwd ?? null),
-    })),
+    listeners: listeners.map((l) => {
+      const d = l.pid === null ? undefined : details.get(l.pid);
+      return {
+        ...l,
+        commandLine: d?.commandLine ?? null,
+        cwd: d?.cwd ?? null,
+        ancestors: d?.ancestors ?? [],
+      };
+    }),
   };
 }
