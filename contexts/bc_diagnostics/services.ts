@@ -41,7 +41,7 @@ export function redactCommand(command: string | null): string | null {
     // Flagi długie: `--token=x` oraz `--token x` (cmdline z /proc jest łączony spacją);
     // wartość po spacji nie może zaczynać się od `-`, żeby nie zjeść następnej flagi.
     .replace(
-      /(--(?:token|password|passwd|pass|pwd|secret|api-key|apikey|auth|authorization|bearer)(?:=|\s+(?=[^-\s])))\S+/gi,
+      /(--[\w-]*?(?:token|password|passwd|pass|pwd|secret|api-key|apikey|auth|authorization|bearer)(?:=|\s+(?=[^-\s])))\S+/gi,
       "$1***"
     )
     // Zmienne środowiskowe tylko na początku tokenu (nie w środku URL-a z `?api_key=`).

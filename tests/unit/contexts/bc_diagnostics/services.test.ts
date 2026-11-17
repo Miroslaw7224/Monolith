@@ -71,6 +71,11 @@ describe("redactCommand", () => {
       "srv --password *** --pwd *** --auth ***"
     );
   });
+  it("maskuje flagi złożone (--auth-token, --access-token)", () => {
+    expect(redactCommand("srv --auth-token=abc --access-token xyz --port 80")).toBe(
+      "srv --auth-token=*** --access-token *** --port 80"
+    );
+  });
   it("nie zjada kolejnej flagi ani zwykłych portów", () => {
     expect(redactCommand("srv --password --port 80")).toBe("srv --password --port 80");
     expect(redactCommand("srv -p 3000 --port 3000 --passport x")).toBe(
