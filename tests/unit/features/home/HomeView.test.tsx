@@ -491,7 +491,89 @@ describe("zmiana dnia przy otwartej karcie (H6)", () => {
     await screen.findByText("NEXUS");
     const before = cockpitCalls();
     await act(async () => {
+      vi.advanceTimersByTime(4 * 60_000);
+    });
+    expect(cockpitCalls()).toBe(before);
+  });
+});
+
+describe("odświeżanie Kokpitu po zmianach z zewnątrz (agent, API)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  });
+  const cockpitCalls = () => mockApiFetch.mock.calls.filter((c) => c[0] === "/api/cockpit").length;
+  const setVisibility = (state: "visible" | "hidden") =>
+    Object.defineProperty(document, "visibilityState", { value: state, configurable: true });
+  const fakeClock = () =>
+    vi.useFakeTimers({
+      toFake: ["Date", "setInterval", "clearInterval"],
+      now: new Date(2026, 10, 13, 10, 0, 0),
+    });
+
+  test("co 5 minut przy widocznej karcie wczytuje dane od nowa i pokazuje nowe spotkanie", async () => {
+    fakeClock();
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    const before = cockpitCalls();
+    respond({
+      ...FULL,
+      nextMeeting: {
+        date: "2026-11-13",
+        title: "QA Testers",
+        startMinutes: 20 * 60,
+        durationMinutes: 60,
+        link: null,
+      },
+    });
+    await act(async () => {
       vi.advanceTimersByTime(5 * 60_000);
+    });
+    await waitFor(() => expect(cockpitCalls()).toBe(before + 1));
+    expect(await screen.findByText(/QA Testers/)).toBeInTheDocument();
+  });
+
+  test("ukryta karta nie odpytuje serwera w tle", async () => {
+    fakeClock();
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    const before = cockpitCalls();
+    setVisibility("hidden");
+    await act(async () => {
+      vi.advanceTimersByTime(10 * 60_000);
+    });
+    expect(cockpitCalls()).toBe(before);
+  });
+
+  test("powrót na kartę po dłuższej przerwie odświeża dane", async () => {
+    fakeClock();
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    const before = cockpitCalls();
+    setVisibility("hidden");
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    setVisibility("visible");
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await waitFor(() => expect(cockpitCalls()).toBe(before + 1));
+  });
+
+  test("szybkie przełączanie kart nie zasypuje serwera (minimum 30 s między wczytaniami)", async () => {
+    fakeClock();
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByText("NEXUS");
+    const before = cockpitCalls();
+    await act(async () => {
+      vi.advanceTimersByTime(5_000);
+      document.dispatchEvent(new Event("visibilitychange"));
+      document.dispatchEvent(new Event("visibilitychange"));
     });
     expect(cockpitCalls()).toBe(before);
   });
@@ -568,6 +650,21 @@ describe("K1: układ wg makiety", () => {
     await screen.findByText("Następne spotkanie");
     expect(screen.getAllByText("09:30")).toHaveLength(2);
     expect(screen.getByText(/trwa · Spotkanie zespołu/)).toBeInTheDocument();
+  });
+
+  test("kafel następnego spotkania: odliczanie powyżej godziny w godzinach i minutach", async () => {
+    respond({
+      ...FULL,
+      nextMeeting: {
+        date: "2026-11-13",
+        title: "QA Testers",
+        startMinutes: 18 * 60 + 23, // teraz 09:48 → za 8 h 35 min
+        durationMinutes: 60,
+        link: null,
+      },
+    });
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByText("za 8 h 35 min · QA Testers")).toBeInTheDocument();
   });
 
   test("karta tematu: branch, bloker, ostatnio z pewnością i chipy liczników", async () => {

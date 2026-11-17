@@ -20,6 +20,11 @@ import {
 import i18n from "@/src/i18n";
 import { useT } from "@/src/i18n/useT";
 
+/** Cykliczne wczytanie Kokpitu przy widocznej karcie (zmiany z zewnątrz: agent, API, inna karta). */
+const COCKPIT_REFRESH_MS = 5 * 60_000;
+/** Minimalny odstęp między wczytaniami wywołanymi powrotem na kartę. */
+const COCKPIT_MIN_GAP_MS = 30_000;
+
 interface HomeViewProps {
   apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
   /** „Wejdź” na karcie tematu: otwiera kartę Projekty z wybranym projektem. */
@@ -51,7 +56,9 @@ export default function HomeView({
     return () => clearInterval(timer);
   }, []);
 
+  const lastLoadAt = useRef(0);
   const loadCockpit = useCallback(async () => {
+    lastLoadAt.current = Date.now();
     setLoading(true);
     try {
       const res = await apiFetch("/api/cockpit");
@@ -67,6 +74,23 @@ export default function HomeView({
 
   useEffect(() => {
     void loadCockpit();
+  }, [loadCockpit]);
+
+  // Zmiany zapisane poza tą kartą (np. wydarzenie dodane przez agenta) trafiają do Kokpitu
+  // po powrocie na kartę i co kilka minut, dopóki karta jest widoczna.
+  useEffect(() => {
+    const reloadIfVisible = (force: boolean) => {
+      if (document.visibilityState !== "visible") return;
+      if (!force && Date.now() - lastLoadAt.current < COCKPIT_MIN_GAP_MS) return;
+      void loadCockpit();
+    };
+    const timer = setInterval(() => reloadIfVisible(true), COCKPIT_REFRESH_MS);
+    const onVisibility = () => reloadIfVisible(false);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [loadCockpit]);
 
   // Przejście przez północ przy otwartej karcie: dane Kokpitu są z wczoraj, więc wczytujemy je od nowa.
