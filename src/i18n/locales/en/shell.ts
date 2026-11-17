@@ -9,6 +9,7 @@ export const shell = {
     arsenal: "Arsenal",
     mapa: "NEXUS",
     kodeks: "Codex",
+    diagnostyka: "Diagnostics",
   },
   subTabs: { aria: "Card views" },
   rail: {
@@ -34,7 +35,7 @@ export const shell = {
     synced: "in sync",
     warnings_one: "{{count}} warning",
     warnings_other: "{{count}} warnings",
-    hints: "Alt+1…9 cards · Alt+I inbox · Ctrl+K commands",
+    hints: "Alt+0…9 cards · Alt+I inbox · Ctrl+K commands",
   },
   mobileNav: {
     home: "Home",

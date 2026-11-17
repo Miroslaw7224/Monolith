@@ -7,12 +7,12 @@ import { setLanguage } from "@/src/i18n";
 beforeEach(() => cleanup());
 
 describe("CardRail", () => {
-  test("pokazuje 9 kart w nawigacji, Kodeks ostatni", () => {
+  test("pokazuje 10 kart w nawigacji, Diagnostyka ostatnia", () => {
     render(<CardRail activeCard="kokpit" onSelect={vi.fn()} onOpenPalette={vi.fn()} />);
     const nav = screen.getByRole("navigation", { name: "Karty" });
     const items = nav.querySelectorAll("[data-card-id]");
-    expect(items).toHaveLength(9);
-    expect(items[items.length - 1]).toHaveAttribute("data-card-id", "kodeks");
+    expect(items).toHaveLength(10);
+    expect(items[items.length - 1]).toHaveAttribute("data-card-id", "diagnostyka");
     expect(screen.getByRole("button", { name: /Płótno/ })).toHaveAttribute(
       "title",
       "Płótno (Alt+6)"
@@ -20,6 +20,10 @@ describe("CardRail", () => {
     expect(screen.getByRole("button", { name: /Kodeks/ })).toHaveAttribute(
       "title",
       "Kodeks (Alt+9)"
+    );
+    expect(screen.getByRole("button", { name: /Diagnostyka/ })).toHaveAttribute(
+      "title",
+      "Diagnostyka (Alt+0)"
     );
   });
 
@@ -60,6 +64,7 @@ describe("CardRail", () => {
       "Arsenal",
       "NEXUS",
       "Codex",
+      "Diagnostics",
     ]);
     expect(screen.getByRole("button", { name: /Canvas/ })).toHaveAttribute(
       "title",

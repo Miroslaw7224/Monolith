@@ -15,7 +15,7 @@ describe("StatusBar", () => {
     expect(bar).toHaveTextContent("projekt monolith");
     expect(bar).toHaveTextContent("branch main");
     expect(bar).toHaveTextContent("vault zsynchronizowany");
-    expect(bar).toHaveTextContent("Alt+1…9 karty · Alt+I inbox · Ctrl+K polecenia");
+    expect(bar).toHaveTextContent("Alt+0…9 karty · Alt+I inbox · Ctrl+K polecenia");
     expect(bar).toHaveTextContent("14:05");
   });
 
@@ -39,7 +39,7 @@ describe("StatusBar", () => {
     const bar = screen.getByLabelText("Status bar");
     expect(bar).toHaveTextContent("project monolith");
     expect(bar).toHaveTextContent("vault in sync");
-    expect(bar).toHaveTextContent("Alt+1…9 cards · Alt+I inbox · Ctrl+K commands");
+    expect(bar).toHaveTextContent("Alt+0…9 cards · Alt+I inbox · Ctrl+K commands");
     expect(bar).toHaveTextContent("14:05");
     rerender(<StatusBar projectId="monolith" branch="main" warningsCount={1} now={NOW} />);
     expect(screen.getByLabelText("Status bar")).toHaveTextContent("1 warning");

@@ -64,6 +64,7 @@ if (!i18n.isInitialized) {
       "agents",
       "map",
       "codex",
+      "diagnostics",
       "notes",
     ],
     interpolation: { escapeValue: false },

@@ -33,6 +33,15 @@ describe("useCardNavigation", () => {
     expect(result.current.appMode).toBe("home");
   });
 
+  test("Diagnostyka otwiera własny widok, kolejna karta go zamyka", () => {
+    const { result } = renderHook(() => useCardNavigation());
+    act(() => result.current.selectCard("diagnostyka"));
+    expect(result.current.diagnosticsOpen).toBe(true);
+    expect(result.current.activeCard).toBe("diagnostyka");
+    act(() => result.current.selectCard("kokpit"));
+    expect(result.current.diagnosticsOpen).toBe(false);
+  });
+
   test("karta Mapa ustawia mapOpen, nie zaślepkę; kolejna karta zdejmuje mapOpen", () => {
     const { result } = renderHook(() => useCardNavigation());
     act(() => result.current.selectCard("mapa"));

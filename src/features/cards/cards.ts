@@ -10,7 +10,8 @@ export type CardId =
   | "plotno"
   | "arsenal"
   | "mapa"
-  | "kodeks";
+  | "kodeks"
+  | "diagnostyka";
 
 export type AppMode = "home" | "planowanie";
 
@@ -19,7 +20,8 @@ export type CardTarget =
   | { kind: "planning"; tab: PlanningTab }
   | { kind: "projects" }
   | { kind: "map" }
-  | { kind: "codex" };
+  | { kind: "codex" }
+  | { kind: "diagnostics" };
 
 export interface CardDef {
   id: CardId;
@@ -41,6 +43,7 @@ export const CARDS: readonly CardDef[] = [
   { id: "arsenal", hotkey: 7, target: { kind: "planning", tab: "skills" } },
   { id: "mapa", hotkey: 8, target: { kind: "map" } },
   { id: "kodeks", hotkey: 9, target: { kind: "codex" } },
+  { id: "diagnostyka", hotkey: 0, target: { kind: "diagnostics" } },
 ];
 
 const TAB_TO_CARD: Record<PlanningTab, CardId> = {
