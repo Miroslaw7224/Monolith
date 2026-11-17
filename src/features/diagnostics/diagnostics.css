@@ -1,0 +1,174 @@
+/* Karta Diagnostyka (docs/mockups/karty/cards/10-diagnostyka.html). Klasy `.diag-*`, tokeny
+   zawężone do `.diag-root` (wg motywu data-card="diagnostyka" w docs/mockups/karty/tokens.css). */
+.diag-root {
+  --bg: #121317;
+  --surface: #1b1c21;
+  --surface-2: #25272d;
+  --line: #34363e;
+  --text: #eef0f3;
+  --muted: #a3a8b3;
+  --accent: var(--c-diagnostyka, #cbd5e1);
+  --accent-ink: #0b0e14;
+  --warn: #facc15;
+  --danger: #ff6b6b;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+.diag-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.diag-head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.diag-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.diag-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.diag-filter,
+.diag-sort {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.diag-filter {
+  min-width: 200px;
+}
+
+.diag-btn {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.diag-btn--sm {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.diag-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.diag-alert {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: rgba(255, 107, 107, 0.1);
+  font-size: 13px;
+}
+
+.diag-alert--warn {
+  border-color: var(--warn);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.diag-meta,
+.diag-empty {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.diag-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.diag-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.diag-table th,
+.diag-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.diag-table th {
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--surface);
+}
+
+.diag-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.diag-table tr[data-warning] {
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.diag-port,
+.diag-table code {
+  font-family: var(--font-mono);
+}
+
+.diag-chip {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.diag-chip--network {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.diag-chip--warn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.diag-copied {
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}

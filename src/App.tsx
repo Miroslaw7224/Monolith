@@ -35,6 +35,10 @@ const CodexView = dynamic(() => import("@/src/features/codex/CodexView").then((m
   ssr: false,
   loading: ViewFallback,
 });
+const DiagnosticsView = dynamic(
+  () => import("@/src/features/diagnostics/DiagnosticsView").then((m) => m.DiagnosticsView),
+  { ssr: false, loading: ViewFallback }
+);
 const PlanowanieView = dynamic(() => import("@/src/features/planowanie/PlanowanieView"), {
   ssr: false,
   loading: ViewFallback,
@@ -49,6 +53,7 @@ export default function App() {
     planningTab,
     setPlanningTab,
     codexOpen,
+    diagnosticsOpen,
     projectsOpen,
     mapOpen,
     activeCard,
@@ -98,7 +103,7 @@ export default function App() {
       data-card={activeCard}
     >
       <CardRail activeCard={activeCard} onSelect={selectCard} onOpenPalette={openPalette} />
-      {!projectsOpen && !mapOpen && !codexOpen && appMode === "home" ? (
+      {!projectsOpen && !mapOpen && !codexOpen && !diagnosticsOpen && appMode === "home" ? (
         <HomeView
           apiFetch={apiFetch}
           onOpenProject={openProject}
@@ -114,6 +119,8 @@ export default function App() {
             <MapView apiFetch={apiFetch} onOpenProject={openProject} />
           ) : codexOpen ? (
             <CodexView apiFetch={apiFetch} />
+          ) : diagnosticsOpen ? (
+            <DiagnosticsView apiFetch={apiFetch} />
           ) : (
             <PlanowanieView
               apiFetch={apiFetch}
