@@ -16,6 +16,7 @@
     { id: "arsenal", label: "Arsenał", file: "07-arsenal.html" },
     { id: "mapa", label: "Mapa", file: "08-mapa.html" },
     { id: "kodeks", label: "Kodeks", file: "09-kodeks.html" },
+    { id: "diagnostyka", label: "Diagnostyka", file: "10-diagnostyka.html" },
   ];
   const root = document.documentElement;
   const current = root.dataset.card;
@@ -31,12 +32,12 @@
     CARDS.map(
       (c, i) =>
         `<a class="rail__item" href="${c.file}" style="--c: var(--c-${c.id})"
-          ${c.id === current ? 'aria-current="page"' : ""} title="${c.label} (Alt+${i + 1})">
-         <span class="rail__num">${i + 1}</span><span class="rail__label">${c.label}</span>
+          ${c.id === current ? 'aria-current="page"' : ""} title="${c.label} (Alt+${(i + 1) % 10})">
+         <span class="rail__num">${(i + 1) % 10}</span><span class="rail__label">${c.label}</span>
        </a>`
     ).join("") +
     `<div class="rail__spacer"></div>
-     <button class="rail__cmd" type="button" data-src-toggle aria-pressed="false" title="Źródła danych (Alt+0)">src</button>
+     <button class="rail__cmd" type="button" data-src-toggle aria-pressed="false" title="Źródła danych (Alt+S)">src</button>
      <button class="rail__cmd" type="button" data-palette title="Paleta poleceń (Ctrl+K)">⌘K</button>`;
   app.prepend(rail);
 
@@ -48,7 +49,7 @@
     <span class="statusbar__item"><span class="statusbar__dot"></span>vault <b>zsynchronizowany</b></span>
     <span class="statusbar__item">branch <b>${root.dataset.branch || "main"}</b></span>
     <span class="statusbar__spacer"></span>
-    <span class="statusbar__item">Alt+1…9 karty · Alt+0 źródła · Ctrl+K polecenia</span>
+    <span class="statusbar__item">Alt+0…9 karty · Alt+S źródła · Ctrl+K polecenia</span>
     <span class="statusbar__item"><b data-clock>--:--</b></span>`;
   app.append(bar);
   const clock = bar.querySelector("[data-clock]");
@@ -82,12 +83,16 @@
 
   /* ---- paleta poleceń (atrapa) ---- */
   const COMMANDS = [
-    ...CARDS.map((c, i) => ({ label: `Przejdź: ${c.label}`, key: `Alt+${i + 1}`, go: c.file })),
+    ...CARDS.map((c, i) => ({
+      label: `Przejdź: ${c.label}`,
+      key: `Alt+${(i + 1) % 10}`,
+      go: c.file,
+    })),
     { label: "Nowa myśl do inboxu", key: "Alt+I" },
     { label: "Nowe zadanie", key: "Alt+N" },
     { label: "Kopiuj paczkę kontekstu aktywnego projektu", key: "Alt+C" },
     { label: "Zamknij dzień", key: "" },
-    { label: "Pokaż / ukryj źródła danych", key: "Alt+0", fn: () => toggleSrc() },
+    { label: "Pokaż / ukryj źródła danych", key: "Alt+S", fn: () => toggleSrc() },
   ];
   const overlay = document.createElement("div");
   overlay.className = "overlay";
@@ -172,14 +177,14 @@
       } else if (e.key === "Enter") run(shown[sel]);
       return;
     }
-    if (e.altKey && e.code === "Digit0") {
+    if (e.altKey && e.code === "KeyS") {
       e.preventDefault();
       toggleSrc();
       return;
     }
-    if (e.altKey && /^Digit[1-9]$/.test(e.code)) {
+    if (e.altKey && /^Digit[0-9]$/.test(e.code)) {
       e.preventDefault();
-      location.href = CARDS[+e.code.slice(5) - 1].file;
+      location.href = CARDS[(+e.code.slice(5) + 9) % 10].file;
     }
   });
 

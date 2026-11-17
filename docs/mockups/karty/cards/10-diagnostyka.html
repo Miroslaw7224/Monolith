@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pl" data-card="diagnostyka" data-project="second-brain" data-branch="main">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diagnostyka · Second Brain</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap"
+    />
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../shell.css" />
+    <style>
+      /* --- Karta Diagnostyka: porty LISTEN w WSL i Windows (prefiks .diag-) --- */
+      .diag-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-2);
+        align-items: center;
+        margin-bottom: var(--s-3);
+      }
+      .diag-meta {
+        color: var(--muted);
+        font-size: var(--fs-xs);
+        margin: 0 0 var(--s-3);
+      }
+      .diag-alert {
+        margin: 0 0 var(--s-3);
+        padding: var(--s-2) var(--s-3);
+        border: 1px solid var(--warn);
+        border-radius: var(--r-md);
+        background: rgba(250, 204, 21, 0.1);
+        font-size: var(--fs-sm);
+      }
+      .diag-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        background: var(--surface);
+      }
+      .diag-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: var(--fs-sm);
+      }
+      .diag-table th,
+      .diag-table td {
+        padding: var(--s-2) var(--s-3);
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .diag-table th {
+        color: var(--muted);
+        font-weight: 600;
+        background: var(--surface-2);
+      }
+      .diag-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      .diag-table tr[data-warning] {
+        background: rgba(255, 107, 107, 0.08);
+      }
+      .diag-port,
+      .diag-table code {
+        font-family: var(--font-mono);
+      }
+      .diag-chip--network {
+        border-color: var(--warn);
+        color: var(--warn);
+      }
+      .diag-chip--warn {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="view">
+        <header class="view-head">
+          <div>
+            <p class="view-head__eyebrow">Alt+0 · Diagnostyka</p>
+            <h1 class="view-head__title">Diagnostyka</h1>
+            <p class="view-head__sub">
+              Porty TCP w stanie LISTEN w WSL i Windows. Tylko odczyt; aplikacja niczego nie zabija,
+              a komendę kill kopiujesz i uruchamiasz sam.
+            </p>
+          </div>
+          <div class="view-head__actions">
+            <button
+              class="btn btn--sm"
+              type="button"
+              data-toast="Odświeżono: 42 porty Windows, 13 WSL"
+            >
+              Odśwież
+            </button>
+          </div>
+        </header>
+
+        <div class="diag-tools">
+          <input
+            class="input"
+            type="search"
+            aria-label="Filtr portów"
+            placeholder="Port lub nazwa procesu"
+          />
+          <span class="chip">Sortowanie: port</span>
+        </div>
+
+        <p class="diag-alert" role="status" hidden>Źródło Windows niedostępne (brak programu).</p>
+        <p class="diag-meta">Portów: 8 · Stan z 09:48:12</p>
+
+        <div class="diag-scroll">
+          <table class="diag-table">
+            <thead>
+              <tr>
+                <th>Port</th>
+                <th>Źródło</th>
+                <th>Adres</th>
+                <th>Proces</th>
+                <th>PID</th>
+                <th>Akcja</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="diag-port">22</td>
+                <td>WSL</td>
+                <td><code>::</code> <span class="chip diag-chip--network">sieć</span></td>
+                <td>sshd</td>
+                <td>412</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 412">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">445</td>
+                <td>Windows</td>
+                <td><code>0.0.0.0</code> <span class="chip diag-chip--network">sieć</span></td>
+                <td>System <span class="chip diag-chip--warn">uwaga: proces systemowy</span></td>
+                <td>4</td>
+                <td>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    data-toast="Skopiowano: Stop-Process -Id 4"
+                  >
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">3100</td>
+                <td>WSL</td>
+                <td><code>127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td>next-server (v14.2.35)</td>
+                <td>2561984</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2561984">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr data-warning="self">
+                <td class="diag-port">3101</td>
+                <td>WSL</td>
+                <td><code>127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td>
+                  next-server (v1
+                  <span class="chip diag-chip--warn">uwaga: to serwer Monolith</span>
+                </td>
+                <td>2562323</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2562323">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">5173</td>
+                <td>WSL</td>
+                <td><code>127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td>vite</td>
+                <td>2570117</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2570117">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">5434</td>
+                <td>WSL</td>
+                <td><code>*</code> <span class="chip diag-chip--network">sieć</span></td>
+                <td>(nieznany)</td>
+                <td>—</td>
+                <td>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    disabled
+                    title="Brak PID (proces innego użytkownika)"
+                  >
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">42050</td>
+                <td>Windows</td>
+                <td><code>::1</code> <span class="chip">lokalny</span></td>
+                <td>OneDrive.Sync.Service</td>
+                <td>59140</td>
+                <td>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    data-toast="Skopiowano: Stop-Process -Id 59140"
+                  >
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">49669</td>
+                <td>Windows</td>
+                <td><code>::1</code> <span class="chip">lokalny</span></td>
+                <td>jhi_service</td>
+                <td>6608</td>
+                <td>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    data-toast="Skopiowano: Stop-Process -Id 6608"
+                  >
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+    <script src="../shell.js"></script>
+  </body>
+</html>
