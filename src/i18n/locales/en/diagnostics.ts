@@ -35,6 +35,19 @@ export const diagnostics = {
     self: "warning: this is the Monolith server",
   },
   unknownProcess: "(unknown)",
+  role: { frontend: "frontend", backend: "backend" },
+  orphan: "possible orphan",
+  orphanHint:
+    "The parent process is gone (adopted by systemd): possible leftover of an app that was not closed.",
+  group: {
+    launcher: "common parent: {{name}} (PID {{pid}})",
+    missing: {
+      frontend: "incomplete: frontend is not running",
+      backend: "incomplete: backend is not running",
+    },
+    killAll: "Copy group kill",
+    killAllHint: "Kill commands of all processes in the group on one line",
+  },
   kill: {
     copy: "Copy kill",
     copied: "Copied",
