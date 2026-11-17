@@ -159,7 +159,7 @@ export const home = {
     nextMeetingLabel: "Next meeting",
     noUpcomingMeetings: "no upcoming meetings",
     meetingInProgress: "in progress · {{title}}",
-    meetingInMinutes: "in {{minutes}} min · {{title}}",
+    meetingInMinutes: "in {{when}} · {{title}}",
     queueTileLabel: "Task queue",
     queueTileEnergyMeta: "{{deep}} deep · {{quick}} quick",
     queueTileGroupsMeta: "{{count}} project groups",

@@ -19,6 +19,7 @@ import {
   briefLines,
   hhmm,
   meetingDayLabel,
+  minutesToHm,
   minutesUntil,
   projectsLabel,
   relativeDays,
@@ -588,7 +589,7 @@ export function CockpitSections({
                 : next.startMinutes <= nowMinutes
                   ? t("home:cockpit.meetingInProgress", { title: next.title })
                   : t("home:cockpit.meetingInMinutes", {
-                      minutes: minutesUntil(nowMinutes, next.startMinutes),
+                      when: minutesToHm(minutesUntil(nowMinutes, next.startMinutes)),
                       title: next.title,
                     })
               : t("home:cockpit.noUpcomingMeetings")}
