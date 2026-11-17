@@ -15,6 +15,7 @@ describe("parseSs", () => {
         path: null,
         commandLine: null,
         cwd: null,
+        ancestors: [],
       },
     ]);
   });

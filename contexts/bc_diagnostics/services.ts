@@ -3,15 +3,18 @@ import path from "node:path";
 import { isWorkProject, listProjects } from "@/contexts/bc_projects/services";
 import type {
   Exposure,
+  PortGroup,
   PortListener,
   PortsSnapshot,
   PortWarning,
+  ProcessRef,
+  Role,
   SourceEntry,
   SourceName,
   SourceRead,
   SourceStatus,
 } from "./models";
-import { readWindows, readWsl } from "./repositories";
+import { readSubdirs, readWindows, readWsl } from "./repositories";
 
 const MAX_COMMAND = 200;
 const SYSTEM_PROCESSES = new Set([
@@ -108,7 +111,8 @@ function settle(result: PromiseSettledResult<SourceRead>): SourceRead {
 const statusOf = (read: SourceRead): SourceStatus =>
   read.ok === false ? { ok: false, reason: read.reason } : { ok: true };
 
-type ProjectRoot = { id: string; name: string; root: string };
+/** `root`: katalog dopasowany do `cwd` (także wariant `-prod`); `base`: główny katalog projektu. */
+type ProjectRoot = { id: string; name: string; root: string; base: string };
 
 /** `~`, `~/x` lub ścieżka bezwzględna → znormalizowana ścieżka bez końcowego `/`; inaczej `null`. */
 function expandHome(raw: string, home: string): string | null {
@@ -134,8 +138,8 @@ function loadProjectRoots(home: string): ProjectRoot[] {
       if (root === null) return [];
       // `<katalog>-prod`: worktree produkcyjny (ikona pulpitu uruchamia `main` stamtąd, zob. CLAUDE.md).
       return [
-        { id: p.id, name: p.name, root },
-        { id: p.id, name: p.name, root: `${root}-prod` },
+        { id: p.id, name: p.name, root, base: root },
+        { id: p.id, name: p.name, root: `${root}-prod`, base: root },
       ];
     });
   } catch {
@@ -144,10 +148,10 @@ function loadProjectRoots(home: string): ProjectRoot[] {
 }
 
 /** Najdłuższy prefiks `cwd` względem katalogu projektu na granicy segmentu (remis: alfabetycznie po `id`). */
-function resolveProject(
+function matchProject(
   cwd: string | null,
   roots: ProjectRoot[]
-): { id: string; name: string } | null {
+): { match: ProjectRoot; dir: string } | null {
   if (cwd === null || !cwd.startsWith("/")) return null;
   const dir = path.posix.normalize(cwd).replace(/\/+$/, "");
   let best: ProjectRoot | null = null;
@@ -161,7 +165,45 @@ function resolveProject(
       best = r;
     }
   }
-  return best === null ? null : { id: best.id, name: best.name };
+  return best === null ? null : { match: best, dir };
+}
+
+const FRONTEND_DIRS = ["frontend", "client", "web", "ui"];
+const BACKEND_DIRS = ["backend", "server", "api"];
+const FRONTEND_COMMAND = /\b(vite|webpack|react-scripts|parcel)\b/;
+const BACKEND_COMMAND = /\b(uvicorn|gunicorn|hypercorn|daphne|flask|fastapi|django)\b/;
+
+/** Rola procesu w aplikacji: najpierw podkatalog projektu (`frontend/`, `backend/`…), potem komenda. */
+function roleOf(
+  entry: SourceEntry,
+  match: { match: ProjectRoot; dir: string } | null
+): Role | null {
+  if (match === null) return null;
+  const rel = match.dir.slice(match.match.root.length).replace(/^\//, "");
+  const first = rel.split("/")[0] ?? "";
+  if (FRONTEND_DIRS.includes(first)) return "frontend";
+  if (BACKEND_DIRS.includes(first)) return "backend";
+  const text = `${entry.process} ${entry.commandLine ?? ""}`.toLowerCase();
+  if (FRONTEND_COMMAND.test(text)) return "frontend";
+  if (BACKEND_COMMAND.test(text)) return "backend";
+  return null;
+}
+
+const isInit = (p: ProcessRef): boolean => p.pid === 1 || p.name === "systemd" || p.name === "init";
+
+/** Rodzic procesu aplikacji to systemd/init: uruchamiający go proces (np. `concurrently`) już nie żyje. */
+function isOrphan(entry: SourceEntry, hasProject: boolean): boolean {
+  const parent = entry.ancestors[0];
+  return hasProject && parent !== undefined && isInit(parent);
+}
+
+/** Najbliższy wspólny przodek wszystkich procesów (bez init/systemd) albo `null`. */
+function commonLauncher(chains: ProcessRef[][]): ProcessRef | null {
+  if (chains.length < 2) return null;
+  const [first, ...rest] = chains;
+  const others = rest.map((c) => new Set(c.map((a) => a.pid)));
+  const found = first.find((a) => !isInit(a) && others.every((set) => set.has(a.pid)));
+  return found ?? null;
 }
 
 export interface ListPortsOptions {
@@ -172,6 +214,8 @@ export interface ListPortsOptions {
   home?: string;
 }
 
+type Row = { port: PortListener; chain: ProcessRef[]; base: string | null };
+
 export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSnapshot> {
   const selfPid = options.selfPid ?? process.pid;
   const now = options.now ?? (() => new Date());
@@ -181,42 +225,78 @@ export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSn
   const windows = settle(winRes);
 
   // Jeden wiersz = (źródło, PID, port); adresy (IPv4/IPv6) scalane i bez powtórek.
-  const groups = new Map<string, { entry: SourceEntry; addresses: Set<string> }>();
+  const merged = new Map<string, { entry: SourceEntry; addresses: Set<string> }>();
   for (const read of [wsl, windows]) {
     if (read.ok === false) continue;
     for (const e of read.entries) {
       if (isWindowsSystemProcess(e)) continue;
       const key = `${e.source}|${e.pid}|${e.port}`;
-      const group = groups.get(key);
-      if (group) group.addresses.add(e.address);
-      else groups.set(key, { entry: e, addresses: new Set([e.address]) });
+      const existing = merged.get(key);
+      if (existing) existing.addresses.add(e.address);
+      else merged.set(key, { entry: e, addresses: new Set([e.address]) });
     }
   }
 
-  const ports: PortListener[] = [...groups.values()].map(({ entry: e, addresses }) => {
+  const rows: Row[] = [...merged.entries()].map(([id, { entry: e, addresses }]) => {
     const list = [...addresses].sort();
     const warning = warningFor(e, selfPid);
+    const found = matchProject(e.cwd, roots);
     return {
-      source: e.source,
-      port: e.port,
-      addresses: list,
-      pid: e.pid,
-      process: e.process,
-      path: e.path,
-      commandLine: redactCommand(e.commandLine),
-      project: resolveProject(e.cwd, roots),
-      exposure: list.every((a) => classifyExposure(a) === "local") ? "local" : "network",
-      warning,
-      killCommand: buildKillCommand(e.source, e.pid),
-      relevant:
-        warning === "self" || isDevProcess(e.process) || (e.process === "" && e.port >= 1024),
+      chain: e.ancestors,
+      base: found?.match.base ?? null,
+      port: {
+        id,
+        source: e.source,
+        port: e.port,
+        addresses: list,
+        pid: e.pid,
+        process: e.process,
+        path: e.path,
+        commandLine: redactCommand(e.commandLine),
+        project: found ? { id: found.match.id, name: found.match.name } : null,
+        role: roleOf(e, found),
+        orphan: isOrphan(e, found !== null),
+        exposure: list.every((a) => classifyExposure(a) === "local") ? "local" : "network",
+        warning,
+        killCommand: buildKillCommand(e.source, e.pid),
+        relevant:
+          warning === "self" || isDevProcess(e.process) || (e.process === "" && e.port >= 1024),
+      },
     };
   });
-  ports.sort((a, b) => a.port - b.port || SOURCE_ORDER[a.source] - SOURCE_ORDER[b.source]);
+  rows.sort(
+    (a, b) => a.port.port - b.port.port || SOURCE_ORDER[a.port.source] - SOURCE_ORDER[b.port.source]
+  );
+
+  // Grupy: jeden wpis na projekt, który ma uruchomione procesy.
+  const byProject = new Map<string, Row[]>();
+  for (const r of rows) {
+    if (r.port.project === null) continue;
+    const list = byProject.get(r.port.project.id) ?? [];
+    list.push(r);
+    byProject.set(r.port.project.id, list);
+  }
+  const groups: PortGroup[] = await Promise.all(
+    [...byProject.entries()].map(async ([projectId, members]) => {
+      const distinct = new Map(members.map((m) => [m.port.pid, m.chain] as const));
+      const launcher = commonLauncher([...distinct.values()]);
+      const roles = new Set(members.flatMap((m) => (m.port.role ? [m.port.role] : [])));
+      let missingRole: Role | null = null;
+      const base = members[0].base;
+      if (roles.size === 1 && base !== null) {
+        const dirs = await readSubdirs(base).catch(() => [] as string[]);
+        const hasFront = dirs.some((d) => FRONTEND_DIRS.includes(d));
+        const hasBack = dirs.some((d) => BACKEND_DIRS.includes(d));
+        if (hasFront && hasBack) missingRole = roles.has("frontend") ? "backend" : "frontend";
+      }
+      return { projectId, launcher, missingRole };
+    })
+  );
 
   return {
     generatedAt: now().toISOString(),
     sources: { wsl: statusOf(wsl), windows: statusOf(windows) },
-    ports,
+    ports: rows.map((r) => r.port),
+    groups,
   };
 }

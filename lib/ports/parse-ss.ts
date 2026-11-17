@@ -31,6 +31,7 @@ export function parseSs(raw: string): RawListener[] {
       path: null,
       commandLine: null,
       cwd: null,
+      ancestors: [],
     });
   }
   return out;

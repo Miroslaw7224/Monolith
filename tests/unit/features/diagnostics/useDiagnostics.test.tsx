@@ -6,6 +6,7 @@ const BODY = {
   generatedAt: "2026-11-17T10:00:00.000Z",
   sources: { wsl: { ok: true }, windows: { ok: true } },
   ports: [],
+  groups: [],
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

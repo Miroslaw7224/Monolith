@@ -1,3 +1,4 @@
+import { listSubdirectories } from "@/lib/ports/proc";
 import { listWindowsListeners } from "@/lib/ports/windows";
 import { listWslListeners } from "@/lib/ports/wsl";
 import type { SourceResult } from "@/lib/ports/types";
@@ -16,6 +17,7 @@ function toRead(source: SourceName, result: SourceResult): SourceRead {
       path: l.path,
       commandLine: l.commandLine,
       cwd: l.cwd,
+      ancestors: l.ancestors,
     })),
   };
 }
@@ -26,4 +28,9 @@ export async function readWsl(): Promise<SourceRead> {
 
 export async function readWindows(): Promise<SourceRead> {
   return toRead("windows", await listWindowsListeners());
+}
+
+/** Nazwy podkatalogów katalogu projektu (do wykrycia, że ma `frontend/` i `backend/`). */
+export async function readSubdirs(dir: string): Promise<string[]> {
+  return listSubdirectories(dir);
 }

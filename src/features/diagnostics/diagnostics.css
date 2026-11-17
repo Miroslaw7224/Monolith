@@ -190,3 +190,25 @@
   color: var(--accent);
   font-weight: 600;
 }
+
+.diag-group__head td {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.diag-group__head .diag-project {
+  margin-right: 8px;
+}
+
+.diag-group__kill {
+  margin-left: 12px;
+}
+
+.diag-table tbody + tbody tr:first-child td {
+  border-top: 1px solid var(--line);
+}
+
+.diag-group__head--other td {
+  color: var(--muted);
+  border-top: 2px solid var(--line);
+}

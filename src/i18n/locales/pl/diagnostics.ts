@@ -35,6 +35,20 @@ export const diagnostics = {
     self: "uwaga: to serwer Monolith",
   },
   unknownProcess: "(nieznany)",
+  role: { frontend: "frontend", backend: "backend" },
+  orphan: "możliwa sierota",
+  orphanHint:
+    "Rodzic procesu zakończył się (przejął go systemd): możliwy artefakt po niezamkniętej aplikacji.",
+  group: {
+    launcher: "wspólny rodzic: {{name}} (PID {{pid}})",
+    missing: {
+      frontend: "niekompletna: nie działa frontend",
+      backend: "niekompletna: nie działa backend",
+    },
+    other: "Pozostałe porty",
+    killAll: "Kopiuj kill grupy",
+    killAllHint: "Komendy kill wszystkich procesów grupy w jednej linii",
+  },
   kill: {
     copy: "Kopiuj kill",
     copied: "Skopiowano",

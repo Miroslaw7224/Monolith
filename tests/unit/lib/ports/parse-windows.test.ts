@@ -22,6 +22,7 @@ describe("parseWindowsJson", () => {
         path: ROW.Path,
         commandLine: null,
         cwd: null,
+        ancestors: [],
       },
     ]);
   });
@@ -50,6 +51,7 @@ describe("parseWindowsJson", () => {
         path: null,
         commandLine: null,
         cwd: null,
+        ancestors: [],
       },
     ]);
   });

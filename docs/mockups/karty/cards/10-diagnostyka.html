@@ -67,6 +67,19 @@
         color: var(--accent);
         font-weight: 600;
       }
+      .diag-group__head td {
+        background: var(--surface-2);
+      }
+      .diag-group__kill {
+        margin-left: 12px;
+      }
+      .diag-table tbody + tbody tr:first-child td {
+        border-top: 1px solid var(--line);
+      }
+      .diag-group__head--other td {
+        color: var(--muted);
+        border-top: 2px solid var(--line);
+      }
       .diag-addr {
         display: block;
       }
@@ -136,12 +149,16 @@
               </tr>
             </thead>
             <tbody>
+              <tr class="diag-group__head">
+                <td colspan="6"><strong class="diag-project">Monolith</strong></td>
+              </tr>
               <tr data-warning="self">
                 <td class="diag-port">3100</td>
                 <td>WSL</td>
                 <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
                 <td>
-                  next-server (v1<span class="chip diag-chip--warn">uwaga: to serwer Monolith</span>
+                  <span>next-server (v1</span
+                  ><span class="chip diag-chip--warn">uwaga: to serwer Monolith</span>
                 </td>
                 <td>2706826</td>
                 <td>
@@ -154,11 +171,29 @@
                 <td class="diag-port">3101</td>
                 <td>WSL</td>
                 <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td><strong class="diag-project">Monolith</strong> · next-server (v1</td>
-                <td>2562323</td>
                 <td>
-                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2562323">
+                  <span>next-server (v1</span>
+                </td>
+                <td>2829383</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2829383">
                     Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr class="diag-group__head">
+                <td colspan="6">
+                  <strong class="diag-project">Tester AI</strong>
+                  <span class="chip">wspólny rodzic: node (PID 2678497)</span>
+                  <button
+                    class="btn btn--sm diag-group__kill"
+                    type="button"
+                    title="Komendy kill wszystkich procesów grupy w jednej linii"
+                    data-toast="Skopiowano: kill 2678595; kill 2678549"
+                  >
+                    Kopiuj kill grupy
                   </button>
                 </td>
               </tr>
@@ -166,7 +201,7 @@
                 <td class="diag-port">5173</td>
                 <td>WSL</td>
                 <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td><strong class="diag-project">Tester AI</strong> · node</td>
+                <td><span>node</span><span class="chip">frontend</span></td>
                 <td>2678595</td>
                 <td>
                   <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678595">
@@ -175,13 +210,30 @@
                 </td>
               </tr>
               <tr>
+                <td class="diag-port">8001</td>
+                <td>WSL</td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td><span>python</span><span class="chip">backend</span></td>
+                <td>2678549</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678549">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+            <tbody>
+              <tr class="diag-group__head diag-group__head--other">
+                <td colspan="6"><strong>Pozostałe porty</strong></td>
+              </tr>
+              <tr>
                 <td class="diag-port">5398</td>
                 <td>Windows</td>
                 <td>
                   <code class="diag-addr">0.0.0.0</code><code class="diag-addr">::</code>
                   <span class="chip diag-chip--network">sieć</span>
                 </td>
-                <td>postgres</td>
+                <td><span>postgres</span></td>
                 <td>8292</td>
                 <td>
                   <button
@@ -199,7 +251,7 @@
                 <td>
                   <code class="diag-addr">*</code> <span class="chip diag-chip--network">sieć</span>
                 </td>
-                <td>(nieznany)</td>
+                <td><span>(nieznany)</span></td>
                 <td>—</td>
                 <td>
                   <button
@@ -208,18 +260,6 @@
                     disabled
                     title="Brak PID (proces innego użytkownika)"
                   >
-                    Kopiuj kill
-                  </button>
-                </td>
-              </tr>
-              <tr>
-                <td class="diag-port">8001</td>
-                <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td><strong class="diag-project">Tester AI</strong> · python</td>
-                <td>2678549</td>
-                <td>
-                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678549">
                     Kopiuj kill
                   </button>
                 </td>

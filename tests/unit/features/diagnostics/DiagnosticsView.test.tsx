@@ -8,7 +8,11 @@ afterEach(() => {
   cleanup();
 });
 
+let seq = 0;
 const port = (o: Record<string, unknown>) => ({
+  id: `wsl|${++seq}|3000`,
+  role: null,
+  orphan: false,
   source: "wsl",
   port: 3000,
   addresses: ["127.0.0.1"],
@@ -23,10 +27,11 @@ const port = (o: Record<string, unknown>) => ({
   project: null,
   ...o,
 });
-const body = (ports: unknown[], windows: unknown = { ok: true }) => ({
+const body = (ports: unknown[], windows: unknown = { ok: true }, groups: unknown[] = []) => ({
   generatedAt: "2026-11-17T10:00:00.000Z",
   sources: { wsl: { ok: true }, windows },
   ports,
+  groups,
 });
 const fetchOf = (b: unknown) =>
   vi.fn().mockImplementation(async () => new Response(JSON.stringify(b), { status: 200 }));
@@ -201,6 +206,185 @@ describe("DiagnosticsView", () => {
     expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
     expect(screen.getByText("0.0.0.0")).toBeInTheDocument();
     expect(screen.getByText("::")).toBeInTheDocument();
+  });
+
+  describe("grupy aplikacji (frontend + backend)", () => {
+    const TESTER = { id: "tester-ai", name: "Tester AI" };
+    const front = () =>
+      port({
+        port: 5173,
+        pid: 11,
+        process: "node",
+        project: TESTER,
+        role: "frontend",
+        killCommand: "kill 11",
+      });
+    const back = () =>
+      port({
+        port: 8001,
+        pid: 22,
+        process: "python",
+        project: TESTER,
+        role: "backend",
+        killCommand: "kill 22",
+      });
+    const group = (o: Record<string, unknown> = {}) => ({
+      projectId: "tester-ai",
+      launcher: null,
+      missingRole: null,
+      ...o,
+    });
+
+    it("łączy frontend i backend tego samego projektu w jedną grupę z rolami i wspólnym rodzicem", async () => {
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(
+            body([front(), back()], { ok: true }, [group({ launcher: { pid: 20, name: "node" } })])
+          )}
+        />
+      );
+      expect(await screen.findByText("frontend")).toBeInTheDocument();
+      expect(screen.getByText("backend")).toBeInTheDocument();
+      expect(screen.getByText("wspólny rodzic: node (PID 20)")).toBeInTheDocument();
+      expect(document.querySelectorAll(".diag-group__head")).toHaveLength(1);
+    });
+
+    it("Kopiuj kill grupy składa komendy wierszy w jedną linię", async () => {
+      const writeText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+      render(
+        <DiagnosticsView apiFetch={fetchOf(body([front(), back()], { ok: true }, [group()]))} />
+      );
+      await userEvent.click(await screen.findByRole("button", { name: "Kopiuj kill grupy" }));
+      expect(writeText).toHaveBeenCalledWith("kill 11; kill 22");
+    });
+
+    it("Kopiuj kill grupy jest nieaktywny, gdy żaden wiersz nie ma komendy", async () => {
+      const a = port({ project: TESTER, role: "frontend", pid: null, killCommand: null });
+      const b = port({
+        port: 8001,
+        project: TESTER,
+        role: "backend",
+        pid: null,
+        killCommand: null,
+      });
+      render(<DiagnosticsView apiFetch={fetchOf(body([a, b], { ok: true }, [group()]))} />);
+      expect(await screen.findByRole("button", { name: "Kopiuj kill grupy" })).toBeDisabled();
+    });
+
+    it("pokazuje brakującą rolę także dla grupy z jednym procesem", async () => {
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(body([front()], { ok: true }, [group({ missingRole: "backend" })]))}
+        />
+      );
+      expect(await screen.findByText("niekompletna: nie działa backend")).toBeInTheDocument();
+    });
+
+    it("pojedynczy proces projektu bez problemów ma nagłówek projektu bez przycisku grupy", async () => {
+      render(<DiagnosticsView apiFetch={fetchOf(body([front()], { ok: true }, [group()]))} />);
+      await screen.findByText("node");
+      expect(document.querySelectorAll(".diag-group__head")).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Kopiuj kill grupy" })).not.toBeInTheDocument();
+    });
+
+    it("oznacza sierotę", async () => {
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(body([{ ...front(), orphan: true }], { ok: true }, [group()]))}
+        />
+      );
+      expect(await screen.findByText("możliwa sierota")).toBeInTheDocument();
+    });
+
+    it("dwa procesy tego samego projektu bez ról, rodzica i braków (np. dev i prod) mają nagłówek projektu, ale bez „Kopiuj kill grupy”", async () => {
+      const dev = port({
+        port: 3100,
+        pid: 1,
+        process: "next-server",
+        project: { id: "m", name: "Monolith" },
+        killCommand: "kill 1",
+      });
+      const prod = port({
+        port: 3101,
+        pid: 2,
+        process: "next-server",
+        project: { id: "m", name: "Monolith" },
+        killCommand: "kill 2",
+      });
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(
+            body([dev, prod], { ok: true }, [{ projectId: "m", launcher: null, missingRole: null }])
+          )}
+        />
+      );
+      await screen.findAllByText("next-server");
+      expect(document.querySelectorAll(".diag-group__head")).toHaveLength(1);
+      expect(screen.getAllByText("Monolith")).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Kopiuj kill grupy" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Pozostałe porty")).not.toBeInTheDocument();
+    });
+
+    it("porty spoza grup są pod nagłówkiem „Pozostałe porty”, gdy istnieje grupa", async () => {
+      const other = port({ port: 5398, pid: 9, process: "postgres", killCommand: "kill 9" });
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(
+            body([front(), back(), other], { ok: true }, [
+              group({ launcher: { pid: 20, name: "node" } }),
+            ])
+          )}
+        />
+      );
+      await screen.findByText("postgres");
+      const heads = [...document.querySelectorAll(".diag-group__head")].map((h) => h.textContent);
+      expect(heads).toHaveLength(2);
+      expect(heads[1]).toContain("Pozostałe porty");
+      // postgres jest po nagłówku „Pozostałe”, a frontend/backend przed nim
+      const cells = [...document.querySelectorAll("tbody tr")].map((r) => r.textContent ?? "");
+      const iOther = cells.findIndex((c) => c.includes("Pozostałe porty"));
+      expect(cells.findIndex((c) => c.includes("postgres"))).toBeGreaterThan(iOther);
+      expect(cells.findIndex((c) => c.includes("frontend"))).toBeLessThan(iOther);
+    });
+
+    it("wiersz z projektem nigdy nie ląduje w „Pozostałych portach”", async () => {
+      const mono = port({
+        port: 3100,
+        pid: 5,
+        process: "next-server",
+        project: { id: "m", name: "Monolith" },
+      });
+      const other = port({ port: 5398, pid: 9, process: "postgres" });
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(
+            body([mono, other], { ok: true }, [
+              { projectId: "m", launcher: null, missingRole: null },
+            ])
+          )}
+        />
+      );
+      await screen.findByText("postgres");
+      const rows = [...document.querySelectorAll("tbody tr")].map((r) => r.textContent ?? "");
+      const iOther = rows.findIndex((c) => c.includes("Pozostałe porty"));
+      expect(iOther).toBeGreaterThan(-1);
+      expect(rows.findIndex((c) => c.includes("next-server"))).toBeLessThan(iOther);
+      expect(rows.findIndex((c) => c.includes("postgres"))).toBeGreaterThan(iOther);
+    });
+
+    it("bez żadnej grupy lista jest płaska i nie ma nagłówka „Pozostałe porty”", async () => {
+      render(<DiagnosticsView apiFetch={fetchOf(body([port({})], { ok: true }, []))} />);
+      await screen.findByText("node");
+      expect(screen.queryByText("Pozostałe porty")).not.toBeInTheDocument();
+    });
+
+    it("wiersz projektu bez wpisu w groups też trafia do bloku projektu (bez przycisku grupy)", async () => {
+      render(<DiagnosticsView apiFetch={fetchOf(body([front()], { ok: true }, []))} />);
+      expect(await screen.findByText("node")).toBeInTheDocument();
+      expect(document.querySelectorAll(".diag-group__head")).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Kopiuj kill grupy" })).not.toBeInTheDocument();
+    });
   });
 
   it("pusta lista pokazuje komunikat", async () => {

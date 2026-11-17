@@ -28,6 +28,7 @@ export function parseWindowsJson(raw: string): RawListener[] {
       path: str(r.Path),
       commandLine: str(r.CommandLine),
       cwd: null,
+      ancestors: [],
     });
   }
   return out;
