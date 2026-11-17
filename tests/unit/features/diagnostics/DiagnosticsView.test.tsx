@@ -20,6 +20,7 @@ const port = (o: Record<string, unknown>) => ({
   warning: null,
   killCommand: "kill 100",
   relevant: true,
+  project: null,
   ...o,
 });
 const body = (ports: unknown[], windows: unknown = { ok: true }) => ({
@@ -148,6 +149,23 @@ describe("DiagnosticsView", () => {
     expect(firstPort()).toBe("80");
     await userEvent.selectOptions(screen.getByRole("combobox"), "process");
     expect(firstPort()).toBe("90");
+  });
+
+  it("pokazuje nazwę projektu przy procesie, a filtr znajduje po nazwie projektu", async () => {
+    render(
+      <DiagnosticsView
+        apiFetch={fetchOf(
+          body([
+            port({ port: 5173, project: { id: "tester-ai", name: "TesterAI" } }),
+            port({ port: 8001, process: "python", pid: 9 }),
+          ])
+        )}
+      />
+    );
+    expect(await screen.findByText("TesterAI")).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("searchbox", { name: "Filtr portów" }), "tester");
+    expect(screen.getByText("TesterAI")).toBeInTheDocument();
+    expect(screen.queryByText("python")).not.toBeInTheDocument();
   });
 
   it("domyślnie ukrywa porty nieaplikacyjne, a checkbox pokazuje wszystkie", async () => {

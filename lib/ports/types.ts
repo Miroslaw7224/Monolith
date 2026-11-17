@@ -6,6 +6,8 @@ export type RawListener = {
   process: string | null;
   path: string | null;
   commandLine: string | null;
+  /** Katalog roboczy procesu (tylko WSL, z `/proc/<pid>/cwd`); do dopasowania projektu. */
+  cwd: string | null;
 };
 
 export type SourceFailureReason = "missing" | "timeout" | "error";

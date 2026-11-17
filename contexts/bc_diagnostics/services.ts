@@ -1,3 +1,6 @@
+import os from "node:os";
+import path from "node:path";
+import { isWorkProject, listProjects } from "@/contexts/bc_projects/services";
 import type {
   Exposure,
   PortListener,
@@ -105,15 +108,69 @@ function settle(result: PromiseSettledResult<SourceRead>): SourceRead {
 const statusOf = (read: SourceRead): SourceStatus =>
   read.ok === false ? { ok: false, reason: read.reason } : { ok: true };
 
+type ProjectRoot = { id: string; name: string; root: string };
+
+/** `~`, `~/x` lub ścieżka bezwzględna → znormalizowana ścieżka bez końcowego `/`; inaczej `null`. */
+function expandHome(raw: string, home: string): string | null {
+  const p = raw.trim();
+  let abs: string;
+  if (p === "~") abs = home;
+  else if (p.startsWith("~/")) abs = path.posix.join(home, p.slice(2));
+  else if (p.startsWith("/")) abs = p;
+  else return null;
+  const norm = path.posix.normalize(abs).replace(/\/+$/, "");
+  return norm === "" ? null : norm;
+}
+
+/**
+ * Projekty z vaulta do dopasowania po katalogu. Projekty etatowe (`owner: work`) pomijamy (D7),
+ * a błąd odczytu vaulta nie może psuć listy portów.
+ */
+function loadProjectRoots(home: string): ProjectRoot[] {
+  try {
+    return listProjects().projects.flatMap((p) => {
+      if (isWorkProject(p)) return [];
+      const root = expandHome(p.localPath, home);
+      return root === null ? [] : [{ id: p.id, name: p.name, root }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Najdłuższy prefiks `cwd` względem katalogu projektu na granicy segmentu (remis: alfabetycznie po `id`). */
+function resolveProject(
+  cwd: string | null,
+  roots: ProjectRoot[]
+): { id: string; name: string } | null {
+  if (cwd === null || !cwd.startsWith("/")) return null;
+  const dir = path.posix.normalize(cwd).replace(/\/+$/, "");
+  let best: ProjectRoot | null = null;
+  for (const r of roots) {
+    if (dir !== r.root && !dir.startsWith(`${r.root}/`)) continue;
+    if (
+      best === null ||
+      r.root.length > best.root.length ||
+      (r.root.length === best.root.length && r.id < best.id)
+    ) {
+      best = r;
+    }
+  }
+  return best === null ? null : { id: best.id, name: best.name };
+}
+
 export interface ListPortsOptions {
   /** PID serwera Monolith (domyślnie `process.pid`); tylko do testów. */
   selfPid?: number;
   now?: () => Date;
+  /** Katalog domowy do rozwijania `~` w `localPath` (domyślnie `os.homedir()`); tylko do testów. */
+  home?: string;
 }
 
 export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSnapshot> {
   const selfPid = options.selfPid ?? process.pid;
   const now = options.now ?? (() => new Date());
+  const roots = loadProjectRoots(options.home ?? os.homedir());
   const [wslRes, winRes] = await Promise.allSettled([readWsl(), readWindows()]);
   const wsl = settle(wslRes);
   const windows = settle(winRes);
@@ -142,6 +199,7 @@ export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSn
       process: e.process,
       path: e.path,
       commandLine: redactCommand(e.commandLine),
+      project: resolveProject(e.cwd, roots),
       exposure: list.every((a) => classifyExposure(a) === "local") ? "local" : "network",
       warning,
       killCommand: buildKillCommand(e.source, e.pid),

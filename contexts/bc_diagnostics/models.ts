@@ -12,6 +12,8 @@ export type SourceEntry = {
   process: string;
   path: string | null;
   commandLine: string | null;
+  /** Katalog roboczy procesu (WSL); nie trafia do DTO, służy do dopasowania projektu. */
+  cwd: string | null;
 };
 
 export type SourceRead =
@@ -19,8 +21,10 @@ export type SourceRead =
   | { ok: false; reason: SourceFailure };
 
 /** Jeden proces na jednym porcie; adresy IPv4/IPv6 są scalone w `addresses`. */
-export type PortListener = Omit<SourceEntry, "address"> & {
+export type PortListener = Omit<SourceEntry, "address" | "cwd"> & {
   addresses: string[];
+  /** Projekt NEXUS, w którego katalogu działa proces; `null` dla nieznanych i projektów etatowych. */
+  project: { id: string; name: string } | null;
   exposure: Exposure;
   warning: PortWarning | null;
   killCommand: string | null;

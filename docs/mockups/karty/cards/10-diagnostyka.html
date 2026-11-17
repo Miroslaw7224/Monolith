@@ -63,6 +63,10 @@
       .diag-table tr[data-warning] {
         background: rgba(255, 107, 107, 0.08);
       }
+      .diag-project {
+        color: var(--accent);
+        font-weight: 600;
+      }
       .diag-addr {
         display: block;
       }
@@ -108,7 +112,7 @@
             class="input"
             type="search"
             aria-label="Filtr portów"
-            placeholder="Port lub nazwa procesu"
+            placeholder="Port, proces lub projekt"
           />
           <span class="chip">Sortowanie: port</span>
           <label class="chip"><input type="checkbox" /> Pokaż wszystkie porty</label>
@@ -150,7 +154,7 @@
                 <td class="diag-port">3101</td>
                 <td>WSL</td>
                 <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td>next-server (v1</td>
+                <td><strong class="diag-project">Monolith</strong> · next-server (v1</td>
                 <td>2562323</td>
                 <td>
                   <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2562323">
@@ -162,7 +166,7 @@
                 <td class="diag-port">5173</td>
                 <td>WSL</td>
                 <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td>node</td>
+                <td><strong class="diag-project">Tester AI</strong> · node</td>
                 <td>2678595</td>
                 <td>
                   <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678595">
@@ -212,7 +216,7 @@
                 <td class="diag-port">8001</td>
                 <td>WSL</td>
                 <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td>python</td>
+                <td><strong class="diag-project">Tester AI</strong> · python</td>
                 <td>2678549</td>
                 <td>
                   <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678549">

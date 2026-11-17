@@ -14,6 +14,7 @@ describe("parseSs", () => {
         process: "next-server (v1",
         path: null,
         commandLine: null,
+        cwd: null,
       },
     ]);
   });

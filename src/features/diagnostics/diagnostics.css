@@ -185,3 +185,8 @@
 .diag-addr {
   display: block;
 }
+
+.diag-project {
+  color: var(--accent);
+  font-weight: 600;
+}

@@ -30,6 +30,7 @@ export function parseSs(raw: string): RawListener[] {
       process: owner ? owner[1] : null,
       path: null,
       commandLine: null,
+      cwd: null,
     });
   }
   return out;

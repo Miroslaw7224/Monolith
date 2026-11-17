@@ -19,6 +19,7 @@ const SNAP: PortsSnapshot = {
       warning: "self",
       killCommand: "kill 1",
       relevant: true,
+      project: { id: "tester-ai", name: "TesterAI" },
     },
   ],
 };

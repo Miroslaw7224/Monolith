@@ -18,7 +18,15 @@ describe("repositories", () => {
     mockWsl.mockResolvedValue({
       ok: true,
       listeners: [
-        { port: 80, address: "*", pid: null, process: null, path: null, commandLine: null },
+        {
+          port: 80,
+          address: "*",
+          pid: null,
+          process: null,
+          path: null,
+          commandLine: null,
+          cwd: "/srv/app",
+        },
       ],
     });
     expect(await readWsl()).toEqual({
@@ -32,6 +40,7 @@ describe("repositories", () => {
           process: "",
           path: null,
           commandLine: null,
+          cwd: "/srv/app",
         },
       ],
     });

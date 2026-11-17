@@ -5,7 +5,7 @@ export const diagnostics = {
   refresh: "Refresh",
   refreshing: "Refreshing…",
   filterAria: "Port filter",
-  filterPlaceholder: "Port or process name",
+  filterPlaceholder: "Port, process or project",
   loading: "Loading ports…",
   error: "Could not load ports: {{message}}",
   errorGeneric: "Unknown error",

@@ -4,6 +4,11 @@ import type { SourceEntry, SourceRead } from "@/contexts/bc_diagnostics/models";
 
 const mockWsl = vi.hoisted(() => vi.fn());
 const mockWin = vi.hoisted(() => vi.fn());
+const mockProjects = vi.hoisted(() => vi.fn());
+vi.mock("@/contexts/bc_projects/services", () => ({
+  listProjects: mockProjects,
+  isWorkProject: (p: { owner: string }) => p.owner === "work",
+}));
 vi.mock("@/contexts/bc_diagnostics/repositories", () => ({
   readWsl: mockWsl,
   readWindows: mockWin,
@@ -25,7 +30,14 @@ const entry = (o: Partial<SourceEntry> = {}): SourceEntry => ({
   process: "node",
   path: null,
   commandLine: null,
+  cwd: null,
   ...o,
+});
+const project = (id: string, localPath: string, owner: "personal" | "work" = "personal") => ({
+  id,
+  name: id.toUpperCase(),
+  localPath,
+  owner,
 });
 const ok = (...entries: SourceEntry[]): SourceRead => ({ ok: true, entries });
 const NOW = () => new Date("2026-11-17T10:00:00.000Z");
@@ -33,6 +45,7 @@ const NOW = () => new Date("2026-11-17T10:00:00.000Z");
 beforeEach(() => {
   mockWsl.mockReset().mockResolvedValue(ok());
   mockWin.mockReset().mockResolvedValue(ok());
+  mockProjects.mockReset().mockReturnValue({ projects: [], warnings: [] });
 });
 
 describe("classifyExposure", () => {
@@ -259,6 +272,60 @@ describe("listPorts", () => {
   it("własny serwer Monolith jest zawsze relevant", async () => {
     mockWsl.mockResolvedValue(ok(entry({ pid: 777, process: "agy", port: 3100 })));
     expect((await listPorts({ selfPid: 777, now: NOW })).ports[0].relevant).toBe(true);
+  });
+
+  describe("projekt procesu (po cwd)", () => {
+    const HOME = "/home/u";
+    const withProjects = (...ps: ReturnType<typeof project>[]) =>
+      mockProjects.mockReturnValue({ projects: ps, warnings: [] });
+    const one = async (cwd: string | null) => {
+      mockWsl.mockResolvedValue(ok(entry({ cwd })));
+      return (await listPorts({ now: NOW, home: HOME })).ports[0].project;
+    };
+
+    it("dopasowuje podkatalog projektu (frontend/backend) i sam katalog główny", async () => {
+      withProjects(project("tester-ai", "/home/u/projects/crait/projects/TesterAI"));
+      const expected = { id: "tester-ai", name: "TESTER-AI" };
+      expect(await one("/home/u/projects/crait/projects/TesterAI/frontend")).toEqual(expected);
+      expect(await one("/home/u/projects/crait/projects/TesterAI")).toEqual(expected);
+    });
+
+    it("rozwija ~ w localPath", async () => {
+      withProjects(project("mono", "~/projects/Monolith"));
+      expect(await one("/home/u/projects/Monolith")).toEqual({ id: "mono", name: "MONO" });
+    });
+
+    it("nie dopasowuje na granicy innej niż segment ścieżki", async () => {
+      withProjects(project("tester-ai", "/home/u/TesterAI"));
+      expect(await one("/home/u/TesterAI-old")).toBeNull();
+    });
+
+    it("wygrywa najdłuższy prefiks (projekt zagnieżdżony)", async () => {
+      withProjects(project("a", "/home/u/p"), project("b", "/home/u/p/sub"));
+      expect(await one("/home/u/p/sub/x")).toEqual({ id: "b", name: "B" });
+    });
+
+    it("projekt etatowy (work) i brak cwd dają null", async () => {
+      withProjects(project("firma", "/home/u/firma", "work"));
+      expect(await one("/home/u/firma/app")).toBeNull();
+      expect(await one(null)).toBeNull();
+    });
+
+    it("błąd odczytu projektów nie psuje listy portów", async () => {
+      mockProjects.mockImplementation(() => {
+        throw new Error("vault");
+      });
+      mockWsl.mockResolvedValue(ok(entry({ cwd: "/home/u/x" })));
+      const { ports } = await listPorts({ now: NOW, home: HOME });
+      expect(ports).toHaveLength(1);
+      expect(ports[0].project).toBeNull();
+    });
+
+    it("wiersze Windows (bez cwd) nie mają projektu", async () => {
+      withProjects(project("a", "/home/u"));
+      mockWin.mockResolvedValue(ok(entry({ source: "windows", process: "postgres" })));
+      expect((await listPorts({ now: NOW, home: HOME })).ports[0].project).toBeNull();
+    });
   });
 
   it("buduje killCommand, redaguje commandLine i nie bierze nic z nazwy procesu", async () => {

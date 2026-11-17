@@ -19,6 +19,7 @@ export const PortListenerSchema = z.object({
   warning: z.enum(["self"]).nullable(),
   killCommand: z.string().nullable(),
   relevant: z.boolean(),
+  project: z.object({ id: z.string(), name: z.string() }).nullable(),
 });
 
 export const PortsResponseSchema = z.object({
@@ -47,6 +48,7 @@ export function toPortsDto(snapshot: PortsSnapshot): PortsResponseDto {
       warning: p.warning,
       killCommand: p.killCommand,
       relevant: p.relevant,
+      project: p.project,
     })),
   };
 }

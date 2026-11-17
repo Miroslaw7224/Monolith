@@ -11,7 +11,11 @@ type SortKey = "port" | "process" | "source";
 
 function matches(p: PortListenerDto, q: string): boolean {
   if (q === "") return true;
-  return String(p.port).includes(q) || p.process.toLowerCase().includes(q);
+  return (
+    String(p.port).includes(q) ||
+    p.process.toLowerCase().includes(q) ||
+    (p.project?.name.toLowerCase().includes(q) ?? false)
+  );
 }
 
 function sortRows(rows: PortListenerDto[], key: SortKey): PortListenerDto[] {
@@ -171,6 +175,12 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
                       </span>
                     </td>
                     <td title={p.commandLine ?? p.path ?? undefined}>
+                      {p.project ? (
+                        <>
+                          <strong className="diag-project">{p.project.name}</strong>
+                          {" · "}
+                        </>
+                      ) : null}
                       {p.process === "" ? t("diagnostics:unknownProcess") : p.process}
                       {p.warning ? (
                         <span className="diag-chip diag-chip--warn">

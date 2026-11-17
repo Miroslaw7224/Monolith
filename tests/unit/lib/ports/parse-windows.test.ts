@@ -21,6 +21,7 @@ describe("parseWindowsJson", () => {
         process: "OneDrive.Sync.Service",
         path: ROW.Path,
         commandLine: null,
+        cwd: null,
       },
     ]);
   });
@@ -41,7 +42,15 @@ describe("parseWindowsJson", () => {
       { LocalAddress: "0.0.0.0", LocalPort: 80 },
     ];
     expect(parseWindowsJson(JSON.stringify(rows))).toEqual([
-      { port: 80, address: "0.0.0.0", pid: null, process: null, path: null, commandLine: null },
+      {
+        port: 80,
+        address: "0.0.0.0",
+        pid: null,
+        process: null,
+        path: null,
+        commandLine: null,
+        cwd: null,
+      },
     ]);
   });
 

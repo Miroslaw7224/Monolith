@@ -15,6 +15,7 @@ function toRead(source: SourceName, result: SourceResult): SourceRead {
       process: l.process ?? "",
       path: l.path,
       commandLine: l.commandLine,
+      cwd: l.cwd,
     })),
   };
 }

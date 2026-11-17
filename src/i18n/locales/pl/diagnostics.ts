@@ -5,7 +5,7 @@ export const diagnostics = {
   refresh: "Odśwież",
   refreshing: "Odświeżam…",
   filterAria: "Filtr portów",
-  filterPlaceholder: "Port lub nazwa procesu",
+  filterPlaceholder: "Port, proces lub projekt",
   loading: "Pobieram porty…",
   error: "Nie udało się pobrać portów: {{message}}",
   errorGeneric: "Nieznany błąd",
