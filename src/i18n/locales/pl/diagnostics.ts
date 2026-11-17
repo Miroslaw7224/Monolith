@@ -1,0 +1,42 @@
+export const diagnostics = {
+  title: "Diagnostyka",
+  subtitle:
+    "Porty TCP w stanie LISTEN w WSL i Windows. Tylko odczyt; aplikacja niczego nie zabija.",
+  refresh: "Odśwież",
+  refreshing: "Odświeżam…",
+  filterAria: "Filtr portów",
+  filterPlaceholder: "Port lub nazwa procesu",
+  loading: "Pobieram porty…",
+  error: "Nie udało się pobrać portów: {{message}}",
+  errorGeneric: "Nieznany błąd",
+  empty: "Brak nasłuchujących portów.",
+  emptyFiltered: "Brak wyników dla filtra.",
+  generatedAt: "Stan z {{time}}",
+  total: "Portów: {{count}}",
+  columns: {
+    port: "Port",
+    source: "Źródło",
+    address: "Adres",
+    process: "Proces",
+    pid: "PID",
+    action: "Akcja",
+  },
+  source: { wsl: "WSL", windows: "Windows" },
+  sourceFailed: {
+    missing: "Źródło {{source}} niedostępne (brak programu).",
+    timeout: "Źródło {{source}} nie odpowiedziało w limicie czasu.",
+    error: "Źródło {{source}} zwróciło błąd.",
+  },
+  exposure: { local: "lokalny", network: "sieć" },
+  warning: {
+    self: "uwaga: to serwer Monolith",
+    system: "uwaga: proces systemowy",
+  },
+  unknownProcess: "(nieznany)",
+  kill: {
+    copy: "Kopiuj kill",
+    copied: "Skopiowano",
+    failed: "Nie udało się skopiować",
+    noPid: "Brak PID (proces innego użytkownika)",
+  },
+};

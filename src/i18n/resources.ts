@@ -12,6 +12,7 @@ import { agents as plAgents } from "./locales/pl/agents";
 import { map as plMap } from "./locales/pl/map";
 import { codex as plCodex } from "./locales/pl/codex";
 import { notes as plNotes } from "./locales/pl/notes";
+import { diagnostics as plDiagnostics } from "./locales/pl/diagnostics";
 import { common as enCommon } from "./locales/en/common";
 import { home as enHome } from "./locales/en/home";
 import { projects as enProjects } from "./locales/en/projects";
@@ -26,6 +27,7 @@ import { agents as enAgents } from "./locales/en/agents";
 import { map as enMap } from "./locales/en/map";
 import { codex as enCodex } from "./locales/en/codex";
 import { notes as enNotes } from "./locales/en/notes";
+import { diagnostics as enDiagnostics } from "./locales/en/diagnostics";
 
 export const resources = {
   pl: {
@@ -43,6 +45,7 @@ export const resources = {
     map: plMap,
     codex: plCodex,
     notes: plNotes,
+    diagnostics: plDiagnostics,
   },
   en: {
     common: enCommon,
@@ -59,5 +62,6 @@ export const resources = {
     map: enMap,
     codex: enCodex,
     notes: enNotes,
+    diagnostics: enDiagnostics,
   },
 };

@@ -1,0 +1,42 @@
+export const diagnostics = {
+  title: "Diagnostics",
+  subtitle:
+    "TCP ports in LISTEN state in WSL and Windows. Read-only; the app never kills anything.",
+  refresh: "Refresh",
+  refreshing: "Refreshing…",
+  filterAria: "Port filter",
+  filterPlaceholder: "Port or process name",
+  loading: "Loading ports…",
+  error: "Could not load ports: {{message}}",
+  errorGeneric: "Unknown error",
+  empty: "No listening ports.",
+  emptyFiltered: "No results for the filter.",
+  generatedAt: "Snapshot from {{time}}",
+  total: "Ports: {{count}}",
+  columns: {
+    port: "Port",
+    source: "Source",
+    address: "Address",
+    process: "Process",
+    pid: "PID",
+    action: "Action",
+  },
+  source: { wsl: "WSL", windows: "Windows" },
+  sourceFailed: {
+    missing: "Source {{source}} unavailable (program not found).",
+    timeout: "Source {{source}} did not respond in time.",
+    error: "Source {{source}} returned an error.",
+  },
+  exposure: { local: "local", network: "network" },
+  warning: {
+    self: "warning: this is the Monolith server",
+    system: "warning: system process",
+  },
+  unknownProcess: "(unknown)",
+  kill: {
+    copy: "Copy kill",
+    copied: "Copied",
+    failed: "Copy failed",
+    noPid: "No PID (process owned by another user)",
+  },
+};
