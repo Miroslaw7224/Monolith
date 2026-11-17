@@ -172,3 +172,16 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+.diag-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.diag-addr {
+  display: block;
+}

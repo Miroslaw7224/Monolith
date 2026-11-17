@@ -10,7 +10,7 @@ const SNAP: PortsSnapshot = {
     {
       source: "wsl",
       port: 3101,
-      address: "127.0.0.1",
+      addresses: ["127.0.0.1", "::1"],
       pid: 1,
       process: "next-server",
       path: null,
@@ -18,6 +18,7 @@ const SNAP: PortsSnapshot = {
       exposure: "local",
       warning: "self",
       killCommand: "kill 1",
+      relevant: true,
     },
   ],
 };

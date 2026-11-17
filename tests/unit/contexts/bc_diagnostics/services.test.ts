@@ -12,6 +12,7 @@ vi.mock("@/contexts/bc_diagnostics/repositories", () => ({
 import {
   buildKillCommand,
   classifyExposure,
+  isDevProcess,
   listPorts,
   redactCommand,
 } from "@/contexts/bc_diagnostics/services";
@@ -40,6 +41,36 @@ describe("classifyExposure", () => {
   });
   it.each(["0.0.0.0", "::", "*", "10.255.255.254", "192.168.1.5"])("%s to network", (a) => {
     expect(classifyExposure(a)).toBe("network");
+  });
+});
+
+describe("isDevProcess", () => {
+  it.each([
+    "node",
+    "next-server (v1",
+    "python3.12",
+    "vite",
+    "postgres",
+    "docker-proxy",
+    "com.docker.backend",
+    "Redis-Server",
+    "dotnet",
+    "java",
+    "nginx",
+  ])("%s to proces dev", (name) => {
+    expect(isDevProcess(name)).toBe(true);
+  });
+  it.each([
+    "agy",
+    "Discord",
+    "steam",
+    "GoogleDriveFS",
+    "spoolsv",
+    "msedgewebview2",
+    "",
+    "jhi_service",
+  ])("%s nie jest procesem dev", (name) => {
+    expect(isDevProcess(name)).toBe(false);
   });
 });
 
@@ -124,9 +155,37 @@ describe("listPorts", () => {
     expect((await listPorts({ now: NOW })).ports).toHaveLength(2);
   });
 
-  it("deduplikuje po (source, pid, port, address)", async () => {
-    mockWsl.mockResolvedValue(ok(entry(), entry()));
-    expect((await listPorts({ now: NOW })).ports).toHaveLength(1);
+  it("scala adresy tego samego procesu i portu w jeden wiersz (IPv4 + IPv6), bez powtórek", async () => {
+    mockWin.mockResolvedValue(
+      ok(
+        entry({ source: "windows", process: "postgres", pid: 8, port: 5398, address: "::" }),
+        entry({ source: "windows", process: "postgres", pid: 8, port: 5398, address: "0.0.0.0" }),
+        entry({ source: "windows", process: "postgres", pid: 8, port: 5398, address: "0.0.0.0" })
+      )
+    );
+    const { ports } = await listPorts({ now: NOW });
+    expect(ports).toHaveLength(1);
+    expect(ports[0].addresses).toEqual(["0.0.0.0", "::"]);
+    expect(ports[0].exposure).toBe("network");
+  });
+
+  it("wiersz jest lokalny tylko wtedy, gdy wszystkie adresy są lokalne", async () => {
+    mockWsl.mockResolvedValue(
+      ok(
+        entry({ address: "127.0.0.1" }),
+        entry({ address: "::1" }),
+        entry({ port: 81, address: "127.0.0.1" }),
+        entry({ port: 81, address: "0.0.0.0" })
+      )
+    );
+    const { ports } = await listPorts({ now: NOW });
+    expect(ports.find((p) => p.port === 3000)?.exposure).toBe("local");
+    expect(ports.find((p) => p.port === 81)?.exposure).toBe("network");
+  });
+
+  it("różne PID na tym samym porcie nie są scalane", async () => {
+    mockWsl.mockResolvedValue(ok(entry({ pid: 1 }), entry({ pid: 2 })));
+    expect((await listPorts({ now: NOW })).ports).toHaveLength(2);
   });
 
   it("sortuje po porcie, potem źródle (wsl przed windows)", async () => {
@@ -164,6 +223,42 @@ describe("listPorts", () => {
   it("proces o nazwie systemowej w WSL nie jest pomijany", async () => {
     mockWsl.mockResolvedValue(ok(entry({ process: "svchost", pid: 7 })));
     expect((await listPorts({ now: NOW })).ports).toHaveLength(1);
+  });
+
+  it("relevant: procesy dev, serwer Monolith i nienazwane porty ≥1024; reszta nie", async () => {
+    mockWsl.mockResolvedValue(
+      ok(
+        entry({ port: 5173, process: "node", pid: 1 }),
+        entry({ port: 3101, process: "next-server (v1", pid: 2 }),
+        entry({ port: 44773, process: "agy", pid: 3 }),
+        entry({ port: 22, process: "", pid: null }),
+        entry({ port: 53, process: "", pid: null, address: "127.0.0.53" }),
+        entry({ port: 5434, process: "", pid: null, address: "*" })
+      )
+    );
+    mockWin.mockResolvedValue(
+      ok(
+        entry({ source: "windows", port: 5398, process: "postgres", pid: 8 }),
+        entry({ source: "windows", port: 6463, process: "Discord", pid: 9 })
+      )
+    );
+    const { ports } = await listPorts({ now: NOW });
+    const rel = Object.fromEntries(ports.map((p) => [`${p.source}:${p.port}`, p.relevant]));
+    expect(rel).toEqual({
+      "wsl:22": false,
+      "wsl:53": false,
+      "wsl:3101": true,
+      "wsl:5173": true,
+      "wsl:5434": true,
+      "wsl:44773": false,
+      "windows:5398": true,
+      "windows:6463": false,
+    });
+  });
+
+  it("własny serwer Monolith jest zawsze relevant", async () => {
+    mockWsl.mockResolvedValue(ok(entry({ pid: 777, process: "agy", port: 3100 })));
+    expect((await listPorts({ selfPid: 777, now: NOW })).ports[0].relevant).toBe(true);
   });
 
   it("buduje killCommand, redaguje commandLine i nie bierze nic z nazwy procesu", async () => {

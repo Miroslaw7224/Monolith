@@ -29,16 +29,22 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
   const { data, error, loading, reload } = useDiagnostics(apiFetch);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("port");
+  const [showAll, setShowAll] = useState(false);
   const [copied, setCopied] = useState<{ key: string; ok: boolean } | null>(null);
 
   const q = query.trim().toLowerCase();
+  const visible = useMemo(
+    () => (data?.ports ?? []).filter((p) => showAll || p.relevant),
+    [data, showAll]
+  );
+  const hiddenCount = (data?.ports.length ?? 0) - visible.length;
   const rows = useMemo(
     () =>
       sortRows(
-        (data?.ports ?? []).filter((p) => matches(p, q)),
+        visible.filter((p) => matches(p, q)),
         sort
       ),
-    [data, q, sort]
+    [visible, q, sort]
   );
 
   const copy = async (key: string, text: string) => {
@@ -83,6 +89,14 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
             <option value="process">{t("diagnostics:columns.process")}</option>
             <option value="source">{t("diagnostics:columns.source")}</option>
           </select>
+          <label className="diag-check">
+            <input
+              type="checkbox"
+              checked={showAll}
+              onChange={(e) => setShowAll(e.target.checked)}
+            />
+            {t("diagnostics:showAll")}
+          </label>
           <button
             type="button"
             className="diag-btn"
@@ -107,7 +121,8 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
 
       {data ? (
         <p className="diag-meta">
-          {t("diagnostics:total", { count: rows.length })} ·{" "}
+          {t("diagnostics:total", { count: rows.length })}
+          {hiddenCount > 0 ? ` · ${t("diagnostics:hidden", { count: hiddenCount })}` : ""} ·{" "}
           {t("diagnostics:generatedAt", { time: formatTimeSeconds(new Date(data.generatedAt)) })}
         </p>
       ) : loading ? (
@@ -116,7 +131,11 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
 
       {data && rows.length === 0 ? (
         <p className="diag-empty">
-          {data.ports.length === 0 ? t("diagnostics:empty") : t("diagnostics:emptyFiltered")}
+          {data.ports.length === 0
+            ? t("diagnostics:empty")
+            : q === "" && !showAll
+              ? t("diagnostics:emptyHidden")
+              : t("diagnostics:emptyFiltered")}
         </p>
       ) : null}
 
@@ -135,14 +154,18 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
             </thead>
             <tbody>
               {rows.map((p) => {
-                const key = `${p.source}|${p.pid}|${p.port}|${p.address}`;
+                const key = `${p.source}|${p.pid}|${p.port}`;
                 const state = copied?.key === key ? copied : null;
                 return (
                   <tr key={key} data-warning={p.warning ?? undefined}>
                     <td className="diag-port">{p.port}</td>
                     <td>{t(`diagnostics:source.${p.source}`)}</td>
                     <td>
-                      <code>{p.address}</code>{" "}
+                      {p.addresses.map((a) => (
+                        <code key={a} className="diag-addr">
+                          {a}
+                        </code>
+                      ))}{" "}
                       <span className={`diag-chip diag-chip--${p.exposure}`}>
                         {t(`diagnostics:exposure.${p.exposure}`)}
                       </span>

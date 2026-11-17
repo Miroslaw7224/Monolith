@@ -11,6 +11,9 @@ export const diagnostics = {
   errorGeneric: "Unknown error",
   empty: "No listening ports.",
   emptyFiltered: "No results for the filter.",
+  emptyHidden: "No application ports; check “Show all ports”.",
+  showAll: "Show all ports",
+  hidden: "Hidden: {{count}} unrelated to applications",
   generatedAt: "Snapshot from {{time}}",
   total: "Ports: {{count}}",
   columns: {

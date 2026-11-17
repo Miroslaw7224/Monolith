@@ -10,7 +10,7 @@ const SourceStatusSchema = z.discriminatedUnion("ok", [
 export const PortListenerSchema = z.object({
   source: z.enum(["wsl", "windows"]),
   port: z.number().int(),
-  address: z.string(),
+  addresses: z.array(z.string()),
   exposure: z.enum(["local", "network"]),
   pid: z.number().int().nullable(),
   process: z.string(),
@@ -18,6 +18,7 @@ export const PortListenerSchema = z.object({
   commandLine: z.string().nullable(),
   warning: z.enum(["self"]).nullable(),
   killCommand: z.string().nullable(),
+  relevant: z.boolean(),
 });
 
 export const PortsResponseSchema = z.object({
@@ -37,7 +38,7 @@ export function toPortsDto(snapshot: PortsSnapshot): PortsResponseDto {
     ports: snapshot.ports.map((p) => ({
       source: p.source,
       port: p.port,
-      address: p.address,
+      addresses: p.addresses,
       exposure: p.exposure,
       pid: p.pid,
       process: p.process,
@@ -45,6 +46,7 @@ export function toPortsDto(snapshot: PortsSnapshot): PortsResponseDto {
       commandLine: p.commandLine,
       warning: p.warning,
       killCommand: p.killCommand,
+      relevant: p.relevant,
     })),
   };
 }

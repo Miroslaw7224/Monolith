@@ -11,7 +11,7 @@ afterEach(() => {
 const port = (o: Record<string, unknown>) => ({
   source: "wsl",
   port: 3000,
-  address: "127.0.0.1",
+  addresses: ["127.0.0.1"],
   exposure: "local",
   pid: 100,
   process: "node",
@@ -19,6 +19,7 @@ const port = (o: Record<string, unknown>) => ({
   commandLine: null,
   warning: null,
   killCommand: "kill 100",
+  relevant: true,
   ...o,
 });
 const body = (ports: unknown[], windows: unknown = { ok: true }) => ({
@@ -42,7 +43,7 @@ describe("DiagnosticsView", () => {
               process: "next-server",
               warning: "self",
               exposure: "network",
-              address: "0.0.0.0",
+              addresses: ["0.0.0.0", "::"],
               killCommand: "kill 7",
             }),
           ])
@@ -147,6 +148,41 @@ describe("DiagnosticsView", () => {
     expect(firstPort()).toBe("80");
     await userEvent.selectOptions(screen.getByRole("combobox"), "process");
     expect(firstPort()).toBe("90");
+  });
+
+  it("domyślnie ukrywa porty nieaplikacyjne, a checkbox pokazuje wszystkie", async () => {
+    render(
+      <DiagnosticsView
+        apiFetch={fetchOf(
+          body([port({}), port({ port: 6463, process: "Discord", pid: 5, relevant: false })])
+        )}
+      />
+    );
+    await screen.findByText("node");
+    expect(screen.queryByText("Discord")).not.toBeInTheDocument();
+    expect(screen.getByText(/Ukryto: 1/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: "Pokaż wszystkie porty" }));
+    expect(screen.getByText("Discord")).toBeInTheDocument();
+    expect(screen.queryByText(/Ukryto/)).not.toBeInTheDocument();
+  });
+
+  it("gdy wszystko jest ukryte, podpowiada checkbox", async () => {
+    render(
+      <DiagnosticsView apiFetch={fetchOf(body([port({ process: "Discord", relevant: false })]))} />
+    );
+    expect(await screen.findByText(/zaznacz „Pokaż wszystkie porty”/)).toBeInTheDocument();
+  });
+
+  it("pokazuje scalone adresy IPv4/IPv6 w jednym wierszu", async () => {
+    render(
+      <DiagnosticsView
+        apiFetch={fetchOf(body([port({ addresses: ["0.0.0.0", "::"], exposure: "network" })]))}
+      />
+    );
+    await screen.findByText("node");
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(screen.getByText("0.0.0.0")).toBeInTheDocument();
+    expect(screen.getByText("::")).toBeInTheDocument();
   });
 
   it("pusta lista pokazuje komunikat", async () => {

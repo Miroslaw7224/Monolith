@@ -18,10 +18,14 @@ export type SourceRead =
   | { ok: true; entries: SourceEntry[] }
   | { ok: false; reason: SourceFailure };
 
-export type PortListener = SourceEntry & {
+/** Jeden proces na jednym porcie; adresy IPv4/IPv6 są scalone w `addresses`. */
+export type PortListener = Omit<SourceEntry, "address"> & {
+  addresses: string[];
   exposure: Exposure;
   warning: PortWarning | null;
   killCommand: string | null;
+  /** Czy to port „aplikacyjny” (proces dev, serwer Monolith, nienazwany ≥1024); reszta ukryta domyślnie. */
+  relevant: boolean;
 };
 
 export type SourceStatus = { ok: true } | { ok: false; reason: SourceFailure };

@@ -20,6 +20,15 @@ Użytkownik chce w Monolith dziesiątą kartę „Diagnostyka” (serwis), któr
 | D8  | Redakcja                  | Przed zwrotem DTO maskujemy wartości po `--token=`, `--password=`, `--secret=`, `--api-key=`, `TOKEN=`, `PASSWORD=`, `SECRET=` oraz hasła w `://user:haslo@host`; komenda ucięta do 200 znaków.                                                                                                                                                                                                  |
 | D9  | Ochrona API               | Bez zmian w `middleware.ts` i `lib/http/localGuard.ts`: `Host` jest sprawdzany dla każdej metody, serwer startuje z `-H 127.0.0.1`, odpowiedź nie ma nagłówków CORS. Endpoint jest tylko `GET`.                                                                                                                                                                                                  |
 
+### Zmiana 2026-11-17 (po obejrzeniu wyniku): istotność portów i scalanie adresów
+
+Cel użytkownika: zobaczyć, co blokuje porty **uruchamianych przez niego aplikacji** (Monolith, TesterAI, vite, backendy, bazy, Docker) i znaleźć „artefakty” po niezamkniętych procesach, a nie wszystko, co nasłuchuje w systemie.
+
+- **D10 (istotność).** `services` oznacza wiersz `relevant: true`, gdy: nazwa procesu zaczyna się od prefiksu z listy dev (`node`, `next-server`, `vite`, `python`, `java`, `dotnet`, `postgres`, `redis`, `nginx`, `docker`, `com.docker` itd.; stała w `services.ts`), albo to serwer Monolitha (`self`), albo proces bez nazwy na porcie ≥1024 (np. root-owy `docker-proxy` bez PID). Reszta (Discord, Steam, NVIDIA, VPN, `agy`, SSH i DNS bez PID) ma `relevant: false`. Widok domyślnie ukrywa wiersze nieistotne i pokazuje „Ukryto: N”; checkbox „Pokaż wszystkie porty” je odsłania. Dotyczy obu źródeł (WSL i Windows).
+- **D11 (scalanie).** Jeden wiersz = (źródło, PID, port); adresy IPv4/IPv6 trafiają do `addresses: string[]` (posortowane, bez powtórek), `exposure` = `network`, jeśli którykolwiek adres jest nie-lokalny. Zastępuje to deduplikację po `(source, pid, port, address)`.
+- Procesy systemowe Windows (D5) pozostają wykluczone z listy całkowicie.
+- Wpływ na typy: `PortListener.address` → `addresses`, nowe pole `relevant`; ten sam kształt w `PortListenerDto`.
+
 ## 3. Zmiany w kodzie (ADR-021)
 
 ### 3.1 `lib/ports/` (nowa infrastruktura wspólna)

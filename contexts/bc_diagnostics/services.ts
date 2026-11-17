@@ -59,6 +59,41 @@ function isWindowsSystemProcess(entry: SourceEntry): boolean {
   return entry.source === "windows" && SYSTEM_PROCESSES.has(entry.process.toLowerCase());
 }
 
+/** Prefiksy nazw procesów uruchamianych przez dewelopera (serwery, runtime, bazy, kontenery). */
+const DEV_PROCESS_PREFIXES = [
+  "node",
+  "next-server",
+  "npm",
+  "npx",
+  "tsx",
+  "vite",
+  "esbuild",
+  "webpack",
+  "python",
+  "uvicorn",
+  "gunicorn",
+  "java",
+  "dotnet",
+  "ruby",
+  "php",
+  "deno",
+  "bun",
+  "postgres",
+  "mysql",
+  "mongo",
+  "redis",
+  "nginx",
+  "caddy",
+  "docker",
+  "com.docker",
+  "containerd",
+];
+
+export function isDevProcess(name: string): boolean {
+  const n = name.toLowerCase();
+  return DEV_PROCESS_PREFIXES.some((prefix) => n.startsWith(prefix));
+}
+
 function warningFor(entry: SourceEntry, selfPid: number): PortWarning | null {
   return entry.source === "wsl" && entry.pid === selfPid ? "self" : null;
 }
@@ -83,30 +118,38 @@ export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSn
   const wsl = settle(wslRes);
   const windows = settle(winRes);
 
-  const seen = new Set<string>();
-  const ports: PortListener[] = [];
+  // Jeden wiersz = (źródło, PID, port); adresy (IPv4/IPv6) scalane i bez powtórek.
+  const groups = new Map<string, { entry: SourceEntry; addresses: Set<string> }>();
   for (const read of [wsl, windows]) {
     if (read.ok === false) continue;
     for (const e of read.entries) {
       if (isWindowsSystemProcess(e)) continue;
-      const key = `${e.source}|${e.pid}|${e.port}|${e.address}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      ports.push({
-        ...e,
-        commandLine: redactCommand(e.commandLine),
-        exposure: classifyExposure(e.address),
-        warning: warningFor(e, selfPid),
-        killCommand: buildKillCommand(e.source, e.pid),
-      });
+      const key = `${e.source}|${e.pid}|${e.port}`;
+      const group = groups.get(key);
+      if (group) group.addresses.add(e.address);
+      else groups.set(key, { entry: e, addresses: new Set([e.address]) });
     }
   }
-  ports.sort(
-    (a, b) =>
-      a.port - b.port ||
-      SOURCE_ORDER[a.source] - SOURCE_ORDER[b.source] ||
-      a.address.localeCompare(b.address)
-  );
+
+  const ports: PortListener[] = [...groups.values()].map(({ entry: e, addresses }) => {
+    const list = [...addresses].sort();
+    const warning = warningFor(e, selfPid);
+    return {
+      source: e.source,
+      port: e.port,
+      addresses: list,
+      pid: e.pid,
+      process: e.process,
+      path: e.path,
+      commandLine: redactCommand(e.commandLine),
+      exposure: list.every((a) => classifyExposure(a) === "local") ? "local" : "network",
+      warning,
+      killCommand: buildKillCommand(e.source, e.pid),
+      relevant:
+        warning === "self" || isDevProcess(e.process) || (e.process === "" && e.port >= 1024),
+    };
+  });
+  ports.sort((a, b) => a.port - b.port || SOURCE_ORDER[a.source] - SOURCE_ORDER[b.source]);
 
   return {
     generatedAt: now().toISOString(),

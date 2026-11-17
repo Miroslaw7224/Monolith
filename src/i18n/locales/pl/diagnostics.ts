@@ -11,6 +11,9 @@ export const diagnostics = {
   errorGeneric: "Nieznany błąd",
   empty: "Brak nasłuchujących portów.",
   emptyFiltered: "Brak wyników dla filtra.",
+  emptyHidden: "Brak portów aplikacji; zaznacz „Pokaż wszystkie porty”.",
+  showAll: "Pokaż wszystkie porty",
+  hidden: "Ukryto: {{count}} niezwiązanych z aplikacjami",
   generatedAt: "Stan z {{time}}",
   total: "Portów: {{count}}",
   columns: {
