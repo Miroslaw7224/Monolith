@@ -57,7 +57,7 @@ function settle(result: PromiseSettledResult<SourceRead>): SourceRead {
 }
 
 const statusOf = (read: SourceRead): SourceStatus =>
-  read.ok ? { ok: true } : { ok: false, reason: read.reason };
+  read.ok === false ? { ok: false, reason: read.reason } : { ok: true };
 
 export interface ListPortsOptions {
   /** PID serwera Monolith (domyślnie `process.pid`); tylko do testów. */
@@ -75,7 +75,7 @@ export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSn
   const seen = new Set<string>();
   const ports: PortListener[] = [];
   for (const read of [wsl, windows]) {
-    if (!read.ok) continue;
+    if (read.ok === false) continue;
     for (const e of read.entries) {
       const key = `${e.source}|${e.pid}|${e.port}|${e.address}`;
       if (seen.has(key)) continue;

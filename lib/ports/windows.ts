@@ -28,7 +28,7 @@ export async function listWindowsListeners(
     ["-NoProfile", "-NonInteractive", "-Command", WINDOWS_SCRIPT],
     8000
   );
-  if (!res.ok) return { ok: false, reason: res.reason };
+  if (res.ok === false) return { ok: false, reason: res.reason };
   try {
     return { ok: true, listeners: parseWindowsJson(res.stdout) };
   } catch {

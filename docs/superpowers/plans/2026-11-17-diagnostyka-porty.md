@@ -16,6 +16,7 @@
 - `tests/unit/architecture.static.test.ts` ma przechodzić **bez edycji**; gdyby wymagał zmiany, to osobny commit, nigdy razem z kodem.
 - Commity na końcu każdego zadania. Wiadomości kończą się linią `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`.
 - Brak commitu `push`/PR bez prośby użytkownika.
+- Repo nie ma `strictNullChecks`: unie po `ok`/`success` zawężaj przez `x.ok === false` (nie `!x.ok`), jak w `parsed.success === false`. Po każdym zadaniu `npx tsc --noEmit`.
 
 ## Odchylenia od specu (do akceptacji w review planu)
 
@@ -1801,7 +1802,7 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
 
   const failures = (["wsl", "windows"] as const).flatMap((name) => {
     const s: SourceStatusDto | undefined = data?.sources[name];
-    return s && !s.ok ? [{ name, reason: s.reason }] : [];
+    return s && s.ok === false ? [{ name, reason: s.reason }] : [];
   });
 
   return (

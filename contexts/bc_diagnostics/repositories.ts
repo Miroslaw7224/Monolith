@@ -4,7 +4,7 @@ import type { SourceResult } from "@/lib/ports/types";
 import type { SourceName, SourceRead } from "./models";
 
 function toRead(source: SourceName, result: SourceResult): SourceRead {
-  if (!result.ok) return { ok: false, reason: result.reason };
+  if (result.ok === false) return { ok: false, reason: result.reason };
   return {
     ok: true,
     entries: result.listeners.map((l) => ({

@@ -26,7 +26,7 @@ const DEFAULT_DEPS: WslDeps = { run: runCommand, readCmdline: readProcCmdline };
 /** Porty LISTEN w WSL: `ss -ltnpH` + `/proc/<pid>/cmdline`. Nigdy nie rzuca. */
 export async function listWslListeners(deps: WslDeps = DEFAULT_DEPS): Promise<SourceResult> {
   const res = await deps.run("ss", ["-ltnpH"], 8000);
-  if (!res.ok) return { ok: false, reason: res.reason };
+  if (res.ok === false) return { ok: false, reason: res.reason };
   const listeners = parseSs(res.stdout);
   const pids = [...new Set(listeners.flatMap((l) => (l.pid === null ? [] : [l.pid])))];
   const cmdlines = new Map<number, string | null>(
