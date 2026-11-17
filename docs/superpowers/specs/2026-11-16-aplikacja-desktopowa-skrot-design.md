@@ -39,7 +39,7 @@ Skrót Windows `Monolith.lnk` ma jedną, cienką komendę: `wsl.exe` wchodzi do 
 1. Liczy nazwę katalogu builda `.next-<12 znaków HEAD>`; znacznikiem udanego builda jest plik `.monolith-ok` w tym katalogu (nieudany build nie niszczy poprzedniej wersji; zostają 2 ostatnie udane).
 2. Zmienił się `package-lock.json` (hash w `node_modules/.monolith-lock-hash`, służy tylko do tej decyzji): `npm ci --ignore-scripts` (bez hooków husky, żeby nie ruszać wspólnej konfiguracji git).
 3. Jest `.monolith-ok` dla bieżącego HEAD: pomija build. Brak: `next build` do `NEXT_DIST_DIR` (w konsoli „Buduję…"), po sukcesie zapis znacznika i prune.
-4. Port 3101: jeśli już odpowiada Monolith, tylko otwiera okno. Jeśli zajęty przez coś innego, kończy z komunikatem.
+4. Port 3101: jeśli już odpowiada Monolith z **aktualnego** builda (`NEXT_DIST_DIR` procesu = `.next-<HEAD>`), tylko otwiera okno. Jeśli to nasz `next-server` (cwd `Monolith-prod`) ze starszego builda (np. wystartowany z `MONOLITH_NO_WINDOW=1` przed merge'em), skrypt zatrzymuje go SIGTERM-em (do 10 s, nigdy SIGKILL) i buduje oraz startuje aktualną wersję (zmiana 2026-11-17). Jeśli zajęty przez coś innego, kończy z komunikatem.
 5. Startuje `next start -p 3101 -H 127.0.0.1`, czeka na odpowiedź, wysyła jedno `GET /api/cockpit` (prewarm), dopiero potem otwiera okno.
 6. Gdy okno się zamknie, zatrzymuje serwer.
 

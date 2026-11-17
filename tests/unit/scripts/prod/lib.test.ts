@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -199,5 +199,118 @@ describe("prod_sync_ref", () => {
   it("origin niedostępny (offline): lokalny main, bez błędu", async () => {
     git("remote", "add", "origin", path.join(os.tmpdir(), "nie-ma-takiego-repo"));
     expect(await call("prod_sync_ref", dir)).toEqual({ code: 0, stdout: "main" });
+  });
+});
+
+describe("zatrzymywanie nieaktualnego serwera", () => {
+  const children: ChildProcess[] = [];
+
+  /** Udaje `next-server`: nasłuchuje na losowym porcie, ma tytuł procesu, cwd i NEXT_DIST_DIR. */
+  function fakeServer(opts: { cwd: string; dist: string; title?: string }) {
+    return new Promise<{ pid: number; port: number }>((resolve, reject) => {
+      const title = opts.title ?? "next-server (v14.2.35)";
+      const code =
+        `process.title=${JSON.stringify(title)};` +
+        `require("http").createServer((q,r)=>r.end("x")).listen(0,"127.0.0.1",function(){` +
+        `console.log(this.address().port)});` +
+        `setInterval(()=>{},1e6);`;
+      const child = spawn(process.execPath, ["-e", code], {
+        cwd: opts.cwd,
+        env: { ...process.env, NEXT_DIST_DIR: opts.dist },
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      children.push(child);
+      child.on("error", reject);
+      child.stdout?.once("data", (d: Buffer) =>
+        resolve({ pid: child.pid as number, port: Number(String(d).trim()) })
+      );
+    });
+  }
+
+  const alive = (pid: number) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  afterEach(() => {
+    for (const c of children.splice(0)) c.kill("SIGKILL");
+  });
+
+  it("prod_listener_pid zwraca PID procesu nasłuchującego na porcie, a dla wolnego portu pusty wynik", async () => {
+    const srv = await fakeServer({ cwd: dir, dist: ".next-a" });
+    expect(await call("prod_listener_pid", String(srv.port))).toEqual({
+      code: 0,
+      stdout: String(srv.pid),
+    });
+    children[0].kill("SIGKILL");
+    await new Promise((r) => setTimeout(r, 200));
+    expect((await call("prod_listener_pid", String(srv.port))).stdout).toBe("");
+  });
+
+  it("prod_running_dist czyta NEXT_DIST_DIR z środowiska procesu", async () => {
+    const srv = await fakeServer({ cwd: dir, dist: ".next-abc123" });
+    expect(await call("prod_running_dist", String(srv.pid))).toEqual({
+      code: 0,
+      stdout: ".next-abc123",
+    });
+  });
+
+  it("prod_is_own_server: tylko next-server z cwd równym katalogowi głównemu", async () => {
+    const own = await fakeServer({ cwd: dir, dist: ".next-a" });
+    const other = fs.mkdtempSync(path.join(os.tmpdir(), "prod-other-"));
+    const foreignDir = await fakeServer({ cwd: other, dist: ".next-a" });
+    const foreignName = await fakeServer({ cwd: dir, dist: ".next-a", title: "inny-program" });
+    try {
+      expect((await call("prod_is_own_server", dir, String(own.pid))).code).toBe(0);
+      expect((await call("prod_is_own_server", dir, String(foreignDir.pid))).code).toBe(1);
+      expect((await call("prod_is_own_server", dir, String(foreignName.pid))).code).toBe(1);
+      expect((await call("prod_is_own_server", dir, "nie-pid")).code).toBe(1);
+    } finally {
+      fs.rmSync(other, { recursive: true, force: true });
+    }
+  });
+
+  it("prod_stop_stale zatrzymuje własny serwer ze starszego builda (kod 0)", async () => {
+    const srv = await fakeServer({ cwd: dir, dist: ".next-stary" });
+    const r = await call("prod_stop_stale", dir, String(srv.port), ".next-nowy");
+    expect(r.code).toBe(0);
+    expect(alive(srv.pid)).toBe(false);
+  });
+
+  it("prod_stop_stale nie rusza serwera z aktualnego builda (kod 1)", async () => {
+    const srv = await fakeServer({ cwd: dir, dist: ".next-nowy" });
+    const r = await call("prod_stop_stale", dir, String(srv.port), ".next-nowy");
+    expect(r.code).toBe(1);
+    expect(alive(srv.pid)).toBe(true);
+  });
+
+  it("prod_stop_stale nie rusza cudzego procesu na porcie (kod 1)", async () => {
+    const srv = await fakeServer({ cwd: dir, dist: ".next-stary", title: "inny-program" });
+    const r = await call("prod_stop_stale", dir, String(srv.port), ".next-nowy");
+    expect(r.code).toBe(1);
+    expect(alive(srv.pid)).toBe(true);
+  });
+
+  it("prod_stop_stale nie rusza serwera z innego katalogu (kod 1)", async () => {
+    const other = fs.mkdtempSync(path.join(os.tmpdir(), "prod-other-"));
+    try {
+      const srv = await fakeServer({ cwd: other, dist: ".next-stary" });
+      const r = await call("prod_stop_stale", dir, String(srv.port), ".next-nowy");
+      expect(r.code).toBe(1);
+      expect(alive(srv.pid)).toBe(true);
+    } finally {
+      fs.rmSync(other, { recursive: true, force: true });
+    }
+  });
+
+  it("prod_stop_stale na wolnym porcie nic nie robi (kod 1)", async () => {
+    const srv = await fakeServer({ cwd: dir, dist: ".next-a" });
+    children[0].kill("SIGKILL");
+    await new Promise((r) => setTimeout(r, 200));
+    expect((await call("prod_stop_stale", dir, String(srv.port), ".next-nowy")).code).toBe(1);
   });
 });

@@ -50,6 +50,20 @@ state="free"
 if [[ "${MONOLITH_BUILD_ONLY:-0}" != "1" ]]; then
   state="$(prod_port_state "$PORT")"
   [[ "$state" == "busy" ]] && die "port $PORT jest zajęty przez inny program"
+  # Serwer Monolith z POPRZEDNIEGO builda (np. wystartowany z MONOLITH_NO_WINDOW=1 przed merge'em)
+  # nie zostanie sam podmieniony, więc ikona otwierałaby starą wersję: zatrzymujemy go (tylko nasz
+  # `next-server` z tego katalogu, SIGTERM) i przechodzimy do zwykłego builda i startu.
+  if [[ "$state" == "monolith" ]]; then
+    WANT_DIST="$(prod_dist_name "$ROOT")" || die "nie mogę odczytać HEAD"
+    prod_stop_stale "$ROOT" "$PORT" "$WANT_DIST"
+    case "$?" in
+      0)
+        log "Zatrzymano serwer starszej wersji; buduję i startuję aktualną ($WANT_DIST)."
+        state="free"
+        ;;
+      2) die "nie udało się zatrzymać starszej wersji serwera na porcie $PORT (spróbuj go zamknąć ręcznie)" ;;
+    esac
+  fi
 fi
 
 SERVER_PID=""

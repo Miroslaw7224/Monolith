@@ -77,3 +77,40 @@ prod_sync_ref() {
     echo main
   fi
 }
+
+# PID procesu nasłuchującego na porcie <port> (pierwszy) albo pusty wynik.
+prod_listener_pid() {
+  ss -ltnpH sport = ":$1" 2>/dev/null | grep -o 'pid=[0-9]*' | head -n 1 | cut -d= -f2
+}
+
+# Kod 0, gdy <pid> to `next-server` uruchomiony z katalogu <root> (nigdy cudzy proces ani inny katalog).
+prod_is_own_server() {
+  local root="$1" pid="$2" title
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  [[ "/proc/$pid/cwd" -ef "$root" ]] || return 1
+  title="$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null)" || return 1
+  [[ "$title" == next-server* ]]
+}
+
+# Katalog builda, z którego działa proces <pid> (NEXT_DIST_DIR z jego środowiska) albo pusty wynik.
+prod_running_dist() {
+  tr '\0' '\n' <"/proc/$1/environ" 2>/dev/null | sed -n 's/^NEXT_DIST_DIR=//p' | head -n 1
+}
+
+# Zatrzymuje serwer na <port>, gdy jest NASZ (`prod_is_own_server`) i działa z innego builda niż <dist>.
+# Tylko SIGTERM, czeka do 10 s, nigdy SIGKILL. Kody: 0 zatrzymano, 1 nic do zrobienia
+# (port wolny, cudzy proces albo aktualny build), 2 nie udało się zatrzymać w 10 s.
+prod_stop_stale() {
+  local root="$1" port="$2" dist="$3" pid running i
+  pid="$(prod_listener_pid "$port")"
+  [[ -n "$pid" ]] || return 1
+  prod_is_own_server "$root" "$pid" || return 1
+  running="$(prod_running_dist "$pid")"
+  [[ -n "$running" && "$running" != "$dist" ]] || return 1
+  kill "$pid" 2>/dev/null || return 1
+  for i in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || return 0
+    sleep 0.2
+  done
+  return 2
+}
