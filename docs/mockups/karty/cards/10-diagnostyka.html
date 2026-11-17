@@ -115,7 +115,9 @@
         </div>
 
         <p class="diag-alert" role="status" hidden>Źródło Windows niedostępne (brak programu).</p>
-        <p class="diag-meta">Portów: 6 · Ukryto: 24 niezwiązanych z aplikacjami · Stan z 09:48:12</p>
+        <p class="diag-meta">
+          Portów: 6 · Ukryto: 24 niezwiązanych z aplikacjami · Stan z 09:48:12
+        </p>
 
         <div class="diag-scroll">
           <table class="diag-table">
@@ -130,53 +132,93 @@
               </tr>
             </thead>
             <tbody>
-              <trdata-warning="self">
+              <tr data-warning="self">
                 <td class="diag-port">3100</td>
                 <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip ">lokalny</span></td>
-                <td>next-server (v1<span class="chip diag-chip--warn">uwaga: to serwer Monolith</span></td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td>
+                  next-server (v1<span class="chip diag-chip--warn">uwaga: to serwer Monolith</span>
+                </td>
                 <td>2706826</td>
-                <td><button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2706826">Kopiuj kill</button></td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2706826">
+                    Kopiuj kill
+                  </button>
+                </td>
               </tr>
               <tr>
                 <td class="diag-port">3101</td>
                 <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip ">lokalny</span></td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
                 <td>next-server (v1</td>
                 <td>2562323</td>
-                <td><button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2562323">Kopiuj kill</button></td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2562323">
+                    Kopiuj kill
+                  </button>
+                </td>
               </tr>
               <tr>
                 <td class="diag-port">5173</td>
                 <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip ">lokalny</span></td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
                 <td>node</td>
                 <td>2678595</td>
-                <td><button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678595">Kopiuj kill</button></td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678595">
+                    Kopiuj kill
+                  </button>
+                </td>
               </tr>
               <tr>
                 <td class="diag-port">5398</td>
                 <td>Windows</td>
-                <td><code class="diag-addr">0.0.0.0</code><code class="diag-addr">::</code> <span class="chip diag-chip--network">sieć</span></td>
+                <td>
+                  <code class="diag-addr">0.0.0.0</code><code class="diag-addr">::</code>
+                  <span class="chip diag-chip--network">sieć</span>
+                </td>
                 <td>postgres</td>
                 <td>8292</td>
-                <td><button class="btn btn--sm" type="button" data-toast="Skopiowano: Stop-Process -Id 8292">Kopiuj kill</button></td>
+                <td>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    data-toast="Skopiowano: Stop-Process -Id 8292"
+                  >
+                    Kopiuj kill
+                  </button>
+                </td>
               </tr>
               <tr>
                 <td class="diag-port">5434</td>
                 <td>WSL</td>
-                <td><code class="diag-addr">*</code> <span class="chip diag-chip--network">sieć</span></td>
+                <td>
+                  <code class="diag-addr">*</code> <span class="chip diag-chip--network">sieć</span>
+                </td>
                 <td>(nieznany)</td>
                 <td>—</td>
-                <td><button class="btn btn--sm" type="button" disabled title="Brak PID (proces innego użytkownika)">Kopiuj kill</button></td>
+                <td>
+                  <button
+                    class="btn btn--sm"
+                    type="button"
+                    disabled
+                    title="Brak PID (proces innego użytkownika)"
+                  >
+                    Kopiuj kill
+                  </button>
+                </td>
               </tr>
               <tr>
                 <td class="diag-port">8001</td>
                 <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip ">lokalny</span></td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
                 <td>python</td>
                 <td>2678549</td>
-                <td><button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678549">Kopiuj kill</button></td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2678549">
+                    Kopiuj kill
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
