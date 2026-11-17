@@ -30,7 +30,6 @@ export const diagnostics = {
   exposure: { local: "local", network: "network" },
   warning: {
     self: "warning: this is the Monolith server",
-    system: "warning: system process",
   },
   unknownProcess: "(unknown)",
   kill: {

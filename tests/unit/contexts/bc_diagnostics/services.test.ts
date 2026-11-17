@@ -148,9 +148,22 @@ describe("listPorts", () => {
     expect(r.ports.find((p) => p.source === "windows")?.warning).toBeNull();
   });
 
-  it("procesy systemowe Windows dostają system (bez rozróżniania wielkości liter)", async () => {
-    mockWin.mockResolvedValue(ok(entry({ source: "windows", process: "LSASS", pid: 5 })));
-    expect((await listPorts({ now: NOW })).ports[0].warning).toBe("system");
+  it("pomija procesy systemowe Windows (bez rozróżniania wielkości liter)", async () => {
+    mockWin.mockResolvedValue(
+      ok(
+        ...["System", "LSASS", "services", "wininit", "svchost", "csrss", "smss"].map(
+          (process, i) => entry({ source: "windows", process, pid: i + 1, port: 100 + i })
+        ),
+        entry({ source: "windows", process: "Discord", pid: 99, port: 6463 })
+      )
+    );
+    const r = await listPorts({ now: NOW });
+    expect(r.ports.map((p) => p.process)).toEqual(["Discord"]);
+  });
+
+  it("proces o nazwie systemowej w WSL nie jest pomijany", async () => {
+    mockWsl.mockResolvedValue(ok(entry({ process: "svchost", pid: 7 })));
+    expect((await listPorts({ now: NOW })).ports).toHaveLength(1);
   });
 
   it("buduje killCommand, redaguje commandLine i nie bierze nic z nazwy procesu", async () => {

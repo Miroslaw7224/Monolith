@@ -1,7 +1,7 @@
 export type SourceName = "wsl" | "windows";
 export type SourceFailure = "missing" | "timeout" | "error";
 export type Exposure = "local" | "network";
-export type PortWarning = "self" | "system";
+export type PortWarning = "self";
 
 /** Wiersz ze źródła, przed regułami domeny. */
 export type SourceEntry = {

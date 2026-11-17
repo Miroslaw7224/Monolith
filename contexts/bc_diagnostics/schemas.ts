@@ -16,7 +16,7 @@ export const PortListenerSchema = z.object({
   process: z.string(),
   path: z.string().nullable(),
   commandLine: z.string().nullable(),
-  warning: z.enum(["self", "system"]).nullable(),
+  warning: z.enum(["self"]).nullable(),
   killCommand: z.string().nullable(),
 });
 

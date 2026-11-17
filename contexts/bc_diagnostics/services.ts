@@ -54,12 +54,13 @@ export function redactCommand(command: string | null): string | null {
   return masked.slice(0, MAX_COMMAND);
 }
 
+/** Procesy samego systemu Windows nie są tym, czego szukamy (serwery, Docker, aplikacje): pomijamy je. */
+function isWindowsSystemProcess(entry: SourceEntry): boolean {
+  return entry.source === "windows" && SYSTEM_PROCESSES.has(entry.process.toLowerCase());
+}
+
 function warningFor(entry: SourceEntry, selfPid: number): PortWarning | null {
-  if (entry.source === "wsl" && entry.pid === selfPid) return "self";
-  if (entry.source === "windows" && SYSTEM_PROCESSES.has(entry.process.toLowerCase())) {
-    return "system";
-  }
-  return null;
+  return entry.source === "wsl" && entry.pid === selfPid ? "self" : null;
 }
 
 function settle(result: PromiseSettledResult<SourceRead>): SourceRead {
@@ -87,6 +88,7 @@ export async function listPorts(options: ListPortsOptions = {}): Promise<PortsSn
   for (const read of [wsl, windows]) {
     if (read.ok === false) continue;
     for (const e of read.entries) {
+      if (isWindowsSystemProcess(e)) continue;
       const key = `${e.source}|${e.pid}|${e.port}|${e.address}`;
       if (seen.has(key)) continue;
       seen.add(key);
