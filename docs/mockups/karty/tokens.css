@@ -53,6 +53,7 @@
   --c-arsenal: #b47bff;
   --c-mapa: #ff2bd6;
   --c-kodeks: #3ddc84;
+  --c-diagnostyka: #cbd5e1;
 
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
@@ -254,6 +255,28 @@
   --danger: #ff6b6b;
   --font-display: "Manrope", var(--font-body);
   --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.045) 1px, transparent 0) 0 0 /
+    22px 22px;
+  color-scheme: dark;
+}
+
+/* ---------- Alt+0 Diagnostyka: grafit + stal ---------- */
+[data-card="diagnostyka"] {
+  --bg: #121317;
+  --surface: #1b1c21;
+  --surface-2: #25272d;
+  --line: #34363e;
+  --text: #eef0f3;
+  --muted: #a3a8b3;
+  --accent: #cbd5e1;
+  --accent-text: #dbe3ee;
+  --accent-ink: #0b0e14;
+  --accent-soft: rgba(203, 213, 225, 0.12);
+  --glow: rgba(203, 213, 225, 0.4);
+  --ok: #5eead4;
+  --warn: #facc15;
+  --danger: #ff6b6b;
+  --font-display: "Manrope", var(--font-body);
+  --pattern: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0) 0 0 /
     22px 22px;
   color-scheme: dark;
 }

@@ -31,7 +31,7 @@ export function useCardHotkeys({
           onCaptureInbox();
           return;
         }
-        const match = /^Digit([1-9])$/.exec(e.code);
+        const match = /^Digit([0-9])$/.exec(e.code);
         const card = match ? cardByHotkey(Number(match[1])) : undefined;
         if (card) {
           e.preventDefault();

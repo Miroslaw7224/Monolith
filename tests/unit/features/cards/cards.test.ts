@@ -11,8 +11,8 @@ import {
 } from "@/src/features/cards/cards";
 
 describe("CARDS", () => {
-  test("ma 9 kart z klawiszami 1..9 w kolejności", () => {
-    expect(CARDS.map((c) => c.hotkey)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  test("ma 10 kart z klawiszami 1..9, 0 w kolejności", () => {
+    expect(CARDS.map((c) => c.hotkey)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 0]);
     expect(CARDS.map((c) => c.id)).toEqual([
       "kokpit",
       "kalendarz",
@@ -23,12 +23,14 @@ describe("CARDS", () => {
       "arsenal",
       "mapa",
       "kodeks",
+      "diagnostyka",
     ]);
   });
 
   test("mapa i kodeks mają własne widoki", () => {
     expect(getCard("mapa").target).toEqual({ kind: "map" });
     expect(getCard("kodeks").target).toEqual({ kind: "codex" });
+    expect(getCard("diagnostyka").target).toEqual({ kind: "diagnostics" });
   });
 
   test("arsenał otwiera się na Skillach i promptach", () => {
@@ -39,17 +41,18 @@ describe("CARDS", () => {
     expect(getCard("projekty").target).toEqual({ kind: "projects" });
   });
 
-  test("Kodeks jest ostatnią kartą z etykietą Kodeks", () => {
-    expect(CARDS[CARDS.length - 1]).toMatchObject({ id: "kodeks", hotkey: 9 });
+  test("Diagnostyka jest ostatnią kartą z klawiszem 0", () => {
+    expect(CARDS[CARDS.length - 1]).toMatchObject({ id: "diagnostyka", hotkey: 0 });
   });
 });
 
 describe("cardByHotkey", () => {
-  test("zwraca kartę dla 1..9 i undefined poza zakresem", () => {
+  test("zwraca kartę dla 0..9 i undefined poza zakresem", () => {
     expect(cardByHotkey(3)?.id).toBe("zadania");
     expect(cardByHotkey(9)?.id).toBe("kodeks");
+    expect(cardByHotkey(0)?.id).toBe("diagnostyka");
     expect(cardByHotkey(10)).toBeUndefined();
-    expect(cardByHotkey(0)).toBeUndefined();
+    expect(cardByHotkey(-1)).toBeUndefined();
   });
 });
 

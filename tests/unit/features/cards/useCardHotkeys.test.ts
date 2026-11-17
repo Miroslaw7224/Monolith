@@ -25,6 +25,12 @@ describe("useCardHotkeys", () => {
     expect(onSelectCard).toHaveBeenCalledWith("kodeks");
   });
 
+  test("Alt+0 wybiera Diagnostykę", () => {
+    const { onSelectCard } = setup();
+    fireEvent.keyDown(window, { key: "0", code: "Digit0", altKey: true });
+    expect(onSelectCard).toHaveBeenCalledWith("diagnostyka");
+  });
+
   test("Alt+I uruchamia szybki zapis do inboxu i blokuje domyślną akcję", () => {
     const { onCaptureInbox, onSelectCard } = setup();
     const ev = new KeyboardEvent("keydown", {
@@ -50,9 +56,9 @@ describe("useCardHotkeys", () => {
     expect(b.onCaptureInbox).not.toHaveBeenCalled();
   });
 
-  test("Alt+0 nic nie robi", () => {
+  test("samo 0 (bez Alt) nic nie robi", () => {
     const { onSelectCard } = setup();
-    fireEvent.keyDown(window, { key: "0", code: "Digit0", altKey: true });
+    fireEvent.keyDown(window, { key: "0", code: "Digit0" });
     expect(onSelectCard).not.toHaveBeenCalled();
   });
 
