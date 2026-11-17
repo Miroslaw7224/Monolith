@@ -11,7 +11,7 @@ Formaty plików vaulta (kalendarz, zadania, notatki, tagi…), to, jak agent ma 
 
 Ikona „Monolith" (Windows) startuje wersję produkcyjną `main` z osobnego worktree `~/projects/Brain_7224/Monolith-prod`
 na porcie 3101; `npm run dev` (3100) działa niezależnie. Skrypty: `scripts/prod/` (instalacja: `bash scripts/prod/setup-prod.sh`
-z głównego katalogu po merge'u do `main`). Zmiana kodu trafia do ikony po merge'u do `main` (przy starcie robi się `git fetch origin main` i build; działający serwer trzeba najpierw zamknąć, bo ikona tylko otwiera okno).
+z głównego katalogu po merge'u do `main`). Zmiana kodu trafia do ikony po merge'u do `main` (przy starcie robi się `git fetch origin main` i build; gdy na 3101 działa serwer Monolith ze starszego builda, ikona sama go zatrzymuje (SIGTERM, tylko `next-server` z `Monolith-prod`) i buduje oraz startuje aktualną wersję; ten sam build tylko otwiera okno).
 Spec: `docs/superpowers/specs/2026-11-16-aplikacja-desktopowa-skrot-design.md`.
 
 ## Struktura kodu
