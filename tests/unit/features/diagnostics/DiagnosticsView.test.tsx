@@ -297,6 +297,62 @@ describe("DiagnosticsView", () => {
       expect(await screen.findByText("możliwa sierota")).toBeInTheDocument();
     });
 
+    it("dwa procesy tego samego projektu bez ról, rodzica i braków (np. dev i prod) nie tworzą grupy", async () => {
+      const dev = port({
+        port: 3100,
+        pid: 1,
+        process: "next-server",
+        project: { id: "m", name: "Monolith" },
+        killCommand: "kill 1",
+      });
+      const prod = port({
+        port: 3101,
+        pid: 2,
+        process: "next-server",
+        project: { id: "m", name: "Monolith" },
+        killCommand: "kill 2",
+      });
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(
+            body([dev, prod], { ok: true }, [{ projectId: "m", launcher: null, missingRole: null }])
+          )}
+        />
+      );
+      await screen.findAllByText("next-server");
+      expect(document.querySelectorAll(".diag-group__head")).toHaveLength(0);
+      expect(screen.queryByRole("button", { name: "Kopiuj kill grupy" })).not.toBeInTheDocument();
+      expect(screen.getAllByText("Monolith")).toHaveLength(2);
+    });
+
+    it("porty spoza grup są pod nagłówkiem „Pozostałe porty”, gdy istnieje grupa", async () => {
+      const other = port({ port: 5398, pid: 9, process: "postgres", killCommand: "kill 9" });
+      render(
+        <DiagnosticsView
+          apiFetch={fetchOf(
+            body([front(), back(), other], { ok: true }, [
+              group({ launcher: { pid: 20, name: "node" } }),
+            ])
+          )}
+        />
+      );
+      await screen.findByText("postgres");
+      const heads = [...document.querySelectorAll(".diag-group__head")].map((h) => h.textContent);
+      expect(heads).toHaveLength(2);
+      expect(heads[1]).toContain("Pozostałe porty");
+      // postgres jest po nagłówku „Pozostałe”, a frontend/backend przed nim
+      const cells = [...document.querySelectorAll("tbody tr")].map((r) => r.textContent ?? "");
+      const iOther = cells.findIndex((c) => c.includes("Pozostałe porty"));
+      expect(cells.findIndex((c) => c.includes("postgres"))).toBeGreaterThan(iOther);
+      expect(cells.findIndex((c) => c.includes("frontend"))).toBeLessThan(iOther);
+    });
+
+    it("bez żadnej grupy lista jest płaska i nie ma nagłówka „Pozostałe porty”", async () => {
+      render(<DiagnosticsView apiFetch={fetchOf(body([port({})], { ok: true }, []))} />);
+      await screen.findByText("node");
+      expect(screen.queryByText("Pozostałe porty")).not.toBeInTheDocument();
+    });
+
     it("wiersz projektu bez wpisu w groups jest zwykłym wierszem", async () => {
       render(<DiagnosticsView apiFetch={fetchOf(body([front()], { ok: true }, []))} />);
       expect(await screen.findByText("node")).toBeInTheDocument();

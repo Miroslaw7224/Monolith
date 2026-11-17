@@ -45,6 +45,7 @@ export const diagnostics = {
       frontend: "incomplete: frontend is not running",
       backend: "incomplete: backend is not running",
     },
+    other: "Other ports",
     killAll: "Copy group kill",
     killAllHint: "Kill commands of all processes in the group on one line",
   },

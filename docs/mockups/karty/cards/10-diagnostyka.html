@@ -76,6 +76,10 @@
       .diag-table tbody + tbody tr:first-child td {
         border-top: 1px solid var(--line);
       }
+      .diag-group__head--other td {
+        color: var(--muted);
+        border-top: 2px solid var(--line);
+      }
       .diag-addr {
         display: block;
       }
@@ -145,39 +149,6 @@
               </tr>
             </thead>
             <tbody>
-              <tr data-warning="self">
-                <td class="diag-port">3100</td>
-                <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td>
-                  <strong class="diag-project">Monolith</strong> · <span>next-server (v1</span
-                  ><span class="chip diag-chip--warn">uwaga: to serwer Monolith</span>
-                </td>
-                <td>2706826</td>
-                <td>
-                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2706826">
-                    Kopiuj kill
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-            <tbody>
-              <tr>
-                <td class="diag-port">3101</td>
-                <td>WSL</td>
-                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
-                <td>
-                  <strong class="diag-project">Monolith</strong> · <span>next-server (v1</span>
-                </td>
-                <td>2829383</td>
-                <td>
-                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2829383">
-                    Kopiuj kill
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-            <tbody>
               <tr class="diag-group__head">
                 <td colspan="6">
                   <strong class="diag-project">Tester AI</strong>
@@ -218,6 +189,38 @@
               </tr>
             </tbody>
             <tbody>
+              <tr class="diag-group__head diag-group__head--other">
+                <td colspan="6"><strong>Pozostałe porty</strong></td>
+              </tr>
+              <tr data-warning="self">
+                <td class="diag-port">3100</td>
+                <td>WSL</td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td>
+                  <strong class="diag-project">Monolith</strong> · <span>next-server (v1</span
+                  ><span class="chip diag-chip--warn">uwaga: to serwer Monolith</span>
+                </td>
+                <td>2706826</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2706826">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td class="diag-port">3101</td>
+                <td>WSL</td>
+                <td><code class="diag-addr">127.0.0.1</code> <span class="chip">lokalny</span></td>
+                <td>
+                  <strong class="diag-project">Monolith</strong> · <span>next-server (v1</span>
+                </td>
+                <td>2829383</td>
+                <td>
+                  <button class="btn btn--sm" type="button" data-toast="Skopiowano: kill 2829383">
+                    Kopiuj kill
+                  </button>
+                </td>
+              </tr>
               <tr>
                 <td class="diag-port">5398</td>
                 <td>Windows</td>
@@ -237,8 +240,6 @@
                   </button>
                 </td>
               </tr>
-            </tbody>
-            <tbody>
               <tr>
                 <td class="diag-port">5434</td>
                 <td>WSL</td>

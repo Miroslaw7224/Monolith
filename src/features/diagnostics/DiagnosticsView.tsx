@@ -57,9 +57,16 @@ function buildBlocks(rows: PortListenerDto[], groups: PortGroupDto[]): Block[] {
   return blocks;
 }
 
-/** Nagłówek grupy ma sens, gdy są ≥2 procesy albo czegoś brakuje. */
-const showsHeader = (b: Block): boolean =>
-  b.group !== null && b.project !== null && (b.rows.length >= 2 || b.group.missingRole !== null);
+/**
+ * Nagłówek grupy (aplikacja = frontend + backend) tylko gdy to faktycznie jedna aplikacja: dwie różne
+ * role, wspólny rodzic albo brakująca rola. Dwa procesy tego samego projektu bez tego (np. dev i prod
+ * Monolitha) to osobne instancje, więc „Kopiuj kill grupy” zabiłoby obie.
+ */
+const showsHeader = (b: Block): boolean => {
+  if (b.group === null || b.project === null) return false;
+  if (b.group.launcher !== null || b.group.missingRole !== null) return true;
+  return new Set(b.rows.flatMap((r) => (r.role ? [r.role] : []))).size >= 2;
+};
 
 export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
   const t = useT();
@@ -96,11 +103,78 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
   };
 
   const blocks = useMemo(() => buildBlocks(rows, data?.groups ?? []), [rows, data]);
+  // Najpierw grupy z nagłówkiem, potem wszystko inne (pod nagłówkiem, gdy istnieje jakaś grupa).
+  const groupBlocks = useMemo(() => blocks.filter(showsHeader), [blocks]);
+  const otherRows = useMemo(
+    () =>
+      sortRows(
+        blocks.filter((b) => !showsHeader(b)).flatMap((b) => b.rows),
+        sort
+      ),
+    [blocks, sort]
+  );
 
   const failures = (["wsl", "windows"] as const).flatMap((name) => {
     const s = data?.sources[name];
     return s && s.ok === false ? [{ name, reason: s.reason }] : [];
   });
+
+  const renderRow = (p: PortListenerDto, inGroup: boolean) => {
+    const state = copied?.key === p.id ? copied : null;
+    return (
+      <tr key={p.id} data-warning={p.warning ?? undefined}>
+        <td className="diag-port">{p.port}</td>
+        <td>{t(`diagnostics:source.${p.source}`)}</td>
+        <td>
+          {p.addresses.map((a) => (
+            <code key={a} className="diag-addr">
+              {a}
+            </code>
+          ))}{" "}
+          <span className={`diag-chip diag-chip--${p.exposure}`}>
+            {t(`diagnostics:exposure.${p.exposure}`)}
+          </span>
+        </td>
+        <td title={p.commandLine ?? p.path ?? undefined}>
+          {p.project && !inGroup ? (
+            <>
+              <strong className="diag-project">{p.project.name}</strong>
+              {" · "}
+            </>
+          ) : null}
+          <span>{p.process === "" ? t("diagnostics:unknownProcess") : p.process}</span>
+          {p.role ? <span className="diag-chip">{t(`diagnostics:role.${p.role}`)}</span> : null}
+          {p.orphan ? (
+            <span className="diag-chip diag-chip--warn" title={t("diagnostics:orphanHint")}>
+              {t("diagnostics:orphan")}
+            </span>
+          ) : null}
+          {p.warning ? (
+            <span className="diag-chip diag-chip--warn">
+              {t(`diagnostics:warning.${p.warning}`)}
+            </span>
+          ) : null}
+        </td>
+        <td>{p.pid ?? "—"}</td>
+        <td>
+          <button
+            type="button"
+            className="diag-btn diag-btn--sm"
+            disabled={p.killCommand === null}
+            title={p.killCommand ?? t("diagnostics:kill.noPid")}
+            onClick={() => p.killCommand && void copy(p.id, p.killCommand)}
+          >
+            {t("diagnostics:kill.copy")}
+          </button>
+          {state ? (
+            <span role="status" className="diag-copied">
+              {state.ok ? t("diagnostics:kill.copied") : t("diagnostics:kill.failed")}
+            </span>
+          ) : null}
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <section className="diag-root" aria-labelledby="diag-title">
@@ -191,7 +265,7 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
                 <th>{t("diagnostics:columns.action")}</th>
               </tr>
             </thead>
-            {blocks.map((block) => {
+            {groupBlocks.map((block) => {
               const killAll = block.rows
                 .map((r) => r.killCommand)
                 .filter((c): c is string => c !== null)
@@ -235,74 +309,22 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
                       </td>
                     </tr>
                   ) : null}
-                  {block.rows.map((p) => {
-                    const state = copied?.key === p.id ? copied : null;
-                    return (
-                      <tr key={p.id} data-warning={p.warning ?? undefined}>
-                        <td className="diag-port">{p.port}</td>
-                        <td>{t(`diagnostics:source.${p.source}`)}</td>
-                        <td>
-                          {p.addresses.map((a) => (
-                            <code key={a} className="diag-addr">
-                              {a}
-                            </code>
-                          ))}{" "}
-                          <span className={`diag-chip diag-chip--${p.exposure}`}>
-                            {t(`diagnostics:exposure.${p.exposure}`)}
-                          </span>
-                        </td>
-                        <td title={p.commandLine ?? p.path ?? undefined}>
-                          {p.project && !showsHeader(block) ? (
-                            <>
-                              <strong className="diag-project">{p.project.name}</strong>
-                              {" · "}
-                            </>
-                          ) : null}
-                          <span>
-                            {p.process === "" ? t("diagnostics:unknownProcess") : p.process}
-                          </span>
-                          {p.role ? (
-                            <span className="diag-chip">{t(`diagnostics:role.${p.role}`)}</span>
-                          ) : null}
-                          {p.orphan ? (
-                            <span
-                              className="diag-chip diag-chip--warn"
-                              title={t("diagnostics:orphanHint")}
-                            >
-                              {t("diagnostics:orphan")}
-                            </span>
-                          ) : null}
-                          {p.warning ? (
-                            <span className="diag-chip diag-chip--warn">
-                              {t(`diagnostics:warning.${p.warning}`)}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td>{p.pid ?? "—"}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="diag-btn diag-btn--sm"
-                            disabled={p.killCommand === null}
-                            title={p.killCommand ?? t("diagnostics:kill.noPid")}
-                            onClick={() => p.killCommand && void copy(p.id, p.killCommand)}
-                          >
-                            {t("diagnostics:kill.copy")}
-                          </button>
-                          {state ? (
-                            <span role="status" className="diag-copied">
-                              {state.ok
-                                ? t("diagnostics:kill.copied")
-                                : t("diagnostics:kill.failed")}
-                            </span>
-                          ) : null}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {block.rows.map((p) => renderRow(p, true))}
                 </tbody>
               );
             })}
+            {otherRows.length > 0 ? (
+              <tbody>
+                {groupBlocks.length > 0 ? (
+                  <tr className="diag-group__head diag-group__head--other">
+                    <td colSpan={6}>
+                      <strong>{t("diagnostics:group.other")}</strong>
+                    </td>
+                  </tr>
+                ) : null}
+                {otherRows.map((p) => renderRow(p, false))}
+              </tbody>
+            ) : null}
           </table>
         </div>
       ) : null}

@@ -207,3 +207,8 @@
 .diag-table tbody + tbody tr:first-child td {
   border-top: 1px solid var(--line);
 }
+
+.diag-group__head--other td {
+  color: var(--muted);
+  border-top: 2px solid var(--line);
+}
