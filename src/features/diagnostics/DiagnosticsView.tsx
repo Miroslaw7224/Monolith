@@ -35,20 +35,27 @@ type Block = {
   project: { id: string; name: string } | null;
 };
 
-/** Wiersze tego samego projektu trafiają do jednego bloku (w miejscu pierwszego z nich). */
+/**
+ * Wiersze tego samego projektu trafiają do jednego bloku (w miejscu pierwszego z nich); wiersze bez
+ * projektu zostają pojedyncze i lądują potem w „Pozostałych portach”.
+ */
 function buildBlocks(rows: PortListenerDto[], groups: PortGroupDto[]): Block[] {
   const groupOf = new Map(groups.map((g) => [g.projectId, g]));
   const blocks: Block[] = [];
   const byProject = new Map<string, Block>();
   for (const r of rows) {
-    const group = r.project ? groupOf.get(r.project.id) : undefined;
-    if (!r.project || !group) {
+    if (!r.project) {
       blocks.push({ key: r.id, rows: [r], group: null, project: null });
       continue;
     }
     let block = byProject.get(r.project.id);
     if (!block) {
-      block = { key: `g:${r.project.id}`, rows: [], group, project: r.project };
+      block = {
+        key: `g:${r.project.id}`,
+        rows: [],
+        group: groupOf.get(r.project.id) ?? null,
+        project: r.project,
+      };
       byProject.set(r.project.id, block);
       blocks.push(block);
     }
@@ -57,14 +64,16 @@ function buildBlocks(rows: PortListenerDto[], groups: PortGroupDto[]): Block[] {
   return blocks;
 }
 
+/** Każdy projekt ma własny blok z nagłówkiem (nazwa projektu); bez projektu to „Pozostałe porty”. */
+const isProjectBlock = (b: Block): boolean => b.project !== null;
+
 /**
- * Nagłówek grupy (aplikacja = frontend + backend) tylko gdy to faktycznie jedna aplikacja: dwie różne
- * role, wspólny rodzic albo brakująca rola. Dwa procesy tego samego projektu bez tego (np. dev i prod
- * Monolitha) to osobne instancje, więc „Kopiuj kill grupy” zabiłoby obie.
+ * „Kopiuj kill grupy” tylko gdy to faktycznie jedna aplikacja: dwie różne role, wspólny rodzic albo
+ * brakująca rola. Dwa procesy tego samego projektu bez tego (np. dev i prod Monolitha) to osobne
+ * instancje, więc zbiorczy kill zabiłby obie.
  */
-const showsHeader = (b: Block): boolean => {
-  if (b.group === null || b.project === null) return false;
-  if (b.group.launcher !== null || b.group.missingRole !== null) return true;
+const isOneApp = (b: Block): boolean => {
+  if (b.group !== null && (b.group.launcher !== null || b.group.missingRole !== null)) return true;
   return new Set(b.rows.flatMap((r) => (r.role ? [r.role] : []))).size >= 2;
 };
 
@@ -104,11 +113,11 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
 
   const blocks = useMemo(() => buildBlocks(rows, data?.groups ?? []), [rows, data]);
   // Najpierw grupy z nagłówkiem, potem wszystko inne (pod nagłówkiem, gdy istnieje jakaś grupa).
-  const groupBlocks = useMemo(() => blocks.filter(showsHeader), [blocks]);
+  const groupBlocks = useMemo(() => blocks.filter(isProjectBlock), [blocks]);
   const otherRows = useMemo(
     () =>
       sortRows(
-        blocks.filter((b) => !showsHeader(b)).flatMap((b) => b.rows),
+        blocks.filter((b) => !isProjectBlock(b)).flatMap((b) => b.rows),
         sort
       ),
     [blocks, sort]
@@ -273,11 +282,11 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
               const groupCopy = copied?.key === block.key ? copied : null;
               return (
                 <tbody key={block.key}>
-                  {showsHeader(block) && block.group && block.project ? (
+                  {block.project ? (
                     <tr className="diag-group__head">
                       <td colSpan={6}>
                         <strong className="diag-project">{block.project.name}</strong>
-                        {block.group.launcher ? (
+                        {block.group?.launcher ? (
                           <span className="diag-chip">
                             {t("diagnostics:group.launcher", {
                               name: block.group.launcher.name,
@@ -285,20 +294,22 @@ export function DiagnosticsView({ apiFetch }: { apiFetch: ApiFetch }) {
                             })}
                           </span>
                         ) : null}
-                        {block.group.missingRole ? (
+                        {block.group?.missingRole ? (
                           <span className="diag-chip diag-chip--network">
                             {t(`diagnostics:group.missing.${block.group.missingRole}`)}
                           </span>
                         ) : null}
-                        <button
-                          type="button"
-                          className="diag-btn diag-btn--sm diag-group__kill"
-                          disabled={killAll === ""}
-                          title={t("diagnostics:group.killAllHint")}
-                          onClick={() => void copy(block.key, killAll)}
-                        >
-                          {t("diagnostics:group.killAll")}
-                        </button>
+                        {isOneApp(block) ? (
+                          <button
+                            type="button"
+                            className="diag-btn diag-btn--sm diag-group__kill"
+                            disabled={killAll === ""}
+                            title={t("diagnostics:group.killAllHint")}
+                            onClick={() => void copy(block.key, killAll)}
+                          >
+                            {t("diagnostics:group.killAll")}
+                          </button>
+                        ) : null}
                         {groupCopy ? (
                           <span role="status" className="diag-copied">
                             {groupCopy.ok
