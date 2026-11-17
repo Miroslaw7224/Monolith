@@ -131,7 +131,12 @@ function loadProjectRoots(home: string): ProjectRoot[] {
     return listProjects().projects.flatMap((p) => {
       if (isWorkProject(p)) return [];
       const root = expandHome(p.localPath, home);
-      return root === null ? [] : [{ id: p.id, name: p.name, root }];
+      if (root === null) return [];
+      // `<katalog>-prod`: worktree produkcyjny (ikona pulpitu uruchamia `main` stamtąd, zob. CLAUDE.md).
+      return [
+        { id: p.id, name: p.name, root },
+        { id: p.id, name: p.name, root: `${root}-prod` },
+      ];
     });
   } catch {
     return [];

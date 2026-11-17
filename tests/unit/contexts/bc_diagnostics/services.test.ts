@@ -305,6 +305,14 @@ describe("listPorts", () => {
       expect(await one("/home/u/p/sub/x")).toEqual({ id: "b", name: "B" });
     });
 
+    it("worktree produkcyjny <katalog>-prod należy do tego samego projektu", async () => {
+      withProjects(project("mono", "/home/u/Monolith"));
+      const expected = { id: "mono", name: "MONO" };
+      expect(await one("/home/u/Monolith-prod")).toEqual(expected);
+      expect(await one("/home/u/Monolith-prod/.next")).toEqual(expected);
+      expect(await one("/home/u/Monolith-production")).toBeNull();
+    });
+
     it("projekt etatowy (work) i brak cwd dają null", async () => {
       withProjects(project("firma", "/home/u/firma", "work"));
       expect(await one("/home/u/firma/app")).toBeNull();
