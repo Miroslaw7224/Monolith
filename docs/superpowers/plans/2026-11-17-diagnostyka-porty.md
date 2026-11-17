@@ -1099,7 +1099,9 @@ vi.mock("@/contexts/bc_diagnostics/services", () => ({ listPorts: mockList }));
 
 import { GET } from "@/app/api/diagnostics/ports/route";
 
-beforeEach(() => mockList.mockReset());
+beforeEach(() => {
+  mockList.mockReset();
+}); // klamry: mockReset() zwraca mocka, a Vitest wywołałby go jako cleanup
 
 describe("GET /api/diagnostics/ports", () => {
   it("zwraca DTO", async () => {
