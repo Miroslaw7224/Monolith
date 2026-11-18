@@ -40,6 +40,26 @@ const STATE = {
   updated: "2026-11-13T09:15",
 };
 
+const EMPTY_STATE = {
+  branch: "",
+  env: "",
+  blocker: "",
+  nextStep: "",
+  links: [] as string[],
+  milestone: "",
+  updated: "2026-11-13T09:15",
+};
+
+const FULL_STATE = {
+  branch: "main",
+  env: "local",
+  blocker: "brak API",
+  nextStep: "testy",
+  links: ["https://a"],
+  milestone: "",
+  updated: "2026-11-13T09:15",
+};
+
 function renderIt(
   p: ProjectDetailDto,
   onSave = vi.fn(async (): Promise<MutationResult> => ({ ok: true })),
@@ -65,6 +85,82 @@ describe("ProjectSaveState", () => {
     expect(screen.getByText("javascript:x")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "javascript:x" })).toBeNull();
     expect(screen.getByRole("button", { name: "Edytuj" })).toBeInTheDocument();
+    expect(screen.queryByText("—")).toBeNull();
+  });
+
+  it("1: sam branch — etykieta Aktywny branch, bez pustych kafli i bez „—”", () => {
+    renderIt(
+      project({
+        state: { ...EMPTY_STATE, branch: "main" },
+        stateVersion: "5:h",
+      })
+    );
+    expect(screen.getByText("main")).toBeInTheDocument();
+    expect(screen.getByText("Aktywny branch")).toBeInTheDocument();
+    expect(screen.queryByText("Środowisko")).toBeNull();
+    expect(screen.queryByText("Bloker")).toBeNull();
+    expect(screen.queryByText("Następny krok")).toBeNull();
+    expect(screen.queryByText("Linki")).toBeNull();
+    expect(screen.queryByText("—")).toBeNull();
+  });
+
+  it("2: wszystkie pola wypełnione — pięć etykiet odczytu", () => {
+    renderIt(project({ state: FULL_STATE, stateVersion: "5:h" }));
+    expect(screen.getByText("Aktywny branch")).toBeInTheDocument();
+    expect(screen.getByText("Środowisko")).toBeInTheDocument();
+    expect(screen.getByText("Bloker")).toBeInTheDocument();
+    expect(screen.getByText("Następny krok")).toBeInTheDocument();
+    expect(screen.getByText("Linki")).toBeInTheDocument();
+  });
+
+  it("3: puste pola bez whereIStopped — allEmpty i Edytuj, bez pięciu etykiet", () => {
+    renderIt(project({ state: EMPTY_STATE, stateVersion: "5:h", whereIStopped: null }));
+    expect(
+      screen.getByText("Brak zapisanych pól. Kliknij „Edytuj”, aby je uzupełnić.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edytuj" })).toBeInTheDocument();
+    expect(screen.queryByText("Aktywny branch")).toBeNull();
+    expect(screen.queryByText("Środowisko")).toBeNull();
+    expect(screen.queryByText("Bloker")).toBeNull();
+    expect(screen.queryByText("Następny krok")).toBeNull();
+    expect(screen.queryByText("Linki")).toBeNull();
+  });
+
+  it("4: puste pola z whereIStopped — kafel Gdzie skończyłem, bez allEmpty", () => {
+    renderIt(
+      project({
+        state: EMPTY_STATE,
+        stateVersion: "5:h",
+        whereIStopped: "tu skończyłem",
+      })
+    );
+    expect(screen.getByText("Gdzie skończyłem (z index.md)")).toBeInTheDocument();
+    expect(screen.getByText("tu skończyłem")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Brak zapisanych pól. Kliknij „Edytuj”, aby je uzupełnić.")
+    ).toBeNull();
+    expect(screen.queryByText("Aktywny branch")).toBeNull();
+  });
+
+  it("5: blocker samymi spacjami — bez kafla Bloker", () => {
+    renderIt(
+      project({
+        state: { ...EMPTY_STATE, branch: "main", blocker: "   " },
+        stateVersion: "5:h",
+      })
+    );
+    expect(screen.queryByText("Bloker")).toBeNull();
+  });
+
+  it("6: Edytuj — formularz z wszystkimi polami", async () => {
+    const { user } = renderIt(project({ state: EMPTY_STATE, stateVersion: "5:h" }));
+    await user.click(screen.getByRole("button", { name: "Edytuj" }));
+    expect(screen.getByLabelText("Branch")).toBeInTheDocument();
+    expect(screen.getByLabelText("Środowisko")).toBeInTheDocument();
+    expect(screen.getByLabelText("Bloker")).toBeInTheDocument();
+    expect(screen.getByLabelText("Następny krok")).toBeInTheDocument();
+    expect(screen.getByLabelText("Kamień milowy")).toBeInTheDocument();
+    expect(screen.getByLabelText("Linki (jeden na linię)")).toBeInTheDocument();
   });
 
   it("ze state i wpisem w index.md: „Gdzie skończyłem” nad kaflami", () => {

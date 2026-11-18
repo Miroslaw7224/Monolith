@@ -43,7 +43,9 @@ function StateBox(props: {
   );
 }
 
-const dash = (value: string) => (value === "" ? "—" : value);
+function isNonempty(value: string | undefined): boolean {
+  return (value ?? "").trim() !== "";
+}
 
 export function ProjectSaveState(props: {
   project: ProjectDetailDto;
@@ -189,6 +191,15 @@ export function ProjectSaveState(props: {
     );
   }
 
+  const showBranch = isNonempty(state.branch);
+  const showEnv = isNonempty(state.env);
+  const showBlocker = isNonempty(state.blocker);
+  const showNextStep = isNonempty(state.nextStep);
+  const showLinks = state.links.length > 0;
+  const showWhere = !!project.whereIStopped;
+  const showAnyTile =
+    showWhere || showBranch || showEnv || showBlocker || showNextStep || showLinks;
+
   return (
     <article className="prj-card">
       <div className="prj-card__head">
@@ -200,27 +211,38 @@ export function ProjectSaveState(props: {
         ) : null}
       </div>
       <div className="prj-savestate">
-        {project.whereIStopped ? (
+        {showWhere ? (
           <StateBox label={t("projects:saveState.whereStopped")} wide>
             <p className="prj-where">{project.whereIStopped}</p>
           </StateBox>
         ) : null}
-        <StateBox label={t("projects:saveState.readBranch")}>
-          <p className="prj-statebox__val">{dash(state.branch)}</p>
-        </StateBox>
-        <StateBox label={t("projects:saveState.readEnv")}>
-          <p className="prj-statebox__val">{dash(state.env)}</p>
-        </StateBox>
-        <StateBox label={t("projects:saveState.readBlocker")} wide>
-          <p className="prj-statebox__val">{dash(state.blocker)}</p>
-        </StateBox>
-        <StateBox label={t("projects:saveState.readNextStep")} wide>
-          <p className="prj-statebox__next">{dash(state.nextStep)}</p>
-        </StateBox>
-        <StateBox label={t("projects:saveState.readLinks")} wide>
-          {state.links.length === 0 ? (
-            <p className="prj-statebox__val">—</p>
-          ) : (
+        {!showAnyTile ? (
+          <p className="prj-statebox__meta prj-statebox--wide">
+            {t("projects:saveState.allEmpty")}
+          </p>
+        ) : null}
+        {showBranch ? (
+          <StateBox label={t("projects:saveState.readBranch")}>
+            <p className="prj-statebox__val">{state.branch}</p>
+          </StateBox>
+        ) : null}
+        {showEnv ? (
+          <StateBox label={t("projects:saveState.readEnv")}>
+            <p className="prj-statebox__val">{state.env}</p>
+          </StateBox>
+        ) : null}
+        {showBlocker ? (
+          <StateBox label={t("projects:saveState.readBlocker")} wide>
+            <p className="prj-statebox__val">{state.blocker}</p>
+          </StateBox>
+        ) : null}
+        {showNextStep ? (
+          <StateBox label={t("projects:saveState.readNextStep")} wide>
+            <p className="prj-statebox__next">{state.nextStep}</p>
+          </StateBox>
+        ) : null}
+        {showLinks ? (
+          <StateBox label={t("projects:saveState.readLinks")} wide>
             <ul className="prj-statebox__links">
               {state.links.map((url, index) => (
                 <li key={`${index}-${url}`}>
@@ -234,8 +256,8 @@ export function ProjectSaveState(props: {
                 </li>
               ))}
             </ul>
-          )}
-        </StateBox>
+          </StateBox>
+        ) : null}
       </div>
       <div className="prj-form__actions">
         <button type="button" className="prj-btn" onClick={open}>
