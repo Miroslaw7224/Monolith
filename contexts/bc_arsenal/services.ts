@@ -1,6 +1,7 @@
 import { hasCompanyData, listProjects } from "@/contexts/bc_projects/services";
 import { DomainError } from "@/lib/errors";
 import { localIsoDate } from "@/lib/schema/archive-date";
+import { SKILL_CATEGORIES } from "@/lib/schema/skill-category";
 import {
   SUMMARY_MAX,
   WORK_TARGET_NOTE,
@@ -125,6 +126,7 @@ function parseSkill(
   const { valid, dropped } = parseDeployments(meta.deployed);
   const deployed = valid.filter((d) => known.has(d.project));
   const origin = str(meta.origin);
+  const category = SKILL_CATEGORIES.find((c) => c === str(meta.category));
   const description = str(meta.description);
   const summary = str(meta.summary) ?? firstSentence(description ?? "");
   return {
@@ -136,6 +138,7 @@ function parseSkill(
       slug: key,
       summary: truncate(summary),
       ...(origin !== undefined && { origin }),
+      ...(category !== undefined && { category }),
       ...(description !== undefined && { description }),
       body,
       deployed,

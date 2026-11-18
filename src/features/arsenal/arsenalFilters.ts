@@ -1,4 +1,4 @@
-import type { ArsenalEntryDto } from "@/contexts/bc_arsenal/schemas";
+import type { ArsenalEntryDto, SkillCategoryDto } from "@/contexts/bc_arsenal/schemas";
 
 export type KindFilter = "all" | "skill" | "prompt";
 
@@ -9,6 +9,8 @@ export type ArsenalFilters = {
   project: string | null;
   /** Model promptu. */
   model: string | null;
+  /** Kategoria skilla; prompty i skille bez kategorii odpadają. */
+  category: SkillCategoryDto | null;
   undeployedOnly: boolean;
 };
 
@@ -17,6 +19,7 @@ export const EMPTY_FILTERS: ArsenalFilters = {
   kind: "all",
   project: null,
   model: null,
+  category: null,
   undeployedOnly: false,
 };
 
@@ -37,6 +40,12 @@ export function filterEntries(
     if (filters.kind !== "all" && entry.kind !== filters.kind) return false;
     if (filters.project !== null && !entryProjects(entry).includes(filters.project)) return false;
     if (filters.model !== null && !(entry.kind === "prompt" && entry.model === filters.model)) {
+      return false;
+    }
+    if (
+      filters.category !== null &&
+      !(entry.kind === "skill" && entry.category === filters.category)
+    ) {
       return false;
     }
     if (filters.undeployedOnly && !(entry.kind === "skill" && entry.deployed.length === 0)) {
@@ -78,6 +87,7 @@ export function isFiltered(filters: ArsenalFilters): boolean {
     filters.kind !== "all" ||
     filters.project !== null ||
     filters.model !== null ||
+    filters.category !== null ||
     filters.undeployedOnly
   );
 }

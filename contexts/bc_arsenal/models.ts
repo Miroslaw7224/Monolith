@@ -1,3 +1,5 @@
+import type { SkillCategory } from "@/lib/schema/skill-category";
+
 /** Skille jako dokumenty: `Vault/Arsenal/Skills/<slug>/skill.md` (+ opcjonalny `templates/`). */
 export const SKILLS_DIR = "Arsenal/Skills";
 /** Prompty zostają w Bazie wiedzy (czytane bez przenoszenia). */
@@ -19,6 +21,8 @@ export type SkillEntry = EntryBase & {
   kind: "skill";
   slug: string;
   origin?: string;
+  /** Nieznana wartość we frontmatterze jest pomijana. */
+  category?: SkillCategory;
   /** `description` z frontmattera (kiedy skill się uruchamia); tylko do promptu wdrożenia, nie w DTO. */
   description?: string;
   deployed: Deployment[];
