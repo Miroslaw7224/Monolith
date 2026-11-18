@@ -671,13 +671,18 @@ export async function getReviewHistory(
 
 export const MAX_REVIEW_REQUESTS = 20;
 
-/** Prośby o review z GitHuba (PR-y otwarte i zmergowane): najnowsze pierwsze, maksymalnie `MAX_REVIEW_REQUESTS`. */
+/** Prośby o review i PR-y po review z GitHuba: najnowsze pierwsze, maksymalnie `MAX_REVIEW_REQUESTS`. */
 export async function getReviewRequests(): Promise<ReviewRequests> {
   const res = await repositories.loadReviewRequests();
   const items = [...res.items]
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
     .slice(0, MAX_REVIEW_REQUESTS);
-  return { available: res.available, total: res.total, items };
+  return {
+    available: res.available,
+    updatesAvailable: res.updatesAvailable,
+    total: res.total,
+    items,
+  };
 }
 
 export const MAX_OPEN_PRS = 20;

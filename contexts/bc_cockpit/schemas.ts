@@ -206,6 +206,7 @@ export function toReviewHistoryDto(h: ReviewHistory): ReviewHistoryDto {
 export function toReviewRequestsDto(r: ReviewRequests): ReviewRequestsDto {
   return {
     available: r.available,
+    updatesAvailable: r.updatesAvailable,
     total: r.total,
     items: r.items.map((i) => ({
       repo: i.repo,
@@ -215,6 +216,7 @@ export function toReviewRequestsDto(r: ReviewRequests): ReviewRequestsDto {
       url: i.url,
       updatedAt: i.updatedAt,
       state: i.state,
+      reason: i.reason,
     })),
   };
 }

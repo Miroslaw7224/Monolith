@@ -237,22 +237,42 @@ describe("toReviewRequestsDto", () => {
     url: "https://github.com/o/r/pull/1",
     updatedAt: "2026-11-16T05:58:28Z",
     state: "open" as const,
+    reason: "requested" as const,
   };
 
   it("kopiuje pola i odrzuca nadmiarowe", () => {
     const dto = toReviewRequestsDto({
       available: true,
+      updatesAvailable: true,
       total: 7,
       items: [{ ...item, extra: 1 }],
     } as never);
-    expect(dto).toEqual({ available: true, total: 7, items: [item] });
+    expect(dto).toEqual({ available: true, updatesAvailable: true, total: 7, items: [item] });
   });
 
   it("niedostępny GitHub: available false, pusta lista", () => {
-    expect(toReviewRequestsDto({ available: false, total: 0, items: [] })).toEqual({
+    expect(
+      toReviewRequestsDto({ available: false, updatesAvailable: false, total: 0, items: [] })
+    ).toEqual({
       available: false,
+      updatesAvailable: false,
       total: 0,
       items: [],
+    });
+  });
+
+  it("przenosi reason i updatesAvailable", () => {
+    const dto = toReviewRequestsDto({
+      available: true,
+      updatesAvailable: false,
+      total: 1,
+      items: [{ ...item, reason: "updated" }],
+    } as never);
+    expect(dto).toEqual({
+      available: true,
+      updatesAvailable: false,
+      total: 1,
+      items: [{ ...item, reason: "updated" }],
     });
   });
 });

@@ -1582,11 +1582,13 @@ describe("getReviewRequests", () => {
     url: `https://github.com/o/r/pull/${n}`,
     updatedAt,
     state: "open" as const,
+    reason: "requested" as const,
   });
 
   it("sortuje malejąco po updatedAt", async () => {
     mockLoadReviewRequests.mockResolvedValue({
       available: true,
+      updatesAvailable: true,
       total: 3,
       items: [
         pr(1, "2026-11-14T10:00:00Z"),
@@ -1603,7 +1605,12 @@ describe("getReviewRequests", () => {
     const items = Array.from({ length: 25 }, (_, i) =>
       pr(i + 1, new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString())
     ).reverse();
-    mockLoadReviewRequests.mockResolvedValue({ available: true, total: 25, items });
+    mockLoadReviewRequests.mockResolvedValue({
+      available: true,
+      updatesAvailable: true,
+      total: 25,
+      items,
+    });
     const res = await getReviewRequests();
     expect(res.total).toBe(25);
     expect(MAX_REVIEW_REQUESTS).toBe(20);
@@ -1613,8 +1620,36 @@ describe("getReviewRequests", () => {
   });
 
   it("niedostępny GitHub przechodzi bez zmian", async () => {
-    mockLoadReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
-    expect(await getReviewRequests()).toEqual({ available: false, total: 0, items: [] });
+    mockLoadReviewRequests.mockResolvedValue({
+      available: false,
+      updatesAvailable: false,
+      total: 0,
+      items: [],
+    });
+    expect(await getReviewRequests()).toEqual({
+      available: false,
+      updatesAvailable: false,
+      total: 0,
+      items: [],
+    });
+  });
+
+  it("przekazuje updatesAvailable i sortuje razem prośby i „po review”", async () => {
+    mockLoadReviewRequests.mockResolvedValue({
+      available: true,
+      updatesAvailable: false,
+      total: 2,
+      items: [
+        { ...pr(1, "2026-11-14T10:00:00Z"), reason: "requested" },
+        { ...pr(2, "2026-11-16T10:00:00Z"), reason: "updated" },
+      ],
+    });
+    const res = await getReviewRequests();
+    expect(res.updatesAvailable).toBe(false);
+    expect(res.items.map((i) => [i.number, i.reason])).toEqual([
+      [2, "updated"],
+      [1, "requested"],
+    ]);
   });
 });
 
