@@ -1,4 +1,5 @@
 import { runGh } from "./gh";
+import { asObject, isGithubUrl, isIsoDate } from "./parse";
 
 /** PR (otwarty albo już zmergowany), w którym użytkownik nadal jest wskazanym recenzentem (spłaszczony wynik `gh`). */
 export type GithubReviewRequest = {
@@ -33,28 +34,6 @@ const GH_ARGS = [
   "--json",
   "number,title,url,author,repository,updatedAt,state",
 ];
-/** `gh` podaje daty ISO-8601 (`2026-11-16T05:58:28Z`); luźne ciągi typu „1” odrzucamy. */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
-
-/** `url` trafia do `href`, więc przepuszczamy tylko `https://github.com/...` (bez portu i danych logowania). */
-function isGithubUrl(raw: string): boolean {
-  try {
-    const u = new URL(raw);
-    return (
-      u.protocol === "https:" &&
-      u.hostname === "github.com" &&
-      u.port === "" &&
-      u.username === "" &&
-      u.password === ""
-    );
-  } catch {
-    return false;
-  }
-}
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
-}
 
 function parseItem(raw: unknown): GithubReviewRequest | null {
   const r = asObject(raw);
@@ -66,12 +45,7 @@ function parseItem(raw: unknown): GithubReviewRequest | null {
   if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return null;
   if (typeof title !== "string" || title === "") return null;
   if (typeof url !== "string" || !isGithubUrl(url)) return null;
-  if (
-    typeof updatedAt !== "string" ||
-    !ISO_DATE.test(updatedAt) ||
-    !Number.isFinite(Date.parse(updatedAt))
-  )
-    return null;
+  if (!isIsoDate(updatedAt)) return null;
   // PR zamknięty bez merge'a: review nic już nie da, więc go pomijamy.
   if (state !== "open" && state !== "merged") return null;
   return {
