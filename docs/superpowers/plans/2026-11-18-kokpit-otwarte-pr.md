@@ -901,3 +901,270 @@ Raport: "GOTOWE: <pliki>, testy/tsc/lint zielone" albo "UTKNĄŁEM: plik:linia +
 - Trasa `force-dynamic` i strażnik: Task 2 krok 2 i 3. Wspólna walidacja zamiast kopii: Task 1 kroki 1-2. i18n `pl`/`en`: Task 3 krok 1.
 - Testy: parser, repozytorium, serwis, DTO, router, komponent, `HomeView` (nowy fetch). `architecture.static.test.ts` bez zmian.
 - Spójność typów: `GithubOpenPr` (`draft`) → `OpenPr` → `OpenPrDto`; `fetchMyOpenPrs` → `loadOpenPrs` → `getOpenPrs` → `toOpenPrsDto` → `OpenPrs` (komponent).
+
+---
+
+## Task 5: tabelka PR (wykonawca: agy; uzupełnienie specu „tabelka”)
+
+**Pliki:**
+
+- Create: `src/features/home/PrRow.tsx`, `tests/unit/features/home/PrRow.test.tsx`
+- Modify: `src/features/home/OpenPrs.tsx`, `src/features/home/ReviewRequests.tsx`, `src/features/home/home.css`,
+  `tests/unit/features/home/OpenPrs.test.tsx`, `tests/unit/features/home/ReviewRequests.test.tsx`
+
+Istniejące zachowanie testów zostaje: link ma nazwę zawierającą `repo#numer`, `target="_blank"`, `rel="noopener noreferrer"`,
+klasy `kok-reviews__ref--ready|draft` i `kok-reviews__state--ready|draft`, teksty „scalony”, „gotowy”, „draft”, autor.
+
+- [ ] **Krok 1: czerwony test `PrRow`.** Utwórz `tests/unit/features/home/PrRow.test.tsx`:
+
+```tsx
+import React from "react";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, test } from "vitest";
+import { PrRow } from "@/src/features/home/PrRow";
+import { formatShortDate, formatTime } from "@/src/i18n/format";
+
+afterEach(cleanup);
+
+const UPDATED = "2026-11-16T05:58:28Z";
+
+describe("PrRow", () => {
+  test("link do PR z repo#numer i tytułem, pełny tekst w title, bezpieczne atrybuty", () => {
+    render(
+      <ul>
+        <PrRow
+          repo="o/r"
+          number={5}
+          title="Bardzo długi tytuł"
+          url="https://github.com/o/r/pull/5"
+          updatedAt={UPDATED}
+          refClassName="kok-reviews__ref--ready"
+        >
+          <span>status</span>
+        </PrRow>
+      </ul>
+    );
+    const link = screen.getByRole("link", { name: /o\/r#5/ });
+    expect(link.getAttribute("href")).toBe("https://github.com/o/r/pull/5");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link.getAttribute("title")).toBe("o/r#5 Bardzo długi tytuł");
+    expect(screen.getByText("o/r#5").className).toContain("kok-reviews__ref--ready");
+    expect(screen.getByText("Bardzo długi tytuł").className).toContain("kok-pr-row__title");
+  });
+
+  test("kolumny: status (children) i data z godziną", () => {
+    render(
+      <ul>
+        <PrRow
+          repo="o/r"
+          number={5}
+          title="T"
+          url="https://github.com/o/r/pull/5"
+          updatedAt={UPDATED}
+        >
+          <span>status</span>
+        </PrRow>
+      </ul>
+    );
+    expect(screen.getByText("status").closest(".kok-pr-row__cell")).toBeTruthy();
+    const when = new Date(UPDATED);
+    expect(screen.getByText(`${formatShortDate(when)} ${formatTime(when)}`).className).toContain(
+      "kok-pr-row__when"
+    );
+  });
+});
+```
+
+Uruchom `npx vitest run tests/unit/features/home/PrRow.test.tsx`. Oczekiwane: FAIL (brak komponentu).
+
+- [ ] **Krok 2: komponent.** Utwórz `src/features/home/PrRow.tsx`:
+
+```tsx
+import React from "react";
+import { formatShortDate, formatTime } from "@/src/i18n/format";
+
+type Props = {
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  /** Data ISO ostatniej zmiany PR-a. */
+  updatedAt: string;
+  /** Dodatkowa klasa koloru odnośnika `repo#numer` (np. `kok-reviews__ref--ready`). */
+  refClassName?: string;
+  /** Zawartość kolumny „status” (chip, autor, odznaka). */
+  children?: React.ReactNode;
+};
+
+/** Wiersz tabelki PR: `repo#numer` + tytuł (jedna linia, wielokropek) jako link, status i data (wspólny dla „Otwarte PR” i „Do zrecenzowania”). */
+export function PrRow({ repo, number, title, url, updatedAt, refClassName, children }: Props) {
+  const when = new Date(updatedAt);
+  return (
+    <li className="kok-pr-row">
+      <a
+        className="kok-pr-row__main"
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={`${repo}#${number} ${title}`}
+      >
+        <span
+          className={`kok-reviews__ref kok-pr-row__ref${refClassName ? ` ${refClassName}` : ""}`}
+        >
+          {repo}#{number}
+        </span>
+        <span className="kok-pr-row__title">{title}</span>
+      </a>
+      <span className="kok-pr-row__cell">{children}</span>
+      <span className="kok-pr-row__when">
+        {formatShortDate(when)} {formatTime(when)}
+      </span>
+    </li>
+  );
+}
+```
+
+Uruchom test z kroku 1. Oczekiwane: PASS.
+
+- [ ] **Krok 3: `OpenPrs.tsx`.** Zastąp `<ul className="kok-reviews__list">…</ul>` przez
+
+```tsx
+<ul className="kok-pr-table">
+  {state.items.map((item) => {
+    const kind = item.draft ? "draft" : "ready";
+    return (
+      <PrRow
+        key={`${item.repo}#${item.number}`}
+        repo={item.repo}
+        number={item.number}
+        title={item.title}
+        url={item.url}
+        updatedAt={item.updatedAt}
+        refClassName={`kok-reviews__ref--${kind}`}
+      >
+        <span className={`kok-reviews__state kok-reviews__state--${kind}`}>
+          {t(item.draft ? "home:openPrs.draft" : "home:openPrs.ready")}
+        </span>
+      </PrRow>
+    );
+  })}
+</ul>
+```
+
+dodaj `import { PrRow } from "./PrRow";` i usuń niepotrzebne już importy `formatShortDate`, `formatTime`.
+
+- [ ] **Krok 4: `ReviewRequests.tsx`.** Analogicznie zastąp listę przez
+
+```tsx
+<ul className="kok-pr-table">
+  {state.items.map((item) => (
+    <PrRow
+      key={`${item.repo}#${item.number}`}
+      repo={item.repo}
+      number={item.number}
+      title={item.title}
+      url={item.url}
+      updatedAt={item.updatedAt}
+    >
+      {item.author ? <span>{item.author}</span> : null}
+      {item.state === "merged" ? (
+        <span className="kok-badge">{t("home:reviews.merged")}</span>
+      ) : null}
+    </PrRow>
+  ))}
+</ul>
+```
+
+dodaj `import { PrRow } from "./PrRow";` i usuń nieużywane importy formatowania daty.
+
+- [ ] **Krok 5: CSS.** W `src/features/home/home.css` usuń reguły `.kok-reviews__list`, `.kok-reviews__item`, `.kok-reviews__link`,
+      `.kok-reviews__link:hover`, `.kok-reviews__meta` (po zmianie nieużywane; sprawdź `grep -rn "kok-reviews__\(list\|item\|link\|meta\)" src tests`, ma nic nie zwrócić).
+      Zostaw `.kok-reviews__ref` i reguły `--ready|--draft|state`. Zaraz po `.kok-reviews__ref` dodaj:
+
+```css
+/* ---------- Tabelka PR (Otwarte PR, Do zrecenzowania): jak lista w Kolejce ---------- */
+.kok-pr-table {
+  list-style: none;
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.kok-pr-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+}
+
+.kok-pr-row:last-child {
+  border-bottom: none;
+}
+
+.kok-pr-row__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.kok-pr-row__ref,
+.kok-pr-row__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kok-pr-row__ref {
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+}
+
+.kok-pr-row__title {
+  color: var(--text);
+  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+}
+
+.kok-pr-row__main:hover .kok-pr-row__title {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.kok-pr-row__cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.kok-pr-row__when {
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+  text-align: right;
+}
+```
+
+- [ ] **Krok 6: testy kafelków.** W `OpenPrs.test.tsx` w teście „lista: …” dopisz
+      `expect(document.querySelectorAll(".kok-pr-row")).toHaveLength(2);`, a w `ReviewRequests.test.tsx` w teście „lista: …”
+      to samo (`toHaveLength(2)`). Reszta asercji bez zmian.
+- [ ] **Krok 7: zielone.** `npx vitest run tests/unit/features/home` oraz `npx tsc --noEmit` oraz `npm run lint`. Oczekiwane: zielone.
+- [ ] **Krok 8 (Claude):** commit `feat(home): tabelka PR w kafelkach Otwarte PR i Do zrecenzowania`.
+
+### Prompt dla agy (Task 5)
+
+```
+Zadanie (--role task), repo ~/projects/Brain_7224/Monolith, gałąź feat/kokpit-otwarte-pr. NIE commituj.
+Wykonaj Task 5 z docs/superpowers/plans/2026-11-18-kokpit-otwarte-pr.md (kroki 1-7), dosłownie wg kodu z planu.
+Pliki wolno zmieniać tylko te, które wymienia Task 5. Zachowaj polskie znaki i cudzysłowy z planu bez zmian.
+Na koniec uruchom OSOBNO (bez &&, bez pipe): npx vitest run tests/unit/features/home ; npx tsc --noEmit ; npm run lint.
+Raport: GOTOWE: <pliki>, testy/tsc/lint zielone albo UTKNĄŁEM: plik:linia + przyczyna.
+```

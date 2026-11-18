@@ -76,3 +76,11 @@ kolor/etykieta draftu, stan błędu, „+N więcej”.
 
 PR-y, w których użytkownik jest tylko recenzentem lub assignee; akcje na PR-ach (merge, komentarze);
 status CI; filtrowanie po repo.
+
+## Uzupełnienie: tabelka (2026-11-18)
+
+Wpisy w „Otwarte PR” i „Do zrecenzowania” mają formę tabelki jak Kolejka · dziś: lista w ramce `--surface-2`,
+wiersze rozdzielone cienką linią, trzy kolumny: **PR** (mała linia `repo#numer`, pod nią tytuł w jednej linii
+z wielokropkiem, całość to link; pełny tekst w `title=`), **status** (Otwarte PR: chip „gotowy” zielony /
+„draft” szary; Do zrecenzowania: autor i odznaka „scalony”) oraz **data** (krótka data i godzina, wyrównana do prawej).
+Wspólny wiersz to `src/features/home/PrRow.tsx`; dane, trasy i i18n bez zmian. Kolory draft/gotowy i teksty statusów jak wyżej.
