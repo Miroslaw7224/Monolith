@@ -99,6 +99,7 @@ export const projects = {
     conflict:
       "state.md zmienił się poza aplikacją. Wczytaj aktualną wersję; niezapisane zmiany w formularzu zostaną utracone.",
     linksHttpOnly: "Linki muszą zaczynać się od http:// lub https://",
+    allEmpty: "Brak zapisanych pól. Kliknij „Edytuj”, aby je uzupełnić.",
   },
   errors: {
     clipboard: "Nie udało się skopiować do schowka",

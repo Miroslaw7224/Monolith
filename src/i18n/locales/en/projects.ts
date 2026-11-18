@@ -89,6 +89,7 @@ export const projects = {
     conflict:
       "state.md changed outside the app. Reload the current version; unsaved form changes will be lost.",
     linksHttpOnly: "Links must start with http:// or https://",
+    allEmpty: 'No saved fields. Click "Edit" to fill them in.',
   },
   errors: {
     clipboard: "Failed to copy to clipboard",
