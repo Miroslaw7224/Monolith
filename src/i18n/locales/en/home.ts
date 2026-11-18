@@ -74,6 +74,8 @@ export const home = {
     empty: "No review requests",
     error: "Could not load from GitHub",
     merged: "merged",
+    updated: "updated",
+    updatesError: "Could not check updates after review",
     more: "+{{n}} older",
   },
   openPrs: {

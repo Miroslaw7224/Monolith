@@ -201,4 +201,29 @@ describe("ReviewRequests", () => {
     });
     expect(errorSpy).not.toHaveBeenCalled();
   });
+
+  test("pozycja z reason updated ma odznakę „po review”, zwykła prośba jej nie ma", async () => {
+    const items = [
+      { ...ITEMS[0], reason: "requested" },
+      { ...ITEMS[1], state: "open", reason: "updated" },
+    ];
+    const apiFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ available: true, updatesAvailable: true, total: 2, items }),
+    });
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    await screen.findByText("Do zrecenzowania");
+    expect(screen.getAllByText("po review")).toHaveLength(1);
+    expect(screen.queryByText("Nie można sprawdzić zmian po review")).toBeNull();
+  });
+
+  test("updatesAvailable false: lista zostaje, pod nią ostrzeżenie", async () => {
+    const apiFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ available: true, updatesAvailable: false, total: 2, items: ITEMS }),
+    });
+    render(<ReviewRequests apiFetch={apiFetch} />);
+    expect(await screen.findByText("Nie można sprawdzić zmian po review")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /career-guide#1476/ })).toBeTruthy();
+  });
 });
