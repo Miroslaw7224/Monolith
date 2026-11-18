@@ -88,6 +88,20 @@ describe("listArsenal: skille", () => {
     expect(skipped).toBe(1);
   });
 
+  it("category: znana kategoria trafia do wpisu, nieznana jest pomijana bez liczenia jako odrzucona", () => {
+    vault.write("Arsenal/Skills/a/skill.md", skillDoc("a", "category: review\n"));
+    vault.write("Arsenal/Skills/b/skill.md", skillDoc("b", "category: wymyslona\n"));
+    vault.write("Arsenal/Skills/c/skill.md", skillDoc("c"));
+    const { entries, skipped } = services.listArsenal();
+    const category = (slug: string) =>
+      (entries.find((e) => e.kind === "skill" && e.slug === slug) as { category?: string })
+        .category;
+    expect(category("a")).toBe("review");
+    expect(category("b")).toBeUndefined();
+    expect(category("c")).toBeUndefined();
+    expect(skipped).toBe(0);
+  });
+
   it("summary zastępcze: pierwsze zdanie description, ucięte do 90 znaków", () => {
     vault.write(
       "Arsenal/Skills/a/skill.md",

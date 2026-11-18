@@ -17,6 +17,7 @@ const catalog = {
       summary: "Najpierw test",
       body: "# TDD\nTreść skilla",
       origin: "global",
+      category: "testy",
       deployed: [{ project: "p", mode: "full", date: "2026-11-14" }],
       templates: [{ name: "t.md", text: "szablon" }],
     },
@@ -108,6 +109,17 @@ describe("ArsenalSkillsView", () => {
     await user.click(screen.getByRole("button", { name: "prompty" }));
     expect(screen.queryByRole("button", { name: /test-driven-development/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Rada ekspertów/ })).toBeVisible();
+  });
+
+  it("filtr kategorii zostawia skille z wybraną kategorią i ukrywa prompty", async () => {
+    setup();
+    await screen.findByRole("button", { name: /test-driven-development/ });
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByLabelText("Kategoria"), "git");
+    expect(screen.queryByRole("button", { name: /test-driven-development/ })).toBeNull();
+    await user.selectOptions(screen.getByLabelText("Kategoria"), "testy");
+    expect(screen.getByRole("button", { name: /test-driven-development/ })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /Rada ekspertów/ })).toBeNull();
   });
 
   it("wybór skilla pokazuje treść, szablony i wdrożenia", async () => {

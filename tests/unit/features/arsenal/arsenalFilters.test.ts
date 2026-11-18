@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ArsenalEntryDto } from "@/contexts/bc_arsenal/schemas";
+import type { ArsenalEntryDto, SkillCategoryDto } from "@/contexts/bc_arsenal/schemas";
 import {
   catalogStats,
   EMPTY_FILTERS,
@@ -9,7 +9,12 @@ import {
   promptModels,
 } from "@/src/features/arsenal/arsenalFilters";
 
-const skill = (slug: string, name: string, deployed: string[] = []): ArsenalEntryDto => ({
+const skill = (
+  slug: string,
+  name: string,
+  deployed: string[] = [],
+  category?: SkillCategoryDto
+): ArsenalEntryDto => ({
   kind: "skill",
   id: `skill:${slug}`,
   path: `Arsenal/Skills/${slug}/skill.md`,
@@ -19,6 +24,7 @@ const skill = (slug: string, name: string, deployed: string[] = []): ArsenalEntr
   body: "",
   deployed: deployed.map((project) => ({ project, mode: "full" as const, date: "2026-11-14" })),
   templates: [],
+  ...(category !== undefined && { category }),
 });
 
 const prompt = (
@@ -38,8 +44,8 @@ const prompt = (
 });
 
 const entries = [
-  skill("tdd", "test-driven-development", ["p"]),
-  skill("plans", "writing-plans"),
+  skill("tdd", "test-driven-development", ["p"], "testy"),
+  skill("plans", "writing-plans", [], "planowanie"),
   prompt("Rada", "Rada Ekspertów", ["p", "q"], "opus"),
   prompt("Adwokat", "Adwokat Diabła", []),
 ];
@@ -84,6 +90,13 @@ describe("filterEntries", () => {
     ]);
   });
 
+  it("kategoria: tylko skille z tą kategorią (prompty i skille bez kategorii odpadają)", () => {
+    expect(ids(filterEntries(entries, { ...EMPTY_FILTERS, category: "testy" }))).toEqual([
+      "skill:tdd",
+    ]);
+    expect(ids(filterEntries(entries, { ...EMPTY_FILTERS, category: "git" }))).toEqual([]);
+  });
+
   it("niewdrożone nigdzie: tylko skille bez deployed", () => {
     expect(ids(filterEntries(entries, { ...EMPTY_FILTERS, undeployedOnly: true }))).toEqual([
       "skill:plans",
@@ -112,5 +125,6 @@ describe("pomocnicze", () => {
     expect(isFiltered(EMPTY_FILTERS)).toBe(false);
     expect(isFiltered({ ...EMPTY_FILTERS, query: "a" })).toBe(true);
     expect(isFiltered({ ...EMPTY_FILTERS, undeployedOnly: true })).toBe(true);
+    expect(isFiltered({ ...EMPTY_FILTERS, category: "git" })).toBe(true);
   });
 });

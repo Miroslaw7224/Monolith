@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isIsoDay } from "@/lib/schema/archive-date";
+import { SKILL_CATEGORIES } from "@/lib/schema/skill-category";
 import { isHttpUrl, isSafeCertificatePath } from "@/lib/schema/course-fields";
 import type {
   ArsenalCatalog,
@@ -13,6 +14,7 @@ import type {
 } from "./models";
 
 export const DeployModeSchema = z.enum(["full", "adapted"]);
+export const SkillCategorySchema = z.enum(SKILL_CATEGORIES);
 
 /** Zapytanie `GET …/deploy?project=&mode=` i ciało `POST …/deployed`. */
 export const DeployQuerySchema = z.object({
@@ -41,6 +43,7 @@ export const SkillEntryDtoSchema = z.object({
   ...entryBase,
   slug: z.string(),
   origin: z.string().optional(),
+  category: SkillCategorySchema.optional(),
   deployed: z.array(DeploymentDtoSchema),
   templates: z.array(TemplateDtoSchema),
 });
@@ -78,6 +81,7 @@ export const DeployInstructionsDtoSchema = z.object({
 });
 
 export type DeployModeDto = z.infer<typeof DeployModeSchema>;
+export type SkillCategoryDto = z.infer<typeof SkillCategorySchema>;
 export type SkillEntryDto = z.infer<typeof SkillEntryDtoSchema>;
 export type PromptEntryDto = z.infer<typeof PromptEntryDtoSchema>;
 export type ArsenalEntryDto = z.infer<typeof ArsenalEntryDtoSchema>;
@@ -99,6 +103,7 @@ export function toEntryDto(entry: ArsenalEntry): ArsenalEntryDto {
       ...base,
       slug: entry.slug,
       ...(entry.origin !== undefined && { origin: entry.origin }),
+      ...(entry.category !== undefined && { category: entry.category }),
       deployed: entry.deployed.map((d) => ({ ...d })),
       templates: entry.templates.map((t) => ({ ...t })),
     };

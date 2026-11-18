@@ -1,5 +1,9 @@
 import React from "react";
-import type { DeployTargetDto } from "@/contexts/bc_arsenal/schemas";
+import {
+  SkillCategorySchema,
+  type DeployTargetDto,
+  type SkillCategoryDto,
+} from "@/contexts/bc_arsenal/schemas";
 import { useT } from "@/src/i18n/useT";
 import { EMPTY_FILTERS, isFiltered, type ArsenalFilters, type KindFilter } from "./arsenalFilters";
 
@@ -51,6 +55,21 @@ export function ArsenalFilterBar({ filters, onChange, targets, models }: Props) 
         {targets.map((target) => (
           <option key={target.id} value={target.id}>
             {target.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="asv-select"
+        aria-label={t("arsenal:arsenalFilterCategoryAria")}
+        value={filters.category ?? ""}
+        onChange={(e) =>
+          set({ category: e.target.value === "" ? null : (e.target.value as SkillCategoryDto) })
+        }
+      >
+        <option value="">{t("arsenal:arsenalAllCategories")}</option>
+        {SkillCategorySchema.options.map((c) => (
+          <option key={c} value={c}>
+            {t(`arsenal:arsenalCategory_${c}`)}
           </option>
         ))}
       </select>
