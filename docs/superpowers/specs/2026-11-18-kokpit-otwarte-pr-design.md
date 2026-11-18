@@ -84,3 +84,28 @@ wiersze rozdzielone cienką linią, trzy kolumny: **PR** (mała linia `repo#nume
 z wielokropkiem, całość to link; pełny tekst w `title=`), **status** (Otwarte PR: chip „gotowy” zielony /
 „draft” szary; Do zrecenzowania: autor i odznaka „scalony”) oraz **data** (krótka data i godzina, wyrównana do prawej).
 Wspólny wiersz to `src/features/home/PrRow.tsx`; dane, trasy i i18n bez zmian. Kolory draft/gotowy i teksty statusów jak wyżej.
+
+## Uzupełnienie: „po review” w kafelku Do zrecenzowania (2026-11-18)
+
+Powód: GitHub zdejmuje prośbę o review po złożeniu review, a autor może potem dopisać commity i komentarze bez ponownej
+prośby (np. career-guide#1508). Taki PR nadal czeka na drugie spojrzenie, a `review-requested:@me` go nie widzi.
+
+- Do „Do zrecenzowania” dochodzą wiersze z odznaką **„po review”**: PR otwarty, nie mój, na którym zostawiłem review
+  (`reviewed-by:@me`), a po moim **ostatnim** review pojawiła się aktywność kogoś innego: commit, komentarz w rozmowie
+  albo komentarz w wątku kodu. Wiersz znika po moim kolejnym review albo po zamknięciu lub zmergowaniu PR-a.
+- Data w wierszu to moment tej aktywności. Wiersz ma ten sam układ tabelki; status to autor i odznaka „po review”.
+- `lib/github/reviewed-updates.ts`: `fetchReviewedUpdates()`, jedno stałe zapytanie GraphQL przez `gh api graphql`
+  (do 50 PR-ów: moje review, ostatni commit, ostatnie komentarze i wątki), ta sama walidacja co `my-reviews`
+  (błąd GraphQL to `ok: false`). Aktywność = najnowsza data spośród: `committedDate` ostatniego commita, komentarzy
+  i komentarzy w wątkach nie mojego autorstwa; warunek `aktywność > moje ostatnie review`.
+  Znane ograniczenie: rebase ze starą datą commita nie wyzwoli wiersza.
+- `bc_cockpit`: `ReviewRequest.reason: "requested" | "updated"`, `ReviewRequests.updatesAvailable: boolean`.
+  `loadReviewRequests` pobiera oba źródła równolegle; PR obecny w obu zostaje jako „requested”.
+  Błąd prośb o review to `available: false` jak dotąd. Błąd samych „po review” nie ukrywa prośb:
+  `updatesAvailable: false` i UI pokazuje jedną linię ostrzeżenia pod listą. Limit 20 i sortowanie po dacie jak dotąd,
+  `total` liczy oba rodzaje.
+- Teksty: `home:reviews.updated` („po review” / „updated”), `home:reviews.updatesError`
+  („Nie można sprawdzić zmian po review” / „Could not check updates after review”).
+- Testy: parser GraphQL (commit po review, komentarz cudzy po review, mój komentarz bez wpływu, aktywność przed review,
+  mój własny PR, brak mojego review, odpowiedź w wątku kodu, review PENDING pominięte, najnowsza z kilku aktywności),
+  repozytorium (scalanie, deduplikacja, `updatesAvailable`), serwis, DTO, komponent.

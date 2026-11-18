@@ -1168,3 +1168,599 @@ Pliki wolno zmieniać tylko te, które wymienia Task 5. Zachowaj polskie znaki i
 Na koniec uruchom OSOBNO (bez &&, bez pipe): npx vitest run tests/unit/features/home ; npx tsc --noEmit ; npm run lint.
 Raport: GOTOWE: <pliki>, testy/tsc/lint zielone albo UTKNĄŁEM: plik:linia + przyczyna.
 ```
+
+---
+
+## Task 6: „po review”, dane i kontekst (wykonawca: cursor; uzupełnienie specu „po review”)
+
+**Pliki:**
+
+- Create: `lib/github/reviewed-updates.ts`, `tests/unit/lib/github/reviewed-updates.test.ts`
+- Modify: `contexts/bc_cockpit/{models,repositories,services,schemas}.ts`,
+  `tests/unit/contexts/bc_cockpit/{reviews-repository,services,schemas}.test.ts`
+
+- [ ] **Krok 1: czerwony test lib.** Utwórz `tests/unit/lib/github/reviewed-updates.test.ts`:
+
+```ts
+// @vitest-environment node
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockExecFile = vi.hoisted(() => vi.fn());
+vi.mock("node:child_process", () => ({ execFile: mockExecFile }));
+
+import { fetchReviewedUpdates } from "@/lib/github/reviewed-updates";
+
+type Done = (err: Error | null, stdout?: string, stderr?: string) => void;
+
+function ghReturns(stdout: string) {
+  mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, done: Done) => {
+    done(null, stdout, "");
+  });
+}
+
+function ghFails(code: string | number) {
+  mockExecFile.mockImplementation((_cmd: string, _args: string[], _opts: object, done: Done) => {
+    done(Object.assign(new Error("gh failed"), { code }), "", "");
+  });
+}
+
+const REVIEWED_AT = "2026-11-18T12:00:00Z";
+
+const node = (over: Record<string, unknown> = {}) => ({
+  number: 7,
+  title: "PR siedem",
+  url: "https://github.com/o/r/pull/7",
+  author: { login: "autor" },
+  repository: { nameWithOwner: "o/r" },
+  reviews: { nodes: [{ submittedAt: REVIEWED_AT, author: { login: "me" } }] },
+  commits: { nodes: [{ commit: { committedDate: "2026-11-18T10:00:00Z" } }] },
+  comments: { nodes: [] },
+  reviewThreads: { nodes: [] },
+  ...over,
+});
+
+const payload = (nodes: unknown[], login: string | null = "me") =>
+  JSON.stringify({ data: { viewer: { login }, search: { nodes } } });
+
+beforeEach(() => {
+  vi.resetAllMocks();
+});
+
+describe("fetchReviewedUpdates", () => {
+  it("commit po moim review: wiersz z datą tej aktywności", async () => {
+    ghReturns(
+      payload([
+        node({ commits: { nodes: [{ commit: { committedDate: "2026-11-18T15:00:00Z" } }] } }),
+      ])
+    );
+    expect(await fetchReviewedUpdates()).toEqual({
+      ok: true,
+      items: [
+        {
+          repo: "o/r",
+          number: 7,
+          title: "PR siedem",
+          author: "autor",
+          url: "https://github.com/o/r/pull/7",
+          updatedAt: "2026-11-18T15:00:00.000Z",
+        },
+      ],
+    });
+  });
+
+  it("cudzy komentarz po review liczy się, mój komentarz po review nie", async () => {
+    ghReturns(
+      payload([
+        node({
+          comments: { nodes: [{ createdAt: "2026-11-18T13:00:00Z", author: { login: "autor" } }] },
+        }),
+        node({
+          number: 8,
+          url: "https://github.com/o/r/pull/8",
+          comments: { nodes: [{ createdAt: "2026-11-18T13:00:00Z", author: { login: "me" } }] },
+        }),
+      ])
+    );
+    const res = await fetchReviewedUpdates();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items.map((i) => [i.number, i.updatedAt])).toEqual([
+      [7, "2026-11-18T13:00:00.000Z"],
+    ]);
+  });
+
+  it("odpowiedź w wątku kodu po review liczy się", async () => {
+    ghReturns(
+      payload([
+        node({
+          reviewThreads: {
+            nodes: [
+              {
+                comments: {
+                  nodes: [
+                    { createdAt: "2026-11-18T09:00:00Z", author: { login: "me" } },
+                    { createdAt: "2026-11-18T14:00:00Z", author: { login: "autor" } },
+                  ],
+                },
+              },
+            ],
+          },
+        }),
+      ])
+    );
+    const res = await fetchReviewedUpdates();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items.map((i) => i.updatedAt)).toEqual(["2026-11-18T14:00:00.000Z"]);
+  });
+
+  it("bierze najnowszą z kilku aktywności i ostatnie z moich review", async () => {
+    ghReturns(
+      payload([
+        node({
+          reviews: {
+            nodes: [
+              { submittedAt: "2026-11-17T08:00:00Z", author: { login: "me" } },
+              { submittedAt: REVIEWED_AT, author: { login: "me" } },
+              { submittedAt: "2026-11-18T20:00:00Z", author: { login: "inny" } },
+            ],
+          },
+          commits: { nodes: [{ commit: { committedDate: "2026-11-18T13:00:00Z" } }] },
+          comments: { nodes: [{ createdAt: "2026-11-18T16:00:00Z", author: { login: "inny" } }] },
+        }),
+      ])
+    );
+    const res = await fetchReviewedUpdates();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items.map((i) => i.updatedAt)).toEqual(["2026-11-18T16:00:00.000Z"]);
+  });
+
+  it.each([
+    [
+      "aktywność przed review",
+      { commits: { nodes: [{ commit: { committedDate: "2026-11-18T11:59:59Z" } }] } },
+    ],
+    ["mój własny PR", { author: { login: "me" } }],
+    [
+      "brak mojego review",
+      { reviews: { nodes: [{ submittedAt: REVIEWED_AT, author: { login: "inny" } }] } },
+    ],
+    [
+      "review PENDING (bez submittedAt)",
+      { reviews: { nodes: [{ submittedAt: null, author: { login: "me" } }] } },
+    ],
+    ["url spoza github.com", { url: "https://evil.example/o/r/pull/7" }],
+    ["zły numer", { number: 0 }],
+    ["brak repozytorium", { repository: null }],
+  ])("pomija PR: %s", async (_name, over) => {
+    ghReturns(
+      payload([
+        node({
+          commits: { nodes: [{ commit: { committedDate: "2026-11-18T15:00:00Z" } }] },
+          ...over,
+        }),
+      ])
+    );
+    const res = await fetchReviewedUpdates();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items).toEqual([]);
+  });
+
+  it("autor null (usunięte konto) to author null", async () => {
+    ghReturns(
+      payload([
+        node({
+          author: null,
+          commits: { nodes: [{ commit: { committedDate: "2026-11-18T15:00:00Z" } }] },
+        }),
+      ])
+    );
+    const res = await fetchReviewedUpdates();
+    if (res.ok === false) throw new Error("oczekiwano ok");
+    expect(res.items.map((i) => i.author)).toEqual([null]);
+  });
+
+  it("woła gh api graphql ze stałym zapytaniem", async () => {
+    ghReturns(payload([]));
+    await fetchReviewedUpdates();
+    const args = mockExecFile.mock.calls[0][1] as string[];
+    expect(mockExecFile.mock.calls[0][0]).toBe("gh");
+    expect(args.slice(0, 3)).toEqual(["api", "graphql", "-f"]);
+    expect(args[3]).toBe("q=is:pr is:open reviewed-by:@me -author:@me sort:updated-desc");
+    expect(args[4]).toBe("-f");
+    expect(args[5]).toContain("query=query($q:String!)");
+  });
+
+  it("błędy: GraphQL errors, zły JSON, brak viewer, gh-missing, gh-error", async () => {
+    ghReturns(JSON.stringify({ errors: [{ message: "SAML" }], data: null }));
+    expect(await fetchReviewedUpdates()).toEqual({ ok: false, reason: "gh-error" });
+    ghReturns("nie json");
+    expect(await fetchReviewedUpdates()).toEqual({ ok: false, reason: "gh-error" });
+    ghReturns(payload([], null));
+    expect(await fetchReviewedUpdates()).toEqual({ ok: false, reason: "gh-error" });
+    ghFails("ENOENT");
+    expect(await fetchReviewedUpdates()).toEqual({ ok: false, reason: "gh-missing" });
+    ghFails(1);
+    expect(await fetchReviewedUpdates()).toEqual({ ok: false, reason: "gh-error" });
+  });
+});
+```
+
+Uruchom `npx vitest run tests/unit/lib/github/reviewed-updates.test.ts`. Oczekiwane: FAIL (brak modułu).
+
+- [ ] **Krok 2: implementacja lib.** Utwórz `lib/github/reviewed-updates.ts`:
+
+```ts
+import { runGh } from "./gh";
+import { asObject, isGithubUrl, isIsoDate } from "./parse";
+
+/** Cudzy PR, który zrecenzowałem, a po moim ostatnim review ktoś inny dołożył commit albo komentarz. */
+export type GithubUpdatedPr = {
+  /** `właściciel/repo`. */
+  repo: string;
+  number: number;
+  title: string;
+  /** Login autora; `null`, gdy GitHub go nie podał. */
+  author: string | null;
+  url: string;
+  /** Data ISO ostatniej aktywności po moim review. */
+  updatedAt: string;
+};
+
+export type ReviewedUpdatesResult =
+  | { ok: true; items: GithubUpdatedPr[] }
+  | { ok: false; reason: "gh-missing" | "gh-error" };
+
+/** Stałe zapytanie (tylko odczyt): moje review, ostatni commit, ostatnie komentarze i komentarze w wątkach kodu. */
+const QUERY =
+  "query($q:String!){ viewer{login} search(query:$q, type:ISSUE, first:50){ nodes{ ... on PullRequest{ number title url author{login} repository{nameWithOwner} reviews(last:100){ nodes{ submittedAt author{login} } } commits(last:1){ nodes{ commit{ committedDate } } } comments(last:20){ nodes{ createdAt author{login} } } reviewThreads(last:30){ nodes{ comments(last:3){ nodes{ createdAt author{login} } } } } } } } }";
+const SEARCH = "is:pr is:open reviewed-by:@me -author:@me sort:updated-desc";
+const MAX_BUFFER = 1024 * 1024;
+
+/**
+ * Daty (ms) pól `field` z elementów listy; `own` = tylko moje wpisy, inaczej tylko cudze.
+ * Wpisy bez poprawnej daty (np. review PENDING) są pomijane.
+ */
+function times(list: unknown, field: string, viewer: string, own: boolean): number[] {
+  if (!Array.isArray(list)) return [];
+  const out: number[] = [];
+  for (const raw of list) {
+    const o = asObject(raw);
+    if (!o) continue;
+    const mine = asObject(o.author)?.login === viewer;
+    if (mine !== own) continue;
+    const value = o[field];
+    if (isIsoDate(value)) out.push(Date.parse(value));
+  }
+  return out;
+}
+
+function parseNode(raw: unknown, viewer: string): GithubUpdatedPr | null {
+  const n = asObject(raw);
+  if (!n) return null;
+  const repo = asObject(n.repository)?.nameWithOwner;
+  const { number, title, url } = n;
+  const login = asObject(n.author)?.login;
+  if (typeof repo !== "string" || repo === "") return null;
+  if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) return null;
+  if (typeof title !== "string" || title === "") return null;
+  if (typeof url !== "string" || !isGithubUrl(url)) return null;
+  if (login === viewer) return null;
+
+  const mine = times(asObject(n.reviews)?.nodes, "submittedAt", viewer, true);
+  if (mine.length === 0) return null;
+  const lastReview = Math.max(...mine);
+
+  const activity: number[] = [];
+  const commits = asObject(n.commits)?.nodes;
+  if (Array.isArray(commits)) {
+    for (const c of commits) {
+      const date = asObject(asObject(c)?.commit)?.committedDate;
+      if (isIsoDate(date)) activity.push(Date.parse(date));
+    }
+  }
+  activity.push(...times(asObject(n.comments)?.nodes, "createdAt", viewer, false));
+  const threads = asObject(n.reviewThreads)?.nodes;
+  if (Array.isArray(threads)) {
+    for (const th of threads) {
+      activity.push(...times(asObject(asObject(th)?.comments)?.nodes, "createdAt", viewer, false));
+    }
+  }
+  if (activity.length === 0) return null;
+  const last = Math.max(...activity);
+  if (last <= lastReview) return null;
+  return {
+    repo,
+    number,
+    title,
+    author: typeof login === "string" && login !== "" ? login : null,
+    url,
+    updatedAt: new Date(last).toISOString(),
+  };
+}
+
+/** Otwarte, cudze PR-y zrecenzowane przeze mnie, z aktywnością innych po moim ostatnim review. Błąd `gh` to `ok: false`, nie wyjątek. */
+export async function fetchReviewedUpdates(): Promise<ReviewedUpdatesResult> {
+  const run = await runGh(
+    ["api", "graphql", "-f", `q=${SEARCH}`, "-f", `query=${QUERY}`],
+    MAX_BUFFER
+  );
+  if (run.ok === false) return run;
+  let body: Record<string, unknown> | null;
+  try {
+    body = asObject(JSON.parse(run.stdout));
+  } catch {
+    return { ok: false, reason: "gh-error" };
+  }
+  // częściowy błąd GraphQL (np. SAML) nie może wyglądać jak komplet danych
+  if (Array.isArray(body?.errors) && body.errors.length > 0)
+    return { ok: false, reason: "gh-error" };
+  const data = asObject(body?.data);
+  const viewer = asObject(data?.viewer)?.login;
+  const nodes = asObject(data?.search)?.nodes;
+  if (typeof viewer !== "string" || viewer === "" || !Array.isArray(nodes)) {
+    return { ok: false, reason: "gh-error" };
+  }
+  const items: GithubUpdatedPr[] = [];
+  for (const raw of nodes) {
+    const item = parseNode(raw, viewer);
+    if (item) items.push(item);
+  }
+  return { ok: true, items };
+}
+```
+
+Uruchom test z kroku 1. Oczekiwane: PASS. Jeśli `npx prettier --check` zgłosi formatowanie, `npx prettier --write` tylko na tych dwóch plikach.
+
+- [ ] **Krok 3: czerwone testy kontekstu.**
+
+a) `reviews-repository.test.ts`: dodaj `const mockFetchReviewedUpdates = vi.hoisted(() => vi.fn());`,
+`vi.mock("@/lib/github/reviewed-updates", () => ({ fetchReviewedUpdates: mockFetchReviewedUpdates }));`
+(obok pozostałych mocków). Blok `describe("loadReviewRequests", …)` zastąp:
+
+```ts
+describe("loadReviewRequests", () => {
+  const item = {
+    repo: "o/r",
+    number: 5,
+    title: "Tytuł",
+    author: "ktoś",
+    url: "https://github.com/o/r/pull/5",
+    updatedAt: "2026-11-16T05:58:28Z",
+    state: "merged" as const,
+  };
+  const updated = {
+    repo: "x/y",
+    number: 9,
+    title: "Po review",
+    author: "ann",
+    url: "https://github.com/x/y/pull/9",
+    updatedAt: "2026-11-18T15:31:19.000Z",
+  };
+
+  it("ok: prośby dostają reason requested, a PR-y po review reason updated", async () => {
+    mockFetchReviewRequests.mockResolvedValue({ ok: true, items: [item] });
+    mockFetchReviewedUpdates.mockResolvedValue({ ok: true, items: [updated] });
+    expect(await loadReviewRequests()).toEqual({
+      available: true,
+      updatesAvailable: true,
+      total: 2,
+      items: [
+        { ...item, reason: "requested" },
+        { ...updated, state: "open", reason: "updated" },
+      ],
+    });
+  });
+
+  it("PR obecny w obu źródłach zostaje jako requested", async () => {
+    mockFetchReviewRequests.mockResolvedValue({ ok: true, items: [{ ...item, state: "open" }] });
+    mockFetchReviewedUpdates.mockResolvedValue({
+      ok: true,
+      items: [{ ...updated, repo: "o/r", number: 5 }],
+    });
+    const res = await loadReviewRequests();
+    expect(res.total).toBe(1);
+    expect(res.items.map((i) => i.reason)).toEqual(["requested"]);
+  });
+
+  it("błąd „po review” nie ukrywa próśb: updatesAvailable false", async () => {
+    mockFetchReviewRequests.mockResolvedValue({ ok: true, items: [item] });
+    mockFetchReviewedUpdates.mockResolvedValue({ ok: false, reason: "gh-error" });
+    expect(await loadReviewRequests()).toEqual({
+      available: true,
+      updatesAvailable: false,
+      total: 1,
+      items: [{ ...item, reason: "requested" }],
+    });
+  });
+
+  it.each(["gh-missing", "gh-error"])(
+    "%s w prośbach to available false z pustą listą",
+    async (reason) => {
+      mockFetchReviewRequests.mockResolvedValue({ ok: false, reason });
+      mockFetchReviewedUpdates.mockResolvedValue({ ok: true, items: [updated] });
+      expect(await loadReviewRequests()).toEqual({
+        available: false,
+        updatesAvailable: false,
+        total: 0,
+        items: [],
+      });
+    }
+  );
+});
+```
+
+b) `services.test.ts`: w bloku `describe("getReviewRequests", …)` dodaj test
+
+```ts
+it("przekazuje updatesAvailable i sortuje razem prośby i „po review”", async () => {
+  mockLoadReviewRequests.mockResolvedValue({
+    available: true,
+    updatesAvailable: false,
+    total: 2,
+    items: [
+      { ...pr(1, "2026-11-14T10:00:00Z"), reason: "requested" },
+      { ...pr(2, "2026-11-16T10:00:00Z"), reason: "updated" },
+    ],
+  });
+  const res = await getReviewRequests();
+  expect(res.updatesAvailable).toBe(false);
+  expect(res.items.map((i) => [i.number, i.reason])).toEqual([
+    [2, "updated"],
+    [1, "requested"],
+  ]);
+});
+```
+
+c) `schemas.test.ts`: w `describe("toReviewRequestsDto", …)` dopisz test
+
+```ts
+it("przenosi reason i updatesAvailable", () => {
+  const dto = toReviewRequestsDto({
+    available: true,
+    updatesAvailable: false,
+    total: 1,
+    items: [{ ...item, reason: "updated" }],
+  } as never);
+  expect(dto).toEqual({
+    available: true,
+    updatesAvailable: false,
+    total: 1,
+    items: [{ ...item, reason: "updated" }],
+  });
+});
+```
+
+Uruchom `npx vitest run tests/unit/contexts/bc_cockpit`. Oczekiwane: FAIL.
+
+- [ ] **Krok 4: implementacja kontekstu.**
+
+`models.ts`: do `ReviewRequest` dopisz pole
+
+```ts
+/** `requested`: wisząca prośba o review; `updated`: zrecenzowałem, a potem ktoś inny dołożył commit lub komentarz. */
+reason: "requested" | "updated";
+```
+
+a do `ReviewRequests` pole `updatesAvailable: boolean;` (z komentarzem `/** false, gdy nie udało się sprawdzić PR-ów po review (prośby mimo to są pewne). */`).
+
+`repositories.ts`: dodaj `import { fetchReviewedUpdates } from "@/lib/github/reviewed-updates";` i zastąp `loadReviewRequests` przez
+
+```ts
+/**
+ * Prośby o review z GitHuba (przez `lib/github`) oraz PR-y zrecenzowane, w których po moim review pojawiła się
+ * aktywność innych. Błąd próśb to `available: false`; błąd samych „po review” zostawia prośby i daje
+ * `updatesAvailable: false`. PR obecny w obu źródłach zostaje jako `requested`.
+ */
+export async function loadReviewRequests(): Promise<ReviewRequests> {
+  const [res, upd] = await Promise.all([fetchReviewRequests(), fetchReviewedUpdates()]);
+  if (res.ok === false) return { available: false, updatesAvailable: false, total: 0, items: [] };
+  const requested = res.items.map((i) => ({
+    repo: i.repo,
+    number: i.number,
+    title: i.title,
+    author: i.author,
+    url: i.url,
+    updatedAt: i.updatedAt,
+    state: i.state,
+    reason: "requested" as const,
+  }));
+  const seen = new Set(requested.map((i) => `${i.repo}#${i.number}`));
+  const updated = upd.ok
+    ? upd.items
+        .filter((i) => !seen.has(`${i.repo}#${i.number}`))
+        .map((i) => ({
+          repo: i.repo,
+          number: i.number,
+          title: i.title,
+          author: i.author,
+          url: i.url,
+          updatedAt: i.updatedAt,
+          state: "open" as const,
+          reason: "updated" as const,
+        }))
+    : [];
+  const items = [...requested, ...updated];
+  return { available: true, updatesAvailable: upd.ok, total: items.length, items };
+}
+```
+
+`services.ts`: w `getReviewRequests` zmień zwracany obiekt na
+`return { available: res.available, updatesAvailable: res.updatesAvailable, total: res.total, items };`
+i zaktualizuj komentarz funkcji („prośby o review i PR-y po review”).
+
+`schemas.ts`: w `toReviewRequestsDto` dodaj `updatesAvailable: r.updatesAvailable,` po `available` oraz `reason: i.reason,` w mapowaniu pozycji.
+
+- [ ] **Krok 5: zielone.** `npx vitest run tests/unit/lib/github tests/unit/contexts/bc_cockpit tests/unit/architecture.static.test.ts`,
+      `npx tsc --noEmit`, `npm run lint`. Oczekiwane: zielone. (Jeśli `tsc` zgłosi brak `reason` w stałych typowanych
+      w testach, dopisz `reason: "requested" as const` tylko w tych stałych.)
+- [ ] **Krok 6 (Claude):** `git diff --stat`, commit `feat(cockpit): PR-y po review (aktywność po moim review) w prośbach o review`.
+
+### Prompt dla cursora (Task 6)
+
+```
+Zadanie (--role task), repo ~/projects/Brain_7224/Monolith, gałąź feat/kokpit-otwarte-pr. NIE commituj.
+Wykonaj Task 6 z docs/superpowers/plans/2026-11-18-kokpit-otwarte-pr.md (kroki 1-5), dosłownie wg kodu z planu.
+Pliki wolno zmieniać tylko te, które wymienia Task 6. Najpierw testy (czerwone), potem implementacja.
+Nie zmieniaj tests/unit/architecture.static.test.ts. Zachowaj polskie znaki i cudzysłowy bez zmian.
+Na koniec uruchom OSOBNO (bez &&, bez pipe): npx vitest run tests/unit/lib/github tests/unit/contexts/bc_cockpit tests/unit/architecture.static.test.ts ; npx tsc --noEmit ; npm run lint.
+Raport: GOTOWE: <pliki>, testy/tsc/lint zielone albo UTKNĄŁEM: plik:linia + przyczyna.
+```
+
+---
+
+## Task 7: „po review”, UI (wykonawca: agy; po Task 6)
+
+**Pliki:** `src/features/home/ReviewRequests.tsx`, `src/i18n/locales/{pl,en}/home.ts`,
+`tests/unit/features/home/ReviewRequests.test.tsx`
+
+- [ ] **Krok 1: i18n.** W bloku `reviews: { … }` dopisz w `pl/home.ts`:
+      `updated: "po review",` i `updatesError: "Nie można sprawdzić zmian po review",`,
+      a w `en/home.ts`: `updated: "updated",` i `updatesError: "Could not check updates after review",`.
+- [ ] **Krok 2: czerwone testy.** W `ReviewRequests.test.tsx` dopisz w `describe("ReviewRequests", …)`:
+
+```tsx
+test("pozycja z reason updated ma odznakę „po review”, zwykła prośba jej nie ma", async () => {
+  const items = [
+    { ...ITEMS[0], reason: "requested" },
+    { ...ITEMS[1], state: "open", reason: "updated" },
+  ];
+  const apiFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ available: true, updatesAvailable: true, total: 2, items }),
+  });
+  render(<ReviewRequests apiFetch={apiFetch} />);
+  await screen.findByText("Do zrecenzowania");
+  expect(screen.getAllByText("po review")).toHaveLength(1);
+  expect(screen.queryByText("Nie można sprawdzić zmian po review")).toBeNull();
+});
+
+test("updatesAvailable false: lista zostaje, pod nią ostrzeżenie", async () => {
+  const apiFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ available: true, updatesAvailable: false, total: 2, items: ITEMS }),
+  });
+  render(<ReviewRequests apiFetch={apiFetch} />);
+  expect(await screen.findByText("Nie można sprawdzić zmian po review")).toBeTruthy();
+  expect(screen.getByRole("link", { name: /career-guide#1476/ })).toBeTruthy();
+});
+```
+
+Uruchom `npx vitest run tests/unit/features/home/ReviewRequests.test.tsx`. Oczekiwane: FAIL.
+
+- [ ] **Krok 3: komponent.** W `ReviewRequests.tsx`:
+  - w typie stanu `ok` dodaj `updatesAvailable: boolean`, a w `setState` w `.then`: `updatesAvailable: data.updatesAvailable !== false,`;
+  - w `PrRow` obok odznaki „scalony” dodaj
+    `{item.reason === "updated" ? <span className="kok-badge">{t("home:reviews.updated")}</span> : null}`;
+  - pod listą (po bloku „+N starszych”) dodaj
+    `{state.status === "ok" && !state.updatesAvailable ? <p className="kok-empty-msg" role="status">{t("home:reviews.updatesError")}</p> : null}`.
+- [ ] **Krok 4: zielone.** `npx vitest run tests/unit/features/home tests/unit/i18n`, `npx tsc --noEmit`, `npm run lint`.
+- [ ] **Krok 5 (Claude):** commit `feat(home): odznaka „po review” w Do zrecenzowania`. Weryfikacja końcowa jak Task 4 (cursor: tsc, vitest, lint, build; agy: review diffa).
+
+### Prompt dla agy (Task 7)
+
+```
+Zadanie (--role task), repo ~/projects/Brain_7224/Monolith, gałąź feat/kokpit-otwarte-pr. NIE commituj.
+Wykonaj Task 7 z docs/superpowers/plans/2026-11-18-kokpit-otwarte-pr.md (kroki 1-4), dosłownie wg planu.
+Pliki wolno zmieniać tylko te, które wymienia Task 7. Zachowaj polskie znaki i cudzysłowy z planu bez zmian.
+Na koniec uruchom OSOBNO (bez &&, bez pipe): npx vitest run tests/unit/features/home tests/unit/i18n ; npx tsc --noEmit ; npm run lint.
+Raport: GOTOWE: <pliki>, testy/tsc/lint zielone albo UTKNĄŁEM: plik:linia + przyczyna.
+```
