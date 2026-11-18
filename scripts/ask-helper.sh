@@ -50,25 +50,40 @@ command -v hc >/dev/null || { echo "Brak hc w PATH" >&2; exit 1; }
 
 # --- znajdź terminal pomocnika ---
 if [[ -z "$TARGET" ]]; then
-  TARGET="$(WHO="$WHO" python3 -I - <<'PY'
-import json, os, subprocess
-who = os.environ["WHO"]
+  # Tylko pomocnik z PROJEKTU wołającego (katalog roboczy skryptu), nigdy z cudzego repozytorium:
+  # 1) terminal o nazwie <pomocnik>-<projekt> (open-agent, start-workspace z ~/.local/bin),
+  # 2) inaczej terminal tego pomocnika, którego cwd należy do tego samego repozytorium (panele bez nazwy).
+  TARGET="$(WHO="$WHO" CALLER_DIR="$PWD" python3 -I - <<'PY'
+import json, os, re, subprocess
+who, caller = os.environ["WHO"], os.environ["CALLER_DIR"]
 def hc(*a):
     return json.loads(subprocess.run(["hc", *a], capture_output=True, text=True).stdout or "{}")
-for t in hc("ls").get("terminals", []):
+def repo(path):
+    r = subprocess.run(["git", "-C", path, "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                       capture_output=True, text=True)
+    return os.path.dirname(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else os.path.realpath(path)
+root = repo(caller)
+slug = re.sub(r"[^a-z0-9_-]", "-", os.path.basename(root).lower())
+name = f"{who}-{slug}"[:32]
+terms = hc("ls").get("terminals", [])
+for t in terms:
+    if hc("get", t["address"]).get("name") == name:
+        print(t["address"]); raise SystemExit
+for t in terms:
+    if repo(t.get("cwd") or "/") != root:
+        continue
     if who == "agy" and t.get("agent") == "antigravity":
         print(t["address"]); break
-    if who == "cursor" and "cursor" in (t.get("agent") or ""):
-        print(t["address"]); break
     if who == "cursor":
-        info = hc("get", t["address"])
-        argv = " ".join((info.get("foreground") or {}).get("argv", []))
+        if "cursor" in (t.get("agent") or ""):
+            print(t["address"]); break
+        argv = " ".join((hc("get", t["address"]).get("foreground") or {}).get("argv", []))
         if "cursor-agent" in argv:
             print(t["address"]); break
 PY
 )"
 fi
-[[ -n "$TARGET" ]] || { echo "Nie znaleziono terminala dla '$WHO' w hc. Uruchom go w workspace hc i spróbuj ponownie." >&2; exit 1; }
+[[ -n "$TARGET" ]] || { echo "Nie znaleziono terminala '$WHO' dla projektu w $PWD. Uruchom go: open-agent $WHO (w panelu w katalogu projektu) albo podaj --target tN." >&2; exit 1; }
 
 STATUS="$(hc get "$TARGET" | python3 -I -c 'import json,sys; s=json.load(sys.stdin).get("status"); print((s.get("state") if isinstance(s,dict) else s) or "")' 2>/dev/null || true)"
 APPROVAL_RE="Requesting permission|Allow this|Run this command\?|\(y/n\)"
