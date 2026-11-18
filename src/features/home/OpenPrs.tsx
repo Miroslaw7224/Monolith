@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { OpenPrDto, OpenPrsDto } from "@/contexts/bc_cockpit/schemas";
 import { useT } from "@/src/i18n/useT";
-import { formatShortDate, formatTime } from "@/src/i18n/format";
+import { PrRow } from "./PrRow";
 
 type ApiFetch = (url: string, options?: RequestInit) => Promise<Response>;
 
@@ -77,31 +77,23 @@ export function OpenPrs({ apiFetch }: { apiFetch: ApiFetch }) {
       ) : state.items.length === 0 ? (
         <p className="kok-empty-msg">{t("home:openPrs.empty")}</p>
       ) : (
-        <ul className="kok-reviews__list">
+        <ul className="kok-pr-table">
           {state.items.map((item) => {
-            const when = new Date(item.updatedAt);
             const kind = item.draft ? "draft" : "ready";
             return (
-              <li key={`${item.repo}#${item.number}`} className="kok-reviews__item">
-                <a
-                  className="kok-reviews__link"
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span className={`kok-reviews__ref kok-reviews__ref--${kind}`}>
-                    {item.repo}#{item.number}
-                  </span>{" "}
-                  {item.title}
-                </a>
-                <span className="kok-reviews__meta">
-                  <span className={`kok-reviews__state kok-reviews__state--${kind}`}>
-                    {t(item.draft ? "home:openPrs.draft" : "home:openPrs.ready")}
-                  </span>
-                  {" · "}
-                  {formatShortDate(when)} {formatTime(when)}
+              <PrRow
+                key={`${item.repo}#${item.number}`}
+                repo={item.repo}
+                number={item.number}
+                title={item.title}
+                url={item.url}
+                updatedAt={item.updatedAt}
+                refClassName={`kok-reviews__ref--${kind}`}
+              >
+                <span className={`kok-reviews__state kok-reviews__state--${kind}`}>
+                  {t(item.draft ? "home:openPrs.draft" : "home:openPrs.ready")}
                 </span>
-              </li>
+              </PrRow>
             );
           })}
         </ul>

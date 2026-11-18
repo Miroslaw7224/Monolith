@@ -46,6 +46,7 @@ describe("OpenPrs", () => {
     render(<OpenPrs apiFetch={apiFetch} />);
     expect(await screen.findByText("Otwarte PR")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
+    expect(document.querySelectorAll(".kok-pr-row")).toHaveLength(2);
     const link = screen.getByRole("link", { name: /o\/r#5/ });
     expect(link.getAttribute("href")).toBe(ITEMS[0].url);
     expect(link.getAttribute("target")).toBe("_blank");

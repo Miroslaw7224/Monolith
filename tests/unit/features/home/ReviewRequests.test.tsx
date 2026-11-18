@@ -53,6 +53,7 @@ describe("ReviewRequests", () => {
     render(<ReviewRequests apiFetch={apiFetch} />);
     expect(await screen.findByText("Do zrecenzowania")).toBeTruthy();
     expect(screen.getByText("2")).toBeTruthy();
+    expect(document.querySelectorAll(".kok-pr-row")).toHaveLength(2);
     const link = screen.getByRole("link", { name: /career-guide#1476/ });
     expect(link.getAttribute("href")).toBe(ITEMS[0].url);
     expect(link.getAttribute("target")).toBe("_blank");
