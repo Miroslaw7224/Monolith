@@ -6,6 +6,8 @@ import type {
   CommitHistory,
   DayEvent,
   DeepWindow,
+  OpenPr,
+  OpenPrs,
   Pinned,
   QueueGroup,
   ReviewHistory,
@@ -78,6 +80,8 @@ export type CommitHistoryDto = CommitHistory;
 export type ReviewHistoryDto = ReviewHistory;
 export type ReviewRequestDto = ReviewRequest;
 export type ReviewRequestsDto = ReviewRequests;
+export type OpenPrDto = OpenPr;
+export type OpenPrsDto = OpenPrs;
 
 export function toCockpitDto(c: Cockpit): CockpitDto {
   return {
@@ -211,6 +215,21 @@ export function toReviewRequestsDto(r: ReviewRequests): ReviewRequestsDto {
       url: i.url,
       updatedAt: i.updatedAt,
       state: i.state,
+    })),
+  };
+}
+
+export function toOpenPrsDto(r: OpenPrs): OpenPrsDto {
+  return {
+    available: r.available,
+    total: r.total,
+    items: r.items.map((i) => ({
+      repo: i.repo,
+      number: i.number,
+      title: i.title,
+      url: i.url,
+      updatedAt: i.updatedAt,
+      draft: i.draft,
     })),
   };
 }

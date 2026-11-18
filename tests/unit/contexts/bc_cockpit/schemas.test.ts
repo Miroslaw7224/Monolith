@@ -10,6 +10,7 @@ import {
   toPinnedDto,
   toReviewHistoryDto,
   toReviewRequestsDto,
+  toOpenPrsDto,
   toWeekReviewDto,
   WeekFocusInputSchema,
 } from "@/contexts/bc_cockpit/schemas";
@@ -291,6 +292,26 @@ describe("WeekFocusInputSchema", () => {
     expect(WeekFocusInputSchema.safeParse({}).success).toBe(false);
     const ok = WeekFocusInputSchema.safeParse({ text: "  Tagi " });
     expect(ok.success && ok.data.text).toBe("Tagi");
+  });
+});
+
+describe("toOpenPrsDto", () => {
+  const item = {
+    repo: "o/r",
+    number: 1,
+    title: "t",
+    url: "https://github.com/o/r/pull/1",
+    updatedAt: "2026-11-16T05:58:28Z",
+    draft: true,
+  };
+
+  it("kopiuje pola i odrzuca nadmiarowe", () => {
+    const dto = toOpenPrsDto({
+      available: true,
+      total: 7,
+      items: [{ ...item, extra: 1 }],
+    } as never);
+    expect(dto).toEqual({ available: true, total: 7, items: [item] });
   });
 });
 

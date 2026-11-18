@@ -1,7 +1,8 @@
+import { fetchMyOpenPrs } from "@/lib/github/my-open-prs";
 import { fetchReviewRequests } from "@/lib/github/review-requests";
 import { fetchMyReviews } from "@/lib/github/my-reviews";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import type { Closing, MyReview, Pinned, ReviewRequests, WeekFocus } from "./models";
+import type { Closing, MyReview, OpenPrs, Pinned, ReviewRequests, WeekFocus } from "./models";
 
 const FILE = "Cockpit/pinned.yaml";
 const LIST_KEY = "projects";
@@ -103,6 +104,24 @@ export async function loadReviewRequests(): Promise<ReviewRequests> {
       url: i.url,
       updatedAt: i.updatedAt,
       state: i.state,
+    })),
+  };
+}
+
+/** Własne otwarte PR-y z GitHuba (przez `lib/github`); błąd `gh` to `available: false`, nie wyjątek. */
+export async function loadOpenPrs(): Promise<OpenPrs> {
+  const res = await fetchMyOpenPrs();
+  if (res.ok === false) return { available: false, total: 0, items: [] };
+  return {
+    available: true,
+    total: res.items.length,
+    items: res.items.map((i) => ({
+      repo: i.repo,
+      number: i.number,
+      title: i.title,
+      url: i.url,
+      updatedAt: i.updatedAt,
+      draft: i.draft,
     })),
   };
 }

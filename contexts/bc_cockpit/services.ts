@@ -15,6 +15,7 @@ import {
   type GitSummary,
   type InboxSummary,
   type NextMeeting,
+  type OpenPrs,
   type Owner,
   type Pinned,
   type ProjectKind,
@@ -676,6 +677,17 @@ export async function getReviewRequests(): Promise<ReviewRequests> {
   const items = [...res.items]
     .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
     .slice(0, MAX_REVIEW_REQUESTS);
+  return { available: res.available, total: res.total, items };
+}
+
+export const MAX_OPEN_PRS = 20;
+
+/** Własne otwarte PR-y z GitHuba: najnowsze pierwsze, maksymalnie `MAX_OPEN_PRS`. */
+export async function getOpenPrs(): Promise<OpenPrs> {
+  const res = await repositories.loadOpenPrs();
+  const items = [...res.items]
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .slice(0, MAX_OPEN_PRS);
   return { available: res.available, total: res.total, items };
 }
 

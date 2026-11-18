@@ -161,6 +161,25 @@ export type ReviewRequest = {
  */
 export type ReviewRequests = { available: boolean; total: number; items: ReviewRequest[] };
 
+/** Własny, otwarty PR użytkownika (tylko odczyt z GitHuba). */
+export type OpenPr = {
+  /** `właściciel/repo`. */
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  /** Data ISO ostatniej zmiany PR-a. */
+  updatedAt: string;
+  /** PR w trybie draft. */
+  draft: boolean;
+};
+
+/**
+ * Otwarte PR-y użytkownika; `available: false`, gdy GitHub jest niedostępny (brak `gh`, sieci, logowania).
+ * `total` to liczba wszystkich PR-ów, a `items` może być krótsze (limit listy).
+ */
+export type OpenPrs = { available: boolean; total: number; items: OpenPr[] };
+
 /** Własne review użytkownika na PR-ze (tylko odczyt z GitHuba). */
 export type MyReview = {
   /** `właściciel/repo`. */
