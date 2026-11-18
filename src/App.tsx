@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { useT } from "@/src/i18n/useT";
 import { useLang } from "@/src/i18n/useLang";
 import { apiFetch } from "@/src/lib/apiFetch";
+import { interceptExternalLinks } from "@/src/lib/openExternal";
 import HomeView from "@/src/features/home/HomeView";
 import { ShellStatusBar } from "@/src/features/home/ShellStatusBar";
 import { MobileNav } from "@/src/components/layout/MobileNav";
@@ -93,6 +94,11 @@ export default function App() {
     },
     [selectCard]
   );
+  useEffect(() => {
+    document.addEventListener("click", interceptExternalLinks);
+    return () => document.removeEventListener("click", interceptExternalLinks);
+  }, []);
+
   useEffect(() => {
     if (activeCard !== "projekty") setProjectToOpen(null);
   }, [activeCard]);

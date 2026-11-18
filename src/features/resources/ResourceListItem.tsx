@@ -4,6 +4,7 @@ import { Copy, Trash2, Star, Pencil } from "lucide-react";
 import type { NoteResource } from "./resourceTypes";
 import { getFaviconUrl } from "./resourceParsing";
 import { useT } from "@/src/i18n/useT";
+import { openExternal } from "@/src/lib/openExternal";
 
 export interface ResourceListItemProps {
   resource: NoteResource;
@@ -34,7 +35,7 @@ export function ResourceListItem({
   const favicon = getFaviconUrl(r.url);
   const [showFavicon, setShowFavicon] = React.useState(true);
 
-  const openUrl = () => window.open(r.url, "_blank", "noopener,noreferrer");
+  const openUrl = () => void openExternal(r.url);
 
   return (
     <li className={`ars-res-item${dense ? " ars-res-item--dense" : ""}`}>
