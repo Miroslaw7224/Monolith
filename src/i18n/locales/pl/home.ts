@@ -84,6 +84,15 @@ export const home = {
     merged: "scalony",
     more: "+{{n}} starszych",
   },
+  openPrs: {
+    aria: "Otwarte PR",
+    title: "Otwarte PR",
+    empty: "Brak otwartych PR",
+    error: "Nie można pobrać z GitHuba",
+    draft: "draft",
+    ready: "gotowy",
+    more: "+{{n}} starszych",
+  },
   weekReview: {
     aria: "Przegląd tygodnia",
     title: "Przegląd tygodnia",

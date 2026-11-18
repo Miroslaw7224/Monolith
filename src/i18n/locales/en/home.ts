@@ -76,6 +76,15 @@ export const home = {
     merged: "merged",
     more: "+{{n}} older",
   },
+  openPrs: {
+    aria: "Open PRs",
+    title: "Open PRs",
+    empty: "No open PRs",
+    error: "Could not load from GitHub",
+    draft: "draft",
+    ready: "ready",
+    more: "+{{n}} older",
+  },
   weekReview: {
     aria: "Week review",
     title: "Week review",
