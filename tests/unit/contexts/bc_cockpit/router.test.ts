@@ -10,6 +10,7 @@ const mockCompleteQueueItem = vi.hoisted(() => vi.fn());
 const mockSetQueueItemEnergy = vi.hoisted(() => vi.fn());
 const mockGetCommitHistory = vi.hoisted(() => vi.fn());
 const mockGetReviewRequests = vi.hoisted(() => vi.fn());
+const mockGetOpenPrs = vi.hoisted(() => vi.fn());
 const mockGetReviewHistory = vi.hoisted(() => vi.fn());
 const mockGetWeekReview = vi.hoisted(() => vi.fn());
 const mockSetWeekFocus = vi.hoisted(() => vi.fn());
@@ -21,6 +22,7 @@ vi.mock("@/contexts/bc_cockpit/services", () => ({
   setQueueItemEnergy: mockSetQueueItemEnergy,
   getCommitHistory: mockGetCommitHistory,
   getReviewRequests: mockGetReviewRequests,
+  getOpenPrs: mockGetOpenPrs,
   getReviewHistory: mockGetReviewHistory,
   getWeekReview: mockGetWeekReview,
   setWeekFocus: mockSetWeekFocus,
@@ -32,6 +34,7 @@ import {
   getCockpit,
   getCommits,
   getReviewRequests,
+  getOpenPrs,
   getReviewHistory,
   getWeekReview,
   putWeekFocus,
@@ -197,6 +200,31 @@ describe("GET /api/cockpit/reviews", () => {
   it("200 i available false, gdy GitHub niedostępny (nie 500)", async () => {
     mockGetReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
     const res = await getReviewRequests();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: false, total: 0, items: [] });
+  });
+});
+
+describe("GET /api/cockpit/open-prs", () => {
+  const item = {
+    repo: "o/r",
+    number: 1,
+    title: "t",
+    url: "https://github.com/o/r/pull/1",
+    updatedAt: "2026-11-16T05:58:28Z",
+    draft: false,
+  };
+
+  it("200 z DTO", async () => {
+    mockGetOpenPrs.mockResolvedValue({ available: true, total: 9, items: [item] });
+    const res = await getOpenPrs();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ available: true, total: 9, items: [item] });
+  });
+
+  it("200 i available false, gdy GitHub niedostępny (nie 500)", async () => {
+    mockGetOpenPrs.mockResolvedValue({ available: false, total: 0, items: [] });
+    const res = await getOpenPrs();
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ available: false, total: 0, items: [] });
   });

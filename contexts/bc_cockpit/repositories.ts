@@ -1,7 +1,9 @@
+import { fetchMyOpenPrs } from "@/lib/github/my-open-prs";
 import { fetchReviewRequests } from "@/lib/github/review-requests";
+import { fetchReviewedUpdates } from "@/lib/github/reviewed-updates";
 import { fetchMyReviews } from "@/lib/github/my-reviews";
 import { readList, updateList } from "@/lib/nexus/yaml-store";
-import type { Closing, MyReview, Pinned, ReviewRequests, WeekFocus } from "./models";
+import type { Closing, MyReview, OpenPrs, Pinned, ReviewRequests, WeekFocus } from "./models";
 
 const FILE = "Cockpit/pinned.yaml";
 const LIST_KEY = "projects";
@@ -88,9 +90,46 @@ export async function upsertWeekFocus(focus: WeekFocus): Promise<void> {
   });
 }
 
-/** Prośby o review z GitHuba (przez `lib/github`); błąd `gh` to `available: false`, nie wyjątek. */
+/**
+ * Prośby o review z GitHuba (przez `lib/github`) oraz PR-y zrecenzowane, w których po moim review pojawiła się
+ * aktywność innych. Błąd próśb to `available: false`; błąd samych „po review” zostawia prośby i daje
+ * `updatesAvailable: false`. PR obecny w obu źródłach zostaje jako `requested`.
+ */
 export async function loadReviewRequests(): Promise<ReviewRequests> {
-  const res = await fetchReviewRequests();
+  const [res, upd] = await Promise.all([fetchReviewRequests(), fetchReviewedUpdates()]);
+  if (res.ok === false) return { available: false, updatesAvailable: false, total: 0, items: [] };
+  const requested = res.items.map((i) => ({
+    repo: i.repo,
+    number: i.number,
+    title: i.title,
+    author: i.author,
+    url: i.url,
+    updatedAt: i.updatedAt,
+    state: i.state,
+    reason: "requested" as const,
+  }));
+  const seen = new Set(requested.map((i) => `${i.repo}#${i.number}`));
+  const updated = upd.ok
+    ? upd.items
+        .filter((i) => !seen.has(`${i.repo}#${i.number}`))
+        .map((i) => ({
+          repo: i.repo,
+          number: i.number,
+          title: i.title,
+          author: i.author,
+          url: i.url,
+          updatedAt: i.updatedAt,
+          state: "open" as const,
+          reason: "updated" as const,
+        }))
+    : [];
+  const items = [...requested, ...updated];
+  return { available: true, updatesAvailable: upd.ok, total: items.length, items };
+}
+
+/** Własne otwarte PR-y z GitHuba (przez `lib/github`); błąd `gh` to `available: false`, nie wyjątek. */
+export async function loadOpenPrs(): Promise<OpenPrs> {
+  const res = await fetchMyOpenPrs();
   if (res.ok === false) return { available: false, total: 0, items: [] };
   return {
     available: true,
@@ -99,10 +138,9 @@ export async function loadReviewRequests(): Promise<ReviewRequests> {
       repo: i.repo,
       number: i.number,
       title: i.title,
-      author: i.author,
       url: i.url,
       updatedAt: i.updatedAt,
-      state: i.state,
+      draft: i.draft,
     })),
   };
 }

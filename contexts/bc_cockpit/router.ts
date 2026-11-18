@@ -10,6 +10,7 @@ import {
   toClosingDto,
   toCockpitDto,
   toCommitHistoryDto,
+  toOpenPrsDto,
   toPinnedDto,
   toReviewHistoryDto,
   toReviewRequestsDto,
@@ -107,6 +108,15 @@ export async function getReviewHistory(request: NextRequest): Promise<NextRespon
 export async function getReviewRequests(): Promise<NextResponse> {
   try {
     return NextResponse.json(toReviewRequestsDto(await services.getReviewRequests()));
+  } catch (err) {
+    return handleServiceError(err);
+  }
+}
+
+/** GET: własne otwarte PR-y z GitHuba; niedostępny `gh` to 200 z `available: false`, nie błąd. */
+export async function getOpenPrs(): Promise<NextResponse> {
+  try {
+    return NextResponse.json(toOpenPrsDto(await services.getOpenPrs()));
   } catch (err) {
     return handleServiceError(err);
   }

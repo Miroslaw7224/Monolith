@@ -82,6 +82,17 @@ export const home = {
     empty: "Brak próśb o review",
     error: "Nie można pobrać z GitHuba",
     merged: "scalony",
+    updated: "po review",
+    updatesError: "Nie można sprawdzić zmian po review",
+    more: "+{{n}} starszych",
+  },
+  openPrs: {
+    aria: "Otwarte PR",
+    title: "Otwarte PR",
+    empty: "Brak otwartych PR",
+    error: "Nie można pobrać z GitHuba",
+    draft: "draft",
+    ready: "gotowy",
     more: "+{{n}} starszych",
   },
   weekReview: {

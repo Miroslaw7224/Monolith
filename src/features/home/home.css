@@ -171,10 +171,10 @@
   margin-top: 2px;
 }
 
-/* ---------- Siatka główna (oś dnia, punkty skupienia, kolejka) ---------- */
+/* ---------- Siatka główna (Do zrecenzowania i oś dnia, otwarte PR i kolejka, punkty skupienia) ---------- */
 .kok-grid {
   display: grid;
-  grid-template-columns: 1.05fr 1.35fr 1fr;
+  grid-template-columns: 1.05fr 1fr 1.35fr;
   gap: var(--s-4);
   align-items: start;
   margin-bottom: var(--s-5);
@@ -1363,40 +1363,97 @@
 }
 
 /* ---------- Do zrecenzowania ---------- */
-.kok-reviews__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-}
-
-.kok-reviews__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.kok-reviews__link {
-  color: var(--text);
-  text-decoration: none;
-  font: 500 var(--fs-sm) / 1.4 var(--font-mono);
-  overflow-wrap: anywhere;
-}
-
-.kok-reviews__link:hover {
-  color: var(--accent);
-  text-decoration: underline;
-}
-
 .kok-reviews__ref {
   color: var(--accent);
 }
 
-.kok-reviews__meta {
+/* ---------- Tabelka PR (Otwarte PR, Do zrecenzowania): jak lista w Kolejce ---------- */
+.kok-pr-table {
+  list-style: none;
+  margin: 0;
+  padding: var(--s-2) var(--s-3);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.kok-pr-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+}
+
+.kok-pr-row:last-child {
+  border-bottom: none;
+}
+
+.kok-pr-row__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.kok-pr-row__ref,
+.kok-pr-row__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kok-pr-row__ref {
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+}
+
+.kok-pr-row__title {
+  color: var(--text);
   font: 500 var(--fs-sm) / 1.4 var(--font-mono);
+}
+
+.kok-pr-row__main:hover .kok-pr-row__title {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.kok-pr-row__cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.kok-pr-row__when {
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+  color: var(--muted);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ---------- Otwarte PR: draft na szaro, gotowy na zielono ---------- */
+.kok-reviews__ref--ready {
+  color: var(--green);
+}
+
+.kok-reviews__ref--draft {
+  color: var(--muted);
+}
+
+.kok-reviews__state {
+  font: 500 var(--fs-xs) / 1.3 var(--font-mono);
+}
+
+.kok-reviews__state--ready {
+  color: var(--green);
+}
+
+.kok-reviews__state--draft {
   color: var(--muted);
 }
 

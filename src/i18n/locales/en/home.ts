@@ -74,6 +74,17 @@ export const home = {
     empty: "No review requests",
     error: "Could not load from GitHub",
     merged: "merged",
+    updated: "updated",
+    updatesError: "Could not check updates after review",
+    more: "+{{n}} older",
+  },
+  openPrs: {
+    aria: "Open PRs",
+    title: "Open PRs",
+    empty: "No open PRs",
+    error: "Could not load from GitHub",
+    draft: "draft",
+    ready: "ready",
     more: "+{{n}} older",
   },
   weekReview: {

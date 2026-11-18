@@ -102,6 +102,12 @@ function respond(cockpit: CockpitDto) {
     if (url === "/api/cockpit/reviews") {
       return Promise.resolve({ ok: true, json: async () => ({ available: true, items: [] }) });
     }
+    if (url === "/api/cockpit/open-prs") {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ available: true, total: 0, items: [] }),
+      });
+    }
     return Promise.resolve({ ok: true, json: async () => [] });
   });
 }

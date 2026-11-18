@@ -19,6 +19,7 @@ const mockCountOpen = vi.hoisted(() => vi.fn());
 const mockCompleteNowTask = vi.hoisted(() => vi.fn());
 const mockUpdateTask = vi.hoisted(() => vi.fn());
 const mockLoadReviewRequests = vi.hoisted(() => vi.fn());
+const mockLoadOpenPrs = vi.hoisted(() => vi.fn());
 const mockLoadMyReviews = vi.hoisted(() => vi.fn());
 const mockReadWeekFocuses = vi.hoisted(() => vi.fn());
 const mockUpsertWeekFocus = vi.hoisted(() => vi.fn());
@@ -31,6 +32,7 @@ vi.mock("@/contexts/bc_cockpit/repositories", () => ({
   readClosings: mockReadClosings,
   upsertClosing: mockUpsertClosing,
   loadReviewRequests: mockLoadReviewRequests,
+  loadOpenPrs: mockLoadOpenPrs,
   loadMyReviews: mockLoadMyReviews,
   readWeekFocuses: mockReadWeekFocuses,
   upsertWeekFocus: mockUpsertWeekFocus,
@@ -64,6 +66,8 @@ import {
   planWindows,
   getCommitHistory,
   getReviewRequests,
+  getOpenPrs,
+  MAX_OPEN_PRS,
   getReviewHistory,
   MAX_REVIEW_REQUESTS,
   getCockpit,
@@ -1578,11 +1582,13 @@ describe("getReviewRequests", () => {
     url: `https://github.com/o/r/pull/${n}`,
     updatedAt,
     state: "open" as const,
+    reason: "requested" as const,
   });
 
   it("sortuje malejąco po updatedAt", async () => {
     mockLoadReviewRequests.mockResolvedValue({
       available: true,
+      updatesAvailable: true,
       total: 3,
       items: [
         pr(1, "2026-11-14T10:00:00Z"),
@@ -1599,7 +1605,12 @@ describe("getReviewRequests", () => {
     const items = Array.from({ length: 25 }, (_, i) =>
       pr(i + 1, new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString())
     ).reverse();
-    mockLoadReviewRequests.mockResolvedValue({ available: true, total: 25, items });
+    mockLoadReviewRequests.mockResolvedValue({
+      available: true,
+      updatesAvailable: true,
+      total: 25,
+      items,
+    });
     const res = await getReviewRequests();
     expect(res.total).toBe(25);
     expect(MAX_REVIEW_REQUESTS).toBe(20);
@@ -1609,8 +1620,81 @@ describe("getReviewRequests", () => {
   });
 
   it("niedostępny GitHub przechodzi bez zmian", async () => {
-    mockLoadReviewRequests.mockResolvedValue({ available: false, total: 0, items: [] });
-    expect(await getReviewRequests()).toEqual({ available: false, total: 0, items: [] });
+    mockLoadReviewRequests.mockResolvedValue({
+      available: false,
+      updatesAvailable: false,
+      total: 0,
+      items: [],
+    });
+    expect(await getReviewRequests()).toEqual({
+      available: false,
+      updatesAvailable: false,
+      total: 0,
+      items: [],
+    });
+  });
+
+  it("przekazuje updatesAvailable i sortuje razem prośby i „po review”", async () => {
+    mockLoadReviewRequests.mockResolvedValue({
+      available: true,
+      updatesAvailable: false,
+      total: 2,
+      items: [
+        { ...pr(1, "2026-11-14T10:00:00Z"), reason: "requested" },
+        { ...pr(2, "2026-11-16T10:00:00Z"), reason: "updated" },
+      ],
+    });
+    const res = await getReviewRequests();
+    expect(res.updatesAvailable).toBe(false);
+    expect(res.items.map((i) => [i.number, i.reason])).toEqual([
+      [2, "updated"],
+      [1, "requested"],
+    ]);
+  });
+});
+
+describe("getOpenPrs", () => {
+  const pr = (n: number, updatedAt: string, draft = false) => ({
+    repo: "o/r",
+    number: n,
+    title: `PR ${n}`,
+    url: `https://github.com/o/r/pull/${n}`,
+    updatedAt,
+    draft,
+  });
+
+  it("sortuje malejąco po updatedAt", async () => {
+    mockLoadOpenPrs.mockResolvedValue({
+      available: true,
+      total: 3,
+      items: [
+        pr(1, "2026-11-14T10:00:00Z"),
+        pr(2, "2026-11-16T10:00:00Z"),
+        pr(3, "2026-11-15T10:00:00Z", true),
+      ],
+    });
+    const res = await getOpenPrs();
+    expect(res.available).toBe(true);
+    expect(res.items.map((i) => i.number)).toEqual([2, 3, 1]);
+    expect(res.items[1].draft).toBe(true);
+  });
+
+  it("przycina do 20 najnowszych, total zostaje pełny", async () => {
+    const items = Array.from({ length: 25 }, (_, i) =>
+      pr(i + 1, new Date(Date.UTC(2026, 10, 1, 0, i)).toISOString())
+    ).reverse();
+    mockLoadOpenPrs.mockResolvedValue({ available: true, total: 25, items });
+    const res = await getOpenPrs();
+    expect(res.total).toBe(25);
+    expect(MAX_OPEN_PRS).toBe(20);
+    expect(res.items).toHaveLength(20);
+    expect(res.items[0].number).toBe(25);
+    expect(res.items[19].number).toBe(6);
+  });
+
+  it("niedostępny GitHub przechodzi bez zmian", async () => {
+    mockLoadOpenPrs.mockResolvedValue({ available: false, total: 0, items: [] });
+    expect(await getOpenPrs()).toEqual({ available: false, total: 0, items: [] });
   });
 });
 

@@ -12,6 +12,7 @@ import { EnergySwitch } from "./EnergySwitch";
 import { InboxPanel } from "./InboxPanel";
 import { QueueItemDialog } from "./QueueItemDialog";
 import { CommitHistory } from "./CommitHistory";
+import { OpenPrs } from "./OpenPrs";
 import { ReviewHistory } from "./ReviewHistory";
 import { ReviewRequests } from "./ReviewRequests";
 import { WeekReview } from "./WeekReview";
@@ -680,45 +681,9 @@ export function CockpitSections({
           />
         </div>
 
-        <section className="kok-focus" aria-label={t("home:cockpit.focusAria")}>
-          <div className="kok-panel__head">
-            <h3 className="kok-panel__title">
-              <b>{t("home:cockpit.focusBold")}</b> · {t("home:cockpit.focusSaveState")}
-            </h3>
-            <span className="kok-focus__limit">{t("home:cockpit.focusLimit")}</span>
-            <button
-              type="button"
-              onClick={onChangeActive}
-              className="kok-btn kok-btn--sm kok-btn--ghost"
-            >
-              {t("home:cockpit.changeActive")}
-            </button>
-          </div>
-          {data.topics.length === 0 ? (
-            <p className="kok-empty-msg">{t("home:cockpit.pinProjectsEmpty")}</p>
-          ) : (
-            data.topics.map((topic, i) => (
-              <TopicCard
-                key={topic.id}
-                topic={topic}
-                lead={i === 0}
-                now={now}
-                apiFetch={apiFetch}
-                onOpenProject={onOpenProject}
-              />
-            ))
-          )}
-          {free > 0 ? (
-            <button className="kok-empty" type="button" onClick={onChangeActive}>
-              <span>
-                {free === 1 ? t("home:cockpit.freeSlotThird") : t("home:cockpit.freeSlotNext")}
-              </span>
-              <span className="kok-kbd">+</span>
-            </button>
-          ) : null}
-        </section>
-
         <div className="kok-col">
+          <OpenPrs apiFetch={apiFetch} />
+
           <section className="kok-panel kok-queue" aria-label={t("home:cockpit.queueTodayAria")}>
             <div className="kok-panel__head">
               <h3 className="kok-panel__title">
@@ -791,6 +756,44 @@ export function CockpitSections({
             />
           ) : null}
         </div>
+
+        <section className="kok-focus" aria-label={t("home:cockpit.focusAria")}>
+          <div className="kok-panel__head">
+            <h3 className="kok-panel__title">
+              <b>{t("home:cockpit.focusBold")}</b> · {t("home:cockpit.focusSaveState")}
+            </h3>
+            <span className="kok-focus__limit">{t("home:cockpit.focusLimit")}</span>
+            <button
+              type="button"
+              onClick={onChangeActive}
+              className="kok-btn kok-btn--sm kok-btn--ghost"
+            >
+              {t("home:cockpit.changeActive")}
+            </button>
+          </div>
+          {data.topics.length === 0 ? (
+            <p className="kok-empty-msg">{t("home:cockpit.pinProjectsEmpty")}</p>
+          ) : (
+            data.topics.map((topic, i) => (
+              <TopicCard
+                key={topic.id}
+                topic={topic}
+                lead={i === 0}
+                now={now}
+                apiFetch={apiFetch}
+                onOpenProject={onOpenProject}
+              />
+            ))
+          )}
+          {free > 0 ? (
+            <button className="kok-empty" type="button" onClick={onChangeActive}>
+              <span>
+                {free === 1 ? t("home:cockpit.freeSlotThird") : t("home:cockpit.freeSlotNext")}
+              </span>
+              <span className="kok-kbd">+</span>
+            </button>
+          ) : null}
+        </section>
       </div>
 
       {preview ? (

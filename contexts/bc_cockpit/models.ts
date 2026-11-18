@@ -153,13 +153,40 @@ export type ReviewRequest = {
   updatedAt: string;
   /** Zmergowany PR nadal czeka na review (zniknie z listy dopiero po review użytkownika). */
   state: "open" | "merged";
+  /** `requested`: wisząca prośba o review; `updated`: zrecenzowałem, a potem ktoś inny dołożył commit lub komentarz. */
+  reason: "requested" | "updated";
 };
 
 /**
  * Prośby o review; `available: false`, gdy GitHub jest niedostępny (brak `gh`, sieci, logowania).
  * `total` to liczba wszystkich próśb, a `items` może być krótsze (limit listy).
  */
-export type ReviewRequests = { available: boolean; total: number; items: ReviewRequest[] };
+export type ReviewRequests = {
+  available: boolean;
+  /** false, gdy nie udało się sprawdzić PR-ów po review (prośby mimo to są pewne). */
+  updatesAvailable: boolean;
+  total: number;
+  items: ReviewRequest[];
+};
+
+/** Własny, otwarty PR użytkownika (tylko odczyt z GitHuba). */
+export type OpenPr = {
+  /** `właściciel/repo`. */
+  repo: string;
+  number: number;
+  title: string;
+  url: string;
+  /** Data ISO ostatniej zmiany PR-a. */
+  updatedAt: string;
+  /** PR w trybie draft. */
+  draft: boolean;
+};
+
+/**
+ * Otwarte PR-y użytkownika; `available: false`, gdy GitHub jest niedostępny (brak `gh`, sieci, logowania).
+ * `total` to liczba wszystkich PR-ów, a `items` może być krótsze (limit listy).
+ */
+export type OpenPrs = { available: boolean; total: number; items: OpenPr[] };
 
 /** Własne review użytkownika na PR-ze (tylko odczyt z GitHuba). */
 export type MyReview = {
