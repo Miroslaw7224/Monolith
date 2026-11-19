@@ -126,6 +126,20 @@ describe("helpers.sh down", () => {
     expect(stub2.calls().filter((c) => c[0] === "kill")).toEqual([]);
   });
 
+  it("down jednej roli nie kasuje historii ekranu drugiej roli", () => {
+    const cursor = () => helper("t5n", "cursor-monolith");
+    const stub = makeHcStub(fixtures([agyMon(), cursor()], { t5n: "ekran A" }));
+    runHelpers(stub, ["down", "--dry-run"]); // zapisuje historię obu
+    runHelpers(stub, ["down", "--dry-run", "agy"]); // dotyka tylko agy
+    const stateFile = path.join(
+      stub.env.XDG_STATE_HOME as string,
+      "ask-helper",
+      "helpers-monolith.json"
+    );
+    const state = JSON.parse(readFileSync(stateFile, "utf8"));
+    expect(Object.keys(state).sort()).toEqual(["agy-monolith", "cursor-monolith"]);
+  });
+
   it("--force pomija próg czasu, ale nie osłonę ekranu ani pracy", () => {
     const stub = makeHcStub(
       fixtures([helper("t5m", "agy-monolith", { status: "idle", statusMs: NOW - MIN })])

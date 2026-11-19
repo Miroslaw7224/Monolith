@@ -27,7 +27,7 @@
 #               4 (tylko --collect) pomocnik nie odpowiedział nawet na zapytanie kontrolne: raport z ostatnich linii panelu.
 set -euo pipefail
 
-COLLECT=0; ROLE=advice; TIMEOUT=300; TARGET=""; MAXLINES=40; CLEAR_MODE=auto; TIER=auto; APPROVE=0; MAX_APPROVALS="${MAX_APPROVALS:-20}"
+NUDGED=false; COLLECTS0=0; COLLECT=0; ROLE=advice; TIMEOUT=300; TARGET=""; MAXLINES=40; CLEAR_MODE=auto; TIER=auto; APPROVE=0; MAX_APPROVALS="${MAX_APPROVALS:-20}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tier)    TIER="$2"; shift 2 ;;
@@ -132,7 +132,8 @@ if [[ $COLLECT -eq 1 ]]; then
   [[ -f "$LAST_FILE" && "$(last_get target)" == "$TARGET" ]] || { echo "brak zadania do odebrania dla $WHO ($TARGET): najpierw zleć zadanie bez --collect." >&2; exit 1; }
   NONCE="$(last_get nonce)"; COLLECTS0="$(last_get collects)"; NUDGED="$(last_get nudged)"
   cur0="$(hc read --lines 500 "$TARGET" 2>/dev/null || true)"
-  grep -qF -- "$NONCE" <<<"$cur0" || { echo "wynik niedostępny na ekranie ($NONCE nie występuje; po /clear zadanie trzeba zlecić ponownie)." >&2; exit 1; }
+  # Cursor zwija długi prompt do "[Pasted text]": nonce pojawia się wtedy dopiero w odpowiedzi, więc sam znacznik wystarcza
+  grep -qF -- "$NONCE" <<<"$cur0" || grep -qF -- "[Pasted text" <<<"$cur0" || { echo "wynik niedostępny na ekranie ($NONCE nie występuje; po /clear zadanie trzeba zlecić ponownie)." >&2; exit 1; }
 else
 # --- polityka czyszczenia kontekstu pomocnika (/clear przed zadaniem) ---
 # auto: czyść przy --role review (niezależna opinia), co CLEAR_EVERY zadań
@@ -267,7 +268,7 @@ while :; do
       stable=0
     else
       if [[ "$cur" == "$prev" ]]; then stable=$((stable+1)); else stable=0; fi
-      if awk -v n="$NONCE" '/\[Pasted text/ {own=0} /^[[:space:]]*=== WYNIK ===[[:space:]]*$/ {own=1} f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} END {exit !(ok || own)}' <<<"$cur"; then
+      if awk -v n="$NONCE" -v nudged="$NUDGED" '/\[Pasted text/ {own=0} /^[[:space:]]*=== WYNIK ===[[:space:]]*$/ {own=1} f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} /Podaj wynik poprzedniego zadania/ {g=0} nudged == "true" && /^[[:space:]]*(GOTOWE|UTKNĄŁEM):/ && !/GOTOWE: albo/ {g=1} END {exit !(ok || own || g)}' <<<"$cur"; then
         need=2
       elif [[ $COLLECT -eq 1 ]]; then
         need=999999   # --collect: spokojny ekran bez linii wyniku nie jest wynikiem; o dalszych krokach decyduje collect-decide.py

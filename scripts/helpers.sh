@@ -71,7 +71,10 @@ except (OSError, ValueError):
 
 roles = ("agy", "cursor") if role == "all" else (role,)
 mine = {f"{r}-{slug}"[:32] for r in ("agy", "cursor")}
-new_state, terminals = {}, []
+# historia innej roli (down cursor / down agy) zostaje; wpisy bieżących ról odświeżamy od zera (znikają zakończeni)
+new_state = {k: v for k, v in history.items()
+             if k in mine and not any(k.startswith(r + "-") for r in roles)}
+terminals = []
 for t in hc_json("ls", "--json").get("terminals", []):
     name = t.get("name")
     if not name or not any(name.startswith(r + "-") for r in roles):
@@ -182,6 +185,8 @@ cmd_up() {
   done
   if [[ -z "$dir" ]]; then
     dir="${HELPERS_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
+  else
+    dir="$(cd "$dir" && pwd -P)" || die "Brak katalogu: $dir"   # hc run --cwd wymaga ścieżki bezwzględnej
   fi
   slug="$(project_slug "$dir")"
   local roles=(agy cursor); [[ "$role" == all ]] || roles=("$role")

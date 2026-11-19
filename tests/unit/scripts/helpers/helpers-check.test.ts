@@ -146,6 +146,12 @@ describe("helpers-check.py: decyzje KILL/SKIP", () => {
     expect(one(t, force)).toBe(expected);
   });
 
+  it("nieznany status (np. starting) traktowany jak praca, nawet z --force", () => {
+    expect(one(term({ status: "starting", idle_since_ms: ago(60) }), true)).toBe(
+      "SKIP agy-monolith: pracuje"
+    );
+  });
+
   it("wiele terminali: linie w kolejności wejścia", () => {
     const res = run({
       terminals: [

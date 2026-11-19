@@ -52,8 +52,8 @@ def decide(term, cfg):
     if status == "blocked" or APPROVAL_RE.search(tail(screen, 25)):
         return f"SKIP {label}: czeka na zgodę"
 
-    # 4) pracuje
-    if status == "working" or (not status and WORKING_RE.search(tail(screen, 12))):
+    # 4) pracuje: status inny niż idle/done (working, starting…) liczy się jak praca; bez statusu decyduje ekran
+    if (status and status not in ("idle", "done")) or (not status and WORKING_RE.search(tail(screen, 12))):
         return f"SKIP {label}: pracuje"
 
     now = cfg["now_ms"]

@@ -65,7 +65,8 @@ oraz `idle_since_ms` (liczy je `helpers.sh`, zob. niżej). Wyjście: dla każdeg
 (`hc get` daje `None`; `ask-helper.sh` ocenia go po ekranie), więc dla niego `status_ms` nie istnieje. Dlatego `helpers.sh` trzyma
 w `$STATE_DIR/helpers-<slug>.json` dla każdego pomocnika skrót ekranu i czas jego ostatniej zmiany; `idle_since_ms` =
 `status_ms` (gdy `status` jest raportowany) albo czas ostatniej zmiany skrótu ekranu (gdy nie jest). Pierwszy odczyt bez historii
-liczy się od teraz (czyli nigdy nie zabija od razu).
+liczy się od teraz (Cursor nigdy nie ginie od razu); wyjątek: gdy `status` jest raportowany (agy), brak historii ekranu
+przyjmuje `status_ms`, bo agent bezczynny od N minut nie zmieniał ekranu (inaczej pierwszy `down` po starcie zawsze trafiałby w osłonę z warunku 6).
 
 `KILL` tylko gdy **wszystkie** warunki są spełnione:
 

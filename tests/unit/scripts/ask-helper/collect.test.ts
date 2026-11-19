@@ -73,6 +73,26 @@ describe("ask-helper.sh --collect", () => {
     expect(res.stdout).toContain("PRZESZŁO: tsc, vitest (267 testów), lint");
   });
 
+  it("prompt zwinięty do [Pasted text], pomocnik jeszcze pracuje (brak nonce na ekranie): kod 3, nie 1", () => {
+    const stub = makeHcStub(
+      withScreen("[Pasted text #1 +1 lines]\n\nczytam pliki\nRunning grep\nctrl+c to stop")
+    );
+    writeLast(stub);
+    expect(run(stub, [...COLLECT, "cursor"]).status).toBe(3);
+  });
+
+  it("po zapytaniu kontrolnym odpowiedź bez === WYNIK === (linia GOTOWE:) kończy zbieranie kodem 0", () => {
+    const stub = makeHcStub(
+      withScreen(
+        `${ECHO}\nPodaj wynik poprzedniego zadania; zakończ linią GOTOWE: albo UTKNĄŁEM:\n\n  Wynik jest taki.\n  GOTOWE: zrobione\n\n> `
+      )
+    );
+    writeLast(stub, { collects: 3, nudged: true });
+    const res = run(stub, [...COLLECT, "--timeout", "5", "cursor"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain("GOTOWE: zrobione");
+  });
+
   it("nonce zadania nie ma na ekranie: kod 1, nie myli wyników", () => {
     const stub = makeHcStub(withScreen("ref:ffffffffffff\n=== WYNIK ===\ninne\n"));
     writeLast(stub);

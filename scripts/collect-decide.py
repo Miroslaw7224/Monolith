@@ -2,7 +2,7 @@
 """Co zrobić po timeoucie `ask-helper.sh --collect` (spec 3.8).
 
 Wejście (JSON, stdin): {"collects": int, "nudged": bool, "screen": str, "screen_prev": str}
-  collects     liczba dotychczasowych prób `--collect` (łącznie z bieżącą, już po timeoucie)
+  collects     liczba POPRZEDNICH prób `--collect` (bez bieżącej, która właśnie dobiegła timeoutu)
   nudged       zapytanie kontrolne już wysłano
   screen       ekran pomocnika teraz; screen_prev: ekran na końcu poprzedniego `--collect`
 Wyjście (jedno słowo):
