@@ -230,6 +230,18 @@ Zmiany w NEXUS: commit i push od razu (zasada użytkownika), ale dopiero gdy skr
   gotowość (pasek, pole `status`)? Jeśli okno się pojawia, `up` kończy się kodem 2 i informacją „podepnij `hc attach <nazwa>`".
 - **E2 Sieroty.** Czy `hc kill` zostawia procesy potomne (agy twierdzi tak, nieweryfikowane)? Test: `ps` przed i po `down` na jednym pomocniku. Jeśli tak, `down` dobija grupę procesów.
 - **E3 Znaczenie `status_ms`.** Zakładamy: czas ostatniej zmiany `status` w ms od epoki (dla `agy`; Cursor go nie ma, zob. 3.3). Test: dwa odczyty `hc get` przed i po zleceniu zadania.
+  **Wyniki sprawdzeń na żywo (2026-11-19, `hc` 2026.11, agy 1.5.12, cursor-agent 2026.11.19):**
+
+- **E1: brak okna zaufania.** `helpers.sh up agy` i `up cursor` (`hc run --bg --outlive-parent`) kończą się gotowym promptem w ok. 5 s; agy od razu
+  raportuje `status: idle` (pokazuje tylko baner „Introducing Gemini 4 Neon", `esc to dismiss`). Zadanie 3a (kod 2 „podepnij `hc attach`") **niepotrzebne**.
+  Odkryta przy okazji usterka: rdzeń `hc` startuje procesy z własnym `PATH` bez `hc`, więc watcher kończył się z `Brak hc w PATH`;
+  `up` uruchamia go teraz jako `env PATH=<PATH wołającego> bash helpers.sh watch`.
+- **E2: brak sierot.** Po `down --force` proces `agy` (pid 170282) i `cursor-agent` (pid 170393) znikają; w `ps` brak procesów potomnych z `ppid` 1.
+  Dobijanie grupy procesów w `down` **niepotrzebne**. Zakończony terminal nie blokuje nazwy: ponowny `hc run --name` tej samej nazwy działa, więc `hc rm` przed startem watchera zbędne.
+- **E3: `status_ms` = czas ostatniej zmiany `status` w ms od epoki.** Przed zleceniem `idle`/1795107858602, po zleceniu `done`/1795107928367 (zlecenie o 1795107912348).
+- **Osłona ekranu (warunek 6) działa też na ekran zmieniony przez obserwatora:** pierwszy `down --force` po dłuższej pracy pomocnika (zmieniony ekran od ostatniego odczytu)
+  odpowiada `SKIP … ekran zmienił się w ostatniej minucie`; po minucie ekran jest stabilny (ten sam skrót 6 odczytów) i `down` zabija.
+
 - **E4 `clear-helpers.sh`.** Używa starej sesji `herdr`, nie `hc`; do osobnej decyzji (usunięcie albo przepisanie), poza tym specem.
 
 - **E5 Wymuszenie statusu u Cursora (sprawdzone 2026-11-19: nie działa).** `herdr integration install cursor` instaluje tylko hook
