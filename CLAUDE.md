@@ -160,7 +160,7 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 - **Drobne prace (`--role task`):** mechaniczne, dobrze określone zmiany (zmiana nazw, literówki, drobne
   testy, formatowanie, szkielety plików), które nie wymagają mocnego modelu. Wskaż dokładnie pliki.
 - **Pełna weryfikacja (`/verify [build] [ścieżki]`):** `tsc --noEmit` + `vitest run` + `lint` w jednym zleceniu dla cursora z
-  `--approve-allowed` (komenda lokalna `.claude/commands/verify.md`; „przeszło” tylko gdy wszystkie pozycje są w `PRZESZŁO`).
+  `--approve-allowed` (komenda `.claude/commands/verify.md`; „przeszło” tylko gdy wszystkie pozycje są w `PRZESZŁO`).
 - **Nie deleguj:** projektowania architektury, zmian w auth/uprawnieniach/zapisie danych, commitów i pushy,
   kasowania czegokolwiek, decyzji produktowych. Nie zlecaj dwóm agentom edycji tych samych plików równolegle.
 - Po `--role task` zawsze sprawdź wynik (`git diff`, testy) przed uznaniem za zrobione.
