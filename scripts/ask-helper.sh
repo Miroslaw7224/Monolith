@@ -108,7 +108,7 @@ except (OSError, ValueError):
 for kv in sys.argv[1:]:
     k, _, v = kv.partition("=")
     d[k] = json.loads(v)
-tmp = p + ".tmp"
+tmp = f"{p}.{os.getpid()}.tmp"
 json.dump(d, open(tmp, "w"))
 os.replace(tmp, p)' "$@"
 }

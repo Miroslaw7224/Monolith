@@ -102,7 +102,7 @@ for t in hc_json("ls", "--json").get("terminals", []):
         "screen_changed_ms": changed, "screen": screen,
     })
 
-tmp = state_file + ".tmp"
+tmp = f"{state_file}.{os.getpid()}.tmp"  # unikalny: równoległe wywołania (watcher + ręczne)
 with open(tmp, "w") as f:
     json.dump(new_state, f)
 os.replace(tmp, state_file)

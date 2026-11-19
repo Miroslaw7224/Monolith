@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -284,5 +284,32 @@ describe("helpers.sh watch", () => {
     });
     expect(res.status).toBe(0);
     expect(Date.now() - started).toBeLessThan(10_000);
+  });
+});
+
+describe("helpers.sh: równoległe odczyty stanu", () => {
+  it("wiele jednoczesnych status/down --dry-run nie psuje pliku stanu ani się nie wywala", async () => {
+    const stub = makeHcStub(fixtures([agyMon(), helper("t5n", "cursor-monolith")]));
+    const env = { ...stub.env, HELPERS_ROOT: "/x/Monolith", HELPERS_NOW_MS: String(NOW) };
+    const runOne = (args: string[]) =>
+      new Promise<{ code: number | null; stderr: string }>((resolve) => {
+        const child = spawn("bash", [SCRIPT, ...args], { cwd: ROOT, env });
+        let stderr = "";
+        child.stderr.on("data", (d) => (stderr += d));
+        child.on("close", (code) => resolve({ code, stderr }));
+      });
+    const results = await Promise.all(
+      Array.from({ length: 12 }, (_, i) => runOne(i % 2 ? ["status"] : ["down", "--dry-run"]))
+    );
+    for (const r of results) {
+      expect(r.stderr).not.toContain("Traceback");
+      expect(r.code).toBe(0);
+    }
+    const stateFile = path.join(
+      stub.env.XDG_STATE_HOME as string,
+      "ask-helper",
+      "helpers-monolith.json"
+    );
+    expect(() => JSON.parse(readFileSync(stateFile, "utf8"))).not.toThrow();
   });
 });
