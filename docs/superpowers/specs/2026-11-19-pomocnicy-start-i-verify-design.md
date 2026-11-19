@@ -242,7 +242,7 @@ Zmiany w NEXUS: commit i push od razu (zasada użytkownika), ale dopiero gdy skr
 - **Osłona ekranu (warunek 6) działa też na ekran zmieniony przez obserwatora:** pierwszy `down --force` po dłuższej pracy pomocnika (zmieniony ekran od ostatniego odczytu)
   odpowiada `SKIP … ekran zmienił się w ostatniej minucie`; po minucie ekran jest stabilny (ten sam skrót 6 odczytów) i `down` zabija.
 
-- **E4 `clear-helpers.sh`.** Używa starej sesji `herdr`, nie `hc`; do osobnej decyzji (usunięcie albo przepisanie), poza tym specem.
+- **E4 `clear-helpers.sh`.** Rozstrzygnięte 2026-11-19: skrypt, skrót `prefix+backspace` w `config.toml` i wpis w Arsenale usunięte (martwe po zmianie ścieżki repo i nie widzi terminali `hc`; `/clear` robi `ask-helper.sh`).
 
 - **E5 Wymuszenie statusu u Cursora (sprawdzone 2026-11-19: nie działa).** `herdr integration install cursor` instaluje tylko hook
   `sessionStart`, który wysyła do gniazda `herdr` **identyfikator sesji** (`pane.report_agent_session`), i to wyłącznie gdy ustawione są
@@ -277,6 +277,8 @@ Brak wtyczek i widżetów z własnym interfejsem, więc „karta" to zakładka z
 - Skrót `prefix+h` w `config.toml` otwiera lub aktywuje zakładkę `Pomocnicy` (`herdr tab create --label Pomocnicy`, potem `pane run`).
 - Poza zakresem: karta w aplikacji webowej Monolith. Wymagałaby endpointu uruchamiającego i zabijającego procesy, co łamie zasadę
   „zapisy aplikacji idą wyłącznie do `Vault/`".
+
+**Status: odłożone (2026-11-19), wracamy, gdy zabraknie podglądu pomocników ponad `hc ls` i `helpers.sh status`.**
 
 **Warunek wejścia:** `helpers.sh status --json` (stabilny format) oraz zielone testy `helpers-check.py`.
 **Do sprawdzenia:** czy `hc attach` działa z poziomu panelu `herdr` (zagnieżdżenie terminali); jeśli nie, `a` wypisuje polecenie do skopiowania.
