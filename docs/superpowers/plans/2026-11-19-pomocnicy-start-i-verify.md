@@ -65,7 +65,7 @@ nie zatwierdzamy w panelach pomocników niczego poza zgodą z `CLAUDE.md`.
 ```
 
 - `name` może być `null` (terminal bez nazwy); `status` może być `null` (Cursor); `idle_since_ms` = `status_ms`, a gdy `status` brak,
-  czas ostatniej zmiany skrótu ekranu; `screen_changed_ms` zawsze z pliku stanu (pierwszy odczyt bez historii = `now_ms`).
+  czas ostatniej zmiany skrótu ekranu; `screen_changed_ms` z pliku stanu (pierwszy odczyt bez historii = `now_ms`; wyjątek: gdy `status` jest raportowany, przyjmujemy `status_ms`, bo agent raportujący `idle` od N minut nie zmieniał ekranu, a inaczej pierwszy `down` po starcie zawsze trafiałby w osłonę ekranu).
 - Wyjście: `KILL <nazwa>` albo `SKIP <nazwa-lub-adres>: <powód>`. Powody (dokładne teksty): `bez nazwy`, `nie pomocnik`, `inny projekt`,
   `nie działa`, `czeka na zgodę`, `pracuje`, `bezczynny N min < M` (N = pełne minuty, zaokrąglone w dół), `ekran zmienił się w ostatniej minucie`.
 - **Kolejność reguł:** (1) nazwa: `null` → `bez nazwy`; prefiks inny niż `agy-`/`cursor-` → `nie pomocnik`; inny slug → `inny projekt`;
