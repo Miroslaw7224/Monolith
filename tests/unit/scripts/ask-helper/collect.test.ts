@@ -93,6 +93,19 @@ describe("ask-helper.sh --collect", () => {
     expect(res.stdout).toContain("GOTOWE: zrobione");
   });
 
+  it("stopka Cursora (zawinięta ścieżka, gałąź, numer PR) nie trafia do wyniku", () => {
+    const bar = "▄".repeat(20);
+    const stub = makeHcStub(
+      withScreen(
+        `${ECHO}\n\n  === WYNIK ===\n  9+9 to 18.\n\n ${bar}\n  → Add a follow-up\n ${"▀".repeat(20)}\n  Composer 2.5 · 9.3%\n  ~/projects/Brain_7224/Monolith ·\n  feat/pomocnicy-start-i-verify · #101`
+      )
+    );
+    writeLast(stub);
+    const res = run(stub, [...COLLECT, "--timeout", "5", "cursor"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout.trim()).toBe("9+9 to 18.");
+  });
+
   it("nonce zadania nie ma na ekranie: kod 1, nie myli wyników", () => {
     const stub = makeHcStub(withScreen("ref:ffffffffffff\n=== WYNIK ===\ninne\n"));
     writeLast(stub);

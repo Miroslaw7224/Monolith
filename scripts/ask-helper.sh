@@ -323,10 +323,18 @@ def footer(l):
             or s.startswith("Auto") or s.startswith("~/") or s.startswith("[hc]")
             or re.search(r"·\s*[\d.]+%(\s*·.*)?$", s) is not None
             or re.search(r"·\s*(low|medium|high)\s*$", s) is not None)
+def strip_footer(lines):
+    while lines:
+        if footer(lines[-1]):
+            lines.pop()
+        elif len(lines) >= 2 and lines[-2].strip().startswith("~/") and lines[-2].strip().endswith("·"):
+            lines.pop()  # gałąź (z numerem PR) zawinięta do osobnej linii pod ścieżką stopki
+        else:
+            break
 def clean(lines):
     # usuń powtórzony nonce z treści odpowiedzi i stopkę panelu
     lines = [re.sub(r"\s*\(?" + re.escape(nonce) + r"\)?", "", l) for l in lines]
-    while lines and footer(lines[-1]): lines.pop()
+    strip_footer(lines)
     while lines and not lines[0].strip(): lines.pop(0)
     return lines
 # pierwsze wystąpienie nonce = koniec echa promptu (pomocnik bywa, że powtarza nonce na końcu odpowiedzi)
