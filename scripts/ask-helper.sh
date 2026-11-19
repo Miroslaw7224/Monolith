@@ -267,7 +267,7 @@ while :; do
       stable=0
     else
       if [[ "$cur" == "$prev" ]]; then stable=$((stable+1)); else stable=0; fi
-      if awk -v n="$NONCE" 'f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} END {exit !ok}' <<<"$cur"; then
+      if awk -v n="$NONCE" '/\[Pasted text/ {own=0} /^[[:space:]]*=== WYNIK ===[[:space:]]*$/ {own=1} f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} END {exit !(ok || own)}' <<<"$cur"; then
         need=2
       elif [[ $COLLECT -eq 1 ]]; then
         need=999999   # --collect: spokojny ekran bez linii wyniku nie jest wynikiem; o dalszych krokach decyduje collect-decide.py
@@ -313,16 +313,8 @@ done
 NONCE="$NONCE" MAXLINES="$MAXLINES" python3 -I -c '
 import os, re, sys
 text = sys.stdin.read()
-lines = text.splitlines()
+all_lines = text.splitlines()
 nonce = os.environ["NONCE"]
-# pierwsze wystąpienie nonce = koniec echa promptu (pomocnik bywa, że powtarza nonce na końcu odpowiedzi)
-idx = next((i for i, l in enumerate(lines) if nonce in l), -1)
-lines = lines[idx + 1:] if idx >= 0 else lines
-mark = max((i for i, l in enumerate(lines) if "=== WYNIK ===" in l), default=-1)
-if mark >= 0:
-    lines = lines[mark + 1:]
-# usuń powtórzony nonce z treści odpowiedzi
-lines = [re.sub(r"\s*\(?" + re.escape(nonce) + r"\)?", "", l) for l in lines]
 def footer(l):
     s = l.strip()
     return (not s or set(s) <= set("─▄▀> →-") or "for shortcuts" in s
@@ -330,8 +322,26 @@ def footer(l):
             or s.startswith("Auto") or s.startswith("~/") or s.startswith("[hc]")
             or re.search(r"·\s*[\d.]+%(\s*·.*)?$", s) is not None
             or re.search(r"·\s*(low|medium|high)\s*$", s) is not None)
-while lines and footer(lines[-1]): lines.pop()
-while lines and not lines[0].strip(): lines.pop(0)
+def clean(lines):
+    # usuń powtórzony nonce z treści odpowiedzi i stopkę panelu
+    lines = [re.sub(r"\s*\(?" + re.escape(nonce) + r"\)?", "", l) for l in lines]
+    while lines and footer(lines[-1]): lines.pop()
+    while lines and not lines[0].strip(): lines.pop(0)
+    return lines
+# pierwsze wystąpienie nonce = koniec echa promptu (pomocnik bywa, że powtarza nonce na końcu odpowiedzi)
+idx = next((i for i, l in enumerate(all_lines) if nonce in l), -1)
+lines = all_lines[idx + 1:] if idx >= 0 else all_lines
+mark = max((i for i, l in enumerate(lines) if "=== WYNIK ===" in l), default=-1)
+if mark >= 0:
+    lines = lines[mark + 1:]
+lines = clean(lines)
+if not lines:
+    # Cursor zwija długi prompt do "[Pasted text]": nonce występuje wtedy dopiero w odpowiedzi, a echo nie ma go wcale.
+    # Wtedy wynik to to, co następuje po ostatniej linii zawierającej wyłącznie === WYNIK ===, o ile leży za ostatnim [Pasted text.
+    paste = max((i for i, l in enumerate(all_lines) if "[Pasted text" in l), default=-1)
+    own = [i for i, l in enumerate(all_lines) if i > paste and l.strip() == "=== WYNIK ==="]
+    if own:
+        lines = clean(all_lines[own[-1] + 1:])
 limit = int(os.environ.get("MAXLINES") or 0)
 if limit and len(lines) > limit:
     cut = len(lines) - limit

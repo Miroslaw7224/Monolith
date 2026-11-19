@@ -61,6 +61,18 @@ describe("ask-helper.sh --collect", () => {
     expect(res.stdout.trim()).toBe("ok");
   });
 
+  it("długi prompt zwinięty do [Pasted text]: nonce tylko w końcowej linii GOTOWE, wynik i tak wypisany", () => {
+    const stub = makeHcStub(
+      withScreen(
+        `[Pasted text #1 +1 lines]\n\n  Uruchamiam polecenia.\n\n  === WYNIK ===\n\n  PRZESZŁO: tsc, vitest (267 testów), lint\n\n  GOTOWE: ${NONCE} — ok\n\n> `
+      )
+    );
+    writeLast(stub);
+    const res = run(stub, [...COLLECT, "--timeout", "5", "cursor"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain("PRZESZŁO: tsc, vitest (267 testów), lint");
+  });
+
   it("nonce zadania nie ma na ekranie: kod 1, nie myli wyników", () => {
     const stub = makeHcStub(withScreen("ref:ffffffffffff\n=== WYNIK ===\ninne\n"));
     writeLast(stub);
