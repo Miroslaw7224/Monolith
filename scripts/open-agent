@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Otwiera JEDNEGO agenta projektu w bieżącym panelu: uruchamia go w hc z nazwą <rola>-<projekt>
+# (jeśli jeszcze nie działa) i podpina (hc attach) do tego panelu, żebyś go widział.
+# Wyjście z widoku bez zamykania agenta: ctrl+\   (agent działa dalej, wróć: ten sam skrypt)
+#
+# Użycie: open-agent <claude|cursor|agy|helpers> [--dry-run] [katalog-projektu]
+#   helpers           uruchamia obu pomocników (agy, cursor) w tle i watchera: scripts/helpers.sh up all (bez podpinania)
+#   katalog-projektu  domyślnie korzeń repozytorium bieżącego katalogu (wklejaj w panelu w katalogu projektu)
+set -euo pipefail
+
+ROLE="${1:-}"; shift || true
+DRY=0; DIR=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY=1; shift ;;
+    -*)        echo "Nieznana opcja: $1" >&2; exit 1 ;;
+    *)         DIR="$1"; shift ;;
+  esac
+done
+HERE="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+case "$ROLE" in
+  helpers)
+    ARGS=(up all); [[ -n "$DIR" ]] && ARGS+=(--dir "$DIR")
+    if [[ $DRY -eq 1 ]]; then echo "[dry-run] $HERE/helpers.sh ${ARGS[*]}"; exit 0; fi
+    exec "$HERE/helpers.sh" "${ARGS[@]}" ;;
+  claude) PROG=claude ;;
+  cursor) PROG=cursor-agent ;;
+  agy)    PROG=agy ;;
+  *) echo "Użycie: open-agent <claude|cursor|agy|helpers> [--dry-run] [katalog-projektu]" >&2; exit 1 ;;
+esac
+
+command -v hc >/dev/null || { echo "Brak polecenia hc (herdr-core)." >&2; exit 1; }
+# rdzeń hc ma własny PATH (bez ~/.local/bin), więc podajemy pełną ścieżkę programu
+PROG_PATH="$(command -v "$PROG")" || { echo "Brak programu '$PROG' w PATH." >&2; exit 1; }
+
+[[ -n "$DIR" ]] || DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+DIR="$(cd "$DIR" && pwd -P)"
+if COMMON="$(git -C "$DIR" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"; then
+  REPO="$(basename "$(dirname "$COMMON")")"
+else
+  REPO="$(basename "$DIR")"
+fi
+SLUG="$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]/-/g')"
+NAME="${ROLE}-${SLUG}"; NAME="${NAME:0:32}"
+
+# działa już terminal o tej nazwie (state=live)?
+if hc get "$NAME" 2>/dev/null | grep -q '"state":"live"'; then
+  echo "$NAME już działa, podpinam."
+  RUN=0
+else
+  RUN=1
+fi
+
+if [[ $DRY -eq 1 ]]; then
+  [[ $RUN -eq 1 ]] && echo "[dry-run] hc run --bg --name $NAME --outlive-parent --cwd $DIR $PROG_PATH"
+  echo "[dry-run] hc attach $NAME"
+  exit 0
+fi
+
+if [[ $RUN -eq 1 ]]; then
+  hc run --bg --name "$NAME" --outlive-parent --cwd "$DIR" "$PROG_PATH" >/dev/null
+  echo "Uruchomiono $NAME."
+fi
+echo "Podpinam $NAME (wyjście z widoku: ctrl+\\; agent działa dalej)."
+exec hc attach "$NAME"

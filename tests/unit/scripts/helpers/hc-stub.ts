@@ -17,6 +17,8 @@ export type HcFixtures = {
 
 export type HcStub = {
   dir: string;
+  /** Katalog z atrapą `hc` oraz fałszywymi `agy` i `cursor-agent` (pierwszy na PATH). */
+  binDir: string;
   /** Środowisko z atrapą `hc` na początku PATH i odizolowanym XDG_STATE_HOME. */
   env: NodeJS.ProcessEnv;
   /** Zarejestrowane wywołania modyfikujące (run|kill|rm|send|keys|attach), po jednym argv na wywołanie. */
@@ -64,10 +66,15 @@ export function makeHcStub(fixtures: HcFixtures = {}): HcStub {
   const fixturesPath = path.join(bin, "fixtures.json");
   const callsPath = path.join(bin, "calls.log");
   writeFileSync(fixturesPath, JSON.stringify(fixtures));
+  for (const prog of ["agy", "cursor-agent"]) {
+    writeFileSync(path.join(bin, prog), "#!/bin/sh\nexit 0\n");
+    chmodSync(path.join(bin, prog), 0o755);
+  }
   const state = path.join(dir, "state");
   mkdirSync(state);
   return {
     dir,
+    binDir: bin,
     env: {
       ...process.env,
       PATH: `${bin}:${process.env.PATH ?? ""}`,

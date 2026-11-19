@@ -169,3 +169,105 @@ describe("helpers.sh status", () => {
     expect(res.stdout).not.toContain("career-guide");
   });
 });
+
+describe("helpers.sh up", () => {
+  const live = (name: string) => ({ name, state: "live" });
+
+  it("pomocnik już działa: bez hc run, komunikat „już działa”", () => {
+    const stub = makeHcStub({
+      get: { "cursor-monolith": live("cursor-monolith"), "watch-monolith": live("watch-monolith") },
+    });
+    const res = runHelpers(stub, ["up", "cursor"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain("już działa");
+    expect(stub.calls().filter((c) => c[0] === "run")).toEqual([]);
+  });
+
+  it("start cursora: hc run z pełną ścieżką programu, potem watcher", () => {
+    const stub = makeHcStub({});
+    const res = runHelpers(stub, ["up", "cursor"]);
+    expect(res.status).toBe(0);
+    const runs = stub.calls().filter((c) => c[0] === "run");
+    expect(runs).toHaveLength(2);
+    expect(runs[0]).toEqual([
+      "run",
+      "--bg",
+      "--name",
+      "cursor-monolith",
+      "--outlive-parent",
+      "--cwd",
+      "/x/Monolith",
+      path.join(stub.binDir, "cursor-agent"),
+    ]);
+    expect(runs[1].slice(0, 7)).toEqual([
+      "run",
+      "--bg",
+      "--name",
+      "watch-monolith",
+      "--outlive-parent",
+      "--cwd",
+      "/x/Monolith",
+    ]);
+    expect(runs[1].slice(7)).toEqual(["bash", SCRIPT, "watch"]);
+  });
+
+  it("up all: dwóch pomocników i jeden watcher", () => {
+    const stub = makeHcStub({});
+    const res = runHelpers(stub, ["up", "all"]);
+    expect(res.status).toBe(0);
+    const names = stub
+      .calls()
+      .filter((c) => c[0] === "run")
+      .map((c) => c[c.indexOf("--name") + 1]);
+    expect(names).toEqual(["agy-monolith", "cursor-monolith", "watch-monolith"]);
+  });
+
+  it("pomocnik działa, watchera brak: startuje tylko watchera", () => {
+    const stub = makeHcStub({ get: { "agy-monolith": live("agy-monolith") } });
+    const res = runHelpers(stub, ["up", "agy"]);
+    expect(res.status).toBe(0);
+    const names = stub
+      .calls()
+      .filter((c) => c[0] === "run")
+      .map((c) => c[c.indexOf("--name") + 1]);
+    expect(names).toEqual(["watch-monolith"]);
+  });
+
+  it("błąd hc run przy watcherze (nazwa zajęta) jest ignorowany", () => {
+    const stub = makeHcStub({ failRun: "name already in use", failRunFor: "watch-monolith" });
+    const res = runHelpers(stub, ["up", "cursor"]);
+    expect(res.status).toBe(0);
+  });
+
+  it("błąd hc run przy pomocniku: kod 1 i bez watchera", () => {
+    const stub = makeHcStub({ failRun: "boom", failRunFor: "cursor-monolith" });
+    const res = runHelpers(stub, ["up", "cursor"]);
+    expect(res.status).toBe(1);
+    expect(stub.calls().some((c) => c.includes("watch-monolith"))).toBe(false);
+  });
+
+  it("nieznana rola: kod 1", () => {
+    const res = runHelpers(makeHcStub({}), ["up", "bogus"]);
+    expect(res.status).toBe(1);
+  });
+});
+
+describe("helpers.sh watch", () => {
+  it("jedna iteracja: wywołuje down (zabija spełniającego warunki)", () => {
+    const stub = makeHcStub(fixtures([agyMon()]));
+    const res = runHelpers(stub, ["watch"], { HELPERS_WATCH_ONCE: "1" });
+    expect(res.status).toBe(0);
+    expect(stub.calls()).toContainEqual(["kill", "agy-monolith"]);
+  });
+
+  it("brak pomocników projektu: kończy się od razu kodem 0", () => {
+    const stub = makeHcStub({ ls: { terminals: [] } });
+    const started = Date.now();
+    const res = runHelpers(stub, ["watch"], {
+      HELPERS_WATCH_SEC: "30",
+      HELPERS_WATCH_RECHECK_SEC: "0",
+    });
+    expect(res.status).toBe(0);
+    expect(Date.now() - started).toBeLessThan(10_000);
+  });
+});
