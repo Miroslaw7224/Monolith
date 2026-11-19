@@ -8,7 +8,7 @@ export type HcFixtures = {
   ls?: { terminals: Record<string, unknown>[] };
   /** Wynik `hc get X`; klucz = adres albo nazwa. Brak klucza = kod 1. */
   get?: Record<string, unknown>;
-  /** Ekran z `hc read X [--lines N]`; klucz = adres albo nazwa. */
+  /** Ekran z `hc read X [--lines N]`; klucz = adres albo nazwa. `{{NONCE}}` zastępuje ostatni nonce z wywołań `hc send`. */
   read?: Record<string, string>;
   /** Błąd `hc run` (stderr + kod 1). Gdy `failRunFor` podane, tylko dla wywołań, których argv go zawiera. */
   failRun?: string;
@@ -43,7 +43,19 @@ elif cmd == "get":
         sys.exit(1)
 elif cmd == "read":
     pos = [x for x in a[1:] if not x.startswith("--") and not x.isdigit()]
-    print(fx.get("read", {}).get(pos[0], "") if pos else "")
+    text = fx.get("read", {}).get(pos[0], "") if pos else ""
+    if "{{NONCE}}" in text:
+        import re
+        nonce = ""
+        try:
+            for line in open(os.path.join(d, "calls.log")):
+                found = re.findall(r"ref:[0-9a-f]{12}", line)
+                if found and '"send"' in line:
+                    nonce = found[-1]
+        except OSError:
+            pass
+        text = text.replace("{{NONCE}}", nonce)
+    print(text)
 elif cmd in ("run", "kill", "rm", "send", "keys", "attach"):
     with open(os.path.join(d, "calls.log"), "a") as f:
         f.write(json.dumps(a) + "\\n")
