@@ -99,7 +99,12 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 
 - `--role advice` (domyślnie) i `review`: pomocnik **tylko czyta** i odpowiada. Używaj do weryfikacji i opinii.
 - `--role task`: pomocnik może edytować pliki, wyłącznie przy drobnej, jasno opisanej pracy.
-- Kody wyjścia: 0 ok, 1 nie znaleziono pomocnika, 2 pomocnik czeka na zgodę (`blocked`), 3 timeout.
+- Kody wyjścia: 0 ok, 1 nie znaleziono pomocnika, 2 pomocnik czeka na zgodę (`blocked`), 3 timeout, 4 (tylko `--collect`) brak odpowiedzi
+  nawet na zapytanie kontrolne.
+- **Kod 3 → `scripts/ask-helper.sh --collect [--timeout S] <agy|cursor>`** (nie wysyłaj zadania drugi raz): czeka na wynik OSTATNIEGO
+  zadania (nonce w `~/.local/state/ask-helper/last-<nazwa>.json`). Skrypt sam zlicza próby: po trzech próbach, przy spokojnym ekranie,
+  wysyła raz zapytanie kontrolne o wynik; kod 3 przy `--collect` znaczy „wywołaj ponownie”, kod 4 = raport dla użytkownika (ostatnie
+  linie panelu na stderr). Decyzje: `scripts/collect-decide.py`.
 - `--approve-allowed` (tylko z `--role task`, do testów/lintu/builda): skrypt sam zatwierdza (`y`, jednorazowo) dialogi
   „Run this command?” **wyłącznie** dla poleceń z listy zgód poniżej (`npx tsc --noEmit`, `npx vitest run [ścieżki]`,
   `npm run lint`, `npm run build`, z opcjonalnym `cd <Monolith> && ` i ` 2>&1`). Decyzję podejmuje `scripts/approve-check.py`
@@ -111,9 +116,13 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   `hc ls` pokazuje go jako `agent: bash`, bo to powłoka z uruchomionym `cursor-agent`; `ask-helper.sh cursor` znajduje go sam
   (`hc get <terminal>` → `foreground.argv` zawiera `cursor-agent`), więc **nie podawaj `--target`**. Wołanie:
   `scripts/ask-helper.sh --role advice|review|task --tier light [--fresh|--keep] cursor "prompt"` (zawsze `--tier light`, zob. pamięć
-  „Cursor: Composer 2.5 bez fast”). Kod 1 „nie znaleziono” = Cursor nie jest uruchomiony w żadnym panelu `hc`: poproś
-  użytkownika o start (`agent` / `cursor-agent` w panelu w katalogu Monolith), nie startuj go sam. Nie czekaj na niego przez `hc wait`
-  (wisi); wynik wraca z `ask-helper.sh` albo z `hc read <terminal>`. Adres terminala zmienia się po restarcie core: sprawdź `hc ls`.
+  „Cursor: Composer 2.5 bez fast”). Kod 1 „nie znaleziono” = pomocnik nie jest uruchomiony w żadnym panelu `hc`: uruchom go
+  **`scripts/helpers.sh up <cursor|agy|all>`** (nazwany terminal `<rola>-monolith`, działa w tle; widoczny w `hc ls`, podpinany
+  `hc attach <nazwa>` albo `open-agent <rola>`). Pomocnik jest zawsze nazwanym terminalem `hc`; ukryte, jednorazowe procesy
+  (`agy -p`, `cursor-agent -p`) nadal zakazane. Koniec pracy: `scripts/helpers.sh down` (watcher `watch-monolith` robi to sam po 10 minutach
+  bezczynności; nigdy nie ubija pracującego pomocnika ani czekającego na zgodę), podgląd: `scripts/helpers.sh status`.
+  Nie czekaj na Cursora przez `hc wait` (wisi); wynik wraca z `ask-helper.sh` albo z `hc read <terminal>`.
+  Adres terminala zmienia się po restarcie core: sprawdź `hc ls`.
 - Pomocnicy działają w `~/projects/Brain_7224/Monolith`; w prompcie podawaj ścieżki względem tego katalogu,
   a do NEXUS przez `../NEXUS/...` (oba mają odczyt NEXUS). Uprawnienia komend cursora są w globalnym
   `~/.cursor/cli-config.json` (`Brain_7224/.cursor/cli.json` nie jest wczytywany z tego katalogu).
@@ -150,6 +159,8 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   o drugą opinię (krótko, z konkretnym pytaniem).
 - **Drobne prace (`--role task`):** mechaniczne, dobrze określone zmiany (zmiana nazw, literówki, drobne
   testy, formatowanie, szkielety plików), które nie wymagają mocnego modelu. Wskaż dokładnie pliki.
+- **Pełna weryfikacja (`/verify [build] [ścieżki]`):** `tsc --noEmit` + `vitest run` + `lint` w jednym zleceniu dla cursora z
+  `--approve-allowed` (komenda lokalna `.claude/commands/verify.md`; „przeszło” tylko gdy wszystkie pozycje są w `PRZESZŁO`).
 - **Nie deleguj:** projektowania architektury, zmian w auth/uprawnieniach/zapisie danych, commitów i pushy,
   kasowania czegokolwiek, decyzji produktowych. Nie zlecaj dwóm agentom edycji tych samych plików równolegle.
 - Po `--role task` zawsze sprawdź wynik (`git diff`, testy) przed uznaniem za zrobione.
