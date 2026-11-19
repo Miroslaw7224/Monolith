@@ -206,7 +206,7 @@ cmd_up() {
   if [[ $any_live -eq 1 ]]; then
     watch_name="watch-${slug}"; watch_name="${watch_name:0:32}"
     if ! is_live "$watch_name"; then
-      hc run --bg --name "$watch_name" --outlive-parent --cwd "$dir" bash "$SCRIPT_DIR/helpers.sh" watch >/dev/null 2>&1 \
+      hc run --bg --name "$watch_name" --outlive-parent --cwd "$dir" env "PATH=$PATH" bash "$SCRIPT_DIR/helpers.sh" watch >/dev/null 2>&1 \
         || echo "[helpers] watcher $watch_name już istnieje albo nie wystartował (ignoruję)" >&2
     fi
   fi

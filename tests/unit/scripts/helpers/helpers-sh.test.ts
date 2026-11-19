@@ -222,7 +222,8 @@ describe("helpers.sh up", () => {
       "--cwd",
       "/x/Monolith",
     ]);
-    expect(runs[1].slice(7)).toEqual(["bash", SCRIPT, "watch"]);
+    // rdzeń hc ma własny PATH bez hc: watcher dostaje PATH wołającego
+    expect(runs[1].slice(7)).toEqual(["env", `PATH=${stub.env.PATH}`, "bash", SCRIPT, "watch"]);
   });
 
   it("up all: dwóch pomocników i jeden watcher", () => {
