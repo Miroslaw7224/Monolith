@@ -45,6 +45,12 @@ describe("approve-check.py: polecenia dozwolone (CLAUDE.md)", () => {
     [`${cd} npx tsc --noEmit 2>&1 in .`],
     [`npx tsc --noEmit in .`],
     [`npx vitest run tests/unit/contexts/bc_board in .`],
+    // /verify: polecenia bez cd, z 2>&1 (prompt ask-helper.sh --role task każe je wołać bez prefiksu)
+    [`npx tsc --noEmit 2>&1 in .`],
+    [`npx vitest run 2>&1 in .`],
+    [`npx vitest run tests/unit/scripts 2>&1 in .`],
+    [`npm run lint 2>&1 in .`],
+    [`npm run build 2>&1 in .`],
   ])("ALLOW: %s", (line) => {
     expect(check(dialog([line]))).toMatch(/^ALLOW /);
   });
@@ -75,6 +81,10 @@ describe("approve-check.py: polecenia odrzucane", () => {
     ["rm -rf node_modules", "rm"],
     ["git commit -m x", "git commit"],
     ["cd /tmp && npx tsc --noEmit", "inny katalog"],
+    ["cd /inny/katalog && npx tsc --noEmit", "inny katalog"],
+    ["npx vitest run --coverage", "flaga"],
+    ["npx vitest run tests/a.test.ts --watch", "flaga po ścieżce"],
+    ["npm run build | tail", "pipe"],
     ["cd /home/miro7224/projects/Brain_7224/NEXUS && npx tsc --noEmit", "inny katalog"],
   ])("DENY: %s (%s)", (line) => {
     expect(check(dialog([line + " in ."]))).toMatch(/^DENY /);

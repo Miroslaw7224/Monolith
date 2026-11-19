@@ -17,6 +17,9 @@ tsconfig.tsbuildinfo
 # Local / IDE
 .cursor/
 .claude/*
+!.claude/commands/
+.claude/commands/*
+!.claude/commands/verify.md
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/bug-projektu/

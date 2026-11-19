@@ -4,6 +4,7 @@
 # weryfikują i robią drobne prace.
 #
 # Użycie: scripts/ask-helper.sh [--role review|advice|task] [--timeout S] [--target tN] <agy|cursor> "prompt"
+#         scripts/ask-helper.sh --collect [--timeout S] [--target tN] <agy|cursor>
 #   --role review|advice  (domyślnie) pomocnik NIE modyfikuje plików, tylko odpowiada
 #   --role task           pomocnik może edytować pliki (drobne prace wskazane w prompcie)
 #   --timeout S           maks. czas oczekiwania w sekundach (domyślnie 300)
@@ -18,13 +19,19 @@
 #   --tier light|deep|none  model pomocnika: light = tani/szybki (agy: Gemini Flash, cursor: Composer),
 #                         deep = mocniejszy (agy: Gemini Argon, cursor: Auto), none = nie zmieniaj.
 #                         Domyślnie auto: review -> deep, advice/task -> light.
-# Kody wyjścia: 0 ok, 1 błąd/nie znaleziono, 2 pomocnik czeka na zgodę (blocked), 3 timeout.
+#   --collect             nie wysyła promptu: czeka na wynik OSTATNIEGO zadania (nonce z $STATE_DIR/last-<nazwa>.json) i wypisuje go.
+#                         Po kodzie 3 wywołuj --collect ponownie (nigdy nie wysyłaj tego samego zadania drugi raz). Skrypt sam zlicza próby:
+#                         po trzech próbach, przy spokojnym ekranie, wysyła raz zapytanie kontrolne o wynik; potem kod 4 (raport).
+#                         Decyzje: scripts/collect-decide.py (spec 3.8).
+# Kody wyjścia: 0 ok, 1 błąd/nie znaleziono, 2 pomocnik czeka na zgodę (blocked), 3 timeout (przy --collect: wywołaj ponownie),
+#               4 (tylko --collect) pomocnik nie odpowiedział nawet na zapytanie kontrolne: raport z ostatnich linii panelu.
 set -euo pipefail
 
-ROLE=advice; TIMEOUT=300; TARGET=""; MAXLINES=40; CLEAR_MODE=auto; TIER=auto; APPROVE=0; MAX_APPROVALS="${MAX_APPROVALS:-20}"
+NUDGED=false; COLLECTS0=0; COLLECT=0; ROLE=advice; TIMEOUT=300; TARGET=""; MAXLINES=40; CLEAR_MODE=auto; TIER=auto; APPROVE=0; MAX_APPROVALS="${MAX_APPROVALS:-20}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --tier)    TIER="$2"; shift 2 ;;
+    --collect) COLLECT=1; shift ;;
     --approve-allowed) APPROVE=1; shift ;;
     --fresh)   CLEAR_MODE=fresh; shift ;;
     --keep)    CLEAR_MODE=keep; shift ;;
@@ -37,7 +44,8 @@ while [[ $# -gt 0 ]]; do
     *) break ;;
   esac
 done
-WHO="${1:?Podaj pomocnika: agy lub cursor}"; PROMPT="${2:?Podaj prompt}"
+WHO="${1:?Podaj pomocnika: agy lub cursor}"
+if [[ $COLLECT -eq 1 ]]; then PROMPT=""; else PROMPT="${2:?Podaj prompt}"; fi
 case "$WHO" in agy|cursor) ;; *) echo "Pomocnik musi być: agy | cursor" >&2; exit 1 ;; esac
 case "$ROLE" in review|advice|task) ;; *) echo "Rola musi być: review | advice | task" >&2; exit 1 ;; esac
 
@@ -47,6 +55,8 @@ case "$ROLE" in review|advice|task) ;; *) echo "Rola musi być: review | advice 
 has_run_dialog() { local tail25; tail25="$(tail -n 25 <<<"$1")"; [[ "$tail25" == *"Run this command?"* ]]; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 command -v hc >/dev/null || { echo "Brak hc w PATH" >&2; exit 1; }
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/ask-helper"; mkdir -p "$STATE_DIR"
+START_WAIT="${ASK_HELPER_START_WAIT:-3}"; POLL_SEC="${ASK_HELPER_POLL_SEC:-2}"  # testy skracają czekanie
 
 # --- znajdź terminal pomocnika ---
 if [[ -z "$TARGET" ]]; then
@@ -83,7 +93,33 @@ for t in terms:
 PY
 )"
 fi
-[[ -n "$TARGET" ]] || { echo "Nie znaleziono terminala '$WHO' dla projektu w $PWD. Uruchom go: open-agent $WHO (w panelu w katalogu projektu) albo podaj --target tN." >&2; exit 1; }
+[[ -n "$TARGET" ]] || { echo "Nie znaleziono terminala '$WHO' dla projektu w $PWD. Uruchom go: scripts/helpers.sh up $WHO (albo open-agent $WHO w panelu w katalogu projektu) lub podaj --target tN." >&2; exit 1; }
+
+# plik ostatniego zadania (dla --collect): last-<nazwa terminala albo adres>.json
+TNAME="$(hc get "$TARGET" 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("name") or "")' 2>/dev/null || true)"
+LAST_FILE="$STATE_DIR/last-${TNAME:-$TARGET}.json"
+last_update() { # klucz=wartość-JSON ...
+  LAST_FILE="$LAST_FILE" python3 -I -c 'import json, os, sys
+p = os.environ["LAST_FILE"]
+try:
+    d = json.load(open(p))
+except (OSError, ValueError):
+    d = {}
+for kv in sys.argv[1:]:
+    k, _, v = kv.partition("=")
+    d[k] = json.loads(v)
+tmp = f"{p}.{os.getpid()}.tmp"
+json.dump(d, open(tmp, "w"))
+os.replace(tmp, p)' "$@"
+}
+last_get() { # klucz -> wartość (napisy bez cudzysłowów)
+  LAST_FILE="$LAST_FILE" python3 -I -c 'import json, os, sys
+try:
+    v = json.load(open(os.environ["LAST_FILE"])).get(sys.argv[1], "")
+except (OSError, ValueError):
+    v = ""
+print(v if isinstance(v, str) else json.dumps(v))' "$1"
+}
 
 STATUS="$(hc get "$TARGET" | python3 -I -c 'import json,sys; s=json.load(sys.stdin).get("status"); print((s.get("state") if isinstance(s,dict) else s) or "")' 2>/dev/null || true)"
 APPROVAL_RE="Requesting permission|Allow this|Run this command\?|\(y/n\)"
@@ -92,11 +128,17 @@ if [[ "$STATUS" == "blocked" ]] || hc read "$TARGET" 2>/dev/null | tail -n 25 | 
   exit 2
 fi
 
+if [[ $COLLECT -eq 1 ]]; then
+  [[ -f "$LAST_FILE" && "$(last_get target)" == "$TARGET" ]] || { echo "brak zadania do odebrania dla $WHO ($TARGET): najpierw zleć zadanie bez --collect." >&2; exit 1; }
+  NONCE="$(last_get nonce)"; COLLECTS0="$(last_get collects)"; NUDGED="$(last_get nudged)"
+  cur0="$(hc read --lines 500 "$TARGET" 2>/dev/null || true)"
+  # Cursor zwija długi prompt do "[Pasted text]": nonce pojawia się wtedy dopiero w odpowiedzi, więc sam znacznik wystarcza
+  grep -qF -- "$NONCE" <<<"$cur0" || grep -qF -- "[Pasted text" <<<"$cur0" || { echo "wynik niedostępny na ekranie ($NONCE nie występuje; po /clear zadanie trzeba zlecić ponownie)." >&2; exit 1; }
+else
 # --- polityka czyszczenia kontekstu pomocnika (/clear przed zadaniem) ---
 # auto: czyść przy --role review (niezależna opinia), co CLEAR_EVERY zadań
 #       albo gdy pasek pokazuje zajętość kontekstu >= CLEAR_PCT % (Cursor: "Auto · 6%")
 CLEAR_EVERY="${CLEAR_EVERY:-5}"; CLEAR_PCT="${CLEAR_PCT:-40}"
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/ask-helper"; mkdir -p "$STATE_DIR"
 COUNT_FILE="$STATE_DIR/$WHO-$TARGET.count"
 count="$(cat "$COUNT_FILE" 2>/dev/null || echo 0)"
 pct="$(hc read "$TARGET" 2>/dev/null | tail -n 6 | grep -oE '· *[0-9]+(\.[0-9]+)?%' | grep -oE '[0-9]+' | head -1 || true)"
@@ -166,10 +208,12 @@ BREVITY="[Format: końcową odpowiedź zacznij od osobnej linii === WYNIK === ; 
 FULL="$PREFIX $BREVITY $PROMPT ($NONCE)"
 
 hc send "$TARGET" "$FULL" >/dev/null
+last_update target="\"$TARGET\"" nonce="\"$NONCE\"" sent_ms="$(date +%s%3N)" role="\"$ROLE\"" collects=0 nudged=false screen_hash='""'
+fi
 
 # --- czekaj na koniec tury: ekran stabilny przez kilka odczytów ---
 deadline=$(( $(date +%s) + TIMEOUT ))
-prev=""; stable=0; started=$(date +%s); seen_working=""; approvals=0; sleep 3
+prev=""; stable=0; started=$(date +%s); seen_working=""; approvals=0; sleep "$START_WAIT"
 while :; do
   cur="$(hc read --lines 500 "$TARGET" 2>/dev/null || true)"
   # --approve-allowed: dialog polecenia z listy zgód zatwierdzamy klawiszem y, resztę zostawiamy człowiekowi
@@ -224,8 +268,10 @@ while :; do
       stable=0
     else
       if [[ "$cur" == "$prev" ]]; then stable=$((stable+1)); else stable=0; fi
-      if awk -v n="$NONCE" 'f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} END {exit !ok}' <<<"$cur"; then
+      if awk -v n="$NONCE" -v nudged="$NUDGED" '/\[Pasted text/ {own=0} /^[[:space:]]*=== WYNIK ===[[:space:]]*$/ {own=1} f && /=== WYNIK ===/ {ok=1} index($0, n) {f=1} /Podaj wynik poprzedniego zadania/ {g=0} nudged == "true" && /^[[:space:]]*(GOTOWE|UTKNĄŁEM):/ && !/GOTOWE: albo/ {g=1} END {exit !(ok || own || g)}' <<<"$cur"; then
         need=2
+      elif [[ $COLLECT -eq 1 ]]; then
+        need=999999   # --collect: spokojny ekran bez linii wyniku nie jest wynikiem; o dalszych krokach decyduje collect-decide.py
       else
         need=5
       fi
@@ -233,24 +279,43 @@ while :; do
     fi
   fi
   prev="$cur"
-  if [[ $(date +%s) -ge $deadline ]]; then echo "Timeout (${TIMEOUT}s) czekając na $WHO." >&2; exit 3; fi
-  sleep 2
+  if [[ $(date +%s) -ge $deadline ]]; then
+    if [[ $COLLECT -eq 0 ]]; then echo "Timeout (${TIMEOUT}s) czekając na $WHO." >&2; exit 3; fi
+    tail25="$(tail -n 25 <<<"$cur")"
+    screen_hash="$(sha1sum <<<"$tail25" | cut -c1-40)"
+    screen_prev=""; [[ "$screen_hash" == "$(last_get screen_hash)" ]] && screen_prev="$tail25"
+    action="$(COLLECTS="$COLLECTS0" NUDGED="$NUDGED" SCREEN="$tail25" PREV="$screen_prev" python3 -I -c 'import json, os
+print(json.dumps({"collects": int(os.environ["COLLECTS"] or 0), "nudged": os.environ["NUDGED"] == "true",
+                  "screen": os.environ["SCREEN"], "screen_prev": os.environ["PREV"]}))' | python3 -I "$SCRIPT_DIR/collect-decide.py")"
+    last_update collects="$((COLLECTS0 + 1))" screen_hash="\"$screen_hash\""
+    case "$action" in
+      ASK_USER)
+        echo "$WHO ($TARGET) czeka na zgodę użytkownika w swoim panelu. Zatwierdź/odrzuć i wywołaj --collect ponownie." >&2
+        exit 2 ;;
+      NUDGE)
+        hc send "$TARGET" "Podaj wynik poprzedniego zadania; zakończ linią GOTOWE: albo UTKNĄŁEM:" >/dev/null
+        NUDGED=true; last_update nudged=true
+        echo "[ask-helper] zapytanie kontrolne wysłane do $WHO; czekam jeszcze ${TIMEOUT}s." >&2
+        deadline=$(( $(date +%s) + TIMEOUT )); stable=0; prev=""
+        continue ;;
+      REPORT)
+        echo "$WHO ($TARGET) nie odpowiedział nawet na zapytanie kontrolne. Ostatnie linie panelu:" >&2
+        tail -n 15 <<<"$cur" >&2
+        exit 4 ;;
+      *)
+        echo "Timeout (${TIMEOUT}s) czekając na $WHO (próba $((COLLECTS0 + 1))); wywołaj --collect ponownie." >&2
+        exit 3 ;;
+    esac
+  fi
+  sleep "$POLL_SEC"
 done
 
 # --- wypisz tylko odpowiedź (po linii z nonce) ---
 NONCE="$NONCE" MAXLINES="$MAXLINES" python3 -I -c '
 import os, re, sys
 text = sys.stdin.read()
-lines = text.splitlines()
+all_lines = text.splitlines()
 nonce = os.environ["NONCE"]
-# pierwsze wystąpienie nonce = koniec echa promptu (pomocnik bywa, że powtarza nonce na końcu odpowiedzi)
-idx = next((i for i, l in enumerate(lines) if nonce in l), -1)
-lines = lines[idx + 1:] if idx >= 0 else lines
-mark = max((i for i, l in enumerate(lines) if "=== WYNIK ===" in l), default=-1)
-if mark >= 0:
-    lines = lines[mark + 1:]
-# usuń powtórzony nonce z treści odpowiedzi
-lines = [re.sub(r"\s*\(?" + re.escape(nonce) + r"\)?", "", l) for l in lines]
 def footer(l):
     s = l.strip()
     return (not s or set(s) <= set("─▄▀> →-") or "for shortcuts" in s
@@ -258,8 +323,34 @@ def footer(l):
             or s.startswith("Auto") or s.startswith("~/") or s.startswith("[hc]")
             or re.search(r"·\s*[\d.]+%(\s*·.*)?$", s) is not None
             or re.search(r"·\s*(low|medium|high)\s*$", s) is not None)
-while lines and footer(lines[-1]): lines.pop()
-while lines and not lines[0].strip(): lines.pop(0)
+def strip_footer(lines):
+    while lines:
+        if footer(lines[-1]):
+            lines.pop()
+        elif len(lines) >= 2 and lines[-2].strip().startswith("~/") and lines[-2].strip().endswith("·"):
+            lines.pop()  # gałąź (z numerem PR) zawinięta do osobnej linii pod ścieżką stopki
+        else:
+            break
+def clean(lines):
+    # usuń powtórzony nonce z treści odpowiedzi i stopkę panelu
+    lines = [re.sub(r"\s*\(?" + re.escape(nonce) + r"\)?", "", l) for l in lines]
+    strip_footer(lines)
+    while lines and not lines[0].strip(): lines.pop(0)
+    return lines
+# pierwsze wystąpienie nonce = koniec echa promptu (pomocnik bywa, że powtarza nonce na końcu odpowiedzi)
+idx = next((i for i, l in enumerate(all_lines) if nonce in l), -1)
+lines = all_lines[idx + 1:] if idx >= 0 else all_lines
+mark = max((i for i, l in enumerate(lines) if "=== WYNIK ===" in l), default=-1)
+if mark >= 0:
+    lines = lines[mark + 1:]
+lines = clean(lines)
+if not lines:
+    # Cursor zwija długi prompt do "[Pasted text]": nonce występuje wtedy dopiero w odpowiedzi, a echo nie ma go wcale.
+    # Wtedy wynik to to, co następuje po ostatniej linii zawierającej wyłącznie === WYNIK ===, o ile leży za ostatnim [Pasted text.
+    paste = max((i for i, l in enumerate(all_lines) if "[Pasted text" in l), default=-1)
+    own = [i for i, l in enumerate(all_lines) if i > paste and l.strip() == "=== WYNIK ==="]
+    if own:
+        lines = clean(all_lines[own[-1] + 1:])
 limit = int(os.environ.get("MAXLINES") or 0)
 if limit and len(lines) > limit:
     cut = len(lines) - limit
