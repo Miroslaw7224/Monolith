@@ -17,6 +17,7 @@ const project: ProjectWithContent = {
   localPath: "~/projects/a",
   owner: "personal",
   whereIStopped: null,
+  purpose: null,
   freshness: "fresh",
   tasks: [],
   board: {

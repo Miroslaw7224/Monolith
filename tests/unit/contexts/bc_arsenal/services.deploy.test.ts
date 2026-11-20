@@ -25,6 +25,7 @@ const entry = (o: Partial<E> = {}): E => ({
   localPath: "~/p",
   owner: "personal",
   whereIStopped: null,
+  purpose: null,
   freshness: "fresh",
   ...o,
 });

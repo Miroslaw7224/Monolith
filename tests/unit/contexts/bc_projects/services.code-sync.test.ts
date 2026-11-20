@@ -70,7 +70,7 @@ function state(over: Partial<ProjectState> = {}): ProjectState {
 beforeEach(() => {
   vi.clearAllMocks();
   mockReadRegistry.mockReturnValue({ entries: [entry], warnings: [] });
-  mockReadProjectIndex.mockReturnValue({ whereIStopped: null });
+  mockReadProjectIndex.mockReturnValue({ whereIStopped: null, purpose: null });
   mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
   mockReadDevlog.mockReturnValue([]);
   mockReadProjectBoard.mockReturnValue({
