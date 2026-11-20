@@ -114,15 +114,17 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
   Wszystko inne (flagi, pipe, przekierowania, inne komendy, sieć) kończy się kodem 2 i zatwierdza użytkownik.
 - Komenda `/consult <agy|cursor|both> <zadanie>` robi to samo.
 - NIE używaj `agy -p ...` ani `cursor-agent -p ...` przez Basha: to osobne procesy bez kontekstu sesji.
-- **Cursor Agent** działa w panelu workspace `hc` w katalogu Monolith (stan z 2026-11-16: terminal `t1s`, pasek „Composer 2.5”).
-  `hc ls` pokazuje go jako `agent: bash`, bo to powłoka z uruchomionym `cursor-agent`; `ask-helper.sh cursor` znajduje go sam
+- **Cursor Agent** działa w nazwanym terminalu `hc` `cursor-monolith` (pasek „Composer 2.5”; adres zmienia się, sprawdź `hc ls`).
+  `ask-helper.sh cursor` znajduje go sam
   (`hc get <terminal>` → `foreground.argv` zawiera `cursor-agent`), więc **nie podawaj `--target`**. Wołanie:
   `scripts/ask-helper.sh --role advice|review|task --tier light [--fresh|--keep] cursor "prompt"` (zawsze `--tier light`, zob. pamięć
-  „Cursor: Composer 2.5 bez fast”). Kod 1 „nie znaleziono” = pomocnik nie jest uruchomiony w żadnym panelu `hc`: uruchom go
-  **`scripts/helpers.sh up <cursor|agy|all>`** (nazwany terminal `<rola>-monolith`, działa w tle; widoczny w `hc ls`, podpinany
-  `hc attach <nazwa>` albo `open-agent <rola>`). Pomocnik jest zawsze nazwanym terminalem `hc`; ukryte, jednorazowe procesy
-  (`agy -p`, `cursor-agent -p`) nadal zakazane. Koniec pracy: `scripts/helpers.sh down` (watcher `watch-monolith` robi to sam po 10 minutach
-  bezczynności; nigdy nie ubija pracującego pomocnika ani czekającego na zgodę), podgląd: `scripts/helpers.sh status`.
+  „Cursor: Composer 2.5 bez fast”). **Pomocnik ma być widoczny u użytkownika.** Kod 1 „nie znaleziono” (albo pomocnika brak w
+  `scripts/helpers.sh status`) = poproś użytkownika o `open-agent <rola>` w panelu w katalogu Monolith i **czekaj na potwierdzenie**
+  przed wysłaniem zadania (`open-agent` startuje pomocnika, podpina panel i daje etykietę `watched=1`). Sam nie mam jak otworzyć
+  panelu: `helpers.sh up` startuje pomocnika tylko w tle, niewidocznego, więc używam go wyłącznie na wyraźną prośbę użytkownika.
+  Pomocnik jest zawsze nazwanym terminalem `hc` (`<rola>-monolith`); ukryte, jednorazowe procesy (`agy -p`, `cursor-agent -p`)
+  nadal zakazane. Watcher `watch-monolith` po 10 minutach bezczynności zamyka tylko pomocników bez `watched=1` (nigdy pracującego
+  ani czekającego na zgodę); podpiętych zamyka użytkownik albo `scripts/helpers.sh down --force`. Podgląd: `scripts/helpers.sh status`.
   Nie czekaj na Cursora przez `hc wait` (wisi); wynik wraca z `ask-helper.sh` albo z `hc read <terminal>`.
   Adres terminala zmienia się po restarcie core: sprawdź `hc ls`.
 - Pomocnicy działają w `~/projects/Brain_7224/Monolith`; w prompcie podawaj ścieżki względem tego katalogu,

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Otwiera JEDNEGO agenta projektu w bieżącym panelu: uruchamia go w hc z nazwą <rola>-<projekt>
 # (jeśli jeszcze nie działa) i podpina (hc attach) do tego panelu, żebyś go widział.
-# Pomocników (cursor, agy) startuje scripts/helpers.sh up <rola> (z watcherem, który po 10 min bezczynności ich zakończy);
+# Pomocników (cursor, agy) startuje scripts/helpers.sh up <rola> i oznacza etykietą hc watched=1: watcher ich nie zamyka
+# (zamyka ich użytkownik albo helpers.sh down --force);
 # claude startuje bezpośrednio.
 # Wyjście z widoku bez zamykania agenta: ctrl+\   (agent działa dalej, wróć: ten sam skrypt)
 #
@@ -69,6 +70,10 @@ if [[ $HELPER -eq 1 ]]; then
 elif [[ $RUN -eq 1 ]]; then
   hc run --bg --name "$NAME" --outlive-parent --cwd "$DIR" "$PROG_PATH" >/dev/null
   echo "Uruchomiono $NAME."
+fi
+# podpięty pomocnik: watcher (helpers.sh down bez --force) go nie zamyka
+if [[ $HELPER -eq 1 ]]; then
+  hc label "$NAME" watched=1 >/dev/null || echo "[open-agent] hc label $NAME nie powiodło się" >&2
 fi
 echo "Podpinam $NAME (wyjście z widoku: ctrl+\\; agent działa dalej)."
 exec hc attach "$NAME"

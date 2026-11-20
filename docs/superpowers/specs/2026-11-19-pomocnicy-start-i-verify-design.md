@@ -85,6 +85,12 @@ pomocnika, który pracuje albo czeka na zgodę. Po `hc kill` skrypt robi `hc rm`
 `hc` nie udostępnia informacji, czy ktoś ogląda terminal (`attach`). Pomocnik oglądany przez ponad 10 minut bez aktywności też zostanie
 zakończony; kosztem jest utrata jego kontekstu, a `ask-helper.sh` i tak go czyści. Akceptujemy, opisujemy w `--help`.
 
+**Korekta 2026-11-20 (D6).** W praktyce „widoczny w `hc ls`” okazał się niewidoczny dla użytkownika: `up` startuje w tle, agent nie
+umie otworzyć panelu (brak polecenia w `hc`, serwer `herdr` nie działa, Ghostty poza WSL), a watcher zamykał podpięte panele po
+10 minutach. Zmiana: (1) brak pomocnika = agent prosi użytkownika o `open-agent <rola>` i czeka; `up` w tle tylko na prośbę;
+(2) `open-agent` daje pomocnikowi etykietę `hc label <nazwa> watched=1`, a `helpers-check.py` pomija takiego pomocnika bez `--force`
+(reguła 2a, przed zgodą); (3) `up` po starcie drukuje „Podepnij w panelu: open-agent <rola>”.
+
 ### 3.4 Watcher
 
 `up` startuje (jeśli nie działa) terminal `watch-<slug>` **po** tym, jak pomocnik jest `live`:

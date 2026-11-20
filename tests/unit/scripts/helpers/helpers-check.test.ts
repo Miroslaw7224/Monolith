@@ -18,6 +18,7 @@ type Term = {
   idle_since_ms: number;
   screen_changed_ms: number;
   screen: string;
+  watched?: boolean;
 };
 
 function term(over: Partial<Term> = {}): Term {
@@ -58,6 +59,16 @@ function one(t: Term, force = false): string {
 }
 
 const CURSOR = { name: "cursor-monolith", address: "t5n", status: null } as const;
+
+describe("helpers-check.py: podpięty przez open-agent (watched)", () => {
+  it("bez --force: SKIP mimo przekroczonego progu", () => {
+    expect(one(term({ watched: true }))).toBe("SKIP agy-monolith: podpięty w panelu (open-agent)");
+  });
+
+  it("z --force: KILL", () => {
+    expect(one(term({ watched: true }), true)).toBe("KILL agy-monolith");
+  });
+});
 
 describe("helpers-check.py: decyzje KILL/SKIP", () => {
   it.each<[number, Term, boolean, string]>([
