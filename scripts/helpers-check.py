@@ -4,15 +4,15 @@
 Użycie: helpers-check.py < wejście.json
 Wejście (JSON, stdin):
   now_ms, idle_min, force, slug, terminals: [
-    {address, name|null, state, status|null, idle_since_ms, screen_changed_ms, screen}
+    {address, name|null, state, status|null, idle_since_ms, screen_changed_ms, screen, watched?}
   ]
 Wyjście: jedna linia na terminal, w kolejności wejścia:
   KILL <nazwa>
   SKIP <nazwa-lub-adres>: <powód>
 Kod wyjścia 0; niepoprawne wejście: kod 2 i komunikat na stderr.
 
-Kolejność reguł (spec 3.3): nazwa -> state -> zgoda -> praca -> próg czasu -> osłona ekranu.
---force (pole `force`) pomija wyłącznie próg czasu.
+Kolejność reguł (spec 3.3): nazwa -> state -> podpięty (watched) -> zgoda -> praca -> próg czasu -> osłona ekranu.
+--force (pole `force`) pomija wyłącznie próg czasu i ochronę podpiętego przez open-agent (etykieta hc watched=1).
 """
 import json
 import re
@@ -44,6 +44,10 @@ def decide(term, cfg):
     # 2) stan terminala
     if term.get("state") != "live":
         return f"SKIP {label}: nie działa"
+
+    # 2a) podpięty przez użytkownika (open-agent, etykieta watched=1): zamyka tylko --force
+    if term.get("watched") and not cfg["force"]:
+        return f"SKIP {label}: podpięty w panelu (open-agent)"
 
     status = term.get("status")
     screen = term.get("screen") or ""

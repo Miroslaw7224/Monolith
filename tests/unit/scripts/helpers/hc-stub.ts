@@ -21,7 +21,7 @@ export type HcStub = {
   binDir: string;
   /** Środowisko z atrapą `hc` na początku PATH i odizolowanym XDG_STATE_HOME. */
   env: NodeJS.ProcessEnv;
-  /** Zarejestrowane wywołania modyfikujące (run|kill|rm|send|keys|attach), po jednym argv na wywołanie. */
+  /** Zarejestrowane wywołania modyfikujące (run|kill|rm|send|keys|attach|label), po jednym argv na wywołanie. */
   calls: () => string[][];
   /** Podmienia dane atrapy między wywołaniami skryptu (np. zmiana ekranu). */
   setFixtures: (fixtures: HcFixtures) => void;
@@ -56,7 +56,7 @@ elif cmd == "read":
             pass
         text = text.replace("{{NONCE}}", nonce)
     print(text)
-elif cmd in ("run", "kill", "rm", "send", "keys", "attach"):
+elif cmd in ("run", "kill", "rm", "send", "keys", "attach", "label"):
     with open(os.path.join(d, "calls.log"), "a") as f:
         f.write(json.dumps(a) + "\\n")
     if cmd == "run" and fx.get("failRun") and (not fx.get("failRunFor") or fx["failRunFor"] in " ".join(a)):

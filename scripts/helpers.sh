@@ -13,9 +13,10 @@
 #   status    tabela pomocników bieżącego projektu: nazwa, adres, status, bezczynność (min)
 #   down      kończy (hc kill + hc rm) bezczynnych pomocników BIEŻĄCEGO projektu; decyzje liczy scripts/helpers-check.py
 #             --idle-min N  próg bezczynności w minutach (domyślnie 10)
-#             --force       pomija wyłącznie próg czasu; pracującego i czekającego na zgodę pomocnika nigdy nie zabija
+#             --force       pomija próg czasu i ochronę watched=1; pracującego i czekającego na zgodę pomocnika nigdy nie zabija
 #             --dry-run     tylko drukuje decyzje
-#   Uwaga: hc nie wie, czy ktoś ogląda terminal (attach); pomocnik bezczynny 10+ min traci kontekst.
+#   Uwaga: hc nie wie, czy ktoś ogląda terminal (attach); pomocnik podpięty przez open-agent ma etykietę watched=1
+#   i down bez --force go pomija; pozostali bezczynni 10+ min są zamykani (tracą kontekst).
 #
 # Zmienne (testy): HELPERS_NOW_MS (zamiast date), HELPERS_ROOT (zamiast korzenia repo),
 # HELPERS_WATCH_SEC, HELPERS_WATCH_RECHECK_SEC, HELPERS_WATCH_ONCE=1 (jedna iteracja watch).
@@ -100,6 +101,7 @@ for t in hc_json("ls", "--json").get("terminals", []):
         "address": t["address"], "name": name, "state": got.get("state", t.get("state")),
         "status": status or None, "idle_since_ms": idle_since,
         "screen_changed_ms": changed, "screen": screen,
+        "watched": (got.get("labels") or {}).get("watched") == "1",
     })
 
 tmp = f"{state_file}.{os.getpid()}.tmp"  # unikalny: równoległe wywołania (watcher + ręczne)
@@ -201,6 +203,7 @@ cmd_up() {
     hc run --bg --name "$name" --outlive-parent --cwd "$dir" "$prog_path" >/dev/null \
       || die "hc run nie uruchomił $name"
     echo "Uruchomiono $name"; any_live=1
+    echo "  Podepnij w panelu: open-agent $r   (bez podpięcia nie widać go na ekranie)"
   done
   # watcher: tylko gdy jest jakiś pomocnik; "nazwa zajęta" (drugi równoległy up) jest bez znaczenia
   if [[ $any_live -eq 1 ]]; then

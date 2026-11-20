@@ -86,6 +86,18 @@ describe("helpers.sh down", () => {
     expect(stub.calls().filter((c) => c[0] === "kill")).toEqual([]);
   });
 
+  it("pomocnik z etykietą watched=1 (open-agent): bez --force nie zabija, z --force tak", () => {
+    const watched = agyMon();
+    watched.get = { ...watched.get, labels: { watched: "1" } } as typeof watched.get;
+    const stub = makeHcStub(fixtures([watched]));
+    const res = runHelpers(stub, ["down"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain("SKIP agy-monolith: podpięty w panelu (open-agent)");
+    expect(stub.calls().filter((c) => c[0] === "kill")).toEqual([]);
+    runHelpers(stub, ["down", "--force"]);
+    expect(stub.calls()).toContainEqual(["kill", "agy-monolith"]);
+  });
+
   it("zabija i usuwa tylko pomocnika bieżącego projektu", () => {
     const stub = makeHcStub(fixtures([agyMon(), agyCg(), claudeMon()]));
     const res = runHelpers(stub, ["down"]);
@@ -235,6 +247,14 @@ describe("helpers.sh up", () => {
       .filter((c) => c[0] === "run")
       .map((c) => c[c.indexOf("--name") + 1]);
     expect(names).toEqual(["agy-monolith", "cursor-monolith", "watch-monolith"]);
+  });
+
+  it("po starcie podpowiada podpięcie panelu przez open-agent", () => {
+    const stub = makeHcStub({});
+    const res = runHelpers(stub, ["up", "all"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain("Podepnij w panelu: open-agent agy");
+    expect(res.stdout).toContain("Podepnij w panelu: open-agent cursor");
   });
 
   it("pomocnik działa, watchera brak: startuje tylko watchera", () => {

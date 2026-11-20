@@ -43,6 +43,20 @@ describe("open-agent z podpięciem", () => {
     expect(calls.at(-1)).toEqual(["attach", names[0]]);
   });
 
+  it("pomocnik: przed podpięciem etykieta watched=1 (watcher go nie zamyka)", () => {
+    const res = run({}, ["agy", ROOT]);
+    expect(res.status).toBe(0);
+    const calls = res.stub.calls();
+    const name = calls.at(-1)?.[1];
+    expect(calls.at(-2)).toEqual(["label", name, "watched=1"]);
+  });
+
+  it("claude: bez etykiety watched", () => {
+    const res = run({}, ["claude", ROOT]);
+    expect(res.status).toBe(0);
+    expect(res.stub.calls().some((c) => c[0] === "label")).toBe(false);
+  });
+
   it("rola helpers: up all bez podpinania", () => {
     const res = run({}, ["helpers", ROOT]);
     expect(res.status).toBe(0);
