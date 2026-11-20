@@ -26,7 +26,9 @@ function mapOf(label: string): MindMap {
 
 describe("useMindMapDocument", () => {
   it("flushes a pending edit on unmount instead of dropping the timer", async () => {
-    const apiFetch = vi.fn(async () => new Response(null, { status: 200 }));
+    const apiFetch = vi.fn(
+      async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 })
+    );
     const onChanged = vi.fn();
     const { result, unmount } = renderHook(() =>
       useMindMapDocument({
@@ -46,7 +48,7 @@ describe("useMindMapDocument", () => {
 
     unmount();
     await vi.waitFor(() => expect(apiFetch).toHaveBeenCalledTimes(1));
-    const init = (apiFetch.mock.calls as unknown as [string, RequestInit][])[0]?.[1];
+    const init = apiFetch.mock.calls[0]?.[1];
     expect(JSON.parse(String(init.body)).rootNode.label).toBe("Po zmianie");
     expect(init.keepalive).toBe(true);
   });

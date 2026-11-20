@@ -87,13 +87,13 @@ describe("resolveTags", () => {
     expect(mockCreateUserTag).toHaveBeenCalledWith({ tag: "Nowy", title: "Nowy" });
   });
   it("tekst zamiast listy (np. PUT kalendarza) traktuje jak jeden tag, nie rozbija na znaki", async () => {
-    expect(await resolveTags("abc" as unknown as string[])).toEqual(["abc"]);
+    expect(await resolveTags("abc")).toEqual(["abc"]);
     expect(mockCreateUserTag).toHaveBeenCalledTimes(1);
     expect(mockCreateUserTag).toHaveBeenCalledWith({ tag: "abc", title: "abc" });
   });
   it("wartość spoza listy i tekstu (liczba, obiekt) daje pustą listę i nic nie dopisuje", async () => {
-    expect(await resolveTags(5 as unknown as string[])).toEqual([]);
-    expect(await resolveTags({} as unknown as string[])).toEqual([]);
+    expect(await resolveTags(5)).toEqual([]);
+    expect(await resolveTags({})).toEqual([]);
     expect(mockCreateUserTag).not.toHaveBeenCalled();
   });
   it("błąd zapisu słownika przerywa operację", async () => {

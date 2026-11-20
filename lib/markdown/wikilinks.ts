@@ -32,6 +32,7 @@ export function wikilinksPlugin(md: MarkdownIt, resolve: WikiResolve): void {
     const target = head.split("#")[0].trim();
     if (target === "") return false;
     if (!silent) {
+      // Rzutowanie: markdown-it ma `linkLevel` w StateInline, ale nie w jego typach.
       const inLink = (state as unknown as { linkLevel: number }).linkLevel > 0;
       if (inLink) {
         const text = state.push("text", "", 0);

@@ -108,6 +108,7 @@ describe("ReviewHistory", () => {
   test("odmontowanie w trakcie zapytania nie zmienia stanu (bez ostrzeżeń)", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     let resolve: (v: unknown) => void = () => {};
+    // Atrapa sieci: zapytanie rozwiązywane ręcznie ułamkiem Response (`ok`, `json()`), nie pełnym Response.
     const apiFetch = vi.fn(() => new Promise((r) => (resolve = r)));
     const { unmount } = render(<ReviewHistory apiFetch={apiFetch as never} day="2026-11-16" />);
     unmount();

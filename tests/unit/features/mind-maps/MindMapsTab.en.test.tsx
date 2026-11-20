@@ -7,6 +7,7 @@ import { mindmaps as plMindmaps } from "@/src/i18n/locales/pl/mindmaps";
 import i18n, { setLanguage } from "@/src/i18n";
 
 function emptyMapsFetch() {
+  // Atrapa sieci: z `Response` test czyta tylko `ok` i `json()`.
   return vi.fn(async () => ({
     ok: true,
     json: async () => [] as const,
@@ -36,6 +37,7 @@ describe("MindMapsTab po angielsku", () => {
 });
 
 describe("mindmaps:mindMapsItemsCount plural", () => {
+  // Rzutowanie: klucz składany w teście (np. `planning:${key}`) nie pasuje do unionu znanych kluczy w typach `i18n.t` (TS2345 bez rzutowania).
   const translate = i18n.t as unknown as (key: string, options: object) => string;
 
   test("PL", async () => {
@@ -57,6 +59,7 @@ describe("mindmaps:mindMapsItemsCount plural", () => {
 });
 describe("liczba liści: plural PL", () => {
   test("odmienia liść / liście / liści", () => {
+    // Rzutowanie: klucz składany w teście (np. `planning:${key}`) nie pasuje do unionu znanych kluczy w typach `i18n.t` (TS2345 bez rzutowania).
     const translate = i18n.t as unknown as (key: string, options: object) => string;
     const leaves = (count: number) => translate("mindmaps:mindMapsLeafCount", { count, lng: "pl" });
     expect(leaves(1)).toBe("1 liść");

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import i18n from "@/src/i18n";
 
+// Rzutowanie: klucz składany w teście (np. `planning:${key}`) nie pasuje do unionu znanych kluczy w typach `i18n.t` (TS2345 bez rzutowania).
 const translate = i18n.t as unknown as (key: string, options: object) => string;
 const noun = (key: string, count: number, lng: "pl" | "en") =>
   translate(`planning:${key}`, { count, lng });

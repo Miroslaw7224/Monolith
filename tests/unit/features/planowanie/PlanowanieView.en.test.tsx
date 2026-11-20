@@ -12,6 +12,7 @@ afterEach(async () => {
 });
 
 function listApiFetch() {
+  // Atrapa sieci: z `Response` widok czyta tylko `ok` i `json()`.
   return vi.fn(async () => ({
     ok: true,
     json: async () => [],
