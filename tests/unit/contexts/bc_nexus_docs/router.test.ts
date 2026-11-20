@@ -19,6 +19,7 @@ beforeEach(() => {
 });
 
 const req = new Request("http://localhost/api/nexus-docs");
+// Atrapa środowiska: kontekst trasy Next (`params` jako Promise); `path` celowo dowolny, by sprawdzić walidację.
 const ctx = (path: unknown) => ({ params: Promise.resolve({ path }) }) as never;
 
 describe("GET /api/nexus-docs", () => {

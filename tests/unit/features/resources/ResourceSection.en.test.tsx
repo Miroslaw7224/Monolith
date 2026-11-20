@@ -46,6 +46,7 @@ describe("ResourceSection po angielsku", () => {
 });
 
 describe("resources:resourceAdded plural", () => {
+  // Rzutowanie: klucz składany w teście (np. `planning:${key}`) nie pasuje do unionu znanych kluczy w typach `i18n.t` (TS2345 bez rzutowania).
   const translate = i18n.t as unknown as (key: string, options: object) => string;
 
   test("PL", () => {
@@ -62,6 +63,7 @@ describe("resources:resourceAdded plural", () => {
 });
 
 describe("resources:resourceSubtitle plural PL", () => {
+  // Rzutowanie: klucz składany w teście (np. `planning:${key}`) nie pasuje do unionu znanych kluczy w typach `i18n.t` (TS2345 bez rzutowania).
   const translate = i18n.t as unknown as (key: string, options: object) => string;
 
   test("odmienia zasób / zasoby / zasobów", () => {

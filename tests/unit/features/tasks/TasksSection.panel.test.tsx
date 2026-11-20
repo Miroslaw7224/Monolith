@@ -6,6 +6,7 @@ import { TasksSection } from "@/src/features/tasks/TasksSection";
 const apiFetch = vi.fn();
 
 function stubWidth(matches: boolean) {
+  // Atrapa środowiska (DOM): jsdom nie ma `matchMedia`, pełny `MediaQueryList` nie jest tu potrzebny.
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     matches,
     media: query,

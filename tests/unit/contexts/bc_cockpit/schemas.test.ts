@@ -192,7 +192,9 @@ describe("toCommitHistoryDto", () => {
         },
       ],
     };
-    const dto = toCommitHistoryDto({ ...model, extra: 1 } as never);
+    // Zmienna, nie literał: nadmiarowe pole nie jest błędem typu, a test sprawdza jego odrzucenie.
+    const withExtra = { ...model, extra: 1 };
+    const dto = toCommitHistoryDto(withExtra);
     expect(dto).toEqual(model);
     expect(Object.keys(dto).sort()).toEqual([
       "available",
@@ -241,12 +243,14 @@ describe("toReviewRequestsDto", () => {
   };
 
   it("kopiuje pola i odrzuca nadmiarowe", () => {
-    const dto = toReviewRequestsDto({
+    // Zmienna, nie literał: nadmiarowe pole nie jest błędem typu, a test sprawdza jego odrzucenie.
+    const withExtra = {
       available: true,
       updatesAvailable: true,
       total: 7,
       items: [{ ...item, extra: 1 }],
-    } as never);
+    };
+    const dto = toReviewRequestsDto(withExtra);
     expect(dto).toEqual({ available: true, updatesAvailable: true, total: 7, items: [item] });
   });
 
@@ -267,7 +271,7 @@ describe("toReviewRequestsDto", () => {
       updatesAvailable: false,
       total: 1,
       items: [{ ...item, reason: "updated" }],
-    } as never);
+    });
     expect(dto).toEqual({
       available: true,
       updatesAvailable: false,
@@ -292,11 +296,13 @@ describe("toReviewHistoryDto", () => {
   };
 
   it("kopiuje pola i odrzuca nadmiarowe", () => {
-    const dto = toReviewHistoryDto({
+    // Zmienna, nie literał: nadmiarowe pole nie jest błędem typu, a test sprawdza jego odrzucenie.
+    const withExtra = {
       ...history,
       extra: 1,
       days: history.days.map((d) => ({ ...d, extra: 1 })),
-    } as never);
+    };
+    const dto = toReviewHistoryDto(withExtra);
     expect(dto).toEqual(history);
   });
 });
@@ -326,11 +332,13 @@ describe("toOpenPrsDto", () => {
   };
 
   it("kopiuje pola i odrzuca nadmiarowe", () => {
-    const dto = toOpenPrsDto({
+    // Zmienna, nie literał: nadmiarowe pole nie jest błędem typu, a test sprawdza jego odrzucenie.
+    const withExtra = {
       available: true,
       total: 7,
       items: [{ ...item, extra: 1 }],
-    } as never);
+    };
+    const dto = toOpenPrsDto(withExtra);
     expect(dto).toEqual({ available: true, total: 7, items: [item] });
   });
 });

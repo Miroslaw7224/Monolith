@@ -27,6 +27,7 @@ const REVIEW: WeekReviewDto = {
   prompt: "# Przegląd tygodnia 2026-11-10 – 2026-11-16",
 };
 
+// Atrapy sieci: z `Response` komponent czyta tylko `ok`, `status` i `json()`.
 const ok = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;
 const fail = () => ({ ok: false, status: 500, json: async () => ({}) }) as unknown as Response;
 

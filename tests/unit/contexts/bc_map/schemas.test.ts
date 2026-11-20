@@ -34,10 +34,9 @@ describe("toGraphDto", () => {
   });
 
   it("kopiuje skupiska bez pustych pól opcjonalnych i niczego spoza schematu", () => {
-    const dto = toGraphDto({
-      ...graph,
-      nodes: [{ ...graph.nodes[0], cwd: "/home/u/x" } as never],
-    });
+    // Zmienna, nie literał: nadmiarowe pole `cwd` nie jest błędem typu, a test sprawdza jego odrzucenie.
+    const nodeWithCwd = { ...graph.nodes[0], cwd: "/home/u/x" };
+    const dto = toGraphDto({ ...graph, nodes: [nodeWithCwd] });
     expect(JSON.stringify(dto)).not.toContain("/home/u");
     expect(dto.clusters[1]).toEqual({
       id: "skille",
