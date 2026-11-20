@@ -2,60 +2,98 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DomainError, NotFoundError } from "@/lib/errors";
 import type { WeekReview } from "@/contexts/bc_cockpit/models";
+import type {
+  BoardTask,
+  NowTask,
+  Project,
+  ProjectState,
+  ProjectWithContent,
+  TasksBoard,
+} from "@/contexts/bc_projects/models";
+import type { CalendarEntry } from "@/contexts/bc_calendar/models";
+import type { Task } from "@/contexts/bc_tasks/models";
+import type * as CockpitRepo from "@/contexts/bc_cockpit/repositories";
+import type * as CalendarServices from "@/contexts/bc_calendar/services";
+import type * as InboxServices from "@/contexts/bc_inbox/services";
+import type * as ProjectsServices from "@/contexts/bc_projects/services";
+import type * as TasksServices from "@/contexts/bc_tasks/services";
 
-const mockReadPinned = vi.hoisted(() => vi.fn());
-const mockWritePinned = vi.hoisted(() => vi.fn());
-const mockReadClosings = vi.hoisted(() => vi.fn());
-const mockUpsertClosing = vi.hoisted(() => vi.fn());
-const mockGetProject = vi.hoisted(() => vi.fn());
-const mockListNowTasks = vi.hoisted(() => vi.fn());
-const mockListProjects = vi.hoisted(() => vi.fn());
-const mockGetTasks = vi.hoisted(() => vi.fn());
-const mockRewriteNowTask = vi.hoisted(() => vi.fn());
-const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
-const mockListGitActivity = vi.hoisted(() => vi.fn());
-const mockListGitHistory = vi.hoisted(() => vi.fn());
-const mockCountOpen = vi.hoisted(() => vi.fn());
-const mockCompleteNowTask = vi.hoisted(() => vi.fn());
-const mockUpdateTask = vi.hoisted(() => vi.fn());
-const mockLoadReviewRequests = vi.hoisted(() => vi.fn());
-const mockLoadOpenPrs = vi.hoisted(() => vi.fn());
-const mockLoadMyReviews = vi.hoisted(() => vi.fn());
-const mockReadWeekFocuses = vi.hoisted(() => vi.fn());
-const mockUpsertWeekFocus = vi.hoisted(() => vi.fn());
-const mockListGitSubjects = vi.hoisted(() => vi.fn());
-const mockListDoneTasks = vi.hoisted(() => vi.fn());
+const mockReadPinned = vi.hoisted(() => vi.fn<typeof CockpitRepo.readPinned>());
+const mockWritePinned = vi.hoisted(() => vi.fn<typeof CockpitRepo.writePinned>());
+const mockReadClosings = vi.hoisted(() => vi.fn<typeof CockpitRepo.readClosings>());
+const mockUpsertClosing = vi.hoisted(() => vi.fn<typeof CockpitRepo.upsertClosing>());
+const mockGetProject = vi.hoisted(() => vi.fn<typeof ProjectsServices.getProject>());
+const mockListNowTasks = vi.hoisted(() => vi.fn<typeof ProjectsServices.listNowTasks>());
+const mockListProjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listProjects>());
+const mockGetTasks = vi.hoisted(() => vi.fn<typeof TasksServices.getTasks>());
+const mockRewriteNowTask = vi.hoisted(() => vi.fn<typeof ProjectsServices.rewriteNowTask>());
+const mockGetCalendarEvents = vi.hoisted(() => vi.fn<typeof CalendarServices.getCalendarEvents>());
+const mockListGitActivity = vi.hoisted(() => vi.fn<typeof ProjectsServices.listGitActivity>());
+const mockListGitHistory = vi.hoisted(() => vi.fn<typeof ProjectsServices.listGitHistory>());
+const mockCountOpen = vi.hoisted(() => vi.fn<typeof InboxServices.countOpen>());
+const mockCompleteNowTask = vi.hoisted(() => vi.fn<typeof ProjectsServices.completeNowTask>());
+const mockUpdateTask = vi.hoisted(() => vi.fn<typeof TasksServices.updateTask>());
+const mockLoadReviewRequests = vi.hoisted(() => vi.fn<typeof CockpitRepo.loadReviewRequests>());
+const mockLoadOpenPrs = vi.hoisted(() => vi.fn<typeof CockpitRepo.loadOpenPrs>());
+const mockLoadMyReviews = vi.hoisted(() => vi.fn<typeof CockpitRepo.loadMyReviews>());
+const mockReadWeekFocuses = vi.hoisted(() => vi.fn<typeof CockpitRepo.readWeekFocuses>());
+const mockUpsertWeekFocus = vi.hoisted(() => vi.fn<typeof CockpitRepo.upsertWeekFocus>());
+const mockListGitSubjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listGitSubjects>());
+const mockListDoneTasks = vi.hoisted(() => vi.fn<typeof ProjectsServices.listDoneTasksInWindow>());
 
-vi.mock("@/contexts/bc_cockpit/repositories", () => ({
-  readPinned: mockReadPinned,
-  writePinned: mockWritePinned,
-  readClosings: mockReadClosings,
-  upsertClosing: mockUpsertClosing,
-  loadReviewRequests: mockLoadReviewRequests,
-  loadOpenPrs: mockLoadOpenPrs,
-  loadMyReviews: mockLoadMyReviews,
-  readWeekFocuses: mockReadWeekFocuses,
-  upsertWeekFocus: mockUpsertWeekFocus,
-}));
-vi.mock("@/contexts/bc_projects/services", () => ({
-  getProject: mockGetProject,
-  listNowTasks: mockListNowTasks,
-  listProjects: mockListProjects,
-  listGitActivity: mockListGitActivity,
-  listGitHistory: mockListGitHistory,
-  listGitSubjects: mockListGitSubjects,
-  listDoneTasksInWindow: mockListDoneTasks,
-  completeNowTask: mockCompleteNowTask,
-  rewriteNowTask: mockRewriteNowTask,
-  projectKind: (owner: string, type?: string) => type ?? (owner === "work" ? "etat" : "wlasny"),
-  hasCompanyData: (owner: string, type?: string) => owner === "work" || type === "etat",
-}));
-vi.mock("@/contexts/bc_inbox/services", () => ({ countOpen: mockCountOpen }));
-vi.mock("@/contexts/bc_tasks/services", () => ({
-  getTasks: mockGetTasks,
-  updateTask: mockUpdateTask,
-}));
-vi.mock("@/contexts/bc_calendar/services", () => ({ getCalendarEvents: mockGetCalendarEvents }));
+vi.mock(
+  "@/contexts/bc_cockpit/repositories",
+  () =>
+    ({
+      readPinned: mockReadPinned,
+      writePinned: mockWritePinned,
+      readClosings: mockReadClosings,
+      upsertClosing: mockUpsertClosing,
+      loadReviewRequests: mockLoadReviewRequests,
+      loadOpenPrs: mockLoadOpenPrs,
+      loadMyReviews: mockLoadMyReviews,
+      readWeekFocuses: mockReadWeekFocuses,
+      upsertWeekFocus: mockUpsertWeekFocus,
+    }) satisfies Partial<typeof CockpitRepo>
+);
+vi.mock("@/contexts/bc_projects/services", async (importOriginal) => {
+  const actual = await importOriginal<typeof ProjectsServices>();
+  return {
+    getProject: mockGetProject,
+    listNowTasks: mockListNowTasks,
+    listProjects: mockListProjects,
+    listGitActivity: mockListGitActivity,
+    listGitHistory: mockListGitHistory,
+    listGitSubjects: mockListGitSubjects,
+    listDoneTasksInWindow: mockListDoneTasks,
+    completeNowTask: mockCompleteNowTask,
+    rewriteNowTask: mockRewriteNowTask,
+    projectKind: actual.projectKind,
+    hasCompanyData: actual.hasCompanyData,
+  } satisfies Partial<typeof ProjectsServices>;
+});
+vi.mock(
+  "@/contexts/bc_inbox/services",
+  () =>
+    ({
+      countOpen: mockCountOpen,
+    }) satisfies Partial<typeof InboxServices>
+);
+vi.mock(
+  "@/contexts/bc_tasks/services",
+  () =>
+    ({
+      getTasks: mockGetTasks,
+      updateTask: mockUpdateTask,
+    }) satisfies Partial<typeof TasksServices>
+);
+vi.mock(
+  "@/contexts/bc_calendar/services",
+  () =>
+    ({
+      getCalendarEvents: mockGetCalendarEvents,
+    }) satisfies Partial<typeof CalendarServices>
+);
 
 import {
   closeDay,
@@ -86,7 +124,7 @@ import {
 /** 00:30 lokalnie: jedyna data „dziś” ma być 2026-11-13 (UTC byłoby 12-go). */
 const TODAY = new Date(2026, 10, 13, 0, 30);
 
-const task = (over: Record<string, unknown>) => ({
+const task = (over: Partial<Task> = {}): Task => ({
   id: "t",
   title: "Zadanie",
   link: "",
@@ -97,22 +135,57 @@ const task = (over: Record<string, unknown>) => ({
   ...over,
 });
 
-const project = (over: Record<string, unknown> = {}) => ({
-  id: "nexus",
-  name: "NEXUS",
+/** Wpis rejestru bez treści (wynik `listProjects`). */
+const listed = (over: Partial<Project> & Pick<Project, "id">): Project => ({
+  name: over.id,
+  status: "active",
+  priority: "medium",
+  folder: `Projects/${over.id}/`,
+  localPath: "",
   owner: "personal",
-  freshness: "fresh",
   whereIStopped: null,
-  state: null,
-  board: { now: [] },
-  bugs: [],
+  freshness: "fresh",
   ...over,
 });
 
-const state = (over: Record<string, unknown> = {}) => ({
+const boardOf = (now: BoardTask[] = []): TasksBoard => ({
+  blockers: [],
+  now,
+  next: [],
+  icebox: [],
+  version: null,
+});
+
+/** Projekt z treścią (wynik `getProject`). */
+const project = (over: Partial<ProjectWithContent> = {}): ProjectWithContent => ({
+  ...listed({ id: "nexus", name: "NEXUS" }),
+  tasks: [],
+  board: boardOf(),
+  bugs: [],
+  state: null,
+  stateVersion: null,
+  devlog: [],
+  ...over,
+});
+
+const state = (over: Partial<ProjectState> = {}): ProjectState => ({
   nextStep: "",
   blocker: "",
   branch: "",
+  env: "",
+  links: [],
+  milestone: "",
+  notes: "",
+  ...over,
+});
+
+const nowTask = (over: Partial<NowTask> & Pick<NowTask, "projectId" | "text">): NowTask => ({
+  projectName: over.projectId,
+  owner: "personal",
+  kind: "wlasny",
+  companyData: false,
+  priority: "",
+  occurrence: 0,
   ...over,
 });
 
@@ -132,7 +205,7 @@ beforeEach(() => {
   mockListGitSubjects.mockReturnValue([]);
   mockListDoneTasks.mockReturnValue([]);
   mockListProjects.mockReturnValue({
-    projects: [{ id: "nexus" }, { id: "monolith" }],
+    projects: [listed({ id: "nexus" }), listed({ id: "monolith" })],
     warnings: [],
   });
 });
@@ -294,14 +367,14 @@ describe("tematy", () => {
     });
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "high",
           text: "Zadanie",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -359,8 +432,16 @@ describe("tematy: dane do karty skupienia", () => {
   it("nowCount liczy niezakończone, bugCount pomija sekcję Zamknięte", async () => {
     mockGetProject.mockReturnValue(
       project({
-        board: { now: [{ done: false }, { done: true }, { done: false }] },
-        bugs: [{ section: "Aktywne" }, { section: "Zamknięte" }, { section: "Aktywne" }],
+        board: boardOf([
+          { text: "a", done: false },
+          { text: "b", done: true },
+          { text: "c", done: false },
+        ]),
+        bugs: [
+          { id: "B-1", title: "Pierwszy", section: "Aktywne" },
+          { id: "B-2", title: "Drugi", section: "Zamknięte" },
+          { id: "B-3", title: "Trzeci", section: "Aktywne" },
+        ],
       })
     );
     const topic = (await getCockpit(TODAY)).topics[0];
@@ -443,7 +524,12 @@ describe("kolejka na dziś", () => {
   it("zadania ogólne „do sprawdzenia” znikają z kolejki (także pilne); „w toku” zostaje", async () => {
     mockGetTasks.mockResolvedValue([
       task({ id: "r", title: "Wysłane do sprawdzenia", priority: 1, status: "to_review" }),
-      task({ id: "r2", title: "Do sprawdzenia z terminem", due_date: TODAY, status: "to_review" }),
+      task({
+        id: "r2",
+        title: "Do sprawdzenia z terminem",
+        due_date: "2026-11-13",
+        status: "to_review",
+      }),
       task({ id: "w", title: "W toku pilne", priority: 1, status: "in_progress" }),
     ]);
 
@@ -477,22 +563,24 @@ describe("kolejka na dziś", () => {
   it("kolejność: dzisiejsze due, zaległe (najświeższe pierwsze), potem [now::], na końcu bez terminu; grupy per projekt, ogólne jako „Ogólne”", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p1",
           projectName: "Projekt 1",
           owner: "personal",
           priority: "high",
           text: "Plan",
           occurrence: 0,
-        },
-        {
+        }),
+        nowTask({
           projectId: "p2",
           projectName: "Projekt 2",
           owner: "work",
+          kind: "etat",
+          companyData: true,
           priority: "",
           text: "Raport",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -554,6 +642,8 @@ describe("kolejka na dziś", () => {
         projectId: "p1",
         name: "Projekt 1",
         owner: "personal",
+        kind: "wlasny",
+        companyData: false,
         items: [
           {
             kind: "now",
@@ -570,6 +660,8 @@ describe("kolejka na dziś", () => {
         projectId: "p2",
         name: "Projekt 2",
         owner: "work",
+        kind: "etat",
+        companyData: true,
         items: [
           {
             kind: "now",
@@ -588,9 +680,27 @@ describe("kolejka na dziś", () => {
   it("zadania [now::] kilku projektów nie mieszają grup, kilka zadań jednego projektu w jednej grupie", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        { projectId: "p1", projectName: "P1", owner: "personal", text: "A", occurrence: 0 },
-        { projectId: "p2", projectName: "P2", owner: "personal", text: "B", occurrence: 0 },
-        { projectId: "p1", projectName: "P1", owner: "personal", text: "C", occurrence: 0 },
+        nowTask({
+          projectId: "p1",
+          projectName: "P1",
+          owner: "personal",
+          text: "A",
+          occurrence: 0,
+        }),
+        nowTask({
+          projectId: "p2",
+          projectName: "P2",
+          owner: "personal",
+          text: "B",
+          occurrence: 0,
+        }),
+        nowTask({
+          projectId: "p1",
+          projectName: "P1",
+          owner: "personal",
+          text: "C",
+          occurrence: 0,
+        }),
       ],
       warnings: [],
     });
@@ -604,14 +714,14 @@ describe("kolejka na dziś", () => {
   it("zadania ogólne: dziś → „upcoming” (termin w przyszłości, najbliższy pierwszy) → „undated”; ukończone nie", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "",
           text: "Teraz",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -775,7 +885,15 @@ describe("awaria jednego źródła nie wywraca reszty", () => {
     mockReadPinned.mockReturnValue({ ids: ["nexus"] });
     mockGetProject.mockReturnValue(project({ whereIStopped: "x" }));
     mockListNowTasks.mockReturnValue({
-      tasks: [{ projectId: "p1", projectName: "P1", owner: "personal", text: "A", occurrence: 0 }],
+      tasks: [
+        nowTask({
+          projectId: "p1",
+          projectName: "P1",
+          owner: "personal",
+          text: "A",
+          occurrence: 0,
+        }),
+      ],
       warnings: [],
     });
     mockGetTasks.mockRejectedValue(new Error("zły tasks.md"));
@@ -1068,22 +1186,22 @@ describe("energia deep/quick (K2)", () => {
   it("kolejka: zadania projektów i ogólne dostają energię, a tytuł jest czysty", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "high",
           text: "Porty #deep",
           occurrence: 0,
-        },
-        {
+        }),
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "high",
           text: "Bez tagu",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -1206,14 +1324,14 @@ describe("okna Deep Work (K5)", () => {
   it("getCockpit zwraca okna z wydarzeń dnia i kolejki", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "high",
           text: "Porty #deep",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -1228,14 +1346,14 @@ describe("kolejność wg najbliższej daty", () => {
   it("dziś, potem zaległe od najświeższego (nie od najstarszego), potem [now::], na końcu bez terminu", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "",
           text: "Teraz",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -1261,14 +1379,14 @@ describe("domykanie zadań z kolejki", () => {
   it("źródło zadania: ogólne ma id, projektowe ma projekt i surowy tekst (z tagiem energii)", async () => {
     mockListNowTasks.mockReturnValue({
       tasks: [
-        {
+        nowTask({
           projectId: "p",
           projectName: "P",
           owner: "personal",
           priority: "",
           text: "Porty #deep",
           occurrence: 0,
-        },
+        }),
       ],
       warnings: [],
     });
@@ -1315,7 +1433,7 @@ describe("domykanie zadań z kolejki", () => {
 });
 
 describe("następne spotkanie poza dniem dzisiejszym", () => {
-  const cal = (date: string, over: Record<string, unknown> = {}) => ({
+  const cal = (date: string, over: Partial<CalendarEntry> = {}): CalendarEntry => ({
     id: `e-${date}`,
     date,
     start_minutes: 1200,
@@ -1335,7 +1453,7 @@ describe("następne spotkanie poza dniem dzisiejszym", () => {
   ];
 
   it("bez spotkań dziś bierze najbliższe przyszłe (tylko typ meeting) i podaje jego dzień", async () => {
-    mockGetCalendarEvents.mockImplementation(async (r: { startDate: string; endDate: string }) =>
+    mockGetCalendarEvents.mockImplementation(async (r = {}) =>
       r.startDate === r.endDate ? [] : future
     );
     const { nextMeeting } = await getCockpit(TODAY);
@@ -1353,7 +1471,7 @@ describe("następne spotkanie poza dniem dzisiejszym", () => {
   });
 
   it("gdy dzisiejsze spotkania już się skończyły, bierze przyszłe", async () => {
-    mockGetCalendarEvents.mockImplementation(async (r: { startDate: string; endDate: string }) =>
+    mockGetCalendarEvents.mockImplementation(async (r = {}) =>
       r.startDate === r.endDate
         ? [cal("2026-11-13", { start_minutes: 540, duration_minutes: 30 })]
         : future
@@ -1415,7 +1533,7 @@ describe("setQueueItemEnergy (K2b)", () => {
   });
 
   it("zadanie ogólne: tytuł z nowym znacznikiem przez serwis zadań", async () => {
-    mockGetTasks.mockResolvedValue([{ id: "t9", title: "Faktura #quick" }]);
+    mockGetTasks.mockResolvedValue([task({ id: "t9", title: "Faktura #quick" })]);
     const next = await setQueueItemEnergy({ type: "task", taskId: "t9" }, "deep");
     expect(mockUpdateTask).toHaveBeenCalledWith("t9", { title: "Faktura #deep" });
     expect(next).toEqual({ type: "task", taskId: "t9" });
@@ -1454,7 +1572,7 @@ describe("setQueueItemEnergy (K2b)", () => {
   });
 
   it("zdjęcie energii z zadania będącego samym znacznikiem jest odrzucone (puste zadanie)", async () => {
-    mockGetTasks.mockResolvedValue([{ id: "t1", title: "#deep" }]);
+    mockGetTasks.mockResolvedValue([task({ id: "t1", title: "#deep" })]);
     await expect(setQueueItemEnergy({ type: "task", taskId: "t1" }, null)).rejects.toBeInstanceOf(
       DomainError
     );
@@ -1484,20 +1602,17 @@ describe("setQueueItemEnergy (K2b)", () => {
 });
 
 describe("kolejka: rodzaj grupy (D8)", () => {
-  const nowTask = (over: Record<string, unknown> = {}) => ({
-    projectId: "p",
-    projectName: "P",
-    owner: "personal",
-    kind: "biblioteka",
-    companyData: false,
-    priority: "high",
-    text: "Zadanie",
-    occurrence: 0,
-    ...over,
-  });
+  const libraryTask = (): NowTask =>
+    nowTask({
+      projectId: "p",
+      projectName: "P",
+      kind: "biblioteka",
+      priority: "high",
+      text: "Zadanie",
+    });
 
   it("grupa projektowa niesie kind i companyData z NowTask, grupa ogólna ich nie ma", async () => {
-    mockListNowTasks.mockReturnValue({ tasks: [nowTask()], warnings: [] });
+    mockListNowTasks.mockReturnValue({ tasks: [libraryTask()], warnings: [] });
     mockGetTasks.mockResolvedValue([task({ title: "Ogólne zadanie" })]);
     const { queue } = await getCockpit(TODAY);
     const project = queue.find((g) => g.projectId === "p");
@@ -1510,13 +1625,8 @@ describe("kolejka: rodzaj grupy (D8)", () => {
 });
 
 describe("kolejka: zadanie ogólne z projektem (spec zadań ogólnych, P4)", () => {
-  const known = (over: Record<string, unknown> = {}) => ({
-    id: "monolith",
-    name: "Monolith",
-    owner: "personal",
-    type: undefined,
-    ...over,
-  });
+  const known = (over: Partial<Project> = {}): Project =>
+    listed({ id: "monolith", name: "Monolith", ...over });
 
   it("pozycja z `project` zostaje w grupie „Ogólne” i niesie rodzaj projektu", async () => {
     mockListProjects.mockReturnValue({ projects: [known()], warnings: [] });
@@ -1535,7 +1645,7 @@ describe("kolejka: zadanie ogólne z projektem (spec zadań ogólnych, P4)", () 
 
   it("projekt etatowy dostaje kind etat i companyData", async () => {
     mockListProjects.mockReturnValue({
-      projects: [known({ id: "firma", name: "Firma", type: "etat" })],
+      projects: [known(listed({ id: "firma", name: "Firma", type: "etat" }))],
       warnings: [],
     });
     mockGetTasks.mockResolvedValue([task({ title: "Raport", project: "firma" })]);
@@ -1824,7 +1934,10 @@ describe("setWeekFocus", () => {
 
   it("300 znaków przechodzi, 301 to DomainError", async () => {
     expect(MAX_FOCUS_TEXT).toBe(300);
-    await expect(setWeekFocus({ text: "a".repeat(300) }, TODAY)).resolves.toBeDefined();
+    await expect(setWeekFocus({ text: "a".repeat(300) }, TODAY)).resolves.toEqual({
+      weekStart: "2026-11-09",
+      text: "a".repeat(300),
+    });
     await expect(setWeekFocus({ text: "a".repeat(301) }, TODAY)).rejects.toThrow(DomainError);
   });
 });
@@ -1857,7 +1970,11 @@ describe("getCockpit: weekFocus", () => {
 
 const MONDAY = new Date(2026, 10, 16, 12, 0); // okno 2026-11-10 … 2026-11-16
 
-const meeting = (id: string, date: string, type = "meeting") => ({
+const meeting = (
+  id: string,
+  date: string,
+  type: CalendarEntry["type"] = "meeting"
+): CalendarEntry => ({
   id,
   date,
   start_minutes: 600,
@@ -1872,8 +1989,8 @@ describe("getWeekReview", () => {
   beforeEach(() => {
     mockListProjects.mockReturnValue({
       projects: [
-        { id: "monolith", name: "Monolith", owner: "personal", type: undefined },
-        { id: "firma", name: "Firma", owner: "work", type: undefined },
+        listed({ id: "monolith", name: "Monolith", owner: "personal", type: undefined }),
+        listed({ id: "firma", name: "Firma", owner: "work", type: undefined }),
       ],
       warnings: [],
     });
@@ -1971,8 +2088,8 @@ describe("getWeekReview", () => {
   it("projekt `type: etat` też jest maskowany (hasCompanyData)", async () => {
     mockListProjects.mockReturnValue({
       projects: [
-        { id: "monolith", name: "Monolith", owner: "personal", type: "etat" },
-        { id: "firma", name: "Firma", owner: "work", type: undefined },
+        listed({ id: "monolith", name: "Monolith", owner: "personal", type: "etat" }),
+        listed({ id: "firma", name: "Firma", owner: "work", type: undefined }),
       ],
       warnings: [],
     });
