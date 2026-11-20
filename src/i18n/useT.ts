@@ -9,5 +9,6 @@ import { type TFn } from "./index";
  */
 export function useT(): TFn {
   const { t } = useTranslation();
+  // Rzutowanie z powodu opisanego wyżej: zawężony `t` nie przyjmuje kluczy z interpolacją.
   return t as unknown as TFn;
 }
