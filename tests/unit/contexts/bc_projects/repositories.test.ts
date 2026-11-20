@@ -210,6 +210,15 @@ describe("bc_projects repositories", () => {
     expect(index.purpose).toBeNull();
   });
 
+  it("readProjectIndex: sekcja jako ostatnia w pliku, bez końcowego nowego wiersza", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write(
+      "Projects/p/index.md",
+      "---\nname: P\n---\n\n## O projekcie\nOpis.\n\n## Po co i dlaczego\nOstatnia sekcja."
+    );
+    expect(readProjectIndex(e).purpose).toBe("Ostatnia sekcja.");
+  });
+
   it("readProjectIndex: przy dwóch sekcjach wygrywa pierwsza", () => {
     const e = entry({ id: "p", folder: "Projects/p/" });
     vault.write(

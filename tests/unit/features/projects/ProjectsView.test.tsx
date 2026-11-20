@@ -194,6 +194,9 @@ describe("ProjectsView", () => {
 
     const purposeCard = container.querySelector("article.prj-purpose") as HTMLElement;
     expect(purposeCard).not.toBeNull();
+    expect(purposeCard.querySelector("p.prj-purpose__text")).toHaveTextContent(
+      /Pierwsza linia celu/
+    );
     expect(within(purposeCard).getByText(/Pierwsza linia celu/)).toBeInTheDocument();
     expect(within(purposeCard).getByText(/Druga linia motywacji/)).toBeInTheDocument();
 
