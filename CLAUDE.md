@@ -170,8 +170,3 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 - Po `--role task` zawsze sprawdź wynik (`git diff`, testy) przed uznaniem za zrobione.
 - Nie deleguj tylko po to, by delegować: proste rzeczy zrób sam. Pomocnik ma sens, gdy daje niezależne spojrzenie
   albo oszczędza mocny model.
-
-### Rezerwa: sesja herdr
-
-Starsza sesja herdr (`herdr agent list/prompt/read`) widzi tylko panele w swoim workspace `w1`;
-agenci z `hc` w niej nie występują.
