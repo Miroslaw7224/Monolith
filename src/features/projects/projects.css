@@ -558,6 +558,13 @@
   color: var(--text);
 }
 
+.prj-purpose__text {
+  margin: 0;
+  font: 500 var(--fs-sm) / 1.45 var(--font-mono);
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
 .prj-task-section__title {
   margin: 0 0 var(--s-2);
   font: 600 var(--fs-xs) / 1 var(--font-mono);

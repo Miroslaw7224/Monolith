@@ -162,7 +162,7 @@ export function readProjectIndex(entry: RegistryEntry): ProjectIndex {
   const rel = projectPath(entry.folder, "index.md");
   const file = readVaultFile(rel);
   if (file === null) {
-    return { whereIStopped: null };
+    return { whereIStopped: null, purpose: null };
   }
 
   let meta: Record<string, unknown> = {};
@@ -177,11 +177,16 @@ export function readProjectIndex(entry: RegistryEntry): ProjectIndex {
     body = parsed.body;
   }
 
-  const whereSection = parseSections(body).find((s) => s.heading === "Gdzie skończyłem");
+  const sections = parseSections(body);
+  const whereSection = sections.find((s) => s.heading === "Gdzie skończyłem");
   const whereBody = whereSection?.body.trim() ?? "";
+
+  const purposeSection = sections.find((s) => s.heading === "Po co i dlaczego");
+  const purposeBody = purposeSection?.body.trim() ?? "";
 
   const index: ProjectIndex = {
     whereIStopped: whereBody === "" ? null : whereBody,
+    purpose: purposeBody === "" ? null : purposeBody,
   };
 
   const lastWorked = text(meta.last_worked);

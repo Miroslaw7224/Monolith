@@ -309,6 +309,7 @@ export type ProjectDetailDto = ProjectSummaryDto & {
   board: TasksBoardDto;
   bugs: BugEntryDto[];
   whereIStopped: string | null;
+  purpose: string | null;
   state: ProjectStateDto | null;
   /** `"<size>:<hash>"` pliku `state.md` (do odesłania w PUT); `null`, gdy pliku nie ma. */
   stateVersion: string | null;
@@ -389,6 +390,7 @@ export function toDetailDto(p: ProjectWithContent): ProjectDetailDto {
     },
     bugs: p.bugs.map(toBugDto),
     whereIStopped: p.whereIStopped,
+    purpose: p.purpose,
     state: p.state ? toStateDto(p.state) : null,
     stateVersion: p.stateVersion ? `${p.stateVersion.size}:${p.stateVersion.hash}` : null,
     devlog: p.devlog.slice(0, DEVLOG_LIMIT),

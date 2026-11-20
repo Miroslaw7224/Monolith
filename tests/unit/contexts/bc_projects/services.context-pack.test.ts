@@ -65,7 +65,11 @@ const GIT_OK = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockReadRegistry.mockReturnValue({ entries: [entry], warnings: [] });
-  mockReadProjectIndex.mockReturnValue({ whereIStopped: null, lastWorked: "2026-11-01" });
+  mockReadProjectIndex.mockReturnValue({
+    whereIStopped: null,
+    purpose: null,
+    lastWorked: "2026-11-01",
+  });
   mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
   mockReadProjectState.mockReturnValue({ state, version: null });
   mockReadDevlog.mockReturnValue([]);
@@ -119,6 +123,7 @@ describe("buildContextPack", () => {
     mockReadRegistry.mockReturnValue({ entries: [{ ...entry, owner }], warnings: [] });
     mockReadProjectIndex.mockReturnValue({
       whereIStopped: null,
+      purpose: null,
       lastWorked: "2026-11-01",
       ...(type ? { type } : {}),
     });

@@ -57,6 +57,7 @@ const project = (id: string, localPath: string, owner: "personal" | "work" = "pe
   localPath,
   owner,
   whereIStopped: null,
+  purpose: null,
   freshness: "fresh",
 });
 const ok = (...entries: SourceEntry[]): SourceRead => ({ ok: true, entries });

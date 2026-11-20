@@ -40,6 +40,7 @@ const summaryProject: Project = {
   owner: "personal",
   lastWorked: "2026-11-05",
   whereIStopped: "tu",
+  purpose: null,
   freshness: "fresh",
 };
 

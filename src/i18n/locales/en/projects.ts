@@ -191,6 +191,7 @@ export const projects = {
     typeAria: "Project type",
     milestone: "Milestone: {{text}}",
     milestoneDue: " · due {{date}}",
+    purposeTitle: "Why this exists",
     tasksTitle: "Task board · tasks.md",
     tasksCount: "{{count}} in project",
   },

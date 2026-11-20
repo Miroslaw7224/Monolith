@@ -31,6 +31,7 @@ function project(bugs: BugEntry[]): ProjectWithContent {
     localPath: "~/projects/a",
     owner: "personal",
     whereIStopped: null,
+    purpose: null,
     freshness: "fresh",
     tasks: [],
     board: { blockers: [], now: [], next: [], icebox: [], version: null },

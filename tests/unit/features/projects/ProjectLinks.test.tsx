@@ -22,6 +22,7 @@ function project(partial: Partial<ProjectDetailDto> = {}): ProjectDetailDto {
     board: { blockers: [], now: [], next: [], icebox: [], version: null },
     bugs: [],
     whereIStopped: null,
+    purpose: null,
     state: null,
     stateVersion: null,
     devlog: [],

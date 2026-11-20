@@ -186,6 +186,10 @@ Jeden plik na mapę; `id` (20 znaków alfanumerycznych) to nazwa pliku. JSON z w
 
 Jeden plik: `{ "tiles": […], "frames": […], "edges": […], "updatedAt": "ISO" }`. Brak pliku to pusta tablica. Zapis zawsze nadpisuje plik (ostatni zapis wygrywa).
 
+## Opis projektu: `Projects/<projekt>/index.md`, sekcja „Po co i dlaczego”
+
+Pierwsza sekcja `index.md` po frontmatterze i linii nawigacji, przed `## O projekcie`: 2–3 zdania, po co projekt istnieje i dlaczego powstał. Aplikacja **tylko czyta** ją (karta Projekty, tuż pod kafelkiem z nazwą i linkami, przed Save State); edycja ręczna lub przez agenta. Brak sekcji albo sama biała treść = brak karty. Nagłówek dokładnie `## Po co i dlaczego` (wielkość liter ma znaczenie), pierwsza taka sekcja wygrywa. W treści nie używaj linii zaczynających się od `## ` (parser kończy sekcję na każdej takiej linii, także w bloku kodu). Tekst jest surowy, bez Markdown; łamanie linii zostaje. Motywacji („dlaczego”) agent nie zgaduje: gdy nie wynika ze źródeł, wpisuje „Motywacja: do uzupełnienia”.
+
 ## Save State: `Projects/<projekt>/state.md`
 
 Plik aplikacji (formularz „Save State” w karcie Projekty); frontmatter YAML + treść jako notatki.

@@ -158,6 +158,7 @@ describe("bc_projects repositories", () => {
       lastWorked: "2026-05-19",
       stateConfidence: "verified",
       whereIStopped: "Koniec X.",
+      purpose: null,
     });
   });
 
@@ -178,8 +179,75 @@ describe("bc_projects repositories", () => {
 
   it("brak index.md, tasks.md, bugs.md", () => {
     const e = entry({ id: "p", folder: "Projects/p/" });
-    expect(readProjectIndex(e)).toEqual({ whereIStopped: null });
+    expect(readProjectIndex(e)).toEqual({ whereIStopped: null, purpose: null });
     expect(readProjectContent(e)).toEqual({ tasks: [], bugs: [] });
+  });
+
+  it("readProjectIndex: index.md z sekcją ## Po co i dlaczego + tekst", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write(
+      "Projects/p/index.md",
+      "---\nname: P\n---\n\n## Po co i dlaczego\nProjekt służy do nauki programowania.\n\n## O projekcie\nOpis aplikacji.\n"
+    );
+    const index = readProjectIndex(e);
+    expect(index.purpose).toBe("Projekt służy do nauki programowania.");
+  });
+
+  it("readProjectIndex: index.md bez tej sekcji zwraca purpose === null", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write("Projects/p/index.md", "---\nname: P\n---\n\n## O projekcie\nOpis aplikacji.\n");
+    const index = readProjectIndex(e);
+    expect(index.purpose).toBeNull();
+  });
+
+  it("readProjectIndex: sekcja z samym nagłówkiem lub białymi znakami zwraca purpose === null", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write(
+      "Projects/p/index.md",
+      "---\nname: P\n---\n\n## Po co i dlaczego\n   \n\n## O projekcie\nOpis aplikacji.\n"
+    );
+    const index = readProjectIndex(e);
+    expect(index.purpose).toBeNull();
+  });
+
+  it("readProjectIndex: sekcja jako ostatnia w pliku, bez końcowego nowego wiersza", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write(
+      "Projects/p/index.md",
+      "---\nname: P\n---\n\n## O projekcie\nOpis.\n\n## Po co i dlaczego\nOstatnia sekcja."
+    );
+    expect(readProjectIndex(e).purpose).toBe("Ostatnia sekcja.");
+  });
+
+  it("readProjectIndex: przy dwóch sekcjach wygrywa pierwsza", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write(
+      "Projects/p/index.md",
+      "---\nname: P\n---\n\n## Po co i dlaczego\nPierwsza.\n\n## Po co i dlaczego\nDruga.\n"
+    );
+    expect(readProjectIndex(e).purpose).toBe("Pierwsza.");
+  });
+
+  it("readProjectIndex: nagłówek w innej wielkości liter nie jest rozpoznany", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write("Projects/p/index.md", "---\nname: P\n---\n\n## po co i dlaczego\nTekst.\n");
+    expect(readProjectIndex(e).purpose).toBeNull();
+  });
+
+  it("readProjectIndex: linia ## w środku treści obcina tekst (znane ograniczenie parsera)", () => {
+    const e = entry({ id: "p", folder: "Projects/p/" });
+    vault.write(
+      "Projects/p/index.md",
+      "---\nname: P\n---\n\n## Po co i dlaczego\nPrzed.\n## Coś innego\nPo.\n"
+    );
+    expect(readProjectIndex(e).purpose).toBe("Przed.");
+  });
+
+  it("readProjectIndex: brak pliku index.md zwraca purpose === null", () => {
+    const e = entry({ id: "missing", folder: "Projects/missing/" });
+    const index = readProjectIndex(e);
+    expect(index.purpose).toBeNull();
+    expect(index.whereIStopped).toBeNull();
   });
 
   it("tasks.md z trzema sekcjami", () => {
