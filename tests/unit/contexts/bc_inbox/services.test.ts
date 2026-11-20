@@ -1,32 +1,54 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
+import type { InboxItem } from "@/contexts/bc_inbox/models";
+import type { ProjectWithContent, TasksBoard, VersionToken } from "@/contexts/bc_projects/models";
+import type { Note } from "@/contexts/bc_notes/models";
+import type { Task } from "@/contexts/bc_tasks/models";
+import type * as InboxRepo from "@/contexts/bc_inbox/repositories";
+import type * as NotesServices from "@/contexts/bc_notes/services";
+import type * as ProjectsServices from "@/contexts/bc_projects/services";
+import type * as TasksServices from "@/contexts/bc_tasks/services";
 
-const mockRead = vi.hoisted(() => vi.fn());
-const mockAppend = vi.hoisted(() => vi.fn());
-const mockResolve = vi.hoisted(() => vi.fn());
-const mockRemove = vi.hoisted(() => vi.fn());
-const mockCountClosed = vi.hoisted(() => vi.fn());
-const mockRemoveClosed = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_inbox/repositories", () => ({
-  readOpenItems: mockRead,
-  appendItem: mockAppend,
-  resolveItem: mockResolve,
-  removeItem: mockRemove,
-  countClosedItems: mockCountClosed,
-  removeClosedItems: mockRemoveClosed,
-}));
+const mockRead = vi.hoisted(() => vi.fn<typeof InboxRepo.readOpenItems>());
+const mockAppend = vi.hoisted(() => vi.fn<typeof InboxRepo.appendItem>());
+const mockResolve = vi.hoisted(() => vi.fn<typeof InboxRepo.resolveItem>());
+const mockRemove = vi.hoisted(() => vi.fn<typeof InboxRepo.removeItem>());
+const mockCountClosed = vi.hoisted(() => vi.fn<typeof InboxRepo.countClosedItems>());
+const mockRemoveClosed = vi.hoisted(() => vi.fn<typeof InboxRepo.removeClosedItems>());
+vi.mock(
+  "@/contexts/bc_inbox/repositories",
+  () =>
+    ({
+      readOpenItems: mockRead,
+      appendItem: mockAppend,
+      resolveItem: mockResolve,
+      removeItem: mockRemove,
+      countClosedItems: mockCountClosed,
+      removeClosedItems: mockRemoveClosed,
+    }) satisfies Partial<typeof InboxRepo>
+);
 
-const mockGetProject = vi.hoisted(() => vi.fn());
-const mockApplyTaskOp = vi.hoisted(() => vi.fn());
-const mockCreateTask = vi.hoisted(() => vi.fn());
-const mockCreateNote = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({
-  getProject: mockGetProject,
-  applyTaskOp: mockApplyTaskOp,
-}));
-vi.mock("@/contexts/bc_tasks/services", () => ({ createTask: mockCreateTask }));
-vi.mock("@/contexts/bc_notes/services", () => ({ createNote: mockCreateNote }));
+const mockGetProject = vi.hoisted(() => vi.fn<typeof ProjectsServices.getProject>());
+const mockApplyTaskOp = vi.hoisted(() => vi.fn<typeof ProjectsServices.applyTaskOp>());
+const mockCreateTask = vi.hoisted(() => vi.fn<typeof TasksServices.createTask>());
+const mockCreateNote = vi.hoisted(() => vi.fn<typeof NotesServices.createNote>());
+vi.mock(
+  "@/contexts/bc_projects/services",
+  () =>
+    ({
+      getProject: mockGetProject,
+      applyTaskOp: mockApplyTaskOp,
+    }) satisfies Partial<typeof ProjectsServices>
+);
+vi.mock(
+  "@/contexts/bc_tasks/services",
+  () => ({ createTask: mockCreateTask }) satisfies Partial<typeof TasksServices>
+);
+vi.mock(
+  "@/contexts/bc_notes/services",
+  () => ({ createNote: mockCreateNote }) satisfies Partial<typeof NotesServices>
+);
 
 import {
   addItem,
@@ -42,9 +64,59 @@ import {
 
 const NOW = new Date(2026, 10, 13, 21, 5);
 
+const inboxItem = (o: Partial<InboxItem> & Pick<InboxItem, "id">): InboxItem => ({
+  text: "x",
+  type: "myśl",
+  at: null,
+  ...o,
+});
+
+const board = (version: VersionToken | null = null): TasksBoard => ({
+  blockers: [],
+  now: [],
+  next: [],
+  icebox: [],
+  version,
+});
+
+const project = (over: Partial<ProjectWithContent> = {}): ProjectWithContent => ({
+  id: "nexus",
+  name: "NEXUS",
+  status: "active",
+  priority: "medium",
+  folder: "Projects/nexus/",
+  localPath: "",
+  owner: "personal",
+  whereIStopped: null,
+  freshness: "fresh",
+  tasks: [],
+  board: board(),
+  bugs: [],
+  state: null,
+  stateVersion: null,
+  devlog: [],
+  ...over,
+});
+
+const task = (o: Partial<Task> & Pick<Task, "id">): Task => ({
+  title: "Zadanie",
+  link: "",
+  description: "",
+  status: "todo",
+  due_date: null,
+  priority: null,
+  ...o,
+});
+
+const note = (o: Partial<Note> & Pick<Note, "id">): Note => ({
+  title: "Notatka",
+  content: "",
+  ...o,
+});
+
 beforeEach(() => {
   vi.resetAllMocks();
-  mockAppend.mockImplementation(async (i: object) => ({ id: "h1", ...i }));
+  mockAppend.mockImplementation(async (i) => ({ id: "h1", ...i }));
 });
 
 describe("detectType", () => {
@@ -94,8 +166,8 @@ describe("addItem", () => {
 
 describe("listItems / countOpen / resolve", () => {
   const items = [
-    { id: "1", text: "a", type: "myśl", at: null },
-    { id: "2", text: "b", type: "link", at: null },
+    inboxItem({ id: "1", text: "a" }),
+    inboxItem({ id: "2", text: "b", type: "link" }),
   ];
 
   it("najnowsze (z końca pliku) pierwsze; liczba otwartych", () => {
@@ -133,16 +205,16 @@ describe("countClosed / clearClosed", () => {
 });
 
 describe("moveItem", () => {
-  const OPEN = [{ id: "e1", text: "Wpis", type: "myśl", at: null }];
-  const VERSION = { size: 10, hash: "abc" };
+  const OPEN = [inboxItem({ id: "e1", text: "Wpis" })];
+  const VERSION: VersionToken = { size: 10, hash: "abc" };
 
   beforeEach(() => {
     mockRead.mockReturnValue(OPEN);
     mockResolve.mockResolvedValue(true);
-    mockGetProject.mockReturnValue({ board: { version: VERSION } });
-    mockApplyTaskOp.mockResolvedValue({});
-    mockCreateTask.mockResolvedValue({ id: "t1" });
-    mockCreateNote.mockResolvedValue({ id: "n1" });
+    mockGetProject.mockReturnValue(project({ board: board(VERSION) }));
+    mockApplyTaskOp.mockResolvedValue(project());
+    mockCreateTask.mockResolvedValue(task({ id: "t1" }));
+    mockCreateNote.mockResolvedValue(note({ id: "n1" }));
   });
 
   it("project/next: applyTaskOp z wersją pliku, potem [x]; ref = id projektu", async () => {
@@ -250,6 +322,11 @@ describe("moveItem", () => {
   it("resolve zwraca false (wpis zniknął w międzyczasie): też ostrzeżenie, nie błąd", async () => {
     mockResolve.mockResolvedValue(false);
     const r = await moveItem("e1", { target: "task", text: "a" });
-    expect(r.warning).toBeDefined();
+    expect(r).toEqual({
+      target: "task",
+      ref: "t1",
+      warning:
+        "Zapisano w celu, ale nie udało się oznaczyć wpisu jako posegregowanego; wpis zostaje otwarty",
+    });
   });
 });

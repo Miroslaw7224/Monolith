@@ -1,34 +1,67 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { DomainError } from "@/lib/errors";
+import type { CalendarEvent } from "@/contexts/bc_calendar/models";
+import type { Task } from "@/contexts/bc_tasks/models";
+import type * as CalendarRepo from "@/contexts/bc_calendar/repositories";
+import type * as TasksServices from "@/contexts/bc_tasks/services";
+import type * as TagsServices from "@/contexts/bc_tags/services";
+
+const mockGetCalendarEvents = vi.hoisted(() => vi.fn<typeof CalendarRepo.getCalendarEvents>());
+const mockCreateCalendarEvent = vi.hoisted(() => vi.fn<typeof CalendarRepo.createCalendarEvent>());
+const mockUpdateCalendarEvent = vi.hoisted(() => vi.fn<typeof CalendarRepo.updateCalendarEvent>());
+const mockDeleteCalendarEvent = vi.hoisted(() => vi.fn<typeof CalendarRepo.deleteCalendarEvent>());
+const mockGetTasks = vi.hoisted(() => vi.fn<typeof TasksServices.getTasks>());
+const mockResolveTags = vi.hoisted(() => vi.fn<typeof TagsServices.resolveTags>());
+
+vi.mock(
+  "@/contexts/bc_calendar/repositories",
+  () =>
+    ({
+      getCalendarEvents: mockGetCalendarEvents,
+      createCalendarEvent: mockCreateCalendarEvent,
+      updateCalendarEvent: mockUpdateCalendarEvent,
+      deleteCalendarEvent: mockDeleteCalendarEvent,
+    }) satisfies Partial<typeof CalendarRepo>
+);
+
+vi.mock(
+  "@/contexts/bc_tasks/services",
+  () => ({ getTasks: mockGetTasks }) satisfies Partial<typeof TasksServices>
+);
+
+vi.mock(
+  "@/contexts/bc_tags/services",
+  () => ({ resolveTags: mockResolveTags }) satisfies Partial<typeof TagsServices>
+);
+
 import {
   getCalendarEvents,
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
 } from "@/contexts/bc_calendar/services";
-import { DomainError } from "@/lib/errors";
 
-const mockGetCalendarEvents = vi.hoisted(() => vi.fn());
-const mockCreateCalendarEvent = vi.hoisted(() => vi.fn());
-const mockUpdateCalendarEvent = vi.hoisted(() => vi.fn());
-const mockDeleteCalendarEvent = vi.hoisted(() => vi.fn());
-const mockGetTasks = vi.hoisted(() => vi.fn());
-const mockResolveTags = vi.hoisted(() => vi.fn());
+const calendarEvent = (o: Partial<CalendarEvent> & Pick<CalendarEvent, "id">): CalendarEvent => ({
+  date: "2025-02-20",
+  start_minutes: 540,
+  duration_minutes: 60,
+  title: "Meeting",
+  tags: [],
+  color: "#3B82F6",
+  type: "work",
+  ...o,
+});
 
-vi.mock("@/contexts/bc_calendar/repositories", () => ({
-  getCalendarEvents: (...args: unknown[]) => mockGetCalendarEvents(...args),
-  createCalendarEvent: (...args: unknown[]) => mockCreateCalendarEvent(...args),
-  updateCalendarEvent: (...args: unknown[]) => mockUpdateCalendarEvent(...args),
-  deleteCalendarEvent: (...args: unknown[]) => mockDeleteCalendarEvent(...args),
-}));
-
-vi.mock("@/contexts/bc_tasks/services", () => ({
-  getTasks: (...args: unknown[]) => mockGetTasks(...args),
-}));
-
-vi.mock("@/contexts/bc_tags/services", () => ({
-  resolveTags: (...args: unknown[]) => mockResolveTags(...args),
-}));
+const task = (o: Partial<Task> & Pick<Task, "id">): Task => ({
+  title: "Task",
+  link: "",
+  description: "",
+  status: "todo",
+  due_date: null,
+  priority: null,
+  ...o,
+});
 
 describe("calendarService", () => {
   beforeEach(() => {
@@ -38,24 +71,15 @@ describe("calendarService", () => {
     mockDeleteCalendarEvent.mockReset();
     mockGetTasks.mockReset();
     mockResolveTags.mockReset();
-    mockResolveTags.mockImplementation(async (names: string[]) => names);
+    mockResolveTags.mockImplementation(async (names) =>
+      Array.isArray(names) ? names.map(String) : []
+    );
     mockGetTasks.mockResolvedValue([]);
   });
 
   describe("getCalendarEvents", () => {
     it("given Firestore returns events, when getCalendarEvents is called, then returns the list (happy path)", async () => {
-      const events = [
-        {
-          id: "e1",
-          date: "2025-02-20",
-          start_minutes: 540,
-          duration_minutes: 60,
-          title: "Meeting",
-          tags: [],
-          color: "#3B82F6",
-          type: "work" as const,
-        },
-      ];
+      const events = [calendarEvent({ id: "e1", title: "Meeting" })];
       mockGetCalendarEvents.mockResolvedValue(events);
 
       const result = await getCalendarEvents();
@@ -72,14 +96,11 @@ describe("calendarService", () => {
     it("given a task with a due_date in range and status not done, when getCalendarEvents is called, then includes a task_deadline pseudo-event", async () => {
       mockGetCalendarEvents.mockResolvedValue([]);
       mockGetTasks.mockResolvedValue([
-        {
+        task({
           id: "t1",
           title: "Finish report",
-          description: "",
-          status: "todo",
           due_date: "2025-02-20",
-          priority: null,
-        },
+        }),
       ]);
 
       const result = await getCalendarEvents({
@@ -100,14 +121,12 @@ describe("calendarService", () => {
     it("given a task with status done, when getCalendarEvents is called, then excludes it from results", async () => {
       mockGetCalendarEvents.mockResolvedValue([]);
       mockGetTasks.mockResolvedValue([
-        {
+        task({
           id: "t1",
           title: "Finish report",
-          description: "",
           status: "done",
           due_date: "2025-02-20",
-          priority: null,
-        },
+        }),
       ]);
 
       const result = await getCalendarEvents({
@@ -121,14 +140,11 @@ describe("calendarService", () => {
     it("given a task due_date outside the requested range, when getCalendarEvents is called, then excludes it from results", async () => {
       mockGetCalendarEvents.mockResolvedValue([]);
       mockGetTasks.mockResolvedValue([
-        {
+        task({
           id: "t1",
           title: "Finish report",
-          description: "",
-          status: "todo",
           due_date: "2025-03-15",
-          priority: null,
-        },
+        }),
       ]);
 
       const result = await getCalendarEvents({
@@ -142,14 +158,12 @@ describe("calendarService", () => {
     it("given a deferred task with a due_date in range, when getCalendarEvents is called, then does not add a task_deadline pseudo-event", async () => {
       mockGetCalendarEvents.mockResolvedValue([]);
       mockGetTasks.mockResolvedValue([
-        {
+        task({
           id: "t1",
           title: "Kurs Playwright",
-          description: "",
           status: "deferred",
           due_date: "2025-02-20",
-          priority: null,
-        },
+        }),
       ]);
 
       const result = await getCalendarEvents({
@@ -162,20 +176,15 @@ describe("calendarService", () => {
 
     it("given stored events and task deadlines, when getCalendarEvents is called, then sorts by date and start_minutes", async () => {
       mockGetCalendarEvents.mockResolvedValue([
-        {
+        calendarEvent({
           id: "e1",
-          date: "2025-02-20",
           start_minutes: 600,
-          duration_minutes: 60,
           title: "Praca",
-          tags: [],
-          color: "#3B82F6",
-          type: "work",
-        },
+        }),
       ]);
       mockGetTasks.mockResolvedValue([
-        { id: "t1", title: "Termin 20", due_date: "2025-02-20", status: "todo" },
-        { id: "t2", title: "Termin 19", due_date: "2025-02-19", status: "in_progress" },
+        task({ id: "t1", title: "Termin 20", due_date: "2025-02-20" }),
+        task({ id: "t2", title: "Termin 19", due_date: "2025-02-19", status: "in_progress" }),
       ]);
 
       const result = await getCalendarEvents();
@@ -193,15 +202,7 @@ describe("calendarService", () => {
 
   describe("createCalendarEvent", () => {
     it("given valid data, when createCalendarEvent is called, then returns created event (happy path)", async () => {
-      const event = {
-        id: "e1",
-        date: "2025-02-20",
-        start_minutes: 540,
-        duration_minutes: 60,
-        title: "Meeting",
-        tags: [],
-        color: "#3B82F6",
-      };
+      const event = calendarEvent({ id: "e1", title: "Meeting" });
       mockCreateCalendarEvent.mockResolvedValue(event);
 
       const result = await createCalendarEvent({
@@ -304,7 +305,7 @@ describe("calendarService", () => {
 
     it("createCalendarEvent zapisuje tagi zwrócone przez resolveTags", async () => {
       mockResolveTags.mockResolvedValue(["Agenci AI"]);
-      mockCreateCalendarEvent.mockResolvedValue({ id: "e1" });
+      mockCreateCalendarEvent.mockResolvedValue(calendarEvent({ id: "e1", title: "Spotkanie" }));
       await createCalendarEvent({ ...base, tags: ["agent ai"] });
       expect(mockResolveTags).toHaveBeenCalledWith(["agent ai"]);
       expect(mockCreateCalendarEvent).toHaveBeenCalledWith(
@@ -314,7 +315,7 @@ describe("calendarService", () => {
 
     it("updateCalendarEvent z tags woła resolveTags", async () => {
       mockResolveTags.mockResolvedValue(["Praca własna"]);
-      mockUpdateCalendarEvent.mockResolvedValue({ id: "e1" });
+      mockUpdateCalendarEvent.mockResolvedValue(undefined);
       await updateCalendarEvent("e1", { tags: ["Projekty"] });
       expect(mockResolveTags).toHaveBeenCalledWith(["Projekty"]);
       expect(mockUpdateCalendarEvent).toHaveBeenCalledWith(
@@ -324,7 +325,7 @@ describe("calendarService", () => {
     });
 
     it("updateCalendarEvent bez tags nie woła resolveTags i nie dodaje klucza tags", async () => {
-      mockUpdateCalendarEvent.mockResolvedValue({ id: "e1" });
+      mockUpdateCalendarEvent.mockResolvedValue(undefined);
       await updateCalendarEvent("e1", { title: "Nowy tytuł" });
       expect(mockResolveTags).not.toHaveBeenCalled();
       expect(mockUpdateCalendarEvent.mock.calls[0][1]).not.toHaveProperty("tags");
