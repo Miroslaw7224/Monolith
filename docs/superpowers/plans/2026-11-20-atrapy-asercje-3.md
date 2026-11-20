@@ -121,44 +121,44 @@ Bez czerwonego `tsc` typowanie niczego nie pilnuje.
 
 ### Zadanie 0: gałąź robocza
 
-- [ ] **Krok 1:** worktree z `main` (skill `using-git-worktrees`): gałąź `test/atrapy-asercje-3`.
-- [ ] **Krok 2:** przenieś ten plan do worktree, `git add docs/superpowers/plans/2026-11-20-atrapy-asercje-3.md`,
+- [x] **Krok 1:** worktree z `main` (skill `using-git-worktrees`): gałąź `test/atrapy-asercje-3`. (wykonano bez worktree: gałąź w głównym katalogu)
+- [x] **Krok 2:** przenieś ten plan do worktree, `git add docs/superpowers/plans/2026-11-20-atrapy-asercje-3.md`,
       commit `docs(plan): atrapy w testach serwisów pod ASERCJE-3`.
-- [ ] **Krok 3:** stan wyjściowy: `npx tsc --noEmit` i `npx vitest run tests/unit/contexts` przechodzą (przez `/verify`).
+- [x] **Krok 3:** stan wyjściowy: `npx tsc --noEmit` i `npx vitest run tests/unit/contexts` przechodzą (przez `/verify`).
       Zapisz liczbę testów w `tests/unit/contexts` (dla porównania po warstwie A: ta sama liczba, wszystkie zielone).
 
 ### Zadanie A1: `bc_cockpit` (wzorzec, wykonuje Claude)
 
 **Pliki:** modyfikuj `tests/unit/contexts/bc_cockpit/services.test.ts:1-60` (atrapy) i fixture'y w treści testów według `tsc`.
 
-- [ ] **Krok 1:** dodaj `import type * as CockpitRepo from "@/contexts/bc_cockpit/repositories"`, `ProjectsServices`
+- [x] **Krok 1:** dodaj `import type * as CockpitRepo from "@/contexts/bc_cockpit/repositories"`, `ProjectsServices`
       (`bc_projects/services`), `InboxServices`, `TasksServices`, `CalendarServices`.
-- [ ] **Krok 2:** otypuj 22 atrapy z l. 6–27 według kontraktu modułu, który podmieniają (np.
+- [x] **Krok 2:** otypuj 22 atrapy z l. 6–27 według kontraktu modułu, który podmieniają (np.
       `mockReadPinned = vi.hoisted(() => vi.fn<typeof CockpitRepo.readPinned>())`,
       `mockCountOpen = vi.hoisted(() => vi.fn<typeof InboxServices.countOpen>())`).
-- [ ] **Krok 3:** pięć fabryk `vi.mock` (l. 29–58) z `satisfies Partial<typeof …>`; w fabryce `bc_projects/services`
+- [x] **Krok 3:** pięć fabryk `vi.mock` (l. 29–58) z `satisfies Partial<typeof …>`; w fabryce `bc_projects/services`
       zamień kopie z l. 50–51 na `projectKind: actual.projectKind, hasCompanyData: actual.hasCompanyData` z `importOriginal`.
-- [ ] **Krok 4:** `npx tsc --noEmit 2>&1 | grep bc_cockpit/services.test` i naprawiaj fixture'y danymi (zasada 3) aż do zera błędów.
-- [ ] **Krok 5:** l. 1827: zamień `resolves.toBeDefined()` na asercję konkretnej wartości zwracanej przez wywołanie w tym teście
+- [x] **Krok 4:** `npx tsc --noEmit 2>&1 | grep bc_cockpit/services.test` i naprawiaj fixture'y danymi (zasada 3) aż do zera błędów.
+- [x] **Krok 5:** l. 1827: zamień `resolves.toBeDefined()` na asercję konkretnej wartości zwracanej przez wywołanie w tym teście
       (przeczytaj test i ustal, co funkcja zwraca dla jego danych; `toEqual` z pełnym obiektem albo `toMatchObject` z polami, o
       które test pyta). Uruchom kanarek ASERCJE-1: zepsuj na chwilę tę wartość w fixture'ze, test ma być czerwony, cofnij.
-- [ ] **Krok 6:** kanarek typów (patrz „Weryfikacja każdego zadania A”).
-- [ ] **Krok 7:** `npx vitest run tests/unit/contexts/bc_cockpit/services.test.ts`: ta sama liczba testów co przed zmianą, wszystkie PASS.
-- [ ] **Krok 8:** commit `test(cockpit): atrapy z typem kontraktu i czyste funkcje z oryginału (ASERCJE-3)`.
-- [ ] **Krok 9:** pokaż użytkownikowi diff wzorca, zanim zadania A2–A5 pójdą dalej (może chcieć poprawić wzorzec).
+- [x] **Krok 6:** kanarek typów (patrz „Weryfikacja każdego zadania A”).
+- [x] **Krok 7:** `npx vitest run tests/unit/contexts/bc_cockpit/services.test.ts`: ta sama liczba testów co przed zmianą, wszystkie PASS.
+- [x] **Krok 8:** commit `test(cockpit): atrapy z typem kontraktu i czyste funkcje z oryginału (ASERCJE-3)`.
+- [x] **Krok 9:** pokaż użytkownikowi diff wzorca, zanim zadania A2–A5 pójdą dalej (może chcieć poprawić wzorzec).
 
 ### Zadanie A2: `bc_arsenal` i `bc_nexus_docs` (kopie logiki domenowej)
 
 **Pliki:** `tests/unit/contexts/bc_arsenal/services.{deploy,deployed,list}.test.ts`,
 `tests/unit/contexts/bc_nexus_docs/services.test.ts`, `tests/unit/contexts/bc_nexus_docs/services.linkIndex.test.ts`.
 
-- [ ] **Krok 1:** w każdym pliku `mockListProjects` → `vi.fn<typeof ProjectsServices.listProjects>()`.
-- [ ] **Krok 2:** fabryka z `importOriginal`: `hasCompanyData: actual.hasCompanyData` (arsenal) i
+- [x] **Krok 1:** w każdym pliku `mockListProjects` → `vi.fn<typeof ProjectsServices.listProjects>()`.
+- [x] **Krok 2:** fabryka z `importOriginal`: `hasCompanyData: actual.hasCompanyData` (arsenal) i
       `isWorkProject: actual.isWorkProject` (nexus_docs), `satisfies Partial<typeof ProjectsServices>`.
-- [ ] **Krok 3:** fixture'y `mockReturnValue({ projects: [...] })` uzupełnij do pełnego typu wpisu (zasada 3, lokalny builder `entry`).
-- [ ] **Krok 4:** `tsc` bez błędów w tych plikach; kanarek typów w jednym pliku z każdego kontekstu.
-- [ ] **Krok 5:** `npx vitest run tests/unit/contexts/bc_arsenal tests/unit/contexts/bc_nexus_docs`: wszystkie PASS.
-- [ ] **Krok 6:** commit `test(arsenal,nexus-docs): atrapy listProjects z typem, reguły projektu z oryginału (ASERCJE-3)`.
+- [x] **Krok 3:** fixture'y `mockReturnValue({ projects: [...] })` uzupełnij do pełnego typu wpisu (zasada 3, lokalny builder `entry`).
+- [x] **Krok 4:** `tsc` bez błędów w tych plikach; kanarek typów w jednym pliku z każdego kontekstu.
+- [x] **Krok 5:** `npx vitest run tests/unit/contexts/bc_arsenal tests/unit/contexts/bc_nexus_docs`: wszystkie PASS.
+- [x] **Krok 6:** commit `test(arsenal,nexus-docs): atrapy listProjects z typem, reguły projektu z oryginału (ASERCJE-3)`.
 
 ### Zadanie A3: `bc_inbox`, `bc_calendar`, `bc_resources`, `bc_diagnostics` (cursor `--role task --tier light`)
 
@@ -174,26 +174,26 @@ Atrapy do otypowania (moduł → funkcje):
   `normalizeHost`, ma to być `actual.normalizeHost`), `bc_tags/services` (`resolveTags`);
 - diagnostics: `bc_projects/services` (`listProjects`, `isWorkProject` → `actual.isWorkProject`), `bc_diagnostics/repositories`.
 
-- [ ] **Krok 1:** zlecenie cursorowi: wzorzec z sekcji „Wzorzec warstwy A” + diff zadania A1 jako przykład + zasady 1–5,
+- [x] **Krok 1:** zlecenie cursorowi: wzorzec z sekcji „Wzorzec warstwy A” + diff zadania A1 jako przykład + zasady 1–5,
       jeden plik na zlecenie, raport `GOTOWE: …` / `UTKNĄŁEM: …` z liczbą błędów `tsc` przed i po.
-- [ ] **Krok 2 (Claude):** l. 253 `bc_inbox/services.test.ts`: zamień sprawdzenie samego istnienia `r.warning` na
+- [x] **Krok 2 (Claude):** l. 253 `bc_inbox/services.test.ts`: zamień sprawdzenie samego istnienia `r.warning` na
       `expect(r).toEqual({ target: …, ref: …, warning: MOVE_WARNING })` z wartościami z tego testu (`MOVE_WARNING` z
       `contexts/bc_inbox/services.ts`; jeśli nie jest eksportowany, porównaj z dosłownym tekstem stałej).
-- [ ] **Krok 3 (Claude):** po każdym pliku `git diff --stat` (zmienia się tylko ten plik testu), przegląd diffu pod kątem
+- [x] **Krok 3 (Claude):** po każdym pliku `git diff --stat` (zmienia się tylko ten plik testu), przegląd diffu pod kątem
       zakazanych rzutowań (`grep -n "as any\|as never\|as unknown\|ts-expect-error\|ts-ignore"` w zmienionych liniach: zero).
-- [ ] **Krok 4:** `/verify tests/unit/contexts/bc_inbox tests/unit/contexts/bc_calendar tests/unit/contexts/bc_resources tests/unit/contexts/bc_diagnostics`.
-- [ ] **Krok 5:** kanarek typów w każdym z 4 plików (Claude).
-- [ ] **Krok 6:** commit `test(inbox,calendar,resources,diagnostics): atrapy z typem kontraktu (ASERCJE-3)`.
+- [x] **Krok 4:** `/verify tests/unit/contexts/bc_inbox tests/unit/contexts/bc_calendar tests/unit/contexts/bc_resources tests/unit/contexts/bc_diagnostics`.
+- [x] **Krok 5:** kanarek typów w każdym z 4 plików (Claude).
+- [x] **Krok 6:** commit `test(inbox,calendar,resources,diagnostics): atrapy z typem kontraktu (ASERCJE-3)`.
 
 ### Zadanie A4: `bc_projects` (atrapy repozytoriów, cursor)
 
 **Pliki:** `tests/unit/contexts/bc_projects/services.{archive,code-sync,complete-now,context-pack,git-activity,week-review-data}.test.ts`
 i `services.test.ts`. Wszystkie mockują `@/contexts/bc_projects/repositories` (folder, import `…/repositories` wskazuje `index.ts`).
 
-- [ ] **Krok 1:** zlecenie cursorowi jak w A3, jeden plik na zlecenie; typ: `import type * as ProjectsRepo from "@/contexts/bc_projects/repositories"`.
-- [ ] **Krok 2 (Claude):** kontrola jak w A3 kroki 3 i 5.
-- [ ] **Krok 3:** `/verify tests/unit/contexts/bc_projects`.
-- [ ] **Krok 4:** commit `test(projects): atrapy repozytoriów z typem kontraktu (ASERCJE-3)`.
+- [x] **Krok 1:** zlecenie cursorowi jak w A3, jeden plik na zlecenie; typ: `import type * as ProjectsRepo from "@/contexts/bc_projects/repositories"`.
+- [x] **Krok 2 (Claude):** kontrola jak w A3 kroki 3 i 5.
+- [x] **Krok 3:** `/verify tests/unit/contexts/bc_projects`.
+- [x] **Krok 4:** commit `test(projects): atrapy repozytoriów z typem kontraktu (ASERCJE-3)`.
 
 ### Zadanie A5: pozostałe konteksty (cursor)
 
@@ -201,11 +201,11 @@ i `services.test.ts`. Wszystkie mockują `@/contexts/bc_projects/repositories` (
 `bc_notes/services.test.ts`, `bc_tags/services.test.ts`, `bc_tags/services.resolve.test.ts`,
 `bc_tasks/services.tasks.test.ts`, `bc_tasks/services.templates.test.ts` (wszystkie w `tests/unit/contexts/`).
 
-- [ ] **Krok 1:** zlecenia cursorowi jak w A3 (`bc_board` i `bc_mind_maps`: wariant „obiekt w `vi.hoisted`”).
-- [ ] **Krok 2 (Claude):** kontrola jak w A3 kroki 3 i 5.
-- [ ] **Krok 3:** `/verify tests/unit/contexts`; liczba testów równa tej z zadania 0, krok 3.
-- [ ] **Krok 4:** `grep -rn "vi.hoisted(() => vi.fn())" tests/unit/contexts/*/services*.test.ts`: zero trafień.
-- [ ] **Krok 5:** commit `test(board,browser,mind-maps,notes,tags,tasks): atrapy z typem kontraktu (ASERCJE-3)`.
+- [x] **Krok 1:** zlecenia cursorowi jak w A3 (`bc_board` i `bc_mind_maps`: wariant „obiekt w `vi.hoisted`”).
+- [x] **Krok 2 (Claude):** kontrola jak w A3 kroki 3 i 5.
+- [x] **Krok 3:** `/verify tests/unit/contexts`; liczba testów równa tej z zadania 0, krok 3.
+- [x] **Krok 4:** `grep -rn "vi.hoisted(() => vi.fn())" tests/unit/contexts/*/services*.test.ts`: zero trafień.
+- [x] **Krok 5:** commit `test(board,browser,mind-maps,notes,tags,tasks): atrapy z typem kontraktu (ASERCJE-3)`.
 
 ---
 
@@ -270,73 +270,73 @@ Pierwszy test w B1 sprawdza sam rejestr: `listProjects().projects.map((p) => [p.
 `@/lib/ports/proc` (`listSubdirectories`), wszystkie z typem. WSL zwraca dwa porty LISTEN: jeden z `cwd` w `<alfaDir>/app`,
 drugi w `<betaDir>/app`. Reguła produkcji: `loadProjectRoots` pomija projekty `isWorkProject` (`contexts/bc_diagnostics/services.ts:133-147`, D7).
 
-- [ ] **Krok 1:** test rejestru (patrz wzorzec B), potem test „port w projekcie etatowym nie dostaje projektu”: w wyniku
+- [x] **Krok 1:** test rejestru (patrz wzorzec B), potem test „port w projekcie etatowym nie dostaje projektu”: w wyniku
       `listPorts({ home: <tmp> })` (opcje z `ListPortsOptions`, l. 209) port z `alfaDir` ma przypisany projekt `alfa`
       (`toMatchObject` z polami projektu z typu wpisu portu w `contexts/bc_diagnostics/models.ts`), port z `betaDir` nie ma
       przypisanego projektu (pola projektu `undefined`/`null` według typu).
-- [ ] **Krok 2:** uruchom: PASS.
-- [ ] **Krok 3:** kanarek: w `contexts/bc_projects/services/index.ts` `isWorkProject` zwraca na chwilę `false`; test FAIL; cofnij.
-- [ ] **Krok 4:** commit `test(boundaries): diagnostics ↔ projects bez atrap kontekstów (ASERCJE-3)`.
+- [x] **Krok 2:** uruchom: PASS.
+- [x] **Krok 3:** kanarek: w `contexts/bc_projects/services/index.ts` `isWorkProject` zwraca na chwilę `false`; test FAIL; cofnij.
+- [x] **Krok 4:** commit `test(boundaries): diagnostics ↔ projects bez atrap kontekstów (ASERCJE-3)`.
 
 ### Zadanie B2: `bc_nexus_docs` ↔ `bc_projects`
 
 **Plik:** `tests/unit/boundaries/nexus-docs-projects.boundary.test.ts`. Bez atrap.
 
-- [ ] **Krok 1:** vault: rejestr jak wyżej, `Projects/alfa/notatka.md`, `Projects/beta/notatka.md`, `Knowledge/ogolna.md`.
+- [x] **Krok 1:** vault: rejestr jak wyżej, `Projects/alfa/notatka.md`, `Projects/beta/notatka.md`, `Knowledge/ogolna.md`.
       Test: `listDocs()` zawiera `Projects/alfa/notatka.md` i `Knowledge/ogolna.md`, nie zawiera żadnej ścieżki `Projects/beta/`
       (asercja na liście ścieżek, `toEqual` po posortowaniu).
-- [ ] **Krok 2:** test: `getDoc(["Projects", "beta", "notatka.md"])` rzuca `NotFoundError` z komunikatem
+- [x] **Krok 2:** test: `getDoc(["Projects", "beta", "notatka.md"])` rzuca `NotFoundError` z komunikatem
       `"Nie znaleziono dokumentu"`, tak samo jak dla nieistniejącego dokumentu (`contexts/bc_nexus_docs/services.ts:138-141`).
-- [ ] **Krok 3:** PASS; kanarek: `isWorkProject` → `false`; oba testy FAIL; cofnij.
-- [ ] **Krok 4:** commit `test(boundaries): nexus_docs ↔ projects bez atrap (ASERCJE-3)`.
+- [x] **Krok 3:** PASS; kanarek: `isWorkProject` → `false`; oba testy FAIL; cofnij.
+- [x] **Krok 4:** commit `test(boundaries): nexus_docs ↔ projects bez atrap (ASERCJE-3)`.
 
 ### Zadanie B3: `bc_arsenal` ↔ `bc_projects`
 
 **Plik:** `tests/unit/boundaries/arsenal-projects.boundary.test.ts`. Bez atrap.
 
-- [ ] **Krok 1:** vault: rejestr jak wyżej (z `local_path`) + minimalny skill w `Arsenal/` (format z
+- [x] **Krok 1:** vault: rejestr jak wyżej (z `local_path`) + minimalny skill w `Arsenal/` (format z
       `tests/unit/contexts/bc_arsenal/services.deploy.test.ts`). Test: `getDeployInstructions(<slug>, "beta", "full")` ma
       `note: WORK_TARGET_NOTE` (`contexts/bc_arsenal/models`), a `getDeployInstructions(<slug>, "alfa", "full")` nie ma klucza `note`
       (`contexts/bc_arsenal/services.ts:261-277`; tu decyduje `owner`, który przychodzi z `listProjects`).
-- [ ] **Krok 2:** test: `listArsenal()` zwraca cele z `companyData: true` dla `beta` i `false` dla `alfa`
+- [x] **Krok 2:** test: `listArsenal()` zwraca cele z `companyData: true` dla `beta` i `false` dla `alfa`
       (`contexts/bc_arsenal/services.ts:170-177`, `hasCompanyData` z `bc_projects`). Dodatkowo projekt `gamma` z `owner: personal`
       i `type: etat` w `Projects/gamma/index.md` (frontmatter `type: etat`) ma `companyData: true`: to sprawdza, że `type` z vaulta
       dochodzi przez granicę.
-- [ ] **Krok 3:** PASS; kanarki: (a) `hasCompanyData` w `bc_projects` zwraca na chwilę `false` → krok 2 FAIL;
+- [x] **Krok 3:** PASS; kanarki: (a) `hasCompanyData` w `bc_projects` zwraca na chwilę `false` → krok 2 FAIL;
       (b) mapowanie `owner` w `listProjects` (`bc_projects`) na chwilę zawsze `"personal"` → krok 1 FAIL; cofnij oba.
-- [ ] **Krok 4:** commit `test(boundaries): arsenal ↔ projects bez atrap (ASERCJE-3)`.
+- [x] **Krok 4:** commit `test(boundaries): arsenal ↔ projects bez atrap (ASERCJE-3)`.
 
 ### Zadanie B4: `bc_inbox` ↔ `bc_projects` / `bc_tasks` / `bc_notes`
 
 **Plik:** `tests/unit/boundaries/inbox-move.boundary.test.ts`. Bez atrap.
 
-- [ ] **Krok 1:** test „do projektu”: `addItem("kupić domenę")`, potem
+- [x] **Krok 1:** test „do projektu”: `addItem("kupić domenę")`, potem
       `moveItem(id, { target: "project", projectId: "alfa", column: "next", text: "kupić domenę" })`; oczekiwane:
       wynik `{ target: "project", ref: "alfa" }` (bez `warning`), `vault.read("Projects/alfa/tasks.md")` zawiera linię z
       `kupić domenę` w sekcji `## Next`, `listItems()` nie zawiera już wpisu jako otwartego.
-- [ ] **Krok 2:** test „do zadań”: `moveItem(id, { target: "task", text: "zadzwonić" })`; `ref` równy `id` zadania, które
+- [x] **Krok 2:** test „do zadań”: `moveItem(id, { target: "task", text: "zadzwonić" })`; `ref` równy `id` zadania, które
       zwraca `getTasks()` z `bc_tasks` z tytułem `zadzwonić`.
-- [ ] **Krok 3:** test „do notatki”: `moveItem(id, { target: "note", title: "Pomysł", text: "treść" })`; `ref` wskazuje
+- [x] **Krok 3:** test „do notatki”: `moveItem(id, { target: "note", title: "Pomysł", text: "treść" })`; `ref` wskazuje
       notatkę, którą zwraca `getNotes()` z `bc_notes`, z tytułem `Pomysł` i treścią `treść`.
-- [ ] **Krok 4:** test „nieznany projekt”: `projectId: "nie-ma"` → błąd (typ z `bc_projects`), a wpis inboxu zostaje otwarty.
-- [ ] **Krok 5:** PASS; kanarek: w `contexts/bc_inbox/services.ts` `writeTarget` dla `project` podaje na chwilę `column: "icebox"`
+- [x] **Krok 4:** test „nieznany projekt”: `projectId: "nie-ma"` → błąd (typ z `bc_projects`), a wpis inboxu zostaje otwarty.
+- [x] **Krok 5:** PASS; kanarek: w `contexts/bc_inbox/services.ts` `writeTarget` dla `project` podaje na chwilę `column: "icebox"`
       zamiast `input.column`; test z kroku 1 FAIL; cofnij.
-- [ ] **Krok 6:** commit `test(boundaries): przenoszenie z inboxu bez atrap kontekstów (ASERCJE-3)`.
+- [x] **Krok 6:** commit `test(boundaries): przenoszenie z inboxu bez atrap kontekstów (ASERCJE-3)`.
 
 ### Zadanie B5: `bc_calendar` ↔ `bc_tasks` / `bc_tags`
 
 **Plik:** `tests/unit/boundaries/calendar-tasks-tags.boundary.test.ts`. Bez atrap.
 
-- [ ] **Krok 1:** test: `createTask({ title: "Raport", due_date: "2026-11-20" })` i
+- [x] **Krok 1:** test: `createTask({ title: "Raport", due_date: "2026-11-20" })` i
       `createTask({ title: "Odłożone", due_date: "2026-11-20", status: "deferred" })` (`contexts/bc_tasks/services.ts:25-32`);
       `getCalendarEvents(<opcje zakresu listopada 2026 z sygnatury, l. 55>)` zawiera termin zadania `Raport` w dniu `2026-11-20`,
       a `Odłożone` nie (filtr `deferred`: `contexts/bc_calendar/services.ts:62`).
-- [ ] **Krok 2:** test: `createCalendarEvent({ date: "2026-11-20", start_minutes: 600, duration_minutes: 30, title: "X",
-    tags: ["praca"], color: "#00802b" })`, gdy słownik tagów (format: `docs/nexus-vault-formaty-yaml.md`, sekcja „Tagi: słownik
+- [x] **Krok 2:** test: `createCalendarEvent({ date: "2026-11-20", start_minutes: 600, duration_minutes: 30, title: "X",
+  tags: ["praca"], color: "#00802b" })`, gdy słownik tagów (format: `docs/nexus-vault-formaty-yaml.md`, sekcja „Tagi: słownik
       i synonimy”) ma tag `Praca` z synonimem `praca` → w `Calendar/2026-11.yaml` (`vault.read`) wydarzenie ma `tags: [Praca]`.
-- [ ] **Krok 3:** PASS; kanarek: w `contexts/bc_calendar/services.ts` pominięcie filtru zadań odłożonych (albo
+- [x] **Krok 3:** PASS; kanarek: w `contexts/bc_calendar/services.ts` pominięcie filtru zadań odłożonych (albo
       `resolveTags` zastąpione tożsamością); właściwy test FAIL; cofnij.
-- [ ] **Krok 4:** commit `test(boundaries): calendar ↔ tasks/tags bez atrap (ASERCJE-3)`.
+- [x] **Krok 4:** commit `test(boundaries): calendar ↔ tasks/tags bez atrap (ASERCJE-3)`.
 
 ### Zadanie B6: `bc_resources` ↔ `bc_nexus_docs` / `bc_tags`
 
@@ -345,12 +345,12 @@ drugi w `<betaDir>/app`. Reguła produkcji: `loadProjectRoots` pomija projekty `
 `vi.stubGlobal("fetch", vi.fn<typeof fetch>(async () => new Response("<html><head><title>Strona</title></head></html>", { headers: { "content-type": "text/html" } })))`
 w `beforeEach` i `vi.unstubAllGlobals()` w `afterEach`.
 
-- [ ] **Krok 1:** vault: `Knowledge/narzedzia.md` z linkiem `https://www.example.com/docs`. Test: `addResource({ description: "d", url: "https://example.com/x" })`
+- [x] **Krok 1:** vault: `Knowledge/narzedzia.md` z linkiem `https://www.example.com/docs`. Test: `addResource({ description: "d", url: "https://example.com/x" })`
       i `getResources()` → zasób ma powiązanie z notatką `Knowledge/narzedzia.md` (pole ustal z typu `Resource`), bo
       `normalizeHost` zrównuje `www.example.com` i `example.com`.
-- [ ] **Krok 2:** test: tagi zasobu przechodzą przez słownik tagów (synonim → postać kanoniczna), jak w B5 krok 2.
-- [ ] **Krok 3:** PASS; kanarek: `normalizeHost` w `bc_nexus_docs` przestaje obcinać `www.`; test 1 FAIL; cofnij.
-- [ ] **Krok 4:** commit `test(boundaries): resources ↔ nexus_docs/tags bez atrap (ASERCJE-3)`.
+- [x] **Krok 2:** test: tagi zasobu przechodzą przez słownik tagów (synonim → postać kanoniczna), jak w B5 krok 2.
+- [x] **Krok 3:** PASS; kanarek: `normalizeHost` w `bc_nexus_docs` przestaje obcinać `www.`; test 1 FAIL; cofnij.
+- [x] **Krok 4:** commit `test(boundaries): resources ↔ nexus_docs/tags bez atrap (ASERCJE-3)`.
 
 ### Zadanie B7: `bc_cockpit` ↔ `bc_projects` / `bc_tasks` / `bc_calendar` / `bc_inbox`
 
@@ -358,22 +358,22 @@ w `beforeEach` i `vi.unstubAllGlobals()` w `afterEach`.
 (`contexts/bc_cockpit/services.ts:501-530`), a git dają prawdziwe repozytoria z `tempGit` (`local_path` w rejestrze = `repo.dir`,
 po jednym commicie z dnia `2026-11-20`). Data: `const today = new Date(2026, 10, 20, 9, 0)`.
 
-- [ ] **Krok 1:** vault: rejestr jak wyżej; `Projects/alfa/tasks.md` i `Projects/beta/tasks.md` z jednym zadaniem w sekcji, z której
+- [x] **Krok 1:** vault: rejestr jak wyżej; `Projects/alfa/tasks.md` i `Projects/beta/tasks.md` z jednym zadaniem w sekcji, z której
       `listNowTasks` (`bc_projects`) bierze kolejkę (nagłówek i format linii skopiuj z
       `tests/unit/contexts/bc_projects/fixtures/monolith-tasks.fixture.txt` i parsera `contexts/bc_projects/repositories/tasks-file.ts`);
       `createTask({ title: "Ogólne", due_date: "2026-11-20" })`; `createCalendarEvent({ date: "2026-11-20", start_minutes: 600,
-    duration_minutes: 30, title: "Spotkanie", tags: [], color: "#00802b", type: "meeting" })`; dwa `addItem(...)` w inboxie.
-- [ ] **Krok 2:** test: `getCockpit(today)` →
+  duration_minutes: 30, title: "Spotkanie", tags: [], color: "#00802b", type: "meeting" })`; dwa `addItem(...)` w inboxie.
+- [x] **Krok 2:** test: `getCockpit(today)` →
       `queue` zawiera (`toMatchObject`) zadanie projektu `alfa` i zadanie ogólne `Ogólne`;
       `events` zawiera `Spotkanie` z `start_minutes: 600`;
       `nextMeeting` pasuje do `{ date: "2026-11-20", title: "Spotkanie" }`;
       `inbox` równe `{ open: 2 }` (`contexts/bc_cockpit/services.ts:446`);
       `git` zawiera aktywność obu projektów z dnia `2026-11-20` (kształt z typu `Cockpit`).
-- [ ] **Krok 3:** test: wpisy projektu `beta` (etat) mają `kind: "etat"` i `companyData: true`, wpisy `alfa` mają
+- [x] **Krok 3:** test: wpisy projektu `beta` (etat) mają `kind: "etat"` i `companyData: true`, wpisy `alfa` mają
       `kind: "wlasny"` i `companyData: false` (pola `kind`/`companyData` z `contexts/bc_cockpit/models.ts:20-21,52-53`; sprawdź
       w tematach i w kolejce, wszędzie gdzie typ je ma).
-- [ ] **Krok 4:** PASS; kanarek: `projectKind` w `bc_projects` zwraca na chwilę zawsze `"wlasny"`; test z kroku 3 FAIL; cofnij.
-- [ ] **Krok 5:** commit `test(boundaries): cockpit ↔ projects/tasks/calendar/inbox bez atrap (ASERCJE-3)`.
+- [x] **Krok 4:** PASS; kanarek: `projectKind` w `bc_projects` zwraca na chwilę zawsze `"wlasny"`; test z kroku 3 FAIL; cofnij.
+- [x] **Krok 5:** commit `test(boundaries): cockpit ↔ projects/tasks/calendar/inbox bez atrap (ASERCJE-3)`.
 
 ### Zadanie B8: `bc_map` ↔ `bc_projects`
 
@@ -381,23 +381,23 @@ po jednym commicie z dnia `2026-11-20`). Data: `const today = new Date(2026, 10,
 z typem. Reguła produkcji: `getAgents()` ukrywa `projectId`/`status`/`where` agentów w projektach `isWorkProject`
 (`contexts/bc_map/services.ts:318-321,343-350`); `getGraph()` tej reguły nie stosuje i nie jest tu sprawdzany.
 
-- [ ] **Krok 1:** test: `listTerminals` zwraca `{ available: true, terminals: [...] }` z dwoma terminalami, których katalog
+- [x] **Krok 1:** test: `listTerminals` zwraca `{ available: true, terminals: [...] }` z dwoma terminalami, których katalog
       (pole z typu `HerdrTerminal`) leży w `alfaDir` i `betaDir`. `getAgents()` → agent z `alfaDir` ma `projectId: "alfa"`,
       agent z `betaDir` nie ma klucza `projectId` ani `where`.
-- [ ] **Krok 2:** test: `getGraph()` z rejestrem zawiera węzły projektów `alfa` i `beta` (nazwy `"Alfa"`, `"Beta"`), a
+- [x] **Krok 2:** test: `getGraph()` z rejestrem zawiera węzły projektów `alfa` i `beta` (nazwy `"Alfa"`, `"Beta"`), a
       `warnings` jest puste: dane rejestru dochodzą przez granicę.
-- [ ] **Krok 3:** PASS; kanarek: `isWorkProject` → `false`; krok 1 FAIL; cofnij.
-- [ ] **Krok 3:** commit `test(boundaries): map ↔ projects bez atrap (ASERCJE-3)`.
+- [x] **Krok 3:** PASS; kanarek: `isWorkProject` → `false`; krok 1 FAIL; cofnij.
+- [x] **Krok 3:** commit `test(boundaries): map ↔ projects bez atrap (ASERCJE-3)`.
 
 ---
 
 ### Zadanie C: weryfikacja końcowa i PR
 
-- [ ] **Krok 1:** `git diff main --stat -- contexts lib src app`: pusto (produkcja bez zmian).
-- [ ] **Krok 2:** `/verify` (tsc + vitest + lint, całość).
-- [ ] **Krok 3:** review diffu przez pomocników (agy `--role review`, `AGY_DEEP_TAG=Hydrogen` do 2026-11-21; cursor
+- [x] **Krok 1:** `git diff main --stat -- contexts lib src app`: pusto (produkcja bez zmian). (porównano z `origin/main`, bo lokalny `main` był nieaktualny)
+- [x] **Krok 2:** `/verify` (tsc + vitest + lint, całość).
+- [x] **Krok 3:** review diffu przez pomocników (agy `--role review`, `AGY_DEEP_TAG=Hydrogen` do 2026-11-21; cursor
       `--role review --tier light`): zgodność z ASERCJE-3, zakazane rzutowania, czy kanarki opisane w commitach.
-- [ ] **Krok 4:** skill `finishing-a-development-branch`; PR z checklistą Kodeksu (ASERCJE-3, DOWODY-2: komenda weryfikacji
+- [x] **Krok 4:** skill `finishing-a-development-branch` (nieużyty, PR otwarty ręcznie); PR z checklistą Kodeksu (ASERCJE-3, DOWODY-2: komenda weryfikacji
       i czas w opisie). Commit/push tylko za zgodą użytkownika.
 
 ## Poza zakresem
