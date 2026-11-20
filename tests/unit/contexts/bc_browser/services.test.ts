@@ -1,9 +1,16 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as BrowserRepo from "@/contexts/bc_browser/repositories";
 import { DomainError } from "@/lib/errors";
 
-const mockOpen = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_browser/repositories", () => ({ openUrlInChrome: mockOpen }));
+const mockOpen = vi.hoisted(() => vi.fn<typeof BrowserRepo.openUrlInChrome>());
+vi.mock(
+  "@/contexts/bc_browser/repositories",
+  () =>
+    ({
+      openUrlInChrome: mockOpen,
+    }) satisfies Partial<typeof BrowserRepo>
+);
 
 import { normalizeHttpUrl, openInChrome } from "@/contexts/bc_browser/services";
 

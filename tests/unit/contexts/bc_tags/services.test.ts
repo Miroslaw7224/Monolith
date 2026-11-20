@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type * as TagsRepo from "@/contexts/bc_tags/repositories";
 import {
   getUserTags,
   createUserTag,
@@ -6,17 +7,21 @@ import {
   deleteUserTag,
 } from "@/contexts/bc_tags/services";
 
-const mockGetUserTags = vi.hoisted(() => vi.fn());
-const mockCreateUserTag = vi.hoisted(() => vi.fn());
-const mockUpdateUserTag = vi.hoisted(() => vi.fn());
-const mockDeleteUserTag = vi.hoisted(() => vi.fn());
+const mockGetUserTags = vi.hoisted(() => vi.fn<typeof TagsRepo.getUserTags>());
+const mockCreateUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.createUserTag>());
+const mockUpdateUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.updateUserTag>());
+const mockDeleteUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.deleteUserTag>());
 
-vi.mock("@/contexts/bc_tags/repositories", () => ({
-  getUserTags: (...args: unknown[]) => mockGetUserTags(...args),
-  createUserTag: (...args: unknown[]) => mockCreateUserTag(...args),
-  updateUserTag: (...args: unknown[]) => mockUpdateUserTag(...args),
-  deleteUserTag: (...args: unknown[]) => mockDeleteUserTag(...args),
-}));
+vi.mock(
+  "@/contexts/bc_tags/repositories",
+  () =>
+    ({
+      getUserTags: mockGetUserTags,
+      createUserTag: mockCreateUserTag,
+      updateUserTag: mockUpdateUserTag,
+      deleteUserTag: mockDeleteUserTag,
+    }) satisfies Partial<typeof TagsRepo>
+);
 
 describe("bc_tags services", () => {
   beforeEach(() => {

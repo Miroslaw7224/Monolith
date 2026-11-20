@@ -1,16 +1,21 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type * as TagsRepo from "@/contexts/bc_tags/repositories";
 import type { UserTag } from "@/contexts/bc_tags/models";
 import { resolveTagNames, resolveTags } from "@/contexts/bc_tags/services";
 
-const mockGetUserTags = vi.hoisted(() => vi.fn());
-const mockCreateUserTag = vi.hoisted(() => vi.fn());
+const mockGetUserTags = vi.hoisted(() => vi.fn<typeof TagsRepo.getUserTags>());
+const mockCreateUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.createUserTag>());
 
-vi.mock("@/contexts/bc_tags/repositories", () => ({
-  getUserTags: (...a: unknown[]) => mockGetUserTags(...a),
-  createUserTag: (...a: unknown[]) => mockCreateUserTag(...a),
-  updateUserTag: vi.fn(),
-  deleteUserTag: vi.fn(),
-}));
+vi.mock(
+  "@/contexts/bc_tags/repositories",
+  () =>
+    ({
+      getUserTags: mockGetUserTags,
+      createUserTag: mockCreateUserTag,
+      updateUserTag: vi.fn<typeof TagsRepo.updateUserTag>(),
+      deleteUserTag: vi.fn<typeof TagsRepo.deleteUserTag>(),
+    }) satisfies Partial<typeof TagsRepo>
+);
 
 const DICT: UserTag[] = [
   { id: "t1", tag: "Agenci AI", title: "Agenci AI", aliases: ["Agent AI"] },

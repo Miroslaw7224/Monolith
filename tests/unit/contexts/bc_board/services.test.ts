@@ -1,10 +1,14 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type * as BoardRepo from "@/contexts/bc_board/repositories";
 
-const repo = vi.hoisted(() => ({
-  getBoard: vi.fn(),
-  saveBoard: vi.fn(),
-}));
+const repo = vi.hoisted(
+  () =>
+    ({
+      getBoard: vi.fn<typeof BoardRepo.getBoard>(),
+      saveBoard: vi.fn<typeof BoardRepo.saveBoard>(),
+    }) satisfies Partial<typeof BoardRepo>
+);
 
 vi.mock("@/contexts/bc_board/repositories", () => repo);
 
@@ -25,7 +29,11 @@ describe("bc_board services", () => {
   });
 
   it("returns the stored document untouched", async () => {
-    const stored = { tiles: [{ id: "x" }], frames: [], edges: [] };
+    const stored = {
+      tiles: [{ id: "x", title: "", note: "", x: 0, y: 0, w: 240, h: 120, frame: null }],
+      frames: [],
+      edges: [],
+    };
     repo.getBoard.mockResolvedValue(stored);
     await expect(getBoard()).resolves.toBe(stored);
   });
