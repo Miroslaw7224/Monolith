@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { RawListener } from "@/lib/ports/types";
 import type * as PortsWsl from "@/lib/ports/wsl";
 import type * as PortsWindows from "@/lib/ports/windows";
+import { boundaryRegistry, REGISTRY_PATH } from "../helpers/boundaryRegistry";
 import { setupTempVault } from "../helpers/tempVault";
 
 const mockWsl = vi.hoisted(() => vi.fn<typeof PortsWsl.listWslListeners>());
@@ -29,26 +30,6 @@ import { listPorts } from "@/contexts/bc_diagnostics/services";
 import { listProjects } from "@/contexts/bc_projects/services";
 
 const vault = setupTempVault();
-
-const registry = (alfaPath: string, betaPath: string): string =>
-  [
-    "projects:",
-    "  - id: alfa",
-    "    name: Alfa",
-    "    status: active",
-    "    priority: high",
-    "    folder: Projects/alfa/",
-    "    owner: personal",
-    `    local_path: '${alfaPath}'`,
-    "  - id: beta",
-    "    name: Beta",
-    "    status: active",
-    "    priority: medium",
-    "    folder: Projects/beta/",
-    "    owner: work",
-    `    local_path: '${betaPath}'`,
-    "",
-  ].join("\n");
 
 const listener = (o: Partial<RawListener> = {}): RawListener => ({
   port: 3000,
@@ -73,7 +54,7 @@ beforeEach(() => {
   betaDir = path.join(home, "beta");
   fs.mkdirSync(path.join(alfaDir, "app"), { recursive: true });
   fs.mkdirSync(path.join(betaDir, "app"), { recursive: true });
-  vault.write("Projects/_registry.yaml", registry(alfaDir, betaDir));
+  vault.write(REGISTRY_PATH, boundaryRegistry(alfaDir, betaDir));
 
   mockWsl.mockResolvedValue({
     ok: true,

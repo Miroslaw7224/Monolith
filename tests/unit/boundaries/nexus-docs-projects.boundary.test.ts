@@ -6,32 +6,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { getDoc, listDocs } from "@/contexts/bc_nexus_docs/services";
 import { NotFoundError } from "@/lib/errors";
+import { boundaryRegistry, REGISTRY_PATH } from "../helpers/boundaryRegistry";
 import { setupTempVault } from "../helpers/tempVault";
 
 const vault = setupTempVault();
 
-const registry = (alfaPath: string, betaPath: string): string =>
-  [
-    "projects:",
-    "  - id: alfa",
-    "    name: Alfa",
-    "    status: active",
-    "    priority: high",
-    "    folder: Projects/alfa/",
-    "    owner: personal",
-    `    local_path: '${alfaPath}'`,
-    "  - id: beta",
-    "    name: Beta",
-    "    status: active",
-    "    priority: medium",
-    "    folder: Projects/beta/",
-    "    owner: work",
-    `    local_path: '${betaPath}'`,
-    "",
-  ].join("\n");
-
 beforeEach(() => {
-  vault.write("Projects/_registry.yaml", registry("/tmp/alfa", "/tmp/beta"));
+  vault.write(REGISTRY_PATH, boundaryRegistry("/tmp/alfa", "/tmp/beta"));
   vault.write("Projects/alfa/notatka.md", "# Notatka Alfa\n");
   vault.write("Projects/beta/notatka.md", "# Notatka Beta\n");
   vault.write("Knowledge/ogolna.md", "# Ogólna\n");
