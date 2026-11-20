@@ -1,25 +1,30 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardTask, RegistryEntry, TasksBoard } from "@/contexts/bc_projects/models";
+import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 
-const mockReadRegistry = vi.hoisted(() => vi.fn());
-const mockReadProjectIndex = vi.hoisted(() => vi.fn());
-const mockReadProjectContent = vi.hoisted(() => vi.fn());
-const mockReadProjectState = vi.hoisted(() => vi.fn());
-const mockReadDevlog = vi.hoisted(() => vi.fn());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn());
-const mockWriteProjectTasks = vi.hoisted(() => vi.fn());
+const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
+const mockReadProjectIndex = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectIndex>());
+const mockReadProjectContent = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectContent>());
+const mockReadProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectState>());
+const mockReadDevlog = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readDevlog>());
+const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
+const mockWriteProjectTasks = vi.hoisted(() => vi.fn<typeof ProjectsRepo.writeProjectTasks>());
 
-vi.mock("@/contexts/bc_projects/repositories", () => ({
-  readRegistry: mockReadRegistry,
-  readProjectIndex: mockReadProjectIndex,
-  readProjectContent: mockReadProjectContent,
-  readProjectState: mockReadProjectState,
-  readDevlog: mockReadDevlog,
-  readProjectBoard: mockReadProjectBoard,
-  writeProjectTasks: mockWriteProjectTasks,
-}));
+vi.mock(
+  "@/contexts/bc_projects/repositories",
+  () =>
+    ({
+      readRegistry: mockReadRegistry,
+      readProjectIndex: mockReadProjectIndex,
+      readProjectContent: mockReadProjectContent,
+      readProjectState: mockReadProjectState,
+      readDevlog: mockReadDevlog,
+      readProjectBoard: mockReadProjectBoard,
+      writeProjectTasks: mockWriteProjectTasks,
+    }) satisfies Partial<typeof ProjectsRepo>
+);
 
 import { completeNowTask, rewriteNowTask } from "@/contexts/bc_projects/services";
 

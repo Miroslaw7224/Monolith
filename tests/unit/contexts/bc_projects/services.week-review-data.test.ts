@@ -1,16 +1,21 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardTask, RegistryEntry } from "@/contexts/bc_projects/models";
+import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
 
-const mockReadRegistry = vi.hoisted(() => vi.fn());
-const mockReadGitSubjects = vi.hoisted(() => vi.fn());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn());
+const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
+const mockReadGitSubjects = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readGitSubjects>());
+const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
 
-vi.mock("@/contexts/bc_projects/repositories", () => ({
-  readRegistry: mockReadRegistry,
-  readGitSubjects: mockReadGitSubjects,
-  readProjectBoard: mockReadProjectBoard,
-}));
+vi.mock(
+  "@/contexts/bc_projects/repositories",
+  () =>
+    ({
+      readRegistry: mockReadRegistry,
+      readGitSubjects: mockReadGitSubjects,
+      readProjectBoard: mockReadProjectBoard,
+    }) satisfies Partial<typeof ProjectsRepo>
+);
 
 import { listDoneTasksInWindow, listGitSubjects } from "@/contexts/bc_projects/services";
 
