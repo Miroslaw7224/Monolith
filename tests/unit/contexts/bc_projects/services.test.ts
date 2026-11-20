@@ -7,32 +7,37 @@ import type {
   RegistryEntry,
   TasksBoard,
 } from "@/contexts/bc_projects/models";
+import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError, NotFoundError } from "@/lib/errors";
 import { PROJECT_KIND_CASES } from "./projectKindCases";
 
-const mockReadRegistry = vi.hoisted(() => vi.fn());
-const mockReadProjectIndex = vi.hoisted(() => vi.fn());
-const mockReadProjectContent = vi.hoisted(() => vi.fn());
-const mockReadProjectState = vi.hoisted(() => vi.fn());
-const mockReadDevlog = vi.hoisted(() => vi.fn());
-const mockWriteProjectState = vi.hoisted(() => vi.fn());
-const mockAppendDevlogEntry = vi.hoisted(() => vi.fn());
-const mockWriteProjectType = vi.hoisted(() => vi.fn());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn());
-const mockWriteProjectTasks = vi.hoisted(() => vi.fn());
+const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
+const mockReadProjectIndex = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectIndex>());
+const mockReadProjectContent = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectContent>());
+const mockReadProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectState>());
+const mockReadDevlog = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readDevlog>());
+const mockWriteProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.writeProjectState>());
+const mockAppendDevlogEntry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.appendDevlogEntry>());
+const mockWriteProjectType = vi.hoisted(() => vi.fn<typeof ProjectsRepo.writeProjectType>());
+const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
+const mockWriteProjectTasks = vi.hoisted(() => vi.fn<typeof ProjectsRepo.writeProjectTasks>());
 
-vi.mock("@/contexts/bc_projects/repositories", () => ({
-  readRegistry: mockReadRegistry,
-  readProjectIndex: mockReadProjectIndex,
-  readProjectContent: mockReadProjectContent,
-  readProjectState: mockReadProjectState,
-  readDevlog: mockReadDevlog,
-  writeProjectState: mockWriteProjectState,
-  appendDevlogEntry: mockAppendDevlogEntry,
-  writeProjectType: mockWriteProjectType,
-  readProjectBoard: mockReadProjectBoard,
-  writeProjectTasks: mockWriteProjectTasks,
-}));
+vi.mock(
+  "@/contexts/bc_projects/repositories",
+  () =>
+    ({
+      readRegistry: mockReadRegistry,
+      readProjectIndex: mockReadProjectIndex,
+      readProjectContent: mockReadProjectContent,
+      readProjectState: mockReadProjectState,
+      readDevlog: mockReadDevlog,
+      writeProjectState: mockWriteProjectState,
+      appendDevlogEntry: mockAppendDevlogEntry,
+      writeProjectType: mockWriteProjectType,
+      readProjectBoard: mockReadProjectBoard,
+      writeProjectTasks: mockWriteProjectTasks,
+    }) satisfies Partial<typeof ProjectsRepo>
+);
 
 import {
   addDevlogEntry,

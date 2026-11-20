@@ -1,15 +1,33 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as ProjectsServices from "@/contexts/bc_projects/services";
 import { setupTempVault } from "../../helpers/tempVault";
 
-const mockListProjects = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({
-  listProjects: mockListProjects,
-  hasCompanyData: (owner: string, type?: string) => owner === "work" || type === "etat",
-}));
+const mockListProjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listProjects>());
+vi.mock("@/contexts/bc_projects/services", async (importOriginal) => {
+  const actual = await importOriginal<typeof ProjectsServices>();
+  return {
+    listProjects: mockListProjects,
+    hasCompanyData: actual.hasCompanyData,
+  } satisfies Partial<typeof ProjectsServices>;
+});
 
 import { WORK_TARGET_NOTE, type SkillEntry } from "@/contexts/bc_arsenal/models";
 import * as services from "@/contexts/bc_arsenal/services";
+
+type E = ReturnType<typeof ProjectsServices.listProjects>["projects"][number];
+const entry = (o: Partial<E> = {}): E => ({
+  id: "p",
+  name: "Projekt P",
+  status: "active",
+  priority: "medium",
+  folder: "Projects/p/",
+  localPath: "~/p",
+  owner: "personal",
+  whereIStopped: null,
+  freshness: "fresh",
+  ...o,
+});
 
 const vault = setupTempVault();
 
@@ -17,9 +35,9 @@ beforeEach(() => {
   mockListProjects.mockReset();
   mockListProjects.mockReturnValue({
     projects: [
-      { id: "p", name: "Projekt P", localPath: "~/p", owner: "personal" },
-      { id: "w", name: "Projekt W", localPath: "~/w", owner: "work" },
-      { id: "e", name: "Pusty", localPath: "", owner: "personal" },
+      entry({ id: "p", name: "Projekt P", localPath: "~/p", owner: "personal" }),
+      entry({ id: "w", name: "Projekt W", localPath: "~/w", owner: "work" }),
+      entry({ id: "e", name: "Pusty", localPath: "", owner: "personal" }),
     ],
     warnings: [],
   });

@@ -1,20 +1,31 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SourceEntry, SourceRead } from "@/contexts/bc_diagnostics/models";
+import type * as ProjectsServices from "@/contexts/bc_projects/services";
+import type * as DiagnosticsRepo from "@/contexts/bc_diagnostics/repositories";
 
-const mockWsl = vi.hoisted(() => vi.fn());
-const mockWin = vi.hoisted(() => vi.fn());
-const mockProjects = vi.hoisted(() => vi.fn());
-const mockSubdirs = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({
-  listProjects: mockProjects,
-  isWorkProject: (p: { owner: string }) => p.owner === "work",
-}));
-vi.mock("@/contexts/bc_diagnostics/repositories", () => ({
-  readWsl: mockWsl,
-  readWindows: mockWin,
-  readSubdirs: mockSubdirs,
-}));
+const mockWsl = vi.hoisted(() => vi.fn<typeof DiagnosticsRepo.readWsl>());
+const mockWin = vi.hoisted(() => vi.fn<typeof DiagnosticsRepo.readWindows>());
+const mockSubdirs = vi.hoisted(() => vi.fn<typeof DiagnosticsRepo.readSubdirs>());
+const mockProjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listProjects>());
+
+vi.mock("@/contexts/bc_projects/services", async (importOriginal) => {
+  const actual = await importOriginal<typeof ProjectsServices>();
+  return {
+    listProjects: mockProjects,
+    isWorkProject: actual.isWorkProject,
+  } satisfies Partial<typeof ProjectsServices>;
+});
+
+vi.mock(
+  "@/contexts/bc_diagnostics/repositories",
+  () =>
+    ({
+      readWsl: mockWsl,
+      readWindows: mockWin,
+      readSubdirs: mockSubdirs,
+    }) satisfies Partial<typeof DiagnosticsRepo>
+);
 
 import {
   buildKillCommand,
@@ -36,11 +47,17 @@ const entry = (o: Partial<SourceEntry> = {}): SourceEntry => ({
   ancestors: [],
   ...o,
 });
-const project = (id: string, localPath: string, owner: "personal" | "work" = "personal") => ({
+type P = ReturnType<typeof ProjectsServices.listProjects>["projects"][number];
+const project = (id: string, localPath: string, owner: "personal" | "work" = "personal"): P => ({
   id,
   name: id.toUpperCase(),
+  status: "active",
+  priority: "medium",
+  folder: `Projects/${id}/`,
   localPath,
   owner,
+  whereIStopped: null,
+  freshness: "fresh",
 });
 const ok = (...entries: SourceEntry[]): SourceRead => ({ ok: true, entries });
 const NOW = () => new Date("2026-11-17T10:00:00.000Z");

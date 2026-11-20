@@ -2,14 +2,18 @@
 import { describe, it, expect, vi } from "vitest";
 import { DomainError } from "@/lib/errors";
 import type { MindMap, MindMapNode } from "@/contexts/bc_mind_maps/models";
+import type * as MindMapsRepo from "@/contexts/bc_mind_maps/repositories";
 
-const repo = vi.hoisted(() => ({
-  getMindMaps: vi.fn(),
-  getMindMap: vi.fn(),
-  createMindMap: vi.fn(),
-  saveMindMap: vi.fn(),
-  deleteMindMap: vi.fn(),
-}));
+const repo = vi.hoisted(
+  () =>
+    ({
+      getMindMaps: vi.fn<typeof MindMapsRepo.getMindMaps>(),
+      getMindMap: vi.fn<typeof MindMapsRepo.getMindMap>(),
+      createMindMap: vi.fn<typeof MindMapsRepo.createMindMap>(),
+      saveMindMap: vi.fn<typeof MindMapsRepo.saveMindMap>(),
+      deleteMindMap: vi.fn<typeof MindMapsRepo.deleteMindMap>(),
+    }) satisfies Partial<typeof MindMapsRepo>
+);
 
 vi.mock("@/contexts/bc_mind_maps/repositories", () => repo);
 
@@ -32,7 +36,7 @@ function setupRepo() {
   const rows = new Map<string, MindMap>();
   let auto = 0;
 
-  repo.createMindMap.mockImplementation(async (data: { title: string; rootNode: MindMapNode }) => {
+  repo.createMindMap.mockImplementation(async (data) => {
     const map: MindMap = {
       id: `m${++auto}`,
       title: data.title,
@@ -45,14 +49,14 @@ function setupRepo() {
     return map;
   });
   repo.getMindMaps.mockImplementation(async () => [...rows.values()]);
-  repo.getMindMap.mockImplementation(async (mapId: string) => rows.get(mapId) ?? null);
-  repo.saveMindMap.mockImplementation(async (mapId: string, patch: Partial<MindMap>) => {
+  repo.getMindMap.mockImplementation(async (mapId) => rows.get(mapId) ?? null);
+  repo.saveMindMap.mockImplementation(async (mapId, patch) => {
     const key = mapId;
     const cur = rows.get(key);
     if (!cur) throw new Error("missing doc");
     rows.set(key, { ...cur, ...patch });
   });
-  repo.deleteMindMap.mockImplementation(async (mapId: string) => {
+  repo.deleteMindMap.mockImplementation(async (mapId) => {
     rows.delete(mapId);
   });
 

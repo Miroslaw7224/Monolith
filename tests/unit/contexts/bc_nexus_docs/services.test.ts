@@ -2,26 +2,41 @@
 import fs from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as ProjectsServices from "@/contexts/bc_projects/services";
 import { setupTempVault } from "../../helpers/tempVault";
 
-const mockListProjects = vi.hoisted(() => vi.fn());
-vi.mock("@/contexts/bc_projects/services", () => ({
-  listProjects: mockListProjects,
-  isWorkProject: (entry: { owner: string }) => entry.owner === "work",
-}));
+const mockListProjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listProjects>());
+vi.mock("@/contexts/bc_projects/services", async (importOriginal) => {
+  const actual = await importOriginal<typeof ProjectsServices>();
+  return {
+    listProjects: mockListProjects,
+    isWorkProject: actual.isWorkProject,
+  } satisfies Partial<typeof ProjectsServices>;
+});
 
 import { MAX_DOC_BYTES } from "@/contexts/bc_nexus_docs/models";
 import * as services from "@/contexts/bc_nexus_docs/services";
+
+type E = ReturnType<typeof ProjectsServices.listProjects>["projects"][number];
+const entry = (o: Partial<E> = {}): E => ({
+  id: "p",
+  name: "p",
+  status: "active",
+  priority: "medium",
+  folder: "Projects/p/",
+  localPath: "",
+  owner: "personal",
+  whereIStopped: null,
+  freshness: "fresh",
+  ...o,
+});
 
 const vault = setupTempVault();
 
 beforeEach(() => {
   mockListProjects.mockReset();
   mockListProjects.mockReturnValue({
-    projects: [
-      { id: "p", owner: "personal" },
-      { id: "w", owner: "work" },
-    ],
+    projects: [entry({ id: "p", owner: "personal" }), entry({ id: "w", owner: "work" })],
     warnings: [],
   });
 });

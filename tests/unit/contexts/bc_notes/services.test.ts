@@ -1,18 +1,23 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type * as NotesRepo from "@/contexts/bc_notes/repositories";
 import { listNotes, createNote, updateNote, deleteNote } from "@/contexts/bc_notes/services";
 
-const mockGetNotes = vi.hoisted(() => vi.fn());
-const mockCreateNote = vi.hoisted(() => vi.fn());
-const mockUpdateNote = vi.hoisted(() => vi.fn());
-const mockDeleteNote = vi.hoisted(() => vi.fn());
+const mockGetNotes = vi.hoisted(() => vi.fn<typeof NotesRepo.getNotes>());
+const mockCreateNote = vi.hoisted(() => vi.fn<typeof NotesRepo.createNote>());
+const mockUpdateNote = vi.hoisted(() => vi.fn<typeof NotesRepo.updateNote>());
+const mockDeleteNote = vi.hoisted(() => vi.fn<typeof NotesRepo.deleteNote>());
 
-vi.mock("@/contexts/bc_notes/repositories", () => ({
-  getNotes: (...args: unknown[]) => mockGetNotes(...args),
-  createNote: (...args: unknown[]) => mockCreateNote(...args),
-  updateNote: (...args: unknown[]) => mockUpdateNote(...args),
-  deleteNote: (...args: unknown[]) => mockDeleteNote(...args),
-}));
+vi.mock(
+  "@/contexts/bc_notes/repositories",
+  () =>
+    ({
+      getNotes: mockGetNotes,
+      createNote: mockCreateNote,
+      updateNote: mockUpdateNote,
+      deleteNote: mockDeleteNote,
+    }) satisfies Partial<typeof NotesRepo>
+);
 
 describe("bc_notes services", () => {
   beforeEach(() => {

@@ -1,31 +1,36 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProjectState, RegistryEntry } from "@/contexts/bc_projects/models";
+import type { GitSnapshotResult, ProjectState, RegistryEntry } from "@/contexts/bc_projects/models";
+import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
 import { NotFoundError } from "@/lib/errors";
 
-const mockReadRegistry = vi.hoisted(() => vi.fn());
-const mockReadProjectIndex = vi.hoisted(() => vi.fn());
-const mockReadProjectContent = vi.hoisted(() => vi.fn());
-const mockReadProjectState = vi.hoisted(() => vi.fn());
-const mockReadDevlog = vi.hoisted(() => vi.fn());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn());
-const mockReadGitSnapshot = vi.hoisted(() => vi.fn());
-const mockReadRepoRules = vi.hoisted(() => vi.fn());
-const mockReadAiContext = vi.hoisted(() => vi.fn());
-const mockReadIndexRules = vi.hoisted(() => vi.fn());
+const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
+const mockReadProjectIndex = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectIndex>());
+const mockReadProjectContent = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectContent>());
+const mockReadProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectState>());
+const mockReadDevlog = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readDevlog>());
+const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
+const mockReadGitSnapshot = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readGitSnapshot>());
+const mockReadRepoRules = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRepoRules>());
+const mockReadAiContext = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readAiContext>());
+const mockReadIndexRules = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readIndexRules>());
 
-vi.mock("@/contexts/bc_projects/repositories", () => ({
-  readRegistry: mockReadRegistry,
-  readProjectIndex: mockReadProjectIndex,
-  readProjectContent: mockReadProjectContent,
-  readProjectState: mockReadProjectState,
-  readDevlog: mockReadDevlog,
-  readProjectBoard: mockReadProjectBoard,
-  readGitSnapshot: mockReadGitSnapshot,
-  readRepoRules: mockReadRepoRules,
-  readAiContext: mockReadAiContext,
-  readIndexRules: mockReadIndexRules,
-}));
+vi.mock(
+  "@/contexts/bc_projects/repositories",
+  () =>
+    ({
+      readRegistry: mockReadRegistry,
+      readProjectIndex: mockReadProjectIndex,
+      readProjectContent: mockReadProjectContent,
+      readProjectState: mockReadProjectState,
+      readDevlog: mockReadDevlog,
+      readProjectBoard: mockReadProjectBoard,
+      readGitSnapshot: mockReadGitSnapshot,
+      readRepoRules: mockReadRepoRules,
+      readAiContext: mockReadAiContext,
+      readIndexRules: mockReadIndexRules,
+    }) satisfies Partial<typeof ProjectsRepo>
+);
 
 import { buildContextPack } from "@/contexts/bc_projects/services";
 import { OWNER_WORK_WARNING } from "@/contexts/bc_projects/services/context-pack";
@@ -55,7 +60,7 @@ const state: ProjectState = {
 const GIT_OK = {
   ok: true,
   snapshot: { status: "## main", log: "abc1234 init", diffStat: "" },
-};
+} satisfies GitSnapshotResult;
 
 beforeEach(() => {
   vi.resetAllMocks();

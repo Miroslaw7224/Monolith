@@ -1,34 +1,39 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Resource } from "@/contexts/bc_resources/models";
+import type * as ResourcesRepo from "@/contexts/bc_resources/repositories";
+import type * as NexusDocsServices from "@/contexts/bc_nexus_docs/services";
+import type * as TagsServices from "@/contexts/bc_tags/services";
 
-const mockAdd = vi.hoisted(() => vi.fn());
-const mockGetAll = vi.hoisted(() => vi.fn());
-const mockDelete = vi.hoisted(() => vi.fn());
-const mockUpdate = vi.hoisted(() => vi.fn());
-const mockLinkIndex = vi.hoisted(() => vi.fn());
-const mockResolveTags = vi.hoisted(() => vi.fn());
+const mockAdd = vi.hoisted(() => vi.fn<typeof ResourcesRepo.addResource>());
+const mockGetAll = vi.hoisted(() => vi.fn<typeof ResourcesRepo.getResources>());
+const mockDelete = vi.hoisted(() => vi.fn<typeof ResourcesRepo.deleteResource>());
+const mockUpdate = vi.hoisted(() => vi.fn<typeof ResourcesRepo.updateResource>());
+const mockLinkIndex = vi.hoisted(() => vi.fn<typeof NexusDocsServices.buildKnowledgeLinkIndex>());
+const mockResolveTags = vi.hoisted(() => vi.fn<typeof TagsServices.resolveTags>());
 
-vi.mock("@/contexts/bc_resources/repositories", () => ({
-  addResource: (...a: unknown[]) => mockAdd(...a),
-  getResources: (...a: unknown[]) => mockGetAll(...a),
-  deleteResource: (...a: unknown[]) => mockDelete(...a),
-  updateResource: (...a: unknown[]) => mockUpdate(...a),
-}));
+vi.mock(
+  "@/contexts/bc_resources/repositories",
+  () =>
+    ({
+      addResource: mockAdd,
+      getResources: mockGetAll,
+      deleteResource: mockDelete,
+      updateResource: mockUpdate,
+    }) satisfies Partial<typeof ResourcesRepo>
+);
 
-vi.mock("@/contexts/bc_nexus_docs/services", () => ({
-  buildKnowledgeLinkIndex: (...a: unknown[]) => mockLinkIndex(...a),
-  normalizeHost: (url: string) => {
-    try {
-      return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
-    } catch {
-      return null;
-    }
-  },
-}));
+vi.mock("@/contexts/bc_nexus_docs/services", async (importOriginal) => {
+  const actual = await importOriginal<typeof NexusDocsServices>();
+  return {
+    buildKnowledgeLinkIndex: mockLinkIndex,
+    normalizeHost: actual.normalizeHost,
+  } satisfies Partial<typeof NexusDocsServices>;
+});
 
-vi.mock("@/contexts/bc_tags/services", () => ({
-  resolveTags: (...a: unknown[]) => mockResolveTags(...a),
-}));
+vi.mock(
+  "@/contexts/bc_tags/services",
+  () => ({ resolveTags: mockResolveTags }) satisfies Partial<typeof TagsServices>
+);
 
 import {
   addResource,
@@ -41,6 +46,14 @@ import {
   isBlockedTitle,
 } from "@/contexts/bc_resources/services";
 
+const resource = (o: Partial<Resource> & Pick<Resource, "id">): Resource => ({
+  description: "",
+  url: "",
+  title: "",
+  tags: [],
+  ...o,
+});
+
 describe("bc_resources services (resources)", () => {
   beforeEach(() => {
     mockAdd.mockReset();
@@ -49,7 +62,9 @@ describe("bc_resources services (resources)", () => {
     mockUpdate.mockReset();
     mockLinkIndex.mockReset();
     mockResolveTags.mockReset();
-    mockResolveTags.mockImplementation(async (names: string[]) => names);
+    mockResolveTags.mockImplementation(async (names) =>
+      Array.isArray(names) ? names.map(String) : []
+    );
     mockLinkIndex.mockReturnValue({ hostToPath: new Map(), paths: new Set() });
     vi.stubGlobal(
       "fetch",
@@ -66,14 +81,14 @@ describe("bc_resources services (resources)", () => {
 
   describe("addResource", () => {
     it("fetches metadata and delegates to Firestore", async () => {
-      const saved = {
+      const saved = resource({
         id: "r1",
         description: "d",
         url: "https://example.com",
         title: "Page Title",
         thumbnailUrl: "https://x/img.png",
         tags: ["a"],
-      } as Resource;
+      });
       mockAdd.mockResolvedValue(saved);
 
       const result = await addResource({
@@ -97,7 +112,7 @@ describe("bc_resources services (resources)", () => {
 
     it("uses URL as title when fetch fails", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
-      mockAdd.mockImplementation(async (payload: Record<string, unknown>) => ({
+      mockAdd.mockImplementation(async (payload) => ({
         id: "r2",
         ...payload,
       }));
@@ -120,7 +135,7 @@ describe("bc_resources services (resources)", () => {
           })
         )
       );
-      mockAdd.mockImplementation(async (payload: Record<string, unknown>) => ({
+      mockAdd.mockImplementation(async (payload) => ({
         id: "r3",
         ...payload,
       }));
@@ -139,7 +154,7 @@ describe("bc_resources services (resources)", () => {
           })
         )
       );
-      mockAdd.mockImplementation(async (payload: Record<string, unknown>) => ({
+      mockAdd.mockImplementation(async (payload) => ({
         id: "r4",
         ...payload,
       }));
@@ -161,7 +176,7 @@ describe("bc_resources services (resources)", () => {
             )
           )
       );
-      mockAdd.mockImplementation(async (payload: Record<string, unknown>) => ({
+      mockAdd.mockImplementation(async (payload) => ({
         id: "r-og",
         ...payload,
       }));
@@ -182,7 +197,7 @@ describe("bc_resources services (resources)", () => {
             new Response("<html><head><title>&nbsp;</title></head></html>", { status: 200 })
           )
       );
-      mockAdd.mockImplementation(async (payload: Record<string, unknown>) => ({
+      mockAdd.mockImplementation(async (payload) => ({
         id: "r5",
         ...payload,
       }));
@@ -213,21 +228,21 @@ describe("bc_resources services (resources)", () => {
 
   describe("searchResources", () => {
     const samples = [
-      {
+      resource({
         id: "1",
         description: "React hooks",
         url: "https://a",
         title: "Docs",
         tags: ["lib"],
-      },
-      {
+      }),
+      resource({
         id: "2",
         description: "Other",
         url: "https://b",
         title: "Vue guide",
         tags: ["framework"],
-      },
-    ] as Resource[];
+      }),
+    ];
 
     it("returns all when keywords empty", async () => {
       mockGetAll.mockResolvedValue(samples);
@@ -252,13 +267,13 @@ describe("bc_resources services (resources)", () => {
   describe("tagi w addResource/updateResource", () => {
     it("addResource zapisuje tagi zwrócone przez resolveTags", async () => {
       mockResolveTags.mockResolvedValue(["Learning"]);
-      mockAdd.mockImplementation(async (p: Record<string, unknown>) => ({ id: "r5", ...p }));
+      mockAdd.mockImplementation(async (p) => ({ id: "r5", ...p }));
       await addResource({ description: "d", url: "https://example.com", tags: ["kurs", "nauka"] });
       expect(mockResolveTags).toHaveBeenCalledWith(["kurs", "nauka"]);
       expect(mockAdd).toHaveBeenCalledWith(expect.objectContaining({ tags: ["Learning"] }));
     });
     it("addResource bez tagów woła resolveTags z pustą listą", async () => {
-      mockAdd.mockImplementation(async (p: Record<string, unknown>) => ({ id: "r6", ...p }));
+      mockAdd.mockImplementation(async (p) => ({ id: "r6", ...p }));
       await addResource({ description: "d", url: "https://example.com" });
       expect(mockResolveTags).toHaveBeenCalledWith([]);
     });

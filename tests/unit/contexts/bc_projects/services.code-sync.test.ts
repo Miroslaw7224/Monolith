@@ -1,29 +1,34 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProjectState, RegistryEntry } from "@/contexts/bc_projects/models";
+import type { CodeSync, ProjectState, RegistryEntry } from "@/contexts/bc_projects/models";
+import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
 import { ConflictError, DomainError } from "@/lib/errors";
 
-const mockReadRegistry = vi.hoisted(() => vi.fn());
-const mockReadProjectIndex = vi.hoisted(() => vi.fn());
-const mockReadProjectContent = vi.hoisted(() => vi.fn());
-const mockReadProjectState = vi.hoisted(() => vi.fn());
-const mockReadDevlog = vi.hoisted(() => vi.fn());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn());
-const mockWriteProjectState = vi.hoisted(() => vi.fn());
-const mockReadCodeSync = vi.hoisted(() => vi.fn());
-const mockReadHeadSha = vi.hoisted(() => vi.fn());
+const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
+const mockReadProjectIndex = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectIndex>());
+const mockReadProjectContent = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectContent>());
+const mockReadProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectState>());
+const mockReadDevlog = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readDevlog>());
+const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
+const mockWriteProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.writeProjectState>());
+const mockReadCodeSync = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readCodeSync>());
+const mockReadHeadSha = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readHeadSha>());
 
-vi.mock("@/contexts/bc_projects/repositories", () => ({
-  readRegistry: mockReadRegistry,
-  readProjectIndex: mockReadProjectIndex,
-  readProjectContent: mockReadProjectContent,
-  readProjectState: mockReadProjectState,
-  readDevlog: mockReadDevlog,
-  readProjectBoard: mockReadProjectBoard,
-  writeProjectState: mockWriteProjectState,
-  readCodeSync: mockReadCodeSync,
-  readHeadSha: mockReadHeadSha,
-}));
+vi.mock(
+  "@/contexts/bc_projects/repositories",
+  () =>
+    ({
+      readRegistry: mockReadRegistry,
+      readProjectIndex: mockReadProjectIndex,
+      readProjectContent: mockReadProjectContent,
+      readProjectState: mockReadProjectState,
+      readDevlog: mockReadDevlog,
+      readProjectBoard: mockReadProjectBoard,
+      writeProjectState: mockWriteProjectState,
+      readCodeSync: mockReadCodeSync,
+      readHeadSha: mockReadHeadSha,
+    }) satisfies Partial<typeof ProjectsRepo>
+);
 
 import {
   getCodeSync,
@@ -204,7 +209,7 @@ describe("markCodeSynced", () => {
     expect(expected).toBeNull();
   });
 
-  it.each([
+  it.each<[CodeSync]>([
     [{ status: "diverged", head: HEAD }],
     [{ status: "unknown-sha" }],
     [{ status: "unavailable" }],

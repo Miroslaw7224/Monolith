@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type * as TasksRepo from "@/contexts/bc_tasks/repositories";
 import {
   getTaskTemplates,
   createTaskTemplate,
@@ -7,17 +8,21 @@ import {
   deleteTaskTemplate,
 } from "@/contexts/bc_tasks/services";
 
-const mockGetTaskTemplates = vi.hoisted(() => vi.fn());
-const mockCreateTaskTemplate = vi.hoisted(() => vi.fn());
-const mockUpdateTaskTemplate = vi.hoisted(() => vi.fn());
-const mockDeleteTaskTemplate = vi.hoisted(() => vi.fn());
+const mockGetTaskTemplates = vi.hoisted(() => vi.fn<typeof TasksRepo.getTaskTemplates>());
+const mockCreateTaskTemplate = vi.hoisted(() => vi.fn<typeof TasksRepo.createTaskTemplate>());
+const mockUpdateTaskTemplate = vi.hoisted(() => vi.fn<typeof TasksRepo.updateTaskTemplate>());
+const mockDeleteTaskTemplate = vi.hoisted(() => vi.fn<typeof TasksRepo.deleteTaskTemplate>());
 
-vi.mock("@/contexts/bc_tasks/repositories", () => ({
-  getTaskTemplates: (...args: unknown[]) => mockGetTaskTemplates(...args),
-  createTaskTemplate: (...args: unknown[]) => mockCreateTaskTemplate(...args),
-  updateTaskTemplate: (...args: unknown[]) => mockUpdateTaskTemplate(...args),
-  deleteTaskTemplate: (...args: unknown[]) => mockDeleteTaskTemplate(...args),
-}));
+vi.mock(
+  "@/contexts/bc_tasks/repositories",
+  () =>
+    ({
+      getTaskTemplates: mockGetTaskTemplates,
+      createTaskTemplate: mockCreateTaskTemplate,
+      updateTaskTemplate: mockUpdateTaskTemplate,
+      deleteTaskTemplate: mockDeleteTaskTemplate,
+    }) satisfies Partial<typeof TasksRepo>
+);
 
 describe("taskTemplateService", () => {
   beforeEach(() => {

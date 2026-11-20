@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import type * as TasksRepo from "@/contexts/bc_tasks/repositories";
+import type { Task } from "@/contexts/bc_tasks/models";
 import {
   getTasks,
   createTask,
@@ -8,19 +10,36 @@ import {
   reorderTasks,
 } from "@/contexts/bc_tasks/services";
 
-const mockGetTasks = vi.hoisted(() => vi.fn());
-const mockCreateTask = vi.hoisted(() => vi.fn());
-const mockUpdateTask = vi.hoisted(() => vi.fn());
-const mockDeleteTask = vi.hoisted(() => vi.fn());
-const mockReorderTasks = vi.hoisted(() => vi.fn());
+function taskFixture(overrides: Partial<Task> = {}): Task {
+  return {
+    id: "t1",
+    title: "T",
+    description: "D",
+    link: "",
+    status: "todo",
+    due_date: null,
+    priority: null,
+    ...overrides,
+  };
+}
 
-vi.mock("@/contexts/bc_tasks/repositories", () => ({
-  getTasks: (...args: unknown[]) => mockGetTasks(...args),
-  createTask: (...args: unknown[]) => mockCreateTask(...args),
-  updateTask: (...args: unknown[]) => mockUpdateTask(...args),
-  deleteTask: (...args: unknown[]) => mockDeleteTask(...args),
-  reorderTasks: (...args: unknown[]) => mockReorderTasks(...args),
-}));
+const mockGetTasks = vi.hoisted(() => vi.fn<typeof TasksRepo.getTasks>());
+const mockCreateTask = vi.hoisted(() => vi.fn<typeof TasksRepo.createTask>());
+const mockUpdateTask = vi.hoisted(() => vi.fn<typeof TasksRepo.updateTask>());
+const mockDeleteTask = vi.hoisted(() => vi.fn<typeof TasksRepo.deleteTask>());
+const mockReorderTasks = vi.hoisted(() => vi.fn<typeof TasksRepo.reorderTasks>());
+
+vi.mock(
+  "@/contexts/bc_tasks/repositories",
+  () =>
+    ({
+      getTasks: mockGetTasks,
+      createTask: mockCreateTask,
+      updateTask: mockUpdateTask,
+      deleteTask: mockDeleteTask,
+      reorderTasks: mockReorderTasks,
+    }) satisfies Partial<typeof TasksRepo>
+);
 
 describe("taskService", () => {
   beforeEach(() => {
@@ -132,7 +151,7 @@ describe("taskService", () => {
   });
   describe("project", () => {
     it("given a valid project id, when createTask is called, then passes it to the repository", async () => {
-      mockCreateTask.mockResolvedValue({ id: "t1" });
+      mockCreateTask.mockResolvedValue(taskFixture());
 
       await createTask({ title: "T", project: "gen-podsum-ai" });
 
