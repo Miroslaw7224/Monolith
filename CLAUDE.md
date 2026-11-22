@@ -7,6 +7,7 @@ Kod projektów wolno tylko czytać; zapisy aplikacji idą wyłącznie do `Vault/
 Testy i próbne zapisy (POST, skrypty, eksperymenty) idą do jednorazowej kopii vaulta z `setupTempVault()` (`tests/unit/helpers/tempVault.ts`), nigdy do prawdziwego (Kodeks ZAPIS-1).
 **Kodeks** (`../NEXUS/Vault/Knowledge/kodeks.md`): żadnej zmiany bez wyraźnej zgody użytkownika po przeczytaniu pełnego brzmienia
 (reguła 4 zakazów w `../NEXUS/CLAUDE.md`); propozycje pomocników to nie zgoda.
+Kod, który woła model (LLM) lub daje mu narzędzia, podlega sekcji 6 Kodeksu (BEZP-1..10); przy takim PR odhacz checklistę BEZP w opisie.
 Formaty plików vaulta (kalendarz, zadania, notatki, tagi…), to, jak agent ma dodawać wydarzenia kalendarza przez API, oraz przepis dodawania i zamykania bugów (`bugs.md`, skill `bug-projektu`):
 `docs/nexus-vault-formaty-yaml.md`; czytaj ten plik zamiast wnioskować format z kodu.
 
