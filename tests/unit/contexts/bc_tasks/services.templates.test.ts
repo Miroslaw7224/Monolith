@@ -1,120 +1,110 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import type * as TasksRepo from "@/contexts/bc_tasks/repositories";
+import { describe, it, expect } from "vitest";
+import { formatYamlList } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
 import {
   getTaskTemplates,
   createTaskTemplate,
   updateTaskTemplate,
   deleteTaskTemplate,
 } from "@/contexts/bc_tasks/services";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const mockGetTaskTemplates = vi.hoisted(() => vi.fn<typeof TasksRepo.getTaskTemplates>());
-const mockCreateTaskTemplate = vi.hoisted(() => vi.fn<typeof TasksRepo.createTaskTemplate>());
-const mockUpdateTaskTemplate = vi.hoisted(() => vi.fn<typeof TasksRepo.updateTaskTemplate>());
-const mockDeleteTaskTemplate = vi.hoisted(() => vi.fn<typeof TasksRepo.deleteTaskTemplate>());
+const FILE = "Tasks/templates.yaml";
+const STORED = [
+  {
+    id: "tpl1",
+    label: "Review PR",
+    title: "Review PR",
+    link: "",
+    created: "2026-08-01T10:00:00.000Z",
+  },
+];
 
-vi.mock(
-  "@/contexts/bc_tasks/repositories",
-  () =>
-    ({
-      getTaskTemplates: mockGetTaskTemplates,
-      createTaskTemplate: mockCreateTaskTemplate,
-      updateTaskTemplate: mockUpdateTaskTemplate,
-      deleteTaskTemplate: mockDeleteTaskTemplate,
-    }) satisfies Partial<typeof TasksRepo>
-);
+const vault = setupTempVault();
+const seed = () => vault.write(FILE, formatYamlList("templates", STORED));
 
 describe("taskTemplateService", () => {
-  beforeEach(() => {
-    mockGetTaskTemplates.mockReset();
-    mockCreateTaskTemplate.mockReset();
-    mockUpdateTaskTemplate.mockReset();
-    mockDeleteTaskTemplate.mockReset();
-  });
-
   describe("getTaskTemplates", () => {
-    it("given Firestore returns templates, when getTaskTemplates is called, then returns the list", async () => {
-      const templates = [{ id: "tpl1", label: "Review PR", title: "Review PR", link: "" }];
-      mockGetTaskTemplates.mockResolvedValue(templates);
+    it("zwraca szablony zapisane w vaulcie", async () => {
+      seed();
 
-      const result = await getTaskTemplates();
-
-      expect(result).toEqual(templates);
+      expect(await getTaskTemplates()).toEqual([
+        {
+          id: "tpl1",
+          label: "Review PR",
+          title: "Review PR",
+          link: "",
+          created_at: "2026-08-01T10:00:00.000Z",
+        },
+      ]);
     });
 
-    it("given getTaskTemplates throws, when getTaskTemplates is called, then propagates the error", async () => {
-      mockGetTaskTemplates.mockRejectedValue(new Error("DB error"));
-
-      await expect(getTaskTemplates()).rejects.toThrow("DB error");
+    it("bez pliku zwraca pustą listę", async () => {
+      expect(await getTaskTemplates()).toEqual([]);
     });
   });
 
   describe("createTaskTemplate", () => {
-    it("given valid data, when createTaskTemplate is called, then returns created template", async () => {
-      mockCreateTaskTemplate.mockResolvedValue({
-        id: "tpl1",
+    it("zapisuje szablon w vaulcie", async () => {
+      const created = await createTaskTemplate({
         label: "Review PR",
         title: "Review PR",
         link: "",
       });
 
-      const result = await createTaskTemplate({
-        label: "Review PR",
-        title: "Review PR",
-        link: "",
-      });
-
-      expect(result).toEqual({
-        id: "tpl1",
-        label: "Review PR",
-        title: "Review PR",
-        link: "",
-      });
-      expect(mockCreateTaskTemplate).toHaveBeenCalledWith({
-        label: "Review PR",
-        title: "Review PR",
-        link: "",
-      });
+      expect(readList(FILE, "templates")).toEqual([
+        {
+          id: created.id,
+          label: "Review PR",
+          title: "Review PR",
+          link: "",
+          created: created.created_at,
+        },
+      ]);
     });
 
-    it("given createTaskTemplate throws, when createTaskTemplate is called, then propagates the error", async () => {
-      mockCreateTaskTemplate.mockRejectedValue(new Error("Create failed"));
-
-      await expect(createTaskTemplate({ label: "x", title: "y" })).rejects.toThrow("Create failed");
+    it("pusta etykieta albo tytuł to błąd 400 i brak pliku", async () => {
+      await expect(createTaskTemplate({ label: " ", title: "y" })).rejects.toMatchObject({
+        message: "label required",
+        statusCode: 400,
+      });
+      await expect(createTaskTemplate({ label: "x", title: "" })).rejects.toMatchObject({
+        message: "title required",
+        statusCode: 400,
+      });
+      expect(vault.read(FILE)).toBeNull();
     });
   });
 
   describe("updateTaskTemplate", () => {
-    it("given valid id and data, when updateTaskTemplate is called, then delegates to firestore", async () => {
-      mockUpdateTaskTemplate.mockResolvedValue(undefined);
+    it("zmienia tytuł, reszta rekordu bez zmian", async () => {
+      seed();
 
       await updateTaskTemplate("tpl1", { title: "New Title" });
 
-      expect(mockUpdateTaskTemplate).toHaveBeenCalledWith("tpl1", {
-        title: "New Title",
-      });
+      expect(readList(FILE, "templates")).toEqual([{ ...STORED[0], title: "New Title" }]);
     });
 
-    it("given updateTaskTemplate throws, when updateTaskTemplate is called, then propagates the error", async () => {
-      mockUpdateTaskTemplate.mockRejectedValue(new Error("Update failed"));
+    it("nieistniejące id to błąd 404 i plik bez zmian", async () => {
+      seed();
+      const before = vault.read(FILE);
 
-      await expect(updateTaskTemplate("tpl1", { label: "x" })).rejects.toThrow("Update failed");
+      await expect(updateTaskTemplate("brak", { label: "x" })).rejects.toMatchObject({
+        message: "Template not found",
+        statusCode: 404,
+      });
+      expect(vault.read(FILE)).toBe(before);
     });
   });
 
   describe("deleteTaskTemplate", () => {
-    it("given valid id, when deleteTaskTemplate is called, then delegates to firestore", async () => {
-      mockDeleteTaskTemplate.mockResolvedValue(undefined);
+    it("usuwa szablon z pliku", async () => {
+      seed();
 
       await deleteTaskTemplate("tpl1");
 
-      expect(mockDeleteTaskTemplate).toHaveBeenCalledWith("tpl1");
-    });
-
-    it("given deleteTaskTemplate throws, when deleteTaskTemplate is called, then propagates the error", async () => {
-      mockDeleteTaskTemplate.mockRejectedValue(new Error("Delete failed"));
-
-      await expect(deleteTaskTemplate("tpl1")).rejects.toThrow("Delete failed");
+      expect(readList(FILE, "templates")).toEqual([]);
     });
   });
 });

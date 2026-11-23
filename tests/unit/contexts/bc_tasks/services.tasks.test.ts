@@ -1,7 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import type * as TasksRepo from "@/contexts/bc_tasks/repositories";
-import type { Task } from "@/contexts/bc_tasks/models";
+import { describe, it, expect } from "vitest";
 import {
   getTasks,
   createTask,
@@ -9,176 +7,146 @@ import {
   deleteTask,
   reorderTasks,
 } from "@/contexts/bc_tasks/services";
+import { setupTempVault } from "../../helpers/tempVault";
 
-function taskFixture(overrides: Partial<Task> = {}): Task {
-  return {
-    id: "t1",
-    title: "T",
-    description: "D",
-    link: "",
-    status: "todo",
-    due_date: null,
-    priority: null,
-    ...overrides,
-  };
-}
+const FILE = "Tasks/tasks.md";
+const T1 =
+  "- [ ] Kurs Playwright [id:: t1] [status:: todo] [due:: 2026-08-06] [order:: 1] [created:: 2026-02-26T16:58:41.794Z]";
+const T2 =
+  "- [x] Review PR [id:: t2] [status:: done] [order:: 0] [created:: 2026-08-03T19:45:42.870Z]";
+const T3 =
+  "- [ ] Z projektem [id:: t3] [status:: todo] [order:: 2] [project:: gen-podsum-ai] [created:: 2026-09-01T10:00:00.000Z]";
+const SEED = `# Zadania\n\n${T1}\n${T2}\n${T3}\n`;
 
-const mockGetTasks = vi.hoisted(() => vi.fn<typeof TasksRepo.getTasks>());
-const mockCreateTask = vi.hoisted(() => vi.fn<typeof TasksRepo.createTask>());
-const mockUpdateTask = vi.hoisted(() => vi.fn<typeof TasksRepo.updateTask>());
-const mockDeleteTask = vi.hoisted(() => vi.fn<typeof TasksRepo.deleteTask>());
-const mockReorderTasks = vi.hoisted(() => vi.fn<typeof TasksRepo.reorderTasks>());
-
-vi.mock(
-  "@/contexts/bc_tasks/repositories",
-  () =>
-    ({
-      getTasks: mockGetTasks,
-      createTask: mockCreateTask,
-      updateTask: mockUpdateTask,
-      deleteTask: mockDeleteTask,
-      reorderTasks: mockReorderTasks,
-    }) satisfies Partial<typeof TasksRepo>
-);
+const vault = setupTempVault();
+const seed = () => vault.write(FILE, SEED);
 
 describe("taskService", () => {
-  beforeEach(() => {
-    mockGetTasks.mockReset();
-    mockCreateTask.mockReset();
-    mockUpdateTask.mockReset();
-    mockDeleteTask.mockReset();
-    mockReorderTasks.mockReset();
-  });
-
   describe("getTasks", () => {
-    it("given Firestore returns tasks, when getTasks is called, then returns the list (happy path)", async () => {
-      const tasks = [
-        {
-          id: "t1",
-          title: "Task 1",
-          description: "",
-          link: "",
-          status: "todo" as const,
-          due_date: null,
-          priority: null,
-        },
-      ];
-      mockGetTasks.mockResolvedValue(tasks);
+    it("zwraca zadania z vaulta w kolejności order", async () => {
+      seed();
 
-      const result = await getTasks();
+      const tasks = await getTasks();
 
-      expect(result).toEqual(tasks);
+      expect(tasks.map((t) => [t.id, t.title, t.status, t.project])).toEqual([
+        ["t2", "Review PR", "done", undefined],
+        ["t1", "Kurs Playwright", "todo", undefined],
+        ["t3", "Z projektem", "todo", "gen-podsum-ai"],
+      ]);
     });
 
-    it("given getTasks throws, when getTasks is called, then propagates the error", async () => {
-      mockGetTasks.mockRejectedValue(new Error("DB error"));
-
-      await expect(getTasks()).rejects.toThrow("DB error");
+    it("bez pliku zwraca pustą listę", async () => {
+      expect(await getTasks()).toEqual([]);
     });
   });
 
   describe("createTask", () => {
-    it("given valid data, when createTask is called, then returns created task (happy path)", async () => {
-      const task = {
-        id: "t1",
-        title: "T",
-        description: "D",
-        link: "",
-        status: "todo" as const,
-        due_date: null,
-        priority: null,
-      };
-      mockCreateTask.mockResolvedValue(task);
+    it("zapisuje zadanie w vaulcie i da się je odczytać", async () => {
+      const created = await createTask({ title: "T", description: "D" });
 
-      const result = await createTask({ title: "T", description: "D" });
-
-      expect(result).toEqual(task);
+      expect(await getTasks()).toEqual([
+        {
+          id: created.id,
+          title: "T",
+          description: "D",
+          link: "",
+          status: "todo",
+          due_date: null,
+          priority: null,
+          order: created.order,
+          created_at: created.created_at,
+          updated_at: created.updated_at,
+        },
+      ]);
     });
 
-    it("given createTask throws, when createTask is called, then propagates the error", async () => {
-      mockCreateTask.mockRejectedValue(new Error("Create failed"));
-
-      await expect(createTask({ title: "T" })).rejects.toThrow("Create failed");
+    it("pusty tytuł to błąd 400 i brak pliku", async () => {
+      await expect(createTask({ title: "" })).rejects.toMatchObject({
+        message: "title required",
+        statusCode: 400,
+      });
+      expect(vault.read(FILE)).toBeNull();
     });
   });
 
   describe("updateTask", () => {
-    it("given valid id and data, when updateTask is called, then delegates to firestore (happy path)", async () => {
-      mockUpdateTask.mockResolvedValue(undefined);
+    it("zmienia status zadania, reszta zadań bez zmian", async () => {
+      seed();
+      const before = await getTasks();
 
       await updateTask("t1", { status: "done" });
 
-      expect(mockUpdateTask).toHaveBeenCalledWith("t1", { status: "done" });
-    });
-
-    it("given updateTask throws, when updateTask is called, then propagates the error", async () => {
-      mockUpdateTask.mockRejectedValue(new Error("Update failed"));
-
-      await expect(updateTask("t1", { title: "X" })).rejects.toThrow("Update failed");
+      const [t2, t1, t3] = before;
+      expect(await getTasks()).toEqual([
+        t2,
+        { ...t1, status: "done", updated_at: expect.any(String) },
+        t3,
+      ]);
     });
   });
 
   describe("deleteTask", () => {
-    it("given valid id, when deleteTask is called, then delegates to firestore (happy path)", async () => {
-      mockDeleteTask.mockResolvedValue(undefined);
+    it("usuwa zadanie z pliku", async () => {
+      seed();
 
       await deleteTask("t1");
 
-      expect(mockDeleteTask).toHaveBeenCalledWith("t1");
-    });
-
-    it("given deleteTask throws, when deleteTask is called, then propagates the error", async () => {
-      mockDeleteTask.mockRejectedValue(new Error("Delete failed"));
-
-      await expect(deleteTask("t1")).rejects.toThrow("Delete failed");
+      expect((await getTasks()).map((t) => t.id)).toEqual(["t2", "t3"]);
+      expect(vault.read(FILE)).not.toContain("[id:: t1]");
     });
   });
 
   describe("reorderTasks", () => {
-    it("given taskIds, when reorderTasks is called, then delegates to firestore", async () => {
-      mockReorderTasks.mockResolvedValue(undefined);
+    it("zapisuje nową kolejność", async () => {
+      seed();
 
-      await reorderTasks(["t1", "t2", "t3"]);
+      await reorderTasks(["t3", "t1", "t2"]);
 
-      expect(mockReorderTasks).toHaveBeenCalledWith(["t1", "t2", "t3"]);
-    });
-
-    it("given reorderTasks throws, when reorderTasks is called, then propagates the error", async () => {
-      mockReorderTasks.mockRejectedValue(new Error("Reorder failed"));
-
-      await expect(reorderTasks(["t1"])).rejects.toThrow("Reorder failed");
+      expect((await getTasks()).map((t) => [t.id, t.order])).toEqual([
+        ["t3", 0],
+        ["t1", 1],
+        ["t2", 2],
+      ]);
     });
   });
+
   describe("project", () => {
-    it("given a valid project id, when createTask is called, then passes it to the repository", async () => {
-      mockCreateTask.mockResolvedValue(taskFixture());
+    it("poprawny id projektu trafia do zapisanego zadania", async () => {
+      const created = await createTask({ title: "T", project: "gen-podsum-ai" });
 
-      await createTask({ title: "T", project: "gen-podsum-ai" });
-
-      expect(mockCreateTask).toHaveBeenCalledWith({ title: "T", project: "gen-podsum-ai" });
+      expect(created.project).toBe("gen-podsum-ai");
+      expect(vault.read(FILE)).toContain("[project:: gen-podsum-ai]");
+      expect((await getTasks())[0].project).toBe("gen-podsum-ai");
     });
 
-    it("given a malformed project id, when createTask or updateTask is called, then rejects with 400 and does not write", async () => {
+    it("zły id projektu to 400 i plik bez zmian", async () => {
+      seed();
       for (const bad of ["Zły Projekt", "a]b", "../x", "x".repeat(65)]) {
         await expect(createTask({ title: "T", project: bad })).rejects.toMatchObject({
+          message: "invalid project",
           statusCode: 400,
         });
         await expect(updateTask("t1", { project: bad })).rejects.toMatchObject({
+          message: "invalid project",
           statusCode: 400,
         });
       }
-      expect(mockCreateTask).not.toHaveBeenCalled();
-      expect(mockUpdateTask).not.toHaveBeenCalled();
+
+      expect(vault.read(FILE)).toBe(SEED);
     });
 
-    it("given an empty project, when updateTask is called, then clears it with null", async () => {
-      mockUpdateTask.mockResolvedValue(undefined);
+    it("pusty tekst i null czyszczą projekt", async () => {
+      seed();
 
-      await updateTask("t1", { project: "" });
-      await updateTask("t1", { project: null });
+      await updateTask("t3", { project: "" });
 
-      expect(mockUpdateTask).toHaveBeenNthCalledWith(1, "t1", { project: null });
-      expect(mockUpdateTask).toHaveBeenNthCalledWith(2, "t1", { project: null });
+      expect(vault.read(FILE)).not.toContain("[project::");
+      expect((await getTasks()).find((t) => t.id === "t3")?.project).toBeUndefined();
+
+      await updateTask("t3", { project: "abc" });
+      await updateTask("t3", { project: null });
+
+      expect((await getTasks()).find((t) => t.id === "t3")?.project).toBeUndefined();
     });
   });
 });
