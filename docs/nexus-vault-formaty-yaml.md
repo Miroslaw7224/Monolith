@@ -252,8 +252,8 @@ Reguły formatu:
 
 **Zamknij bug** (polecenie „Zamknij buga X w projekcie Y”, naprawa w trakcie pracy):
 
-1. Przenieś cały wpis pod `## Zamknięte`, ustaw `Status: zamknięty`, dodaj `- **Rozwiązanie (RRRR-MM-DD):** co zrobiono` (data = dziś).
+1. Przenieś cały wpis pod `## Zamknięte`, ustaw `Status: zamknięty`, dodaj `- **Rozwiązanie (RRRR-MM-DD):** co zrobiono; PR #N (albo commit <hash>); dowód: <linia dowodu>` (data = dziś). Linię dowodu (np. `tsc, vitest (412 testów), lint: exit 0`) bierz z opisu PR lub commit message i przepisz bez zmian; sam „zamknięty” nie jest dowodem (Kodeks DOWODY-2). Gdy nie ma PR ani commitu albo czegoś nie dało się uruchomić, napisz to wprost (DOWODY-3: „brak dowodu: <powód>”), niczego nie wymyślaj.
 2. Usuń lub przekreśl wiersz w tabeli „Bugi” w `Vault/dashboard.md` i zaktualizuj kolumnę „Bugi” w przeglądzie projektów.
-3. Odhacz zadanie z tym ID w `tasks.md`: `- [x] … — RRRR-MM-DD` (data zakończenia na końcu linii). Gdy zadania nie ma, nic nie dodawaj.
+3. Odhacz zadanie z tym ID w `tasks.md`: `- [x] … — PR #N (albo commit <hash>); <linia dowodu> — RRRR-MM-DD` (data zakończenia zostaje na końcu linii; PR lub commit i linia dowodu te same co w `Rozwiązanie`). Gdy zadania nie ma, nic nie dodawaj.
 
 Rozjazdy (zadanie zrobione, a bug nadal aktywny, albo bug zamknięty, a zadanie otwarte) aplikacja sygnalizuje przy wpisie w karcie Projekty; popraw wtedy brakującą stronę według powyższych kroków.

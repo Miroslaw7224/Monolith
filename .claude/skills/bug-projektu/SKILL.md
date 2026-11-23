@@ -27,9 +27,9 @@ Aplikacja Monolith **tylko czyta** `bugs.md` (karta Projekty, paczka kontekstu).
 
 ## Zamknij bug
 
-1. Przenieś cały wpis pod `## Zamknięte`, ustaw `Status: zamknięty`, dodaj `- **Rozwiązanie (RRRR-MM-DD):** co zrobiono` (data = dziś).
+1. Przenieś cały wpis pod `## Zamknięte`, ustaw `Status: zamknięty`, dodaj `- **Rozwiązanie (RRRR-MM-DD):** co zrobiono; PR #N (albo commit <hash>); dowód: <linia dowodu>` (data = dziś). Linię dowodu (np. `tsc, vitest (412 testów), lint: exit 0`) bierz z opisu PR lub commit message i przepisz bez zmian; sam „zamknięty” nie jest dowodem (Kodeks DOWODY-2). Gdy nie ma PR ani commitu albo czegoś nie dało się uruchomić, napisz „brak dowodu: <powód>” (DOWODY-3), niczego nie wymyślaj; nie zamykaj buga w ciemno, zapytaj użytkownika o PR lub commit.
 2. W `dashboard.md` usuń lub przekreśl wiersz w tabeli „Bugi” i zaktualizuj kolumnę „Bugi” w przeglądzie projektów.
-3. Odhacz zadanie z tym ID w `tasks.md`: `- [x] … — RRRR-MM-DD`. Gdy zadania nie ma, nic nie dodawaj.
+3. Odhacz zadanie z tym ID w `tasks.md`: `- [x] … — PR #N (albo commit <hash>); <linia dowodu> — RRRR-MM-DD` (te same PR/commit i linia dowodu co w `Rozwiązanie`, data na końcu). Gdy zadania nie ma, nic nie dodawaj.
 
 ## Na koniec
 
