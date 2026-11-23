@@ -1,97 +1,96 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import type * as NotesRepo from "@/contexts/bc_notes/repositories";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { DomainError } from "@/lib/errors";
+import { parseFrontmatter } from "@/lib/nexus/frontmatter";
 import { listNotes, createNote, updateNote, deleteNote } from "@/contexts/bc_notes/services";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const mockGetNotes = vi.hoisted(() => vi.fn<typeof NotesRepo.getNotes>());
-const mockCreateNote = vi.hoisted(() => vi.fn<typeof NotesRepo.createNote>());
-const mockUpdateNote = vi.hoisted(() => vi.fn<typeof NotesRepo.updateNote>());
-const mockDeleteNote = vi.hoisted(() => vi.fn<typeof NotesRepo.deleteNote>());
+const NOW = "2026-11-12T10:00:00.000Z";
+const vault = setupTempVault();
 
-vi.mock(
-  "@/contexts/bc_notes/repositories",
-  () =>
-    ({
-      getNotes: mockGetNotes,
-      createNote: mockCreateNote,
-      updateNote: mockUpdateNote,
-      deleteNote: mockDeleteNote,
-    }) satisfies Partial<typeof NotesRepo>
-);
+afterEach(() => vi.useRealTimers());
+const freeze = () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(NOW));
+};
+
+const seed = (file: string, id: string, title: string, body: string) =>
+  vault.write(
+    `Notes/${file}.md`,
+    `---\nid: ${id}\ntitle: ${title}\ncreated: "2026-03-02T10:00:00.000Z"\nupdated: "2026-03-02T10:00:00.000Z"\n---\n\n${body}\n`
+  );
 
 describe("bc_notes services", () => {
-  beforeEach(() => {
-    mockGetNotes.mockReset();
-    mockCreateNote.mockReset();
-    mockUpdateNote.mockReset();
-    mockDeleteNote.mockReset();
-  });
-
   describe("listNotes", () => {
-    it("given Firestore returns notes, when listNotes is called, then returns the list (happy path)", async () => {
-      const notes = [{ id: "n1", title: "Note 1", content: "Content" }];
-      mockGetNotes.mockResolvedValue(notes);
+    it("zwraca notatki zapisane w vaulcie", async () => {
+      seed("note-1", "n1", "Note 1", "Content");
 
-      const result = await listNotes();
-
-      expect(result).toEqual(notes);
+      await expect(listNotes()).resolves.toEqual([
+        {
+          id: "n1",
+          title: "Note 1",
+          content: "Content",
+          created_at: "2026-03-02T10:00:00.000Z",
+          updated_at: "2026-03-02T10:00:00.000Z",
+        },
+      ]);
     });
 
-    it("given getNotes throws, when listNotes is called, then propagates the error", async () => {
-      mockGetNotes.mockRejectedValue(new Error("DB error"));
-
-      await expect(listNotes()).rejects.toThrow("DB error");
+    it("pusty vault daje pustą listę", async () => {
+      await expect(listNotes()).resolves.toEqual([]);
     });
   });
 
   describe("createNote", () => {
-    it("given valid data, when createNote is called, then returns created note (happy path)", async () => {
-      mockCreateNote.mockResolvedValue({ id: "n1", title: "T", content: "C" });
+    it("zapisuje plik notatki i zwraca ją z nowym id", async () => {
+      freeze();
 
       const result = await createNote({ title: "T", content: "C" });
 
-      expect(result).toEqual({ id: "n1", title: "T", content: "C" });
-    });
-
-    it("given createNote throws, when createNote is called, then propagates the error", async () => {
-      mockCreateNote.mockRejectedValue(new Error("Create failed"));
-
-      await expect(createNote({ title: "T", content: "C" })).rejects.toThrow("Create failed");
+      expect(result).toEqual({ id: result.id, title: "T", content: "C" });
+      const file = parseFrontmatter(vault.read("Notes/t.md")!);
+      expect(file?.meta).toEqual({ id: result.id, title: "T", created: NOW, updated: NOW });
+      expect(file?.body.trim()).toBe("C");
     });
   });
 
   describe("updateNote", () => {
-    it("given valid id and data, when updateNote is called, then delegates to firestore (happy path)", async () => {
-      mockUpdateNote.mockResolvedValue(undefined);
+    it("zmienia tytuł i treść w pliku notatki", async () => {
+      freeze();
+      seed("note-1", "n1", "T", "C");
 
       await updateNote("n1", { title: "T2", content: "C2" });
 
-      expect(mockUpdateNote).toHaveBeenCalledWith("n1", {
+      const file = parseFrontmatter(vault.read("Notes/note-1.md")!);
+      expect(file?.meta).toEqual({
+        id: "n1",
         title: "T2",
-        content: "C2",
+        created: "2026-03-02T10:00:00.000Z",
+        updated: NOW,
       });
+      expect(file?.body.trim()).toBe("C2");
     });
 
-    it("given updateNote throws, when updateNote is called, then propagates the error", async () => {
-      mockUpdateNote.mockRejectedValue(new Error("Update failed"));
+    it("nieznane id to DomainError 404 i brak nowego pliku", async () => {
+      const error = await updateNote("nope", { title: "T", content: "C" }).catch(
+        (err: unknown) => err
+      );
 
-      await expect(updateNote("n1", { title: "T", content: "C" })).rejects.toThrow("Update failed");
+      expect(error).toBeInstanceOf(DomainError);
+      expect((error as DomainError).statusCode).toBe(404);
+      expect(vault.read("Notes/t.md")).toBeNull();
     });
   });
 
   describe("deleteNote", () => {
-    it("given valid id, when deleteNote is called, then delegates to firestore (happy path)", async () => {
-      mockDeleteNote.mockResolvedValue(undefined);
+    it("usuwa plik notatki i zostawia pozostałe", async () => {
+      seed("note-1", "n1", "T", "C");
+      seed("note-2", "n2", "U", "D");
 
       await deleteNote("n1");
 
-      expect(mockDeleteNote).toHaveBeenCalledWith("n1");
-    });
-
-    it("given deleteNote throws, when deleteNote is called, then propagates the error", async () => {
-      mockDeleteNote.mockRejectedValue(new Error("Delete failed"));
-
-      await expect(deleteNote("n1")).rejects.toThrow("Delete failed");
+      expect(vault.read("Notes/note-1.md")).toBeNull();
+      expect(vault.read("Notes/note-2.md")).not.toBeNull();
     });
   });
 });

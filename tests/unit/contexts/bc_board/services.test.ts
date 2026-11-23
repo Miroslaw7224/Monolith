@@ -1,18 +1,10 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import type * as BoardRepo from "@/contexts/bc_board/repositories";
-
-const repo = vi.hoisted(
-  () =>
-    ({
-      getBoard: vi.fn<typeof BoardRepo.getBoard>(),
-      saveBoard: vi.fn<typeof BoardRepo.saveBoard>(),
-    }) satisfies Partial<typeof BoardRepo>
-);
-
-vi.mock("@/contexts/bc_board/repositories", () => repo);
-
+import { describe, it, expect } from "vitest";
 import { getBoard, saveBoard } from "@/contexts/bc_board/services";
+import { setupTempVault } from "../../helpers/tempVault";
+
+const vault = setupTempVault();
+const FILE = "Board/board.json";
 
 const board = {
   tiles: [{ id: "t1", title: "A", note: "", x: 0, y: 0, w: 240, h: 120, frame: null }],
@@ -20,11 +12,8 @@ const board = {
   edges: [],
 };
 
-beforeEach(() => vi.clearAllMocks());
-
 describe("bc_board services", () => {
-  it("returns null when the repository has no board", async () => {
-    repo.getBoard.mockResolvedValue(null);
+  it("returns null when the vault has no board", async () => {
     await expect(getBoard()).resolves.toBeNull();
   });
 
@@ -34,19 +23,29 @@ describe("bc_board services", () => {
       frames: [],
       edges: [],
     };
-    repo.getBoard.mockResolvedValue(stored);
-    await expect(getBoard()).resolves.toBe(stored);
+    vault.write(FILE, JSON.stringify(stored));
+
+    await expect(getBoard()).resolves.toEqual(stored);
   });
 
-  it("passes the board to the repository and returns it", async () => {
-    repo.saveBoard.mockResolvedValue(undefined);
+  it("zapisuje tablicę w pliku i zwraca ją", async () => {
     await expect(saveBoard(board)).resolves.toBe(board);
-    expect(repo.saveBoard).toHaveBeenCalledTimes(1);
-    expect(repo.saveBoard).toHaveBeenCalledWith(board);
+
+    const { updatedAt, ...saved } = JSON.parse(vault.read(FILE)!);
+    expect(saved).toEqual(board);
+    expect(new Date(updatedAt).toISOString()).toBe(updatedAt);
   });
 
-  it("does not return the board when the repository fails", async () => {
-    repo.saveBoard.mockRejectedValue(new Error("disk"));
-    await expect(saveBoard(board)).rejects.toThrow("disk");
+  it("odczyt po zapisie zwraca zapisaną tablicę", async () => {
+    await saveBoard(board);
+
+    await expect(getBoard()).resolves.toEqual(board);
+  });
+
+  it("nie zwraca tablicy, gdy zapis się nie udaje", async () => {
+    // Katalog w miejscu pliku: prawdziwy błąd zapisu.
+    vault.write(`${FILE}/x`, "");
+
+    await expect(saveBoard(board)).rejects.toThrow();
   });
 });
