@@ -106,34 +106,34 @@ describe("konfiguracja obcego repo nie wykonuje kodu", () => {
   });
 });
 
-const localDay = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
 describe("commitsSince", () => {
-  it("liczy commity od podanego dnia (dziś: 2, od jutra: 0)", () => {
+  it("liczy commity od podanego dnia włącznie (poprzedni dzień: 3, ten dzień: 2, następny: 0)", () => {
     const r = repos.create();
     r.write("a.txt", "1");
-    r.commit("c1");
+    r.commit("c1", "2026-11-09");
     r.write("a.txt", "2");
-    r.commit("c2");
-    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 2 });
-    expect(commitsSince(r.dir, "2099-01-01")).toEqual({ ok: true, count: 0 });
+    r.commit("c2", "2026-11-10");
+    r.write("a.txt", "3");
+    r.commit("c3", "2026-11-10");
+    expect(commitsSince(r.dir, "2026-11-09")).toEqual({ ok: true, count: 3 });
+    expect(commitsSince(r.dir, "2026-11-10")).toEqual({ ok: true, count: 2 });
+    expect(commitsSince(r.dir, "2026-11-11")).toEqual({ ok: true, count: 0 });
   });
 
   it("uwzględnia commity z innych lokalnych gałęzi, bez podwójnego liczenia", () => {
     const r = repos.create();
     r.write("a.txt", "1");
-    r.commit("c1");
+    r.commit("c1", "2026-11-10");
     execFileSync("git", ["checkout", "-q", "-b", "feat/x"], { cwd: r.dir });
     r.write("a.txt", "2");
-    r.commit("c2");
+    r.commit("c2", "2026-11-10");
     execFileSync("git", ["checkout", "-q", "main"], { cwd: r.dir });
-    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 2 });
+    expect(commitsSince(r.dir, "2026-11-10")).toEqual({ ok: true, count: 2 });
   });
 
   it("repo bez commitów: 0; katalog bez .git: błąd", () => {
     const r = repos.create();
-    expect(commitsSince(r.dir, localDay(new Date()))).toEqual({ ok: true, count: 0 });
+    expect(commitsSince(r.dir, "2026-11-10")).toEqual({ ok: true, count: 0 });
     const plain = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prj-plain-")));
     try {
       expect(commitsSince(plain, "2026-01-01")).toEqual({ ok: false });
