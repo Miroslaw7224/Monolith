@@ -57,6 +57,7 @@ describe("lint plików testów (Kodeks TDD-7, ASERCJE-1, ASERCJE-6)", () => {
 
   it.each([
     ["zwykły it", `it("a", () => { expect(1).toBe(1); });`],
+    ["expect z komunikatem", `it("a", () => { expect(1, "opis").toBe(1); });`],
     [
       "resolves z await",
       `it("a", async () => { await expect(Promise.resolve(1)).resolves.toBe(1); });`,
