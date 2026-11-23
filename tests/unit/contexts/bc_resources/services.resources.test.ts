@@ -1,26 +1,13 @@
+// @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { Resource } from "@/contexts/bc_resources/models";
-import type * as ResourcesRepo from "@/contexts/bc_resources/repositories";
+import { formatYamlList } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
 import type * as NexusDocsServices from "@/contexts/bc_nexus_docs/services";
 import type * as TagsServices from "@/contexts/bc_tags/services";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const mockAdd = vi.hoisted(() => vi.fn<typeof ResourcesRepo.addResource>());
-const mockGetAll = vi.hoisted(() => vi.fn<typeof ResourcesRepo.getResources>());
-const mockDelete = vi.hoisted(() => vi.fn<typeof ResourcesRepo.deleteResource>());
-const mockUpdate = vi.hoisted(() => vi.fn<typeof ResourcesRepo.updateResource>());
 const mockLinkIndex = vi.hoisted(() => vi.fn<typeof NexusDocsServices.buildKnowledgeLinkIndex>());
 const mockResolveTags = vi.hoisted(() => vi.fn<typeof TagsServices.resolveTags>());
-
-vi.mock(
-  "@/contexts/bc_resources/repositories",
-  () =>
-    ({
-      addResource: mockAdd,
-      getResources: mockGetAll,
-      deleteResource: mockDelete,
-      updateResource: mockUpdate,
-    }) satisfies Partial<typeof ResourcesRepo>
-);
 
 vi.mock("@/contexts/bc_nexus_docs/services", async (importOriginal) => {
   const actual = await importOriginal<typeof NexusDocsServices>();
@@ -46,20 +33,39 @@ import {
   isBlockedTitle,
 } from "@/contexts/bc_resources/services";
 
-const resource = (o: Partial<Resource> & Pick<Resource, "id">): Resource => ({
-  description: "",
-  url: "",
-  title: "",
-  tags: [],
-  ...o,
-});
+const vault = setupTempVault();
+const FILE = "Resources/resources.yaml";
+
+type Stored = {
+  id: string;
+  title?: string;
+  url?: string;
+  description?: string;
+  tags?: string[];
+  favorite?: boolean;
+  note_id?: string;
+};
+
+/** Zapisuje zasoby w pliku tak, jak robi to repozytorium. */
+const seed = (...records: Stored[]) =>
+  vault.write(
+    FILE,
+    formatYamlList(
+      "resources",
+      records.map((r) => ({
+        title: "",
+        url: "",
+        description: "",
+        tags: [] as string[],
+        favorite: false,
+        ...r,
+      }))
+    )
+  );
+const stored = () => readList(FILE, "resources");
 
 describe("bc_resources services (resources)", () => {
   beforeEach(() => {
-    mockAdd.mockReset();
-    mockGetAll.mockReset();
-    mockDelete.mockReset();
-    mockUpdate.mockReset();
     mockLinkIndex.mockReset();
     mockResolveTags.mockReset();
     mockResolveTags.mockImplementation(async (names) =>
@@ -80,50 +86,35 @@ describe("bc_resources services (resources)", () => {
   });
 
   describe("addResource", () => {
-    it("fetches metadata and delegates to Firestore", async () => {
-      const saved = resource({
-        id: "r1",
-        description: "d",
-        url: "https://example.com",
-        title: "Page Title",
-        thumbnailUrl: "https://x/img.png",
-        tags: ["a"],
-      });
-      mockAdd.mockResolvedValue(saved);
-
+    it("pobiera metadane strony i zapisuje zasób w vaulcie", async () => {
       const result = await addResource({
         description: "d",
         url: "https://example.com",
         tags: ["a"],
       });
 
-      expect(result).toEqual(saved);
-      expect(mockAdd).toHaveBeenCalledWith(
-        expect.objectContaining({
-          description: "d",
-          url: "https://example.com",
+      expect(stored()).toEqual([
+        {
+          id: result.id,
           title: "Page Title",
-          thumbnailUrl: "https://x/img.png",
+          url: "https://example.com",
+          description: "d",
           tags: ["a"],
-        })
-      );
+          favorite: false,
+          thumbnail_url: "https://x/img.png",
+          created: result.createdAt,
+          updated: result.updatedAt,
+        },
+      ]);
       expect(fetch).toHaveBeenCalledWith("https://example.com", expect.any(Object));
     });
 
     it("uses URL as title when fetch fails", async () => {
       vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
-      mockAdd.mockImplementation(async (payload) => ({
-        id: "r2",
-        ...payload,
-      }));
 
       await addResource({ description: "x", url: "https://z.org" });
 
-      expect(mockAdd).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "https://z.org",
-        })
-      );
+      expect(stored().map((r) => r.title)).toEqual(["https://z.org"]);
     });
 
     it("zastępuje tytuł Cloudflare nazwą domeny", async () => {
@@ -135,14 +126,10 @@ describe("bc_resources services (resources)", () => {
           })
         )
       );
-      mockAdd.mockImplementation(async (payload) => ({
-        id: "r3",
-        ...payload,
-      }));
 
       await addResource({ description: "x", url: "https://www.example.com/page" });
 
-      expect(mockAdd).toHaveBeenCalledWith(expect.objectContaining({ title: "example.com" }));
+      expect(stored().map((r) => r.title)).toEqual(["example.com"]);
     });
 
     it("dekoduje encje HTML w tytule", async () => {
@@ -154,14 +141,10 @@ describe("bc_resources services (resources)", () => {
           })
         )
       );
-      mockAdd.mockImplementation(async (payload) => ({
-        id: "r4",
-        ...payload,
-      }));
 
       await addResource({ description: "x", url: "https://qa.example" });
 
-      expect(mockAdd).toHaveBeenCalledWith(expect.objectContaining({ title: "Q&A \u2013 Docs" }));
+      expect(stored().map((r) => r.title)).toEqual(["Q&A – Docs"]);
     });
 
     it("dekoduje encje HTML w og:image (thumbnailUrl)", async () => {
@@ -176,16 +159,10 @@ describe("bc_resources services (resources)", () => {
             )
           )
       );
-      mockAdd.mockImplementation(async (payload) => ({
-        id: "r-og",
-        ...payload,
-      }));
 
       await addResource({ description: "x", url: "https://x.test/page" });
 
-      expect(mockAdd).toHaveBeenCalledWith(
-        expect.objectContaining({ thumbnailUrl: "https://x.test/og?a=1&b=2" })
-      );
+      expect(stored().map((r) => r.thumbnail_url)).toEqual(["https://x.test/og?a=1&b=2"]);
     });
 
     it("tytuł złożony z samych encji białych znaków wraca do URL", async () => {
@@ -197,68 +174,67 @@ describe("bc_resources services (resources)", () => {
             new Response("<html><head><title>&nbsp;</title></head></html>", { status: 200 })
           )
       );
-      mockAdd.mockImplementation(async (payload) => ({
-        id: "r5",
-        ...payload,
-      }));
 
       await addResource({ description: "x", url: "https://nbsp.example" });
 
-      expect(mockAdd).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "https://nbsp.example" })
-      );
+      expect(stored().map((r) => r.title)).toEqual(["https://nbsp.example"]);
     });
   });
 
   describe("getResources / deleteResource / updateResource", () => {
-    it("delegates to Firestore helpers", async () => {
-      mockGetAll.mockResolvedValue([]);
-      mockDelete.mockResolvedValue(undefined);
-      mockUpdate.mockResolvedValue(undefined);
-
+    it("getResources zwraca [] dla pustego vaulta", async () => {
       await expect(getResources()).resolves.toEqual([]);
+    });
+
+    it("deleteResource usuwa zasób z pliku i zostawia pozostałe", async () => {
+      seed({ id: "r1" }, { id: "r2" });
+
       await deleteResource("r1");
+
+      expect(stored().map((r) => r.id)).toEqual(["r2"]);
+    });
+
+    it("updateResource zmienia tylko podane pole", async () => {
+      seed({ id: "r1", title: "T" });
+
       await updateResource("r1", { isFavorite: true });
 
-      expect(mockGetAll).toHaveBeenCalledWith();
-      expect(mockDelete).toHaveBeenCalledWith("r1");
-      expect(mockUpdate).toHaveBeenCalledWith("r1", { isFavorite: true });
+      expect(stored().map((r) => [r.id, r.title, r.favorite])).toEqual([["r1", "T", true]]);
     });
   });
 
   describe("searchResources", () => {
-    const samples = [
-      resource({
-        id: "1",
-        description: "React hooks",
-        url: "https://a",
-        title: "Docs",
-        tags: ["lib"],
-      }),
-      resource({
-        id: "2",
-        description: "Other",
-        url: "https://b",
-        title: "Vue guide",
-        tags: ["framework"],
-      }),
-    ];
+    beforeEach(() => {
+      seed(
+        {
+          id: "1",
+          description: "React hooks",
+          url: "https://a",
+          title: "Docs",
+          tags: ["lib"],
+        },
+        {
+          id: "2",
+          description: "Other",
+          url: "https://b",
+          title: "Vue guide",
+          tags: ["framework"],
+        }
+      );
+    });
 
     it("returns all when keywords empty", async () => {
-      mockGetAll.mockResolvedValue(samples);
       const r = await searchResources([]);
-      expect(r).toHaveLength(2);
+      expect(r.map((x) => x.id).sort()).toEqual(["1", "2"]);
     });
 
     it("filters by keyword in description, title, or tags", async () => {
-      mockGetAll.mockResolvedValue(samples);
       expect((await searchResources(["react"])).map((x) => x.id)).toEqual(["1"]);
       expect((await searchResources(["vue"])).map((x) => x.id)).toEqual(["2"]);
       expect((await searchResources(["framework"])).map((x) => x.id)).toEqual(["2"]);
     });
 
     it("is case-insensitive", async () => {
-      mockGetAll.mockResolvedValue(samples);
       const r = await searchResources(["REACT"]);
       expect(r).toHaveLength(1);
     });
@@ -267,25 +243,31 @@ describe("bc_resources services (resources)", () => {
   describe("tagi w addResource/updateResource", () => {
     it("addResource zapisuje tagi zwrócone przez resolveTags", async () => {
       mockResolveTags.mockResolvedValue(["Learning"]);
-      mockAdd.mockImplementation(async (p) => ({ id: "r5", ...p }));
+
       await addResource({ description: "d", url: "https://example.com", tags: ["kurs", "nauka"] });
+
       expect(mockResolveTags).toHaveBeenCalledWith(["kurs", "nauka"]);
-      expect(mockAdd).toHaveBeenCalledWith(expect.objectContaining({ tags: ["Learning"] }));
+      expect(stored().map((r) => r.tags)).toEqual([["Learning"]]);
     });
-    it("addResource bez tagów woła resolveTags z pustą listą", async () => {
-      mockAdd.mockImplementation(async (p) => ({ id: "r6", ...p }));
+
+    it("addResource bez tagów zapisuje pustą listę", async () => {
       await addResource({ description: "d", url: "https://example.com" });
-      expect(mockResolveTags).toHaveBeenCalledWith([]);
+
+      expect(stored().map((r) => r.tags)).toEqual([[]]);
     });
+
     it("updateResource scala tagi przez resolveTags, a bez tagów ich nie dotyka", async () => {
-      mockUpdate.mockResolvedValue(undefined);
+      seed({ id: "r1", tags: ["stary"] });
       mockResolveTags.mockResolvedValue(["Learning"]);
+
       await updateResource("r1", { tags: ["Kursy", "kurs"] });
-      expect(mockUpdate).toHaveBeenCalledWith("r1", { tags: ["Learning"] });
+      expect(stored().map((r) => r.tags)).toEqual([["Learning"]]);
+
       mockResolveTags.mockClear();
       await updateResource("r1", { isFavorite: true });
+
       expect(mockResolveTags).not.toHaveBeenCalled();
-      expect(mockUpdate).toHaveBeenLastCalledWith("r1", { isFavorite: true });
+      expect(stored().map((r) => [r.tags, r.favorite])).toEqual([[["Learning"], true]]);
     });
   });
 });
@@ -314,36 +296,30 @@ describe("pomocnicze tytułu", () => {
 });
 
 describe("getResources: notePath", () => {
-  const base = { description: "", title: "T", tags: [] as string[] };
   const index = {
     hostToPath: new Map([["github.com", "Knowledge/gh.md"]]),
     paths: new Set(["Knowledge/gh.md", "Knowledge/own.md"]),
   };
 
   beforeEach(() => {
-    mockGetAll.mockReset();
     mockLinkIndex.mockReset();
   });
 
   it("noteId wskazujący widoczny dokument wygrywa nad hostem", async () => {
     mockLinkIndex.mockReturnValue(index);
-    mockGetAll.mockResolvedValue([
-      { id: "1", url: "https://github.com/a", noteId: "Knowledge/own.md", ...base },
-    ]);
+    seed({ id: "1", url: "https://github.com/a", note_id: "Knowledge/own.md" });
     expect((await getResources())[0].notePath).toBe("Knowledge/own.md");
   });
 
   it("noteId spoza listy jest ignorowany i działa host", async () => {
     mockLinkIndex.mockReturnValue(index);
-    mockGetAll.mockResolvedValue([
-      { id: "1", url: "https://www.github.com/a", noteId: "Knowledge/nie-ma.md", ...base },
-    ]);
+    seed({ id: "1", url: "https://www.github.com/a", note_id: "Knowledge/nie-ma.md" });
     expect((await getResources())[0].notePath).toBe("Knowledge/gh.md");
   });
 
   it("brak trafienia: brak notePath", async () => {
     mockLinkIndex.mockReturnValue(index);
-    mockGetAll.mockResolvedValue([{ id: "1", url: "https://nigdzie.example", ...base }]);
+    seed({ id: "1", url: "https://nigdzie.example" });
     expect((await getResources())[0].notePath).toBeUndefined();
   });
 
@@ -351,7 +327,7 @@ describe("getResources: notePath", () => {
     mockLinkIndex.mockImplementation(() => {
       throw new Error("vault");
     });
-    mockGetAll.mockResolvedValue([{ id: "1", url: "https://github.com/a", ...base }]);
+    seed({ id: "1", url: "https://github.com/a" });
     const result = await getResources();
     expect(result).toHaveLength(1);
     expect(result[0].notePath).toBeUndefined();
