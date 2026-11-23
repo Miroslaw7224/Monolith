@@ -1,43 +1,34 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Course } from "@/contexts/bc_arsenal/models";
-
-const repo = vi.hoisted(() => ({
-  readCourses: vi.fn(),
-  insertCourse: vi.fn(),
-  replaceCourse: vi.fn(),
-  removeCourse: vi.fn(),
-  certificateExists: vi.fn(),
-}));
-vi.mock("@/contexts/bc_arsenal/repositories", () => ({
-  readPromptFiles: vi.fn(),
-  readSkillFiles: vi.fn(),
-  readTemplates: vi.fn(),
-  writeDeployed: vi.fn(),
-  ...repo,
-}));
-vi.mock("@/contexts/bc_projects/services", () => ({
-  listProjects: vi.fn(),
-  hasCompanyData: vi.fn(),
-}));
-
+import { parseYamlList } from "@/lib/nexus/yaml-lists";
 import {
   createCourse,
   deleteCourse,
   listCourses,
   updateCourse,
 } from "@/contexts/bc_arsenal/services";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const course = (over: Partial<Course> & { id: string }): Course => ({
-  title: "T",
-  url: "https://a.example.com",
-  status: "plan",
-  ...over,
-});
+const FILE = "Arsenal/courses.yaml";
+const vault = setupTempVault();
+
+type Seed = { id: string; title?: string; status?: string; certificateFile?: string };
+
+/** Kursy w pliku, w formacie czytanym przez repozytorium. */
+const seed = (...courses: Seed[]) =>
+  vault.write(
+    FILE,
+    `version: 1\ncourses:\n${courses
+      .map(
+        (c) =>
+          `  - id: ${c.id}\n    title: ${c.title ?? "T"}\n    url: https://a.example.com\n    status: ${c.status ?? "plan"}\n` +
+          (c.certificateFile ? `    certificate_file: ${c.certificateFile}\n` : "")
+      )
+      .join("")}`
+  );
+const stored = () => parseYamlList(vault.read(FILE)!, "courses").items;
 
 beforeEach(() => {
-  Object.values(repo).forEach((fn) => fn.mockReset());
-  repo.certificateExists.mockReturnValue(true);
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 10, 15, 12, 0, 0)); // 2026-11-15 lokalnie
 });
@@ -45,111 +36,118 @@ afterEach(() => vi.useRealTimers());
 
 describe("listCourses", () => {
   it("sortuje: w-trakcie, plan, ukonczony; w grupie po tytule (pl)", () => {
-    repo.readCourses.mockReturnValue({
-      courses: [
-        course({ id: "1", title: "Żółw", status: "plan" }),
-        course({ id: "2", title: "Zebra", status: "ukonczony" }),
-        course({ id: "3", title: "Beta", status: "w-trakcie" }),
-        course({ id: "4", title: "Alfa", status: "plan" }),
-      ],
-      skipped: 2,
-    });
+    seed(
+      { id: "1", title: "Żółw", status: "plan" },
+      { id: "2", title: "Zebra", status: "ukonczony" },
+      { id: "3", title: "Beta", status: "w-trakcie" },
+      { id: "4", title: "Alfa", status: "plan" },
+      { id: "5", title: "Bravo", status: "plan" }
+    );
+    vault.write(FILE, vault.read(FILE)! + "  - id: zly\n    title: Zły\n    url: javascript:x\n");
+
     const list = listCourses();
-    expect(list.courses.map((c) => c.id)).toEqual(["3", "4", "1", "2"]);
-    expect(list.skipped).toBe(2);
+
+    expect(list.courses.map((c) => c.id)).toEqual(["3", "4", "5", "1", "2"]);
+    expect(list.skipped).toBe(1);
   });
 
   it("certificateMissing tylko dla kursu z plikiem, którego brak", () => {
-    repo.certificateExists.mockImplementation((rel: string) => rel === "jest.pdf");
-    repo.readCourses.mockReturnValue({
-      courses: [
-        course({ id: "a", certificateFile: "jest.pdf" }),
-        course({ id: "b", certificateFile: "brak.pdf" }),
-        course({ id: "c" }),
-      ],
-      skipped: 0,
-    });
-    const byId = Object.fromEntries(listCourses().courses.map((c) => [c.id, c.certificateMissing]));
-    expect(byId).toEqual({ a: false, b: true, c: false });
-  });
+    vault.write("Documents/jest.pdf", "x");
+    seed(
+      { id: "a", certificateFile: "jest.pdf" },
+      { id: "b", certificateFile: "brak.pdf" },
+      { id: "c" }
+    );
 
-  it("błąd sprawdzania pliku liczy się jako brak pliku, lista się ładuje", () => {
-    repo.certificateExists.mockImplementation(() => {
-      throw new Error("EACCES");
-    });
-    repo.readCourses.mockReturnValue({
-      courses: [course({ id: "a", certificateFile: "x.pdf" })],
-      skipped: 0,
-    });
-    expect(listCourses().courses[0].certificateMissing).toBe(true);
+    const byId = Object.fromEntries(listCourses().courses.map((c) => [c.id, c.certificateMissing]));
+
+    expect(byId).toEqual({ a: false, b: true, c: false });
   });
 });
 
 describe("createCourse", () => {
   it("ukończony bez daty dostaje dzisiejszą datę", async () => {
-    repo.insertCourse.mockImplementation(async (input) => ({ id: "new", ...input }));
     const created = await createCourse({
       title: "T",
       url: "https://a.example.com",
       status: "ukonczony",
     });
-    expect(repo.insertCourse).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "ukonczony", completed: "2026-11-15" })
-    );
+
     expect(created.completed).toBe("2026-11-15");
+    expect(stored()).toEqual([
+      {
+        id: created.id,
+        title: "T",
+        url: "https://a.example.com",
+        status: "ukonczony",
+        completed: "2026-11-15",
+      },
+    ]);
   });
 
   it("ukończony z datą zachowuje datę, inny status kasuje datę", async () => {
-    repo.insertCourse.mockImplementation(async (input) => ({ id: "new", ...input }));
     await createCourse({
       title: "T",
       url: "https://a.example.com",
       status: "ukonczony",
       completed: "2026-01-02",
     });
-    expect(repo.insertCourse).toHaveBeenLastCalledWith(
-      expect.objectContaining({ completed: "2026-01-02" })
-    );
     await createCourse({
       title: "T",
       url: "https://a.example.com",
       status: "plan",
       completed: "2026-01-02",
     });
-    expect(repo.insertCourse.mock.calls.at(-1)![0].completed).toBeUndefined();
+
+    expect(stored().map((c) => [c.status, c.completed])).toEqual([
+      ["ukonczony", "2026-01-02"],
+      ["plan", undefined],
+    ]);
   });
 });
 
 describe("updateCourse", () => {
-  it("zapisuje i zwraca świeży wpis z ostrzeżeniem", async () => {
-    repo.replaceCourse.mockResolvedValue(undefined);
-    repo.readCourses.mockReturnValue({
-      courses: [course({ id: "c1", title: "Po zmianie", certificateFile: "x.pdf" })],
-      skipped: 0,
-    });
-    repo.certificateExists.mockReturnValue(false);
+  it("zapisuje w pliku i zwraca świeży wpis z ostrzeżeniem o braku certyfikatu", async () => {
+    seed({ id: "c1" }, { id: "c2", title: "Sąsiad" });
+
     const updated = await updateCourse("c1", {
       title: "Po zmianie",
       url: "https://a.example.com",
       status: "plan",
       certificateFile: "x.pdf",
     });
+
     expect(updated).toMatchObject({ id: "c1", title: "Po zmianie", certificateMissing: true });
+    expect(stored()).toEqual([
+      {
+        id: "c1",
+        title: "Po zmianie",
+        url: "https://a.example.com",
+        status: "plan",
+        certificate_file: "x.pdf",
+      },
+      { id: "c2", title: "Sąsiad", url: "https://a.example.com", status: "plan" },
+    ]);
   });
 
-  it("kurs, który zniknął po zapisie, to 404", async () => {
-    repo.replaceCourse.mockResolvedValue(undefined);
-    repo.readCourses.mockReturnValue({ courses: [], skipped: 0 });
+  it("nieznany kurs to 404 i plik bez zmian", async () => {
+    seed({ id: "c2" });
+    const before = vault.read(FILE);
+
     await expect(
       updateCourse("c1", { title: "T", url: "https://a.example.com", status: "plan" })
     ).rejects.toMatchObject({ statusCode: 404 });
+
+    expect(vault.read(FILE)).toBe(before);
   });
 });
 
 describe("deleteCourse", () => {
-  it("deleguje do repozytorium", async () => {
-    repo.removeCourse.mockResolvedValue(undefined);
+  it("usuwa kurs z pliku i zostawia pozostałe", async () => {
+    seed({ id: "c1" }, { id: "c2" });
+
     await deleteCourse("c1");
-    expect(repo.removeCourse).toHaveBeenCalledWith("c1");
+
+    expect(stored().map((c) => c.id)).toEqual(["c2"]);
   });
 });

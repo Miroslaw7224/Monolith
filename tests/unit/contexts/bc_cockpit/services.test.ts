@@ -19,9 +19,7 @@ import type * as ProjectsServices from "@/contexts/bc_projects/services";
 import type * as TasksServices from "@/contexts/bc_tasks/services";
 
 const mockReadPinned = vi.hoisted(() => vi.fn<typeof CockpitRepo.readPinned>());
-const mockWritePinned = vi.hoisted(() => vi.fn<typeof CockpitRepo.writePinned>());
 const mockReadClosings = vi.hoisted(() => vi.fn<typeof CockpitRepo.readClosings>());
-const mockUpsertClosing = vi.hoisted(() => vi.fn<typeof CockpitRepo.upsertClosing>());
 const mockGetProject = vi.hoisted(() => vi.fn<typeof ProjectsServices.getProject>());
 const mockListNowTasks = vi.hoisted(() => vi.fn<typeof ProjectsServices.listNowTasks>());
 const mockListProjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listProjects>());
@@ -37,7 +35,6 @@ const mockLoadReviewRequests = vi.hoisted(() => vi.fn<typeof CockpitRepo.loadRev
 const mockLoadOpenPrs = vi.hoisted(() => vi.fn<typeof CockpitRepo.loadOpenPrs>());
 const mockLoadMyReviews = vi.hoisted(() => vi.fn<typeof CockpitRepo.loadMyReviews>());
 const mockReadWeekFocuses = vi.hoisted(() => vi.fn<typeof CockpitRepo.readWeekFocuses>());
-const mockUpsertWeekFocus = vi.hoisted(() => vi.fn<typeof CockpitRepo.upsertWeekFocus>());
 const mockListGitSubjects = vi.hoisted(() => vi.fn<typeof ProjectsServices.listGitSubjects>());
 const mockListDoneTasks = vi.hoisted(() => vi.fn<typeof ProjectsServices.listDoneTasksInWindow>());
 
@@ -46,14 +43,11 @@ vi.mock(
   () =>
     ({
       readPinned: mockReadPinned,
-      writePinned: mockWritePinned,
       readClosings: mockReadClosings,
-      upsertClosing: mockUpsertClosing,
       loadReviewRequests: mockLoadReviewRequests,
       loadOpenPrs: mockLoadOpenPrs,
       loadMyReviews: mockLoadMyReviews,
       readWeekFocuses: mockReadWeekFocuses,
-      upsertWeekFocus: mockUpsertWeekFocus,
     }) satisfies Partial<typeof CockpitRepo>
 );
 vi.mock("@/contexts/bc_projects/services", async (importOriginal) => {
@@ -96,7 +90,6 @@ vi.mock(
 );
 
 import {
-  closeDay,
   completeQueueItem,
   extractEnergy,
   setQueueItemEnergy,
@@ -112,12 +105,9 @@ import {
   isPlausibleDate,
   localDate,
   pickNextMeeting,
-  setPinned,
-  MAX_FOCUS_TEXT,
   MAX_WEEK_SUBJECTS,
   composeWeekPrompt,
   getWeekReview,
-  setWeekFocus,
   weekStart,
 } from "@/contexts/bc_cockpit/services";
 
@@ -200,9 +190,7 @@ beforeEach(() => {
   mockListGitHistory.mockReturnValue([]);
   mockCountOpen.mockReturnValue(0);
   mockReadClosings.mockReturnValue([]);
-  mockUpsertClosing.mockResolvedValue(undefined);
   mockReadWeekFocuses.mockReturnValue([]);
-  mockUpsertWeekFocus.mockResolvedValue(undefined);
   mockListGitSubjects.mockReturnValue([]);
   mockListDoneTasks.mockReturnValue([]);
   mockListProjects.mockReturnValue({
@@ -937,32 +925,6 @@ describe("awaria jednego źródła nie wywraca reszty", () => {
   });
 });
 
-describe("setPinned", () => {
-  it("zapisuje poprawną listę (kolejność zachowana) i zwraca ją", async () => {
-    mockWritePinned.mockResolvedValue(undefined);
-    await expect(setPinned(["monolith", "nexus"])).resolves.toEqual({
-      ids: ["monolith", "nexus"],
-    });
-    expect(mockWritePinned).toHaveBeenCalledWith(["monolith", "nexus"]);
-  });
-
-  it("pusta lista jest dozwolona (odpięcie wszystkich)", async () => {
-    await expect(setPinned([])).resolves.toEqual({ ids: [] });
-    expect(mockWritePinned).toHaveBeenCalledWith([]);
-  });
-
-  it.each([
-    ["nieznane id", ["nexus", "nie-ma"]],
-    ["4 id", ["a", "b", "c", "d"]],
-    ["duplikaty", ["nexus", "nexus"]],
-  ])("%s: DomainError 400, nic nie zapisano", async (_name, ids) => {
-    const err = await setPinned(ids).catch((e) => e);
-    expect(err).toBeInstanceOf(DomainError);
-    expect((err as DomainError).statusCode).toBe(400);
-    expect(mockWritePinned).not.toHaveBeenCalled();
-  });
-});
-
 describe("git (K7)", () => {
   it("brak dostępnych repozytoriów: git === null, bez ostrzeżenia", async () => {
     const result = await getCockpit(TODAY);
@@ -1038,49 +1000,6 @@ describe("zamknięcie dnia (K6)", () => {
     expect(res.warnings).toEqual([
       "Zamknięcie dnia: Nie można odczytać pliku Cockpit/closing.yaml: x",
     ]);
-  });
-
-  it("closeDay zapisuje dzisiejszą datę, przycięty tekst bez nowych linii i sumę commitów", async () => {
-    mockListGitActivity.mockReturnValue([
-      { projectId: "a", branch: null, commitsToday: 3 },
-      { projectId: "b", branch: null, commitsToday: 2 },
-    ]);
-    const saved = await closeDay({ text: "  Zacząć\nod K6  ", projectId: null }, TODAY);
-    expect(saved).toEqual({
-      date: "2026-11-13",
-      text: "Zacząć od K6",
-      projectId: null,
-      commits: 5,
-    });
-    expect(mockUpsertClosing).toHaveBeenCalledWith(saved);
-  });
-
-  it("closeDay: brak dostępnych repo to commits null, awaria gita nie blokuje zapisu", async () => {
-    expect((await closeDay({ text: "x", projectId: null }, TODAY)).commits).toBeNull();
-    mockListGitActivity.mockImplementation(() => {
-      throw new Error("boom");
-    });
-    expect((await closeDay({ text: "x", projectId: null }, TODAY)).commits).toBeNull();
-    expect(mockUpsertClosing).toHaveBeenCalledTimes(2);
-  });
-
-  it("closeDay: znany projekt przechodzi, nieznany to DomainError bez zapisu", async () => {
-    const ok = await closeDay({ text: "x", projectId: "nexus" }, TODAY);
-    expect(ok.projectId).toBe("nexus");
-    mockUpsertClosing.mockClear();
-    await expect(closeDay({ text: "x", projectId: "nie-ma" }, TODAY)).rejects.toBeInstanceOf(
-      DomainError
-    );
-    expect(mockUpsertClosing).not.toHaveBeenCalled();
-  });
-
-  it("closeDay: pusty tekst i tekst > 300 znaków to DomainError", async () => {
-    await expect(closeDay({ text: " \n ", projectId: null }, TODAY)).rejects.toBeInstanceOf(
-      DomainError
-    );
-    await expect(
-      closeDay({ text: "a".repeat(301), projectId: null }, TODAY)
-    ).rejects.toBeInstanceOf(DomainError);
   });
 });
 
@@ -1917,29 +1836,6 @@ describe("weekStart", () => {
     ["2027-01-01", "2026-12-28"], // piątek, przez przełom roku
   ])("%s → %s", (day, expected) => {
     expect(weekStart(day)).toBe(expected);
-  });
-});
-
-describe("setWeekFocus", () => {
-  it("zapisuje przycięte zdanie pod poniedziałkiem bieżącego tygodnia", async () => {
-    const focus = await setWeekFocus({ text: "  Domknąć   słownik tagów " }, TODAY);
-    expect(focus).toEqual({ weekStart: "2026-11-09", text: "Domknąć słownik tagów" });
-    expect(mockUpsertWeekFocus).toHaveBeenCalledWith(focus);
-  });
-
-  it("pusty tekst i same spacje to DomainError", async () => {
-    await expect(setWeekFocus({ text: "" }, TODAY)).rejects.toThrow(DomainError);
-    await expect(setWeekFocus({ text: "   " }, TODAY)).rejects.toThrow(DomainError);
-    expect(mockUpsertWeekFocus).not.toHaveBeenCalled();
-  });
-
-  it("300 znaków przechodzi, 301 to DomainError", async () => {
-    expect(MAX_FOCUS_TEXT).toBe(300);
-    await expect(setWeekFocus({ text: "a".repeat(300) }, TODAY)).resolves.toEqual({
-      weekStart: "2026-11-09",
-      text: "a".repeat(300),
-    });
-    await expect(setWeekFocus({ text: "a".repeat(301) }, TODAY)).rejects.toThrow(DomainError);
   });
 });
 
