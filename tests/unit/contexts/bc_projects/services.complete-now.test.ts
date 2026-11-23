@@ -1,146 +1,122 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BoardTask, RegistryEntry, TasksBoard } from "@/contexts/bc_projects/models";
-import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
-import { ConflictError, NotFoundError } from "@/lib/errors";
-
-const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
-const mockReadProjectIndex = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectIndex>());
-const mockReadProjectContent = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectContent>());
-const mockReadProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectState>());
-const mockReadDevlog = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readDevlog>());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
-const mockWriteProjectTasks = vi.hoisted(() => vi.fn<typeof ProjectsRepo.writeProjectTasks>());
-
-vi.mock(
-  "@/contexts/bc_projects/repositories",
-  () =>
-    ({
-      readRegistry: mockReadRegistry,
-      readProjectIndex: mockReadProjectIndex,
-      readProjectContent: mockReadProjectContent,
-      readProjectState: mockReadProjectState,
-      readDevlog: mockReadDevlog,
-      readProjectBoard: mockReadProjectBoard,
-      writeProjectTasks: mockWriteProjectTasks,
-    }) satisfies Partial<typeof ProjectsRepo>
-);
-
+import { describe, expect, it } from "vitest";
 import { completeNowTask, rewriteNowTask } from "@/contexts/bc_projects/services";
+import { ConflictError, NotFoundError } from "@/lib/errors";
+import { setupTempVault } from "../../helpers/tempVault";
 
+const vault = setupTempVault();
+const TASKS_FILE = "Projects/a/tasks.md";
 const NOW = new Date(2026, 10, 13, 9, 15);
-const VERSION = { size: 10, hash: "h1" };
-const entry: RegistryEntry = {
-  id: "a",
-  name: "A",
-  status: "active",
-  priority: "high",
-  folder: "Projects/a/",
-  localPath: "~/projects/a",
-  owner: "personal",
-};
-const task = (text: string, done = false): BoardTask => ({ text, done });
-const board = (now: BoardTask[]): TasksBoard => ({
-  blockers: [],
-  now,
-  next: [],
-  icebox: [],
-  version: VERSION,
-});
 
-beforeEach(() => {
-  vi.resetAllMocks();
-  mockReadRegistry.mockReturnValue({ entries: [entry], warnings: [] });
-  mockReadProjectIndex.mockReturnValue({
-    lastWorked: "2026-11-05",
-    whereIStopped: null,
-    purpose: null,
-  });
-  mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
-  mockReadProjectState.mockReturnValue({ state: null, version: null });
-  mockReadDevlog.mockReturnValue([]);
-  mockWriteProjectTasks.mockReturnValue(VERSION);
-});
+type Item = { text: string; done?: boolean };
+
+/** Zapisuje `tasks.md` z kolumną Teraz (znacznik `[now::]`) w formacie czytanym przez repozytorium. */
+const seed = (...items: Item[]) => {
+  vault.write(
+    "Projects/_registry.yaml",
+    "projects:\n  - id: a\n    name: A\n    status: active\n    priority: high\n    folder: Projects/a/\n"
+  );
+  vault.write(TASKS_FILE, tasksText(...items));
+};
+const tasksText = (...items: Item[]) =>
+  [
+    "# Tasks — A",
+    "",
+    "## Next",
+    "",
+    ...items.map((i) => (i.done ? `- [x] ${i.text} — 2026-11-01` : `- [ ] ${i.text} [now::]`)),
+    "",
+  ].join("\n");
 
 describe("completeNowTask", () => {
-  it("znajduje zadanie w kolumnie Teraz po tekście i przełącza je (z aktualną wersją i datą dnia)", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("X"), task("Y")]));
+  it("znajduje zadanie w kolumnie Teraz po tekście i zamyka je z datą dnia", async () => {
+    seed({ text: "X" }, { text: "Y" });
+
     await completeNowTask("a", "Y", 0, NOW);
-    expect(mockWriteProjectTasks).toHaveBeenCalledWith(
-      entry,
-      { op: "toggle", column: "now", index: 1, text: "Y" },
-      VERSION,
-      { today: "2026-11-13" }
+
+    expect(vault.read(TASKS_FILE)).toBe(
+      "# Tasks — A\n\n## Next\n\n- [ ] X [now::]\n- [x] Y — 2026-11-13\n"
     );
   });
 
+  // Ukończone zadanie ląduje tuż za ostatnim otwartym (reorderBlock w tasks-file).
   it("przy identycznych tekstach bierze pierwsze niezakończone", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("Z", true), task("Z"), task("Z")]));
+    seed({ text: "Z", done: true }, { text: "Z" }, { text: "Z" });
+
     await completeNowTask("a", "Z", 0, NOW);
-    expect(mockWriteProjectTasks.mock.calls[0][1]).toMatchObject({ index: 1 });
+
+    expect(vault.read(TASKS_FILE)).toBe(
+      "# Tasks — A\n\n## Next\n\n- [x] Z — 2026-11-01\n- [ ] Z [now::]\n- [x] Z — 2026-11-13\n"
+    );
   });
 
   it("occurrence wskazuje n-te niezakończone zadanie o tym samym tekście", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("Z"), task("Y"), task("Z", true), task("Z")]));
+    seed({ text: "Z" }, { text: "Y" }, { text: "Z", done: true }, { text: "Z" });
+
     await completeNowTask("a", "Z", 1, NOW);
-    expect(mockWriteProjectTasks.mock.calls[0][1]).toMatchObject({ index: 3, text: "Z" });
+
+    expect(vault.read(TASKS_FILE)).toBe(
+      "# Tasks — A\n\n## Next\n\n- [ ] Z [now::]\n- [ ] Y [now::]\n- [x] Z — 2026-11-13\n- [x] Z — 2026-11-01\n"
+    );
   });
 
-  it("occurrence większe niż liczba takich zadań: ConflictError", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("Z")]));
+  it("occurrence większe niż liczba takich zadań: ConflictError, plik bez zmian", async () => {
+    seed({ text: "Z" });
+
     await expect(completeNowTask("a", "Z", 1, NOW)).rejects.toBeInstanceOf(ConflictError);
-    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+
+    expect(vault.read(TASKS_FILE)).toBe(tasksText({ text: "Z" }));
   });
 
-  it("brak takiego zadania (plik zmienił się): ConflictError, bez zapisu", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("X")]));
+  it("brak takiego zadania (plik zmienił się): ConflictError, plik bez zmian", async () => {
+    seed({ text: "X" });
+
     await expect(completeNowTask("a", "Nie ma", 0, NOW)).rejects.toBeInstanceOf(ConflictError);
-    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+
+    expect(vault.read(TASKS_FILE)).toBe(tasksText({ text: "X" }));
   });
 
   it("nieznany projekt: NotFoundError", async () => {
+    seed({ text: "X" });
+
     await expect(completeNowTask("zzz", "X", 0, NOW)).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
 describe("rewriteNowTask", () => {
-  it("podmienia tekst zadania z kolumny Teraz (op edit, z aktualną wersją pliku)", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("X"), task("Y")]));
+  it("podmienia tekst zadania z kolumny Teraz, reszta pliku zostaje", async () => {
+    seed({ text: "X" }, { text: "Y" });
+
     await rewriteNowTask("a", "Y", "Y #deep", 0, NOW);
-    expect(mockWriteProjectTasks).toHaveBeenCalledWith(
-      entry,
-      { op: "edit", column: "now", index: 1, text: "Y", newText: "Y #deep" },
-      VERSION,
-      { today: "2026-11-13" }
-    );
+
+    expect(vault.read(TASKS_FILE)).toBe(tasksText({ text: "X" }, { text: "Y #deep" }));
   });
 
-  it("brak takiego zadania (plik zmienił się): ConflictError, bez zapisu", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("X", true)]));
+  it("brak takiego zadania (plik zmienił się): ConflictError, plik bez zmian", async () => {
+    seed({ text: "X", done: true });
+
     await expect(rewriteNowTask("a", "X", "X #deep", 0, NOW)).rejects.toBeInstanceOf(ConflictError);
-    expect(mockWriteProjectTasks).not.toHaveBeenCalled();
+
+    expect(vault.read(TASKS_FILE)).toBe(tasksText({ text: "X", done: true }));
   });
 });
 
 describe("rewriteNowTask: occurrence", () => {
   it("edytuje n-te niezakończone zadanie o tym tekście", async () => {
-    mockReadProjectBoard.mockReturnValue(board([task("X"), task("X")]));
+    seed({ text: "X" }, { text: "X" });
+
     await rewriteNowTask("a", "X", "X #quick", 1, NOW);
-    expect(mockWriteProjectTasks.mock.calls[0][1]).toMatchObject({
-      op: "edit",
-      index: 1,
-      text: "X",
-      newText: "X #quick",
-    });
+
+    expect(vault.read(TASKS_FILE)).toBe(tasksText({ text: "X" }, { text: "X #quick" }));
   });
 
   it("zwraca occurrence nowego tekstu: ile niezakończonych zadań o nim stoi wcześniej", async () => {
-    mockReadProjectBoard.mockReturnValue(
-      board([task("X #deep"), task("X"), task("X #deep", true)])
-    );
+    seed({ text: "X #deep" }, { text: "X" }, { text: "X #deep", done: true });
+
     // „X” z indeksu 1 staje się „X #deep”; wcześniej jest jedno otwarte „X #deep” (zamknięte się nie liczy)
     expect(await rewriteNowTask("a", "X", "X #deep", 0, NOW)).toBe(1);
-    mockReadProjectBoard.mockReturnValue(board([task("A"), task("B")]));
+
+    vault.write(TASKS_FILE, tasksText({ text: "A" }, { text: "B" }));
     expect(await rewriteNowTask("a", "B", "B #deep", 0, NOW)).toBe(0);
   });
 });
