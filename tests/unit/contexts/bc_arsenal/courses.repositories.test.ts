@@ -114,12 +114,13 @@ describe("replaceCourse", () => {
       status: "plan",
     });
     const item = stored().find((i) => i.id === "c1")!;
-    expect(item.title).toBe("Kurs MCP 2");
-    expect(item.status).toBe("plan");
-    for (const key of ["provider", "completed", "certificate_url", "certificate_file", "note"]) {
-      expect(key in item).toBe(false);
-    }
-    expect(item.x_extra).toBe("zostaje");
+    expect(item).toEqual({
+      id: "c1",
+      title: "Kurs MCP 2",
+      url: "https://a.example.com",
+      status: "plan",
+      x_extra: "zostaje",
+    });
     expect(stored()).toHaveLength(6); // pominięte wpisy przeżywają zapis
   });
 

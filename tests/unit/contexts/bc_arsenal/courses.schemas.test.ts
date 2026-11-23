@@ -40,9 +40,13 @@ const base = { title: "  Kurs MCP ", url: "https://a.example.com", status: "plan
 describe("CourseInputSchema", () => {
   it("przycina teksty, puste pola opcjonalne zamienia na undefined", () => {
     const parsed = CourseInputSchema.parse({ ...base, provider: "  ", note: " uwaga " });
-    expect(parsed.title).toBe("Kurs MCP");
-    expect(parsed.provider).toBeUndefined();
-    expect(parsed.note).toBe("uwaga");
+    expect(parsed).toStrictEqual({
+      title: "Kurs MCP",
+      url: "https://a.example.com",
+      status: "plan",
+      provider: undefined,
+      note: "uwaga",
+    });
   });
 
   it("odrzuca pusty tytuł i url spoza http(s)", () => {

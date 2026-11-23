@@ -13,22 +13,26 @@ import {
 describe("board actions", () => {
   it("adds a 240×120 tile around the center and opens no frame when the board is empty", () => {
     const { board, tileId } = addTile(EMPTY_BOARD, { x: 100, y: 80 }, "Nowy kafelek");
-    const tile = board.tiles[0];
-    expect(tile.id).toBe(tileId);
-    expect(tile.w).toBe(240);
-    expect(tile.h).toBe(120);
-    expect(tile.x).toBe(100 - 120);
-    expect(tile.y).toBe(80 - 60);
-    expect(tile.frame).toBeNull();
-    expect(tile.title).toBe("Nowy kafelek");
+    expect(board.tiles).toEqual([
+      {
+        id: tileId,
+        title: "Nowy kafelek",
+        note: "",
+        x: 100 - 120,
+        y: 80 - 60,
+        w: 240,
+        h: 120,
+        frame: null,
+      },
+    ]);
   });
 
   it("puts a new frame under tiles whose centers it covers", () => {
     const first = addTile(EMPTY_BOARD, { x: 100, y: 80 }, "A").board;
     const next = addFrame(first, { x: 100, y: 80 }, "  Grupa  ");
-    expect(next.frames[0].title).toBe("Grupa");
-    expect(next.frames[0].w).toBe(520);
-    expect(next.frames[0].h).toBe(180);
+    expect(next.frames).toEqual([
+      { id: next.frames[0].id, title: "Grupa", x: 100 - 260, y: 80 - 90, w: 520, h: 180 },
+    ]);
     expect(next.tiles[0].frame).toBe(next.frames[0].id);
   });
 
@@ -45,8 +49,9 @@ describe("board actions", () => {
     board = added.board;
     const moved = placeFrame(board, frame.id, { ...frame, x: frame.x + 40, y: frame.y });
     expect(moved).not.toBeNull();
-    expect(moved!.tiles[0].x).toBe(board.tiles[0].x + 40);
-    expect(moved!.tiles[0].frame).toBe(frame.id);
+    expect(moved!.tiles).toEqual([
+      { ...board.tiles[0], x: board.tiles[0].x + 40, frame: frame.id },
+    ]);
   });
 
   it("refuses an arrow that does not join two different tiles", () => {

@@ -21,18 +21,21 @@ function payload(label: string) {
 describe("mindMapAutosave", () => {
   it("queues a pending save without pretending it already succeeded", () => {
     const dirty = markDirty(initialAutosave(), payload("A"));
-    expect(dirty.phase).toBe("pending");
-    expect(dirty.pending?.title).toBe("A");
-    expect(dirty.lastSavedAt).toBeNull();
+    expect(dirty).toEqual({
+      phase: "pending",
+      pending: payload("A"),
+      inFlight: null,
+      lastSavedAt: null,
+    });
   });
 
   it("moves the pending payload into the in-flight save", () => {
     const dirty = markDirty(initialAutosave(), payload("A"));
     const taken = takeForSave(dirty);
-    expect(taken.payload?.title).toBe("A");
-    expect(taken.state.pending).toBeNull();
-    expect(taken.state.inFlight?.title).toBe("A");
-    expect(taken.state.phase).toBe("saving");
+    expect(taken).toEqual({
+      payload: payload("A"),
+      state: { phase: "saving", pending: null, inFlight: payload("A"), lastSavedAt: null },
+    });
   });
 
   it("does not start a second save while one is in flight", () => {
@@ -40,28 +43,34 @@ describe("mindMapAutosave", () => {
     const first = takeForSave(dirty);
     const during = markDirty(first.state, payload("B"));
     const second = takeForSave(during);
-    expect(second.payload).toBeNull();
-    expect(second.state.pending?.title).toBe("B");
-    expect(second.state.inFlight?.title).toBe("A");
+    expect(second).toEqual({
+      payload: null,
+      state: { phase: "saving", pending: payload("B"), inFlight: payload("A"), lastSavedAt: null },
+    });
   });
 
   it("records success only for the payload that finished and keeps a newer edit pending", () => {
     const first = takeForSave(markDirty(initialAutosave(), payload("A")));
     const withNewer = markDirty(first.state, payload("B"));
     const saved = settleSave(withNewer, first.payload!, { ok: true, at: 50 });
-    expect(saved.phase).toBe("pending");
-    expect(saved.pending?.title).toBe("B");
-    expect(saved.lastSavedAt).toBe(50);
-    expect(saved.inFlight).toBeNull();
+    expect(saved).toEqual({
+      phase: "pending",
+      pending: payload("B"),
+      inFlight: null,
+      lastSavedAt: 50,
+    });
   });
 
   it("keeps the failed payload so it can be sent again and does not mark it saved", () => {
     const taken = takeForSave(markDirty(initialAutosave(), payload("A")));
     const failed = settleSave(taken.state, taken.payload!, { ok: false, at: 50 });
-    expect(failed.phase).toBe("error");
-    expect(failed.lastSavedAt).toBeNull();
-    expect(failed.pending?.title).toBe("A");
+    expect(failed).toEqual({
+      phase: "error",
+      pending: payload("A"),
+      inFlight: null,
+      lastSavedAt: null,
+    });
     const retry = takeForSave(failed);
-    expect(retry.payload?.title).toBe("A");
+    expect(retry.payload).toEqual(payload("A"));
   });
 });

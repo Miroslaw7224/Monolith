@@ -231,12 +231,18 @@ describe("getDoc", () => {
   it("zwraca dokument z frontmatterem i treścią", () => {
     seed();
     const doc = services.getDoc(["Knowledge", "alembic.md"]);
-    expect(doc.title).toBe("Alembic");
-    expect(doc.frontmatter).toEqual([
-      { key: "title", value: "Alembic" },
-      { key: "tags", value: "[db, migracje]" },
-    ]);
-    expect(doc.body).toBe("Treść A\n");
+    expect(doc).toEqual({
+      path: "Knowledge/alembic.md",
+      area: "Knowledge",
+      group: "",
+      title: "Alembic",
+      tags: ["db", "migracje"],
+      frontmatter: [
+        { key: "title", value: "Alembic" },
+        { key: "tags", value: "[db, migracje]" },
+      ],
+      body: "Treść A\n",
+    });
   });
 
   it("plik bez frontmattera i z błędnym YAML: pusty frontmatter, tags [], cała treść", () => {
@@ -244,12 +250,25 @@ describe("getDoc", () => {
     vault.write("Knowledge/plain.md", "tekst bez frontmattera");
     vault.write("Knowledge/broken.md", "---\na: [unclosed\n---\ntreść");
     const plain = services.getDoc(["Knowledge", "plain.md"]);
-    expect(plain.frontmatter).toEqual([]);
-    expect(plain.tags).toEqual([]);
-    expect(plain.body).toBe("tekst bez frontmattera");
+    expect(plain).toEqual({
+      path: "Knowledge/plain.md",
+      area: "Knowledge",
+      group: "",
+      title: "plain",
+      tags: [],
+      frontmatter: [],
+      body: "tekst bez frontmattera",
+    });
     const broken = services.getDoc(["Knowledge", "broken.md"]);
-    expect(broken.frontmatter).toEqual([]);
-    expect(broken.body).toBe("---\na: [unclosed\n---\ntreść");
+    expect(broken).toEqual({
+      path: "Knowledge/broken.md",
+      area: "Knowledge",
+      group: "",
+      title: "broken",
+      tags: [],
+      frontmatter: [],
+      body: "---\na: [unclosed\n---\ntreść",
+    });
   });
 
   const notFound: [string, string[]][] = [

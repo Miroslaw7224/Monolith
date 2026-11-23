@@ -92,13 +92,20 @@ describe("normalizeTask", () => {
       }),
       warnings
     );
-    expect(task.status).toBe("todo");
-    expect(task.priority).toBeNull();
-    expect(task.due_date).toBeNull();
-    expect(task.order).toBe(1.5);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain("t2");
-    expect(warnings[0]).toContain("archived");
+    expect(task).toEqual({
+      id: "t2",
+      title: "B",
+      status: "todo",
+      link: "",
+      description: "",
+      due_date: null,
+      priority: null,
+      project: null,
+      order: 1.5,
+      created_at: null,
+      updated_at: null,
+    });
+    expect(warnings).toEqual(['zadanie t2: nieznany status "archived", ustawiono todo']);
   });
   it("tytuł nie-tekst daje pusty tytuł i ostrzeżenie", () => {
     const warnings: string[] = [];
@@ -141,13 +148,14 @@ describe("normalizeResource", () => {
     const rec = normalizeResource(
       row("r1", { url: "https://a.b", title: "R", isFavorite: true, tags: ["a"] })
     );
-    expect(rec.favorite).toBe(true);
-    expect("thumbnail_url" in rec).toBe(false);
-    expect("note_id" in rec).toBe(false);
-    expect("created" in rec).toBe(false);
-    expect("updated" in rec).toBe(false);
-    expect(rec.description).toBe("");
-    expect(rec.tags).toEqual(["a"]);
+    expect(rec).toStrictEqual({
+      id: "r1",
+      title: "R",
+      url: "https://a.b",
+      description: "",
+      tags: ["a"],
+      favorite: true,
+    });
   });
   it("ustawia opcjonalne klucze, gdy wartości istnieją", () => {
     const rec = normalizeResource(
@@ -160,11 +168,18 @@ describe("normalizeResource", () => {
         updatedAt: ts("2026-05-01T10:00:00.000Z"),
       })
     );
-    expect(rec.favorite).toBe(false);
-    expect(rec.thumbnail_url).toBe("th");
-    expect(rec.note_id).toBe("n1");
-    expect(rec.created).toBe("c");
-    expect(rec.updated).toBe("2026-05-01T10:00:00.000Z");
+    expect(rec).toEqual({
+      id: "r2",
+      title: "t",
+      url: "u",
+      description: "",
+      tags: [],
+      favorite: false,
+      thumbnail_url: "th",
+      note_id: "n1",
+      created: "c",
+      updated: "2026-05-01T10:00:00.000Z",
+    });
   });
 });
 
@@ -177,8 +192,7 @@ describe("normalizeTag i normalizeTemplate", () => {
   });
   it("tag z color i created", () => {
     const tag = normalizeTag(row("g2", { tag: "a", title: "A", color: "red", created_at: "c" }));
-    expect(tag.color).toBe("red");
-    expect(tag.created).toBe("c");
+    expect(tag).toEqual({ id: "g2", tag: "a", title: "A", color: "red", created: "c" });
   });
   it("szablon", () => {
     expect(normalizeTemplate(row("s1", { label: "L", title: "T", link: "k" }))).toEqual({

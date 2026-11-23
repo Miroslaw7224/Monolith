@@ -26,9 +26,11 @@ describe("snapshotRepo", () => {
     const res = snapshotRepo(r.dir);
     expect(res.ok).toBe(true);
     if (res.ok === false) return;
-    expect(res.snapshot.status).toBe("## main");
-    expect(res.snapshot.log).toMatch(/^[0-9a-f]{7,} init$/);
-    expect(res.snapshot.diffStat).toBe("");
+    expect(res.snapshot).toEqual({
+      status: "## main",
+      log: expect.stringMatching(/^[0-9a-f]{7,} init$/),
+      diffStat: "",
+    });
   });
 
   it("zmodyfikowany plik widać w status i diff --stat", () => {

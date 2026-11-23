@@ -215,8 +215,14 @@ describe("bc_projects schemas: type i DTO zapisu", () => {
     expect(dto.stateVersion).toBe("5:h");
     expect(dto.devlog).toHaveLength(50);
     expect(dto.devlog[0].title).toBe("T0");
-    expect(dto.state).not.toBeNull();
-    expect("notes" in (dto.state ?? {})).toBe(false);
+    expect(dto.state).toStrictEqual({
+      branch: "b",
+      env: "",
+      blocker: "",
+      nextStep: "",
+      links: [],
+      milestone: "",
+    });
     expect("folder" in dto).toBe(false);
   });
 

@@ -102,16 +102,32 @@ describe("computeNoteTiles", () => {
 
   it("bez dzisiejszych pokazuje datę ostatniej notatki", () => {
     const tiles = computeNoteTiles([note("b", earlier)], now, null);
-    expect(tiles[1].value).toBe("0");
-    expect(tiles[1].meta).toBe("ostatnia 10.11");
-    expect(tiles[3].value).toBe("—");
+    expect(tiles).toEqual([
+      { id: "notes", label: "Notatki w bazie", value: "1", meta: "katalog Notes/", accent: true },
+      { id: "today", label: "Dodane dziś", value: "0", meta: "ostatnia 10.11" },
+      {
+        id: "decisions",
+        label: "Decyzje w devlogach",
+        value: "—",
+        meta: "wkrótce: agregacja devlogów",
+      },
+      { id: "inbox", label: "Do segregacji (Inbox)", value: "—", meta: "brak danych" },
+    ]);
   });
 
   it("pusta baza nie wywraca kafli", () => {
     const tiles = computeNoteTiles([], now, 0);
-    expect(tiles[0].value).toBe("0");
-    expect(tiles[1].meta).toBe("brak notatek");
-    expect(tiles[3].value).toBe("0");
+    expect(tiles).toEqual([
+      { id: "notes", label: "Notatki w bazie", value: "0", meta: "katalog Notes/", accent: true },
+      { id: "today", label: "Dodane dziś", value: "0", meta: "brak notatek" },
+      {
+        id: "decisions",
+        label: "Decyzje w devlogach",
+        value: "—",
+        meta: "wkrótce: agregacja devlogów",
+      },
+      { id: "inbox", label: "Do segregacji (Inbox)", value: "0", meta: "otwarte wpisy" },
+    ]);
   });
 
   it("ignoruje notatki bez poprawnej daty", () => {
@@ -123,9 +139,12 @@ describe("computeNoteTiles", () => {
   it("etykiety kafli po angielsku", () => {
     const today = new Date(2026, 10, 14, 9, 22, 0).toISOString();
     const tiles = computeNoteTiles([note("a", today)], now, null, "en");
-    expect(tiles[0].label).toBe("Notes in the base");
-    expect(tiles[1].label).toBe("Added today");
-    expect(tiles[2].label).toBe("Decisions in devlogs");
+    expect(tiles.map((t) => t.label)).toEqual([
+      "Notes in the base",
+      "Added today",
+      "Decisions in devlogs",
+      "To triage (Inbox)",
+    ]);
   });
 });
 

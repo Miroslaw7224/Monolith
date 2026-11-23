@@ -203,10 +203,8 @@ describe("verifyVault", () => {
     fs.rmSync(abs(plan.targets.templates!));
     const result = verify();
     expect(result.ok).toBe(false);
-    expect(result.problems).toContain("brak tagu id=g2");
-    expect(result.problems).toContain("brak pliku Tasks/templates.yaml");
-    expect(result.found.user_tags).toBe(1);
-    expect(result.found.task_templates).toBe(0);
+    expect(result.problems).toEqual(["brak tagu id=g2", "brak pliku Tasks/templates.yaml"]);
+    expect(result.found).toMatchObject({ user_tags: 1, task_templates: 0 });
   });
 
   it("ignores a manual note with a foreign id", () => {
