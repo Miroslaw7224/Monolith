@@ -36,6 +36,7 @@ describe("parseImportArgs", () => {
   it("returns an error (does not throw) for an unknown option", () => {
     const result = parseImportArgs(["--dump", "d", "--vault", "v", "--nope"], {});
     expect(result.ok).toBe(false);
+    expect((result as { ok: false; error: string }).error).toContain("--nope");
   });
 
   it("parses --uid", () => {

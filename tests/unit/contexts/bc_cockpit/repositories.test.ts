@@ -166,6 +166,6 @@ describe("weeks.yaml", () => {
 
   it("uszkodzony YAML to błąd (serwis zamienia go na ostrzeżenie)", () => {
     vault.write(WEEKS, "weeks: [unclosed\n");
-    expect(() => readWeekFocuses()).toThrow();
+    expect(() => readWeekFocuses()).toThrow(/Nie można odczytać pliku Cockpit\/weeks/);
   });
 });

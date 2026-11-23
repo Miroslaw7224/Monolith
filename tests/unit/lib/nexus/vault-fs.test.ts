@@ -105,7 +105,7 @@ describe("readVaultFile / writeVaultFile", () => {
   });
   it("throws when the path is a directory", () => {
     fs.mkdirSync(path.join(root, "somedir"));
-    expect(() => readVaultFile("somedir", { root })).toThrow();
+    expect(() => readVaultFile("somedir", { root })).toThrow(/EISDIR/);
   });
   it("writes LF only, even for CRLF input", () => {
     writeVaultFile("a.md", "a\r\nb\r\n", { root, expected: null });
@@ -300,7 +300,9 @@ describe("strefa Work/ (dane etatu) jest zamknięta z założenia", () => {
   });
 
   it("po odmowie nie tworzy nic na dysku", () => {
-    expect(() => writeVaultFile("Work/a.yaml", "x", { root, expected: null })).toThrow();
+    expect(() => writeVaultFile("Work/a.yaml", "x", { root, expected: null })).toThrow(
+      "Dostęp do Work/ (dane etatu) jest zablokowany"
+    );
     expect(fs.existsSync(path.join(root, "Work"))).toBe(false);
   });
 

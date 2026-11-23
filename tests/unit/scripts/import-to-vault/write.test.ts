@@ -79,7 +79,7 @@ describe("atomicWrite", () => {
   it("cleans up the tmp file and rethrows when the rename fails", () => {
     const target = path.join(realRoot, "dir");
     fs.mkdirSync(target);
-    expect(() => atomicWrite(target, "x")).toThrow();
+    expect(() => atomicWrite(target, "x")).toThrow(/EISDIR/);
     expect(fs.readdirSync(realRoot).filter((n) => n.endsWith(".tmp"))).toEqual([]);
   });
 });
