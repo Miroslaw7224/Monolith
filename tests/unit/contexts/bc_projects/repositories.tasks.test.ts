@@ -143,13 +143,14 @@ describe("bc_projects repositories: tablica zadań", () => {
     ["Archive/Projects/x/"],
     ["projects-x/y/"],
   ])("folder %s: zapis odrzucony (422), nic nie powstaje", (folder) => {
+    let err: unknown;
     try {
       writeProjectTasks(entry(folder), { op: "add", column: "next", text: "x" }, null, CTX);
-      expect.unreachable();
-    } catch (err) {
-      expect(err).toBeInstanceOf(DomainError);
-      expect((err as DomainError).statusCode).toBe(422);
+    } catch (e) {
+      err = e;
     }
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).statusCode).toBe(422);
     expect(vault.read(`${folder}tasks.md`)).toBeNull();
   });
 });

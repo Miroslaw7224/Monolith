@@ -128,8 +128,7 @@ describe("buildContextPack", () => {
       ...(type ? { type } : {}),
     });
     const pack = buildContextPack("a", TODAY);
-    expect(pack.warnings.includes(OWNER_WORK_WARNING)).toBe(expected);
-    if (expected) expect(pack.warnings[0]).toBe(OWNER_WORK_WARNING);
+    expect(pack.warnings.indexOf(OWNER_WORK_WARNING)).toBe(expected ? 0 : -1);
   });
 
   it("priorytet źródeł zasad: ai-context.md → CLAUDE.md → index.md → brak", () => {

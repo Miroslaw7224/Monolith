@@ -288,14 +288,15 @@ describe("strefa Work/ (dane etatu) jest zamknięta z założenia", () => {
   });
 
   it("błąd to DomainError 403 z czytelnym komunikatem", () => {
+    let err: unknown;
     try {
       readVaultFile("Work/a.yaml", { root });
-      expect.unreachable();
-    } catch (err) {
-      expect(err).toBeInstanceOf(DomainError);
-      expect((err as DomainError).statusCode).toBe(403);
-      expect((err as Error).message).toContain("Work/");
+    } catch (e) {
+      err = e;
     }
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).statusCode).toBe(403);
+    expect((err as Error).message).toContain("Work/");
   });
 
   it("po odmowie nie tworzy nic na dysku", () => {

@@ -82,13 +82,14 @@ describe("assertWorkAccess", () => {
   });
 
   it("rzuca WorkAccessBlockedError (403) po negatywnym", () => {
+    let err: unknown;
     try {
       assertWorkAccess({ root: "/v", run: fakeGit({ ...ALL_OK, "check-ignore": { status: 1 } }) });
-      expect.unreachable();
-    } catch (err) {
-      expect(err).toBeInstanceOf(WorkAccessBlockedError);
-      expect((err as WorkAccessBlockedError).statusCode).toBe(403);
+    } catch (e) {
+      err = e;
     }
+    expect(err).toBeInstanceOf(WorkAccessBlockedError);
+    expect((err as WorkAccessBlockedError).statusCode).toBe(403);
   });
 });
 

@@ -20,12 +20,14 @@ describe("NoteBodySchema", () => {
   it("nie odrzuca nieznanych pól, tylko je pomija (strip)", () => {
     const parsed = NoteBodySchema.safeParse({ title: "T", content: "C", extra: 1 });
     expect(parsed.success).toBe(true);
-    if (parsed.success) expect(parsed.data).toEqual({ title: "T", content: "C" });
+    if (!parsed.success) throw new Error("oczekiwano sukcesu");
+    expect(parsed.data).toEqual({ title: "T", content: "C" });
   });
 
   it("traktuje nie-obiekt jako puste body", () => {
     const parsed = NoteBodySchema.safeParse([1, 2]);
     expect(parsed.success).toBe(true);
-    if (parsed.success) expect(parsed.data).toEqual({});
+    if (!parsed.success) throw new Error("oczekiwano sukcesu");
+    expect(parsed.data).toEqual({});
   });
 });

@@ -125,14 +125,13 @@ describe("bc_projects repositories: archiveDoneTasks", () => {
     const bad = "# Changelog — Demo\n\n## Foo\n\n- [x] a\n";
     vault.write(TASKS, SAMPLE);
     vault.write(CHANGELOG, bad);
-    try {
-      await archiveDoneTasks(entry(), version(), CTX);
-      expect.unreachable();
-    } catch (err) {
-      expect(err).toBeInstanceOf(DomainError);
-      expect((err as DomainError).statusCode).toBe(422);
-      expect((err as DomainError).message).toMatch(/changelog\.md/);
-    }
+    const err = await archiveDoneTasks(entry(), version(), CTX).then(
+      () => undefined,
+      (e: unknown) => e
+    );
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).statusCode).toBe(422);
+    expect((err as DomainError).message).toMatch(/changelog\.md/);
     expect(vault.read(CHANGELOG)).toBe(bad);
     expect(vault.read(TASKS)).toBe(SAMPLE);
   });

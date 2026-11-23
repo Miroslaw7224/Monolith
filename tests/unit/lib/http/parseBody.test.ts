@@ -27,11 +27,10 @@ describe("lib/parseBody", () => {
     const result = await parseBody(req, schema);
 
     expect(result.success).toBe(false);
-    if (result.success === false) {
-      expect(result.response.status).toBe(400);
-      const body = await result.response.json();
-      expect(body.error).toBeDefined();
-    }
+    if (result.success) throw new Error("oczekiwano porażki");
+    expect(result.response.status).toBe(400);
+    const body = await result.response.json();
+    expect(body.error).toBeDefined();
   });
 
   it("returns 400 with validation details when schema fails", async () => {
@@ -45,10 +44,9 @@ describe("lib/parseBody", () => {
     const result = await parseBody(req, schema);
 
     expect(result.success).toBe(false);
-    if (result.success === false) {
-      expect(result.response.status).toBe(400);
-      const body = await result.response.json();
-      expect(body.details).toBeDefined();
-    }
+    if (result.success) throw new Error("oczekiwano porażki");
+    expect(result.response.status).toBe(400);
+    const body = await result.response.json();
+    expect(body.details).toBeDefined();
   });
 });

@@ -129,11 +129,14 @@ describe("recordEvent i getChecklistState (strefa personal)", () => {
 
   it("nieprawidłowy miesiąc daje błąd walidacji 400", () => {
     expect(() => getChecklistState("2026-13")).toThrow(DomainError);
+    let err: unknown;
     try {
       getChecklistState("2026-13");
-    } catch (err) {
-      expect((err as DomainError).statusCode).toBe(400);
+    } catch (e) {
+      err = e;
     }
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).statusCode).toBe(400);
   });
 });
 

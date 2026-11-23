@@ -19,10 +19,9 @@ describe("listWslListeners", () => {
     expect(readCmdline).toHaveBeenCalledTimes(1);
     expect(readCmdline).toHaveBeenCalledWith(2562323);
     expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.listeners[0].commandLine).toBe("node server.js --port 3101");
-      expect(r.listeners[1]).toMatchObject({ pid: null, commandLine: null });
-    }
+    if (!r.ok) throw new Error("oczekiwano sukcesu");
+    expect(r.listeners[0].commandLine).toBe("node server.js --port 3101");
+    expect(r.listeners[1]).toMatchObject({ pid: null, commandLine: null });
   });
 
   it("błąd odczytu cmdline daje null, nie psuje źródła", async () => {
