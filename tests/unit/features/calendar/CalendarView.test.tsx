@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { CalendarView } from "@/src/features/calendar/CalendarView";
 import { monthGrid } from "@/src/features/calendar/calendarUtils";
 
@@ -30,6 +30,15 @@ function monthRange(date: Date) {
   const { start, end } = monthGrid(date.getFullYear(), date.getMonth());
   return `startDate=${start}&endDate=${end}`;
 }
+
+// Zegar zamrożony: widoczny miesiąc nie zależy od dnia uruchomienia testu (TDD-5).
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 10, 15, 12, 0));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   apiFetch.mockResolvedValue({ ok: true, json: async () => [] });

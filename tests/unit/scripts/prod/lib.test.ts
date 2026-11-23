@@ -11,6 +11,13 @@ const LIB = path.join(process.cwd(), "scripts/prod/lib.sh");
 const run = promisify(execFile);
 
 /** Woła funkcję z lib.sh: `bash -c 'source lib.sh; <fn> "$@"' bash args`. */
+/** Czeka (odpytując), aż port przestanie mieć nasłuchujący proces, zamiast stałego sleepa (TDD-5). */
+async function waitPortFree(port: number) {
+  await expect
+    .poll(async () => (await call("prod_listener_pid", String(port))).stdout, { timeout: 5000 })
+    .toBe("");
+}
+
 async function call(fn: string, ...args: string[]) {
   try {
     const { stdout } = await run("bash", ["-c", `source "${LIB}"; ${fn} "$@"`, "bash", ...args]);
@@ -247,7 +254,7 @@ describe("zatrzymywanie nieaktualnego serwera", () => {
       stdout: String(srv.pid),
     });
     children[0].kill("SIGKILL");
-    await new Promise((r) => setTimeout(r, 200));
+    await waitPortFree(srv.port);
     expect((await call("prod_listener_pid", String(srv.port))).stdout).toBe("");
   });
 
@@ -310,7 +317,7 @@ describe("zatrzymywanie nieaktualnego serwera", () => {
   it("prod_stop_stale na wolnym porcie nic nie robi (kod 1)", async () => {
     const srv = await fakeServer({ cwd: dir, dist: ".next-a" });
     children[0].kill("SIGKILL");
-    await new Promise((r) => setTimeout(r, 200));
+    await waitPortFree(srv.port);
     expect((await call("prod_stop_stale", dir, String(srv.port), ".next-nowy")).code).toBe(1);
   });
 });

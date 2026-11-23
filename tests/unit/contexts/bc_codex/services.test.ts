@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { execFileSync } from "node:child_process";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CODEX_PATH } from "@/contexts/bc_codex/models";
 import {
   getChecklistState,
@@ -14,7 +14,15 @@ import { setupTempVault } from "../../helpers/tempVault";
 
 const CODEX =
   "---\nname: K\n---\n# Kodeks\n## 1. TDD\n- **[TDD-1] MUST** a\n- **[TDD-2] SHOULD** b\n";
-const month = new Date().toISOString().slice(0, 7);
+// Zegar zamrożony, żeby miesiąc dziennika nie zależał od dnia uruchomienia testu (TDD-5).
+const month = "2026-11";
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-15T12:00:00Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 const personalFile = `Checklists/${month}.jsonl`;
 const workFile = `Work/Checklists/${month}.jsonl`;
 
