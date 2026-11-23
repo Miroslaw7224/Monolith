@@ -59,7 +59,8 @@ describe("listTerminals", () => {
   it("zwraca terminale, gdy hc odpowiada", () => {
     const res = listTerminals(() => DUMP);
     expect(res.available).toBe(true);
-    if (res.available) expect(res.terminals).toHaveLength(3);
+    if (!res.available) throw new Error("oczekiwano available");
+    expect(res.terminals).toHaveLength(3);
   });
 
   it("brak hc, timeout (wyjątek z wywołania) kończą się available:false, nie wyjątkiem", () => {

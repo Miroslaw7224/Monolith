@@ -17,6 +17,23 @@
           }
         ]
       }
+    },
+    {
+      "files": ["tests/**/*.test.ts?(x)"],
+      "plugins": ["@vitest"],
+      "rules": {
+        "@vitest/no-focused-tests": "error",
+        "@vitest/no-disabled-tests": "error",
+        "@vitest/no-commented-out-tests": "error",
+        "@vitest/valid-expect": [
+          "error",
+          {
+            "alwaysAwait": true,
+            "maxArgs": 2
+          }
+        ],
+        "@vitest/no-conditional-expect": "error"
+      }
     }
   ]
 }

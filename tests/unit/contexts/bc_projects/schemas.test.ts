@@ -94,10 +94,9 @@ describe("bc_projects schemas: StateInputSchema", () => {
   it("poprawne dane: version null, milestoneDue pusty → undefined", () => {
     const r = StateInputSchema.safeParse(STATE_OK);
     expect(r.success).toBe(true);
-    if (r.success) {
-      expect(r.data.version).toBeNull();
-      expect(r.data.milestoneDue).toBeUndefined();
-    }
+    if (!r.success) throw new Error("oczekiwano sukcesu");
+    expect(r.data.version).toBeNull();
+    expect(r.data.milestoneDue).toBeUndefined();
   });
 
   it("milestoneDue można pominąć", () => {
@@ -109,7 +108,8 @@ describe("bc_projects schemas: StateInputSchema", () => {
   it("version size:hash → obiekt", () => {
     const r = StateInputSchema.safeParse({ ...STATE_OK, version: `12:${HASH}` });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.version).toEqual({ size: 12, hash: HASH });
+    if (!r.success) throw new Error("oczekiwano sukcesu");
+    expect(r.data.version).toEqual({ size: 12, hash: HASH });
   });
 
   it("zła wersja", () => {
@@ -248,14 +248,15 @@ describe("bc_projects schemas: TaskOpInputSchema", () => {
       version: null,
     });
     expect(r.success).toBe(true);
-    if (r.success)
-      expect(r.data).toEqual({ op: "add", column: "next", text: "Nowe", version: null });
+    if (!r.success) throw new Error("oczekiwano sukcesu");
+    expect(r.data).toEqual({ op: "add", column: "next", text: "Nowe", version: null });
   });
 
   it("toggle: version tekstowa zamieniona na { size, hash }", () => {
     const r = TaskOpInputSchema.safeParse({ op: "toggle", ...ref });
     expect(r.success).toBe(true);
-    if (r.success) expect(r.data.version).toEqual({ size: 12, hash: HASH });
+    if (!r.success) throw new Error("oczekiwano sukcesu");
+    expect(r.data.version).toEqual({ size: 12, hash: HASH });
   });
 
   it("op z referencją wymaga wersji (null i brak odrzucone)", () => {

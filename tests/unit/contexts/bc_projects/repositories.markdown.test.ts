@@ -486,11 +486,14 @@ describe("mergeChangelog", () => {
       mergeChangelog(`${HEAD}## Foo\n\n- [x] a\n`, [block("2026-11-14", "B")], "Demo");
     expect(run).toThrow(DomainError);
     expect(run).toThrow(/changelog\.md ma nieznany nagłówek „Foo”/);
+    let err: unknown;
     try {
       run();
-    } catch (err) {
-      expect((err as DomainError).statusCode).toBe(422);
+    } catch (e) {
+      err = e;
     }
+    expect(err).toBeInstanceOf(DomainError);
+    expect((err as DomainError).statusCode).toBe(422);
   });
 
   it("powtórzony nagłówek: DomainError 422", () => {
