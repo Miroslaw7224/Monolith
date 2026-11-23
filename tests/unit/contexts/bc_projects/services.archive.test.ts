@@ -1,80 +1,70 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { RegistryEntry } from "@/contexts/bc_projects/models";
-import type * as ProjectsRepo from "@/contexts/bc_projects/repositories";
+import { describe, expect, it } from "vitest";
+import { archiveDone, getProject } from "@/contexts/bc_projects/services";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const mockReadRegistry = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readRegistry>());
-const mockReadProjectIndex = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectIndex>());
-const mockReadProjectContent = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectContent>());
-const mockReadProjectState = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectState>());
-const mockReadDevlog = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readDevlog>());
-const mockReadProjectBoard = vi.hoisted(() => vi.fn<typeof ProjectsRepo.readProjectBoard>());
-const mockArchiveDoneTasks = vi.hoisted(() => vi.fn<typeof ProjectsRepo.archiveDoneTasks>());
-
-vi.mock(
-  "@/contexts/bc_projects/repositories",
-  () =>
-    ({
-      readRegistry: mockReadRegistry,
-      readProjectIndex: mockReadProjectIndex,
-      readProjectContent: mockReadProjectContent,
-      readProjectState: mockReadProjectState,
-      readDevlog: mockReadDevlog,
-      readProjectBoard: mockReadProjectBoard,
-      archiveDoneTasks: mockArchiveDoneTasks,
-    }) satisfies Partial<typeof ProjectsRepo>
-);
-
-import { archiveDone } from "@/contexts/bc_projects/services";
-
+const vault = setupTempVault();
+const TASKS = "Projects/a/tasks.md";
+const CHANGELOG = "Projects/a/changelog.md";
 const NOW = new Date(2026, 10, 13, 12, 0);
-const VERSION = { size: 12, hash: "a".repeat(64) };
-const a: RegistryEntry = {
-  id: "a",
-  name: "Alpha",
-  status: "active",
-  priority: "high",
-  folder: "Projects/a/",
-  localPath: "/tmp/a",
-  owner: "personal",
+
+const SAMPLE = `# Tasks — Alpha
+
+## Next
+
+- [ ] Otwarte
+- [x] Stare — 2026-11-01
+- [x] Świeże — 2026-11-12
+`;
+
+const seed = () => {
+  vault.write(
+    "Projects/_registry.yaml",
+    "projects:\n  - id: a\n    name: Alpha\n    status: active\n    priority: high\n    folder: Projects/a/\n"
+  );
+  vault.write(TASKS, SAMPLE);
 };
+const version = () => getProject("a", NOW).board.version;
 
 describe("bc_projects services: archiveDone", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockReadRegistry.mockReturnValue({ entries: [a], warnings: [] });
-    mockReadProjectIndex.mockReturnValue({ whereIStopped: null, purpose: null });
-    mockReadProjectContent.mockReturnValue({ tasks: [], bugs: [] });
-    mockReadProjectState.mockReturnValue({ state: null, version: null });
-    mockReadDevlog.mockReturnValue([]);
-    mockReadProjectBoard.mockReturnValue({
-      blockers: [],
-      now: [],
-      next: [],
-      icebox: [],
-      version: null,
-    });
-    mockArchiveDoneTasks.mockResolvedValue({ archived: 2, blocks: [] });
-  });
+  it("przenosi stare ukończone zadania do changelogu, zwraca świeży projekt i liczbę", async () => {
+    seed();
 
-  it("woła repozytorium z wersją, dniem serwera i progiem; zwraca świeży projekt i liczbę", async () => {
-    const result = await archiveDone("a", VERSION, 3, NOW);
-    expect(mockArchiveDoneTasks).toHaveBeenCalledWith(a, VERSION, {
-      today: "2026-11-13",
-      olderThanDays: 3,
-    });
-    expect(result.archived).toBe(2);
+    const result = await archiveDone("a", version(), 3, NOW);
+
+    expect(vault.read(TASKS)).toBe(`# Tasks — Alpha
+
+## Next
+
+- [ ] Otwarte
+- [x] Świeże — 2026-11-12
+`);
+    expect(vault.read(CHANGELOG)).toBe(
+      "# Changelog — Alpha\n\n## 2026-11\n\n- [x] Stare — 2026-11-01\n"
+    );
+    expect(result.archived).toBe(1);
     expect(result.project.id).toBe("a");
+    expect(result.project.board.next.map((t) => t.text)).toEqual(["Otwarte", "Świeże"]);
   });
 
-  it("błąd repozytorium (409) przechodzi dalej", async () => {
-    mockArchiveDoneTasks.mockRejectedValue(new ConflictError("x"));
-    await expect(archiveDone("a", VERSION, 7, NOW)).rejects.toBeInstanceOf(ConflictError);
+  it("zmiana tasks.md w międzyczasie (409): pliki bez zmian", async () => {
+    seed();
+    const stale = version();
+    vault.write(TASKS, `${SAMPLE}- [ ] Dopisane ręcznie\n`);
+
+    await expect(archiveDone("a", stale, 7, NOW)).rejects.toBeInstanceOf(ConflictError);
+
+    expect(vault.read(TASKS)).toBe(`${SAMPLE}- [ ] Dopisane ręcznie\n`);
+    expect(vault.read(CHANGELOG)).toBeNull();
   });
 
-  it("nieznany projekt: NotFoundError, repozytorium nietknięte", async () => {
-    await expect(archiveDone("nie-ma", VERSION, 7, NOW)).rejects.toBeInstanceOf(NotFoundError);
-    expect(mockArchiveDoneTasks).not.toHaveBeenCalled();
+  it("nieznany projekt: NotFoundError, nic nie powstaje", async () => {
+    seed();
+
+    await expect(archiveDone("nie-ma", version(), 7, NOW)).rejects.toBeInstanceOf(NotFoundError);
+
+    expect(vault.read("Projects/nie-ma/changelog.md")).toBeNull();
+    expect(vault.read(CHANGELOG)).toBeNull();
   });
 });
