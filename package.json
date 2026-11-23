@@ -8,7 +8,7 @@
     "build": "next build",
     "preview": "next start -H 127.0.0.1",
     "clean": "rm -rf dist .next",
-    "lint": "next lint --dir app --dir lib --dir src --dir tests",
+    "lint": "next lint --dir app --dir lib --dir src --dir tests --dir contexts",
     "lint:tests": "eslint tests/",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
