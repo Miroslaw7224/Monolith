@@ -1,21 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import type * as TagsRepo from "@/contexts/bc_tags/repositories";
+// @vitest-environment node
+import { describe, it, expect } from "vitest";
 import type { UserTag } from "@/contexts/bc_tags/models";
 import { resolveTagNames, resolveTags } from "@/contexts/bc_tags/services";
+import { formatYamlList } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const mockGetUserTags = vi.hoisted(() => vi.fn<typeof TagsRepo.getUserTags>());
-const mockCreateUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.createUserTag>());
-
-vi.mock(
-  "@/contexts/bc_tags/repositories",
-  () =>
-    ({
-      getUserTags: mockGetUserTags,
-      createUserTag: mockCreateUserTag,
-      updateUserTag: vi.fn<typeof TagsRepo.updateUserTag>(),
-      deleteUserTag: vi.fn<typeof TagsRepo.deleteUserTag>(),
-    }) satisfies Partial<typeof TagsRepo>
-);
+const vault = setupTempVault();
+const FILE = "Resources/tags.yaml";
 
 const DICT: UserTag[] = [
   { id: "t1", tag: "Agenci AI", title: "Agenci AI", aliases: ["Agent AI"] },
@@ -66,38 +58,59 @@ describe("resolveTagNames", () => {
 });
 
 describe("resolveTags", () => {
-  beforeEach(() => {
-    mockGetUserTags.mockReset();
-    mockCreateUserTag.mockReset();
-    mockGetUserTags.mockResolvedValue(DICT);
-    mockCreateUserTag.mockResolvedValue({ id: "new", tag: "x", title: "x" });
-  });
+  /** Słownik z DICT zapisany w pliku tak, jak robi to repozytorium. */
+  const seedDict = () =>
+    vault.write(
+      FILE,
+      formatYamlList(
+        "tags",
+        DICT.map(({ id, tag, title, color, aliases }) => ({
+          id,
+          tag,
+          title,
+          ...(color ? { color } : {}),
+          ...(aliases ? { aliases } : {}),
+        }))
+      )
+    );
+  const storedTags = () => readList(FILE, "tags").map((r) => r.tag);
 
-  it("dla pustej listy nie czyta słownika", async () => {
+  it("dla pustej listy nic nie tworzy", async () => {
     expect(await resolveTags([])).toEqual([]);
-    expect(mockGetUserTags).not.toHaveBeenCalled();
+    expect(vault.read(FILE)).toBeNull();
   });
   it("znane tagi: bez dopisywania do słownika", async () => {
+    seedDict();
+    const before = vault.read(FILE);
+
     expect(await resolveTags(["agent ai", "AI"])).toEqual(["Agenci AI", "AI"]);
-    expect(mockCreateUserTag).not.toHaveBeenCalled();
+
+    expect(vault.read(FILE)).toBe(before);
   });
   it("nieznany tag dopisuje do słownika raz, bez koloru, z title = nazwa", async () => {
+    seedDict();
+
     expect(await resolveTags(["Nowy", "nowy"])).toEqual(["Nowy"]);
-    expect(mockCreateUserTag).toHaveBeenCalledTimes(1);
-    expect(mockCreateUserTag).toHaveBeenCalledWith({ tag: "Nowy", title: "Nowy" });
+
+    expect(storedTags()).toEqual(["Agenci AI", "Praca własna", "AI", "Nowy"]);
+    const added = readList(FILE, "tags").at(-1)!;
+    expect(added).toMatchObject({ tag: "Nowy", title: "Nowy" });
+    expect("color" in added).toBe(false);
   });
   it("tekst zamiast listy (np. PUT kalendarza) traktuje jak jeden tag, nie rozbija na znaki", async () => {
+    seedDict();
+
     expect(await resolveTags("abc")).toEqual(["abc"]);
-    expect(mockCreateUserTag).toHaveBeenCalledTimes(1);
-    expect(mockCreateUserTag).toHaveBeenCalledWith({ tag: "abc", title: "abc" });
+
+    expect(storedTags()).toEqual(["Agenci AI", "Praca własna", "AI", "abc"]);
   });
   it("wartość spoza listy i tekstu (liczba, obiekt) daje pustą listę i nic nie dopisuje", async () => {
+    seedDict();
+    const before = vault.read(FILE);
+
     expect(await resolveTags(5)).toEqual([]);
     expect(await resolveTags({})).toEqual([]);
-    expect(mockCreateUserTag).not.toHaveBeenCalled();
-  });
-  it("błąd zapisu słownika przerywa operację", async () => {
-    mockCreateUserTag.mockRejectedValue(new Error("409"));
-    await expect(resolveTags(["Nowy"])).rejects.toThrow("409");
+
+    expect(vault.read(FILE)).toBe(before);
   });
 });
