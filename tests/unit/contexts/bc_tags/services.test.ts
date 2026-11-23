@@ -1,131 +1,114 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import type * as TagsRepo from "@/contexts/bc_tags/repositories";
+// @vitest-environment node
+import { describe, it, expect } from "vitest";
+import { DomainError } from "@/lib/errors";
+import { formatYamlList } from "@/lib/nexus/yaml-lists";
+import { readList } from "@/lib/nexus/yaml-store";
 import {
   getUserTags,
   createUserTag,
   updateUserTag,
   deleteUserTag,
 } from "@/contexts/bc_tags/services";
+import { setupTempVault } from "../../helpers/tempVault";
 
-const mockGetUserTags = vi.hoisted(() => vi.fn<typeof TagsRepo.getUserTags>());
-const mockCreateUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.createUserTag>());
-const mockUpdateUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.updateUserTag>());
-const mockDeleteUserTag = vi.hoisted(() => vi.fn<typeof TagsRepo.deleteUserTag>());
+const FILE = "Resources/tags.yaml";
+const STORED = [{ id: "tag1", tag: "work", title: "Work", created: "2026-03-01T10:00:00.000Z" }];
 
-vi.mock(
-  "@/contexts/bc_tags/repositories",
-  () =>
-    ({
-      getUserTags: mockGetUserTags,
-      createUserTag: mockCreateUserTag,
-      updateUserTag: mockUpdateUserTag,
-      deleteUserTag: mockDeleteUserTag,
-    }) satisfies Partial<typeof TagsRepo>
-);
+const vault = setupTempVault();
+const seed = () => vault.write(FILE, formatYamlList("tags", STORED));
 
 describe("bc_tags services", () => {
-  beforeEach(() => {
-    mockGetUserTags.mockReset();
-    mockCreateUserTag.mockReset();
-    mockUpdateUserTag.mockReset();
-    mockDeleteUserTag.mockReset();
-  });
-
   describe("getUserTags", () => {
-    it("given Firestore returns tags, when getUserTags is called, then returns the list (happy path)", async () => {
-      const tags = [{ id: "tag1", tag: "work", title: "Work" }];
-      mockGetUserTags.mockResolvedValue(tags);
+    it("zwraca tagi zapisane w vaulcie", async () => {
+      seed();
 
-      const result = await getUserTags();
-
-      expect(result).toEqual(tags);
+      expect(await getUserTags()).toEqual([
+        { id: "tag1", tag: "work", title: "Work", created_at: "2026-03-01T10:00:00.000Z" },
+      ]);
     });
 
-    it("given getUserTags throws, when getUserTags is called, then propagates the error", async () => {
-      mockGetUserTags.mockRejectedValue(new Error("DB error"));
-
-      await expect(getUserTags()).rejects.toThrow("DB error");
+    it("bez pliku zwraca pustą listę", async () => {
+      expect(await getUserTags()).toEqual([]);
     });
   });
 
   describe("createUserTag", () => {
-    it("given valid data, when createUserTag is called, then returns created tag (happy path)", async () => {
-      mockCreateUserTag.mockResolvedValue({ id: "tag1", tag: "work", title: "Work" });
+    it("zapisuje tag z kolorem w vaulcie", async () => {
+      const created = await createUserTag({ tag: "work", title: "Work", color: "#FF0000" });
 
-      const result = await createUserTag({ tag: "work", title: "Work" });
-
-      expect(result).toEqual({ id: "tag1", tag: "work", title: "Work" });
+      expect(readList(FILE, "tags")).toEqual([
+        {
+          id: created.id,
+          tag: "work",
+          title: "Work",
+          color: "#FF0000",
+          created: created.created_at,
+        },
+      ]);
     });
 
-    it("given createUserTag throws, when createUserTag is called, then propagates the error", async () => {
-      mockCreateUserTag.mockRejectedValue(new Error("Create failed"));
+    it("tag bez koloru nie zapisuje klucza color", async () => {
+      const created = await createUserTag({ tag: "work", title: "Work" });
 
-      await expect(createUserTag({ tag: "x", title: "y" })).rejects.toThrow("Create failed");
+      expect(readList(FILE, "tags")).toEqual([
+        { id: created.id, tag: "work", title: "Work", created: created.created_at },
+      ]);
     });
 
-    it("given data with color, when createUserTag is called, then passes color to firestore", async () => {
-      mockCreateUserTag.mockResolvedValue({
-        id: "tag1",
-        tag: "work",
-        title: "Work",
-        color: "#FF0000",
+    it("pusty tag odrzuca bez zapisu pliku", async () => {
+      await expect(createUserTag({ tag: "  ", title: "y" })).rejects.toMatchObject({
+        message: "tag required",
+        statusCode: 400,
       });
-
-      await createUserTag({ tag: "work", title: "Work", color: "#FF0000" });
-
-      expect(mockCreateUserTag).toHaveBeenCalledWith({
-        tag: "work",
-        title: "Work",
-        color: "#FF0000",
-      });
+      expect(vault.read(FILE)).toBeNull();
     });
   });
 
   describe("updateUserTag", () => {
-    it("given valid id and data, when updateUserTag is called, then delegates to firestore (happy path)", async () => {
-      mockUpdateUserTag.mockResolvedValue(undefined);
+    it("zmienia tytuł i zostawia resztę rekordu", async () => {
+      seed();
 
       await updateUserTag("tag1", { title: "New Title" });
 
-      expect(mockUpdateUserTag).toHaveBeenCalledWith("tag1", { title: "New Title" });
+      expect(readList(FILE, "tags")).toEqual([{ ...STORED[0], title: "New Title" }]);
     });
 
-    it("given updateUserTag throws, when updateUserTag is called, then propagates the error", async () => {
-      mockUpdateUserTag.mockRejectedValue(new Error("Update failed"));
-
-      await expect(updateUserTag("tag1", { tag: "x" })).rejects.toThrow("Update failed");
-    });
-
-    it("given data with color, when updateUserTag is called, then passes color to firestore", async () => {
-      mockUpdateUserTag.mockResolvedValue(undefined);
+    it("zapisuje kolor", async () => {
+      seed();
 
       await updateUserTag("tag1", { color: "#00FF00" });
 
-      expect(mockUpdateUserTag).toHaveBeenCalledWith("tag1", { color: "#00FF00" });
+      expect(readList(FILE, "tags")).toEqual([{ ...STORED[0], color: "#00FF00" }]);
     });
 
-    it("given color null, when updateUserTag is called, then passes color null to firestore", async () => {
-      mockUpdateUserTag.mockResolvedValue(undefined);
+    it("kolor null usuwa klucz color", async () => {
+      vault.write(FILE, formatYamlList("tags", [{ ...STORED[0], color: "#00FF00" }]));
 
       await updateUserTag("tag1", { color: null });
 
-      expect(mockUpdateUserTag).toHaveBeenCalledWith("tag1", { color: null });
+      expect(readList(FILE, "tags")).toEqual(STORED);
+    });
+
+    it("nieistniejące id to DomainError 404 i plik bez zmian", async () => {
+      seed();
+      const before = vault.read(FILE);
+
+      await expect(updateUserTag("brak", { tag: "x" })).rejects.toMatchObject({
+        message: "Tag not found",
+        statusCode: 404,
+      });
+      await expect(updateUserTag("brak", { tag: "x" })).rejects.toBeInstanceOf(DomainError);
+      expect(vault.read(FILE)).toBe(before);
     });
   });
 
   describe("deleteUserTag", () => {
-    it("given valid id, when deleteUserTag is called, then delegates to firestore (happy path)", async () => {
-      mockDeleteUserTag.mockResolvedValue(undefined);
+    it("usuwa tag z pliku", async () => {
+      seed();
 
       await deleteUserTag("tag1");
 
-      expect(mockDeleteUserTag).toHaveBeenCalledWith("tag1");
-    });
-
-    it("given deleteUserTag throws, when deleteUserTag is called, then propagates the error", async () => {
-      mockDeleteUserTag.mockRejectedValue(new Error("Delete failed"));
-
-      await expect(deleteUserTag("tag1")).rejects.toThrow("Delete failed");
+      expect(readList(FILE, "tags")).toEqual([]);
     });
   });
 });
