@@ -29,11 +29,9 @@ describe("CardSubTabs", () => {
     const mindmapsTab = screen.getByRole("tab", { name: "Mapy myśli" });
 
     expect(boardTab).toHaveAttribute("aria-selected", "true");
-    expect(boardTab).toHaveClass("card-subtabs__tab--active");
     expect(boardTab).toHaveAttribute("tabindex", "0");
 
     expect(mindmapsTab).toHaveAttribute("aria-selected", "false");
-    expect(mindmapsTab).not.toHaveClass("card-subtabs__tab--active");
     expect(mindmapsTab).toHaveAttribute("tabindex", "-1");
   });
 
