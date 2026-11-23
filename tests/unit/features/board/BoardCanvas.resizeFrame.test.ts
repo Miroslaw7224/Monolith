@@ -10,9 +10,10 @@ describe("resizeFrameBoard", () => {
       edges: [],
     };
     const next = resizeFrameBoard(board, "f1", { x: 60, y: 50, w: 440, h: 200 });
-    expect(next?.tiles[0].x).toBe(120);
-    expect(next?.tiles[0].y).toBe(80);
-    expect(next?.tiles[0].frame).toBe("f1");
-    expect(next?.frames[0].x).toBe(60);
+    expect(next).toEqual({
+      frames: [{ id: "f1", title: "F", x: 60, y: 50, w: 440, h: 200 }],
+      tiles: board.tiles,
+      edges: [],
+    });
   });
 });

@@ -86,10 +86,12 @@ describe("getVisibleColumnTasks", () => {
       makeTask(String(i), "todo")
     );
     const result = getVisibleColumnTasks(tasks, false, true);
-    expect(result.visibleTasks).toHaveLength(TASK_COLUMN_VISIBLE_LIMIT);
-    expect(result.hiddenCount).toBe(0);
-    expect(result.isCollapsed).toBe(false);
-    expect(result.canCollapse).toBe(false);
+    expect(result).toEqual({
+      visibleTasks: tasks,
+      hiddenCount: 0,
+      isCollapsed: false,
+      canCollapse: false,
+    });
   });
 
   it("returns only newest tasks when collapsed", () => {
@@ -99,11 +101,12 @@ describe("getVisibleColumnTasks", () => {
       return task;
     });
     const result = getVisibleColumnTasks(tasks, false, true);
-    expect(result.visibleTasks).toHaveLength(TASK_COLUMN_VISIBLE_LIMIT);
-    expect(result.hiddenCount).toBe(3);
-    expect(result.isCollapsed).toBe(true);
-    expect(result.canCollapse).toBe(true);
-    expect(result.visibleTasks[0].id).toBe(String(TASK_COLUMN_VISIBLE_LIMIT + 2));
+    expect(result).toEqual({
+      visibleTasks: [...tasks].reverse().slice(0, TASK_COLUMN_VISIBLE_LIMIT),
+      hiddenCount: 3,
+      isCollapsed: true,
+      canCollapse: true,
+    });
   });
 
   it("returns all tasks when expanded", () => {
@@ -111,10 +114,12 @@ describe("getVisibleColumnTasks", () => {
       makeTask(String(i), "todo")
     );
     const result = getVisibleColumnTasks(tasks, true, true);
-    expect(result.visibleTasks).toHaveLength(TASK_COLUMN_VISIBLE_LIMIT + 3);
-    expect(result.hiddenCount).toBe(0);
-    expect(result.isCollapsed).toBe(false);
-    expect(result.canCollapse).toBe(true);
+    expect(result).toEqual({
+      visibleTasks: tasks,
+      hiddenCount: 0,
+      isCollapsed: false,
+      canCollapse: true,
+    });
   });
 
   it("does not collapse while searching", () => {
@@ -122,8 +127,11 @@ describe("getVisibleColumnTasks", () => {
       makeTask(String(i), "todo")
     );
     const result = getVisibleColumnTasks(tasks, false, false);
-    expect(result.visibleTasks).toHaveLength(TASK_COLUMN_VISIBLE_LIMIT + 3);
-    expect(result.isCollapsed).toBe(false);
-    expect(result.canCollapse).toBe(false);
+    expect(result).toEqual({
+      visibleTasks: tasks,
+      hiddenCount: 0,
+      isCollapsed: false,
+      canCollapse: false,
+    });
   });
 });

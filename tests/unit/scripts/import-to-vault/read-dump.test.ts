@@ -54,35 +54,40 @@ describe("readDump", () => {
     });
     const dump = readDump(dir, "u1");
 
-    expect(dump.uid).toBe("u1");
-    expect(dump.dumpDir).toBe(dir);
-    expect(dump.exportedAt).toBe("2026-11-12T10:00:00.000Z");
-    expect(dump.rows.notes.length).toBe(4);
-    expect(dump.rows.tasks[0].id).toBe("t1");
-    expect(dump.rows.tasks[0].path).toBe("users/u1/tasks/t1");
-    expect(dump.rows.tasks[0].data.title).toBe("Napraw ] i :: błąd");
-    expect(dump.rows.user_tags.length).toBe(2);
-    expect(dump.rows.task_templates.length).toBe(1);
-    expect(dump.rows.resources.length).toBe(1);
-
-    expect(dump.skipped).toContainEqual(
-      expect.objectContaining({ path: "users/u1/calendar_events", count: 2, type: null })
-    );
-    expect(dump.skipped).toContainEqual({
-      path: "users/u2/notes",
-      count: 1,
-      type: "notes",
-      reason: "inne konto",
+    expect({
+      uid: dump.uid,
+      dumpDir: dump.dumpDir,
+      exportedAt: dump.exportedAt,
+      rowCounts: Object.fromEntries(Object.entries(dump.rows).map(([k, v]) => [k, v.length])),
+    }).toEqual({
+      uid: "u1",
+      dumpDir: dir,
+      exportedAt: "2026-11-12T10:00:00.000Z",
+      rowCounts: { notes: 4, tasks: 4, resources: 1, user_tags: 2, task_templates: 1 },
     });
-    expect(dump.skipped).toContainEqual({
-      path: "waitlist",
-      count: 1,
-      type: null,
-      reason: "kolekcja główna, poza zakresem",
+    expect(dump.rows.tasks[0]).toEqual({
+      id: "t1",
+      path: "users/u1/tasks/t1",
+      data: {
+        title: "Napraw ] i :: błąd",
+        link: "https://x.y/?q=[1]&r=a::b",
+        description: "linia 1\nlinia 2",
+        status: "in_progress",
+        due_date: "2026-11-20",
+        priority: 2,
+        order: 1.5,
+      },
     });
-    expect(dump.skipped.find((s) => s.path === "users/u1/calendar_events")!.reason).toBe(
-      "poza zakresem etapu 0 (§1.1)"
-    );
+    expect(dump.skipped).toEqual([
+      {
+        path: "users/u1/calendar_events",
+        count: 2,
+        type: null,
+        reason: "poza zakresem etapu 0 (§1.1)",
+      },
+      { path: "users/u2/notes", count: 1, type: "notes", reason: "inne konto" },
+      { path: "waitlist", count: 1, type: null, reason: "kolekcja główna, poza zakresem" },
+    ]);
   });
 
   it("liczy 3 wiersze w pominiętej kolekcji i 2 wiersze notatek", () => {
@@ -163,8 +168,13 @@ describe("readDump", () => {
     makeDump(dir, sampleCollections(), { uid: "u1" });
     const dump = readDump(dir, "u2");
     expect(dump.uid).toBe("u2");
-    expect(dump.rows.notes.length).toBe(1);
-    expect(dump.rows.tasks.length).toBe(0);
+    expect(Object.fromEntries(Object.entries(dump.rows).map(([k, v]) => [k, v.length]))).toEqual({
+      notes: 1,
+      tasks: 0,
+      resources: 0,
+      user_tags: 0,
+      task_templates: 0,
+    });
   });
 
   it("uidOverride nieobecny w zrzucie rzuca DumpError", () => {
