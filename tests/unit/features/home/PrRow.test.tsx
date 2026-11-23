@@ -1,5 +1,5 @@
 import React from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, test } from "vitest";
 import { PrRow } from "@/src/features/home/PrRow";
 import { formatShortDate, formatTime } from "@/src/i18n/format";
@@ -29,8 +29,9 @@ describe("PrRow", () => {
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
     expect(link.getAttribute("title")).toBe("o/r#5 Bardzo długi tytuł");
-    expect(screen.getByText("o/r#5").className).toContain("kok-reviews__ref--ready");
-    expect(screen.getByText("Bardzo długi tytuł").className).toContain("kok-pr-row__title");
+    // `refClassName` jest częścią API komponentu: przekazana klasa trafia na odnośnik `repo#numer`.
+    expect(screen.getByText("o/r#5")).toHaveClass("kok-reviews__ref--ready");
+    expect(screen.getByText("Bardzo długi tytuł")).toBeInTheDocument();
   });
 
   test("kolumny: status (children) i data z godziną", () => {
@@ -47,10 +48,8 @@ describe("PrRow", () => {
         </PrRow>
       </ul>
     );
-    expect(screen.getByText("status").closest(".kok-pr-row__cell")).toBeTruthy();
+    expect(within(screen.getByRole("listitem")).getByText("status")).toBeInTheDocument();
     const when = new Date(UPDATED);
-    expect(screen.getByText(`${formatShortDate(when)} ${formatTime(when)}`).className).toContain(
-      "kok-pr-row__when"
-    );
+    expect(screen.getByText(`${formatShortDate(when)} ${formatTime(when)}`)).toBeInTheDocument();
   });
 });

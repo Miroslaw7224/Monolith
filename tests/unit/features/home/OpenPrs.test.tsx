@@ -41,7 +41,7 @@ describe("OpenPrs", () => {
     expect(apiFetch).toHaveBeenCalledWith("/api/cockpit/open-prs");
   });
 
-  test("lista: nagłówek, licznik, bezpieczne linki, draft szary i gotowy zielony", async () => {
+  test("lista: nagłówek, licznik, bezpieczne linki, etykiety draft i gotowy", async () => {
     const apiFetch = vi.fn().mockResolvedValue(ok(ITEMS));
     render(<OpenPrs apiFetch={apiFetch} />);
     expect(await screen.findByText("Otwarte PR")).toBeTruthy();
@@ -51,10 +51,9 @@ describe("OpenPrs", () => {
     expect(link.getAttribute("href")).toBe(ITEMS[0].url);
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
-    expect(screen.getByText("o/r#5").className).toContain("kok-reviews__ref--ready");
-    expect(screen.getByText("org/app#6").className).toContain("kok-reviews__ref--draft");
-    expect(screen.getByText("gotowy").className).toContain("kok-reviews__state--ready");
-    expect(screen.getByText("draft").className).toContain("kok-reviews__state--draft");
+    expect(screen.getByText("org/app#6")).toBeInTheDocument();
+    expect(screen.getByText("gotowy")).toBeInTheDocument();
+    expect(screen.getByText("draft")).toBeInTheDocument();
   });
 
   test("pusta lista: komunikat, licznik 0", async () => {

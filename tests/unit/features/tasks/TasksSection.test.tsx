@@ -182,13 +182,14 @@ test("zadanie z znanym projektem ma kolor i znacznik rodzaju, bez projektu i z n
   const card = async (title: string) =>
     (await screen.findByText(title)).closest("li.zad-card") as HTMLElement;
 
-  await waitFor(async () => expect(await card("Własne")).toHaveClass("zad-card--kind-wlasny"));
-  expect(within(await card("Własne")).getByText(/Własny/)).toHaveClass("zad-kind--wlasny");
+  await waitFor(async () =>
+    expect(within(await card("Własne")).getByText(/Własny/)).toBeInTheDocument()
+  );
   expect(within(await card("Własne")).getByText(/Monolith/)).toBeInTheDocument();
-  expect(await card("Z firmy")).toHaveClass("zad-card--kind-etat");
   expect(within(await card("Z firmy")).getByText(/Etat/)).toBeInTheDocument();
-  expect((await card("Osierocone")).className).not.toMatch(/zad-card--kind/);
-  expect((await card("Ogólne")).className).not.toMatch(/zad-card--kind/);
+  const kindLabel = /^(Własny|Etat|Biblioteka) · /;
+  expect(within(await card("Osierocone")).queryByText(kindLabel)).toBeNull();
+  expect(within(await card("Ogólne")).queryByText(kindLabel)).toBeNull();
 });
 
 test("autozapis okna zadania wysyła tylko zmienione pole (bez project)", async () => {

@@ -120,11 +120,10 @@ describe("TaskDetailModal", () => {
     renderModal();
     await user.click(screen.getByRole("button", { name: "W toku" }));
     expect(await screen.findByText(/Nie zapisano/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "W toku" })).not.toHaveClass(
-      "zad-status-btn--active"
-    );
-    expect(screen.getByRole("button", { name: "Do zrobienia" })).toHaveClass(
-      "zad-status-btn--active"
+    expect(screen.getByRole("button", { name: "W toku" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Do zrobienia" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
     );
   });
 

@@ -36,6 +36,7 @@ describe("ProjectBugs", () => {
         ]}
       />
     );
+    // Znaczek ostrzegawczy to nazwany kontrakt wizualny (`prj-badge--warn`): tekst znaczka jest ten sam.
     expect(screen.getByText("otwarty 3 d")).not.toHaveClass("prj-badge--warn");
     expect(screen.getByText("otwarty 23 d")).toHaveClass("prj-badge--warn");
     expect(screen.getAllByText(/^otwarty \d+ d$/)).toHaveLength(2);

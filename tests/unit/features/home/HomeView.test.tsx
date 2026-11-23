@@ -334,19 +334,17 @@ test("kolor rodzaju: temat i grupa projektu mają modyfikator i znacznik, grupa 
   render(<HomeView {...defaultProps} />);
   await screen.findByText("NEXUS");
 
-  expect(screen.getByRole("article", { name: "Temat Projekt firmowy" })).toHaveClass(
-    "kok-topic--kind-etat"
-  );
-  expect(screen.getByRole("article", { name: "Temat NEXUS" })).toHaveClass(
-    "kok-topic--kind-wlasny"
-  );
+  expect(
+    within(screen.getByRole("article", { name: "Temat Projekt firmowy" })).getByText("Etat")
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getByRole("article", { name: "Temat NEXUS" })).getByText("Własny")
+  ).toBeInTheDocument();
 
   const firma = screen.getByRole("region", { name: "Kolejka: Projekt firmowy" });
-  expect(firma).toHaveClass("kok-group--kind-etat");
   expect(within(firma).getByText("Etat")).toBeInTheDocument();
 
   const ogolne = screen.getByRole("region", { name: "Kolejka: Ogólne" });
-  expect(ogolne.className).not.toMatch(/kind/);
   expect(within(ogolne).queryByText(/^(Etat|Własny|Biblioteka)$/)).toBeNull();
 });
 
@@ -388,19 +386,17 @@ test("zadanie ogólne z projektem ma kolor i znacznik rodzaju, grupa „Ogólne�
   await screen.findByText("Poprawić rejestr");
 
   const ogolne = screen.getByRole("region", { name: "Kolejka: Ogólne" });
-  expect(ogolne.className).not.toMatch(/kind/);
+  expect(within(ogolne).queryByText(/^(Etat|Własny|Biblioteka)$/)).toBeNull();
 
   const wlasne = screen.getByText("Poprawić rejestr").closest("li") as HTMLElement;
-  expect(wlasne).toHaveClass("kok-list__item--kind-wlasny");
-  expect(within(wlasne).getByText("Własny · Monolith")).toHaveClass("kok-badge--kind-wlasny");
+  expect(within(wlasne).getByText("Własny · Monolith")).toBeInTheDocument();
 
   const firmowe = screen.getByText("Raport miesięczny").closest("li") as HTMLElement;
-  expect(firmowe).toHaveClass("kok-list__item--kind-etat");
   expect(within(firmowe).getByText("Etat · Firma")).toBeInTheDocument();
   expect(within(firmowe).getByText("Dane z firmy")).toBeInTheDocument();
 
   const zwykle = screen.getByText("Wysłać wniosek").closest("li") as HTMLElement;
-  expect(zwykle.className).not.toMatch(/kind/);
+  expect(within(zwykle).queryByText(/^(Etat|Własny|Biblioteka) · /)).toBeNull();
 });
 
 test("kolejka: grupy, zaległe z datą, bez znacznika firmy dla ogólnych", async () => {
@@ -1490,7 +1486,6 @@ describe("K1: układ wg makiety", () => {
     render(<HomeView {...defaultProps} />);
     const urgent = await screen.findByRole("region", { name: "Pilne" });
     const row = within(urgent).getByText("Zapłacić fakturę firmową").closest("li") as HTMLElement;
-    expect(row).toHaveClass("kok-list__item--kind-etat");
     expect(within(row).getByText("Etat · Firma")).toBeInTheDocument();
     expect(within(row).getByText("Dane z firmy")).toBeInTheDocument();
   });

@@ -110,11 +110,11 @@ describe("ProjectsView", () => {
     });
     render(<ProjectsView apiFetch={apiFetch} />);
     await waitFor(() => {
-      expect(itemButton("a")).toHaveClass("prj-item--stale");
+      expect(within(itemButton("a")).getByText(/Brak zmian od ponad 14 dni/)).toBeInTheDocument();
     });
     const items = screen.getAllByRole("listitem");
     expect(items.at(-1)).toHaveTextContent("c");
-    expect(itemButton("c")).toHaveClass("prj-item--done");
+    expect(within(itemButton("c")).getByText("done")).toBeInTheDocument();
   });
 
   it("bugi", async () => {
@@ -288,7 +288,8 @@ describe("ProjectsView", () => {
     const apiFetch = makeApiFetch([a, b], { a: detail({ id: "a" }), b: detail({ id: "b" }) });
     render(<ProjectsView apiFetch={apiFetch} />);
     await waitFor(() => {
-      expect(itemButton("a")).toHaveClass("prj-item--sel");
+      expect(itemMain("a")).toHaveAttribute("aria-current", "true");
+      expect(itemMain("b")).not.toHaveAttribute("aria-current");
     });
   });
 });
@@ -495,8 +496,6 @@ describe("ProjectsView: uśpienie i nowy projekt", () => {
     });
     expect(await screen.findByRole("button", { name: "Wznów projekt a" })).toBeInTheDocument();
     expect(screen.queryByText(/Brak zmian od ponad 14 dni/)).not.toBeInTheDocument();
-    expect(itemButton("a")).toHaveClass("prj-item--paused");
-    expect(itemButton("a")).not.toHaveClass("prj-item--stale");
     const tiles = screen.getByRole("region", { name: "Statystyki projektów" });
     expect(within(tiles).getByText("wszystko świeże")).toBeInTheDocument();
   });
@@ -574,11 +573,11 @@ describe("ProjectsView: uśpienie i nowy projekt", () => {
 });
 
 describe("ProjectsView: rodzaj projektu", () => {
-  it("zmiana rodzaju w teczce odświeża kolor listy, nagłówek, znaczniki i paczkę", async () => {
+  it("zmiana rodzaju w teczce odświeża znacznik listy, nagłówek i paczkę", async () => {
     const apiFetch = makeRwApiFetch(detail({ id: "a" }));
     render(<ProjectsView apiFetch={apiFetch} />);
     await screen.findByRole("region", { name: "Teczka projektu a" });
-    expect(itemButton("a")).toHaveClass("prj-item--kind-wlasny");
+    expect(within(itemButton("a")).getByText("Własny")).toBeInTheDocument();
     const packCalls = () =>
       apiFetch.mock.calls.filter(([url]) => String(url).endsWith("/context-pack")).length;
     await waitFor(() => expect(packCalls()).toBeGreaterThan(0));
@@ -586,14 +585,13 @@ describe("ProjectsView: rodzaj projektu", () => {
 
     await userEvent.selectOptions(screen.getByLabelText("Typ projektu"), "etat");
 
-    await waitFor(() => expect(itemButton("a")).toHaveClass("prj-item--kind-etat"));
+    await waitFor(() => expect(within(itemButton("a")).getByText("Etat")).toBeInTheDocument());
     const card = screen.getByRole("region", { name: "Teczka projektu a" });
     expect(within(card).getByText("Dane z firmy")).toBeInTheDocument();
-    expect(card.querySelector(".prj-card--kind-etat")).not.toBeNull();
     await waitFor(() => expect(packCalls()).toBeGreaterThan(before));
   });
 
-  it("lista: klasa i znacznik rodzaju; żółty „Firma” tylko przy owner work", async () => {
+  it("lista: znacznik rodzaju; żółty „Firma” tylko przy owner work", async () => {
     const list = [
       summary({ id: "e", type: "etat" }),
       summary({ id: "w" }),
@@ -605,21 +603,16 @@ describe("ProjectsView: rodzaj projektu", () => {
     render(<ProjectsView apiFetch={apiFetch} />);
     await screen.findByText("e", { selector: ".prj-item__name" });
 
-    expect(itemButton("e")).toHaveClass("prj-item--kind-etat");
     expect(within(itemButton("e")).getByText("Etat")).toBeInTheDocument();
     expect(within(itemButton("e")).queryByText("Firma")).not.toBeInTheDocument();
 
-    expect(itemButton("w")).toHaveClass("prj-item--kind-wlasny");
     expect(within(itemButton("w")).getByText("Własny")).toBeInTheDocument();
 
-    expect(itemButton("b")).toHaveClass("prj-item--kind-biblioteka");
     expect(within(itemButton("b")).getByText("Biblioteka")).toBeInTheDocument();
 
-    expect(itemButton("ew")).toHaveClass("prj-item--kind-etat");
     expect(within(itemButton("ew")).getByText("Etat")).toBeInTheDocument();
     expect(within(itemButton("ew")).getByText("Firma")).toBeInTheDocument();
 
-    expect(itemButton("wf")).toHaveClass("prj-item--kind-wlasny");
     expect(within(itemButton("wf")).getByText("Własny")).toBeInTheDocument();
     expect(within(itemButton("wf")).getByText("Firma")).toBeInTheDocument();
   });
@@ -637,7 +630,6 @@ describe("ProjectsView: rodzaj projektu", () => {
       "title",
       expect.stringContaining("Etykieta")
     );
-    expect(etatCard.querySelector(".prj-card--kind-etat")).not.toBeNull();
 
     await userEvent.click(itemMain("w"));
     const workCard = await screen.findByRole("region", { name: "Teczka projektu w" });

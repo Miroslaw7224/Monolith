@@ -259,6 +259,7 @@ describe("ProjectTasksBoard (przez ProjectsView)", () => {
     const dt = dataTransfer();
     fireEvent.dragStart(handle("Trzecie"), { dataTransfer: dt });
     fireEvent.dragOver(column("Icebox"), { dataTransfer: dt });
+    // Podświetlenie celu upuszczenia nie ma odpowiednika w ARIA: `prj-board__col--over` to nazwany kontrakt wizualny.
     expect(column("Icebox")).toHaveClass("prj-board__col--over");
     fireEvent.dragEnd(handle("Trzecie"), { dataTransfer: dt });
     expect(column("Icebox")).not.toHaveClass("prj-board__col--over");
