@@ -39,10 +39,10 @@
   color: var(--muted);
 }
 
-/* układ główny: siatka kart + panel boczny */
+/* układ główny: lista wierszy (3 części) + panel boczny (2 części) */
 .asv-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: var(--s-4);
   align-items: start;
 }
@@ -138,13 +138,13 @@
   font-weight: 600;
 }
 
-/* siatka kart */
+/* lista wierszy */
 .asv-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--s-3);
 }
 .asv-card {
@@ -233,6 +233,12 @@
   gap: var(--s-2);
   padding-top: var(--s-2);
   border-top: 1px solid var(--line);
+}
+.asv-card__end {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
 }
 .asv-card__meta {
   font: 500 11px / 1 var(--font-mono);
