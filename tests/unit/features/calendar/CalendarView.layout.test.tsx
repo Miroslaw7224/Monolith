@@ -6,7 +6,9 @@ import { CalendarView } from "@/src/features/calendar/CalendarView";
 import { toYmd } from "@/src/features/calendar/calendarUtils";
 
 const apiFetch = vi.fn();
-const today = toYmd(new Date());
+// Zegar zamrożony na tę datę w beforeEach (TDD-5).
+const NOW = new Date(2026, 10, 15, 12, 0);
+const today = toYmd(NOW);
 
 const meeting = {
   id: "ev-1",
@@ -22,8 +24,13 @@ const meeting = {
 };
 
 afterEach(cleanup);
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(NOW);
   apiFetch.mockImplementation(async (url: string) => {
     if (url.startsWith("/api/cockpit")) {
       return {

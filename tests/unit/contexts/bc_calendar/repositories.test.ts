@@ -161,7 +161,7 @@ describe("createCalendarEvent", () => {
 
   it("15b. does not overwrite a corrupted month file", async () => {
     vault.write(NOV, "events: [unclosed");
-    await expect(createCalendarEvent(NEW)).rejects.toThrow();
+    await expect(createCalendarEvent(NEW)).rejects.toThrow(/Nie można odczytać pliku Calendar\//);
     expect(vault.read(NOV)).toBe("events: [unclosed");
   });
 });

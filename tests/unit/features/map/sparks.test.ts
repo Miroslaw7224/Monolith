@@ -8,6 +8,8 @@ import {
   type Spark,
 } from "@/src/features/map/sparks";
 
+/** Stały generator: testy nie zależą od losowości (TDD-5). */
+const rng = () => 0.5;
 const seq = (...values: number[]) => {
   let i = 0;
   return () => values[i++ % values.length];
@@ -50,7 +52,7 @@ describe("stepSparks", () => {
   const pool = ["a", "b", "c"];
   it("tworzy min(count, pool) iskier z t w [0,1) i prędkością z zakresu", () => {
     const sparks: Spark<string>[] = [];
-    stepSparks(sparks, 0, pool, 10, 1, Math.random);
+    stepSparks(sparks, 0, pool, 10, 1, rng);
     expect(sparks).toHaveLength(3);
     for (const s of sparks) {
       expect(pool).toContain(s.edge);
@@ -62,18 +64,18 @@ describe("stepSparks", () => {
   });
   it("pusta pula usuwa iskry", () => {
     const sparks: Spark<string>[] = [{ edge: "a", t: 0.5, speed: 0.2 }];
-    stepSparks(sparks, 0.1, [], 10, 1, Math.random);
+    stepSparks(sparks, 0.1, [], 10, 1, rng);
     expect(sparks).toHaveLength(0);
   });
   it("zmniejszony count obcina listę", () => {
     const sparks: Spark<string>[] = [];
-    stepSparks(sparks, 0, pool, 3, 1, Math.random);
-    stepSparks(sparks, 0, pool, 1, 1, Math.random);
+    stepSparks(sparks, 0, pool, 3, 1, rng);
+    stepSparks(sparks, 0, pool, 1, 1, rng);
     expect(sparks).toHaveLength(1);
   });
   it("przesuwa t o speed*dt*speedMul", () => {
     const sparks: Spark<string>[] = [{ edge: "a", t: 0.1, speed: 0.2 }];
-    stepSparks(sparks, 0.5, ["a"], 1, 2, Math.random);
+    stepSparks(sparks, 0.5, ["a"], 1, 2, rng);
     expect(sparks[0].t).toBeCloseTo(0.3);
   });
   it("po dojściu do końca losuje nową krawędź i zaczyna od początku", () => {
@@ -91,14 +93,14 @@ describe("retargetSparks", () => {
       { edge: "old", t: 0.4, speed: 0.25 },
       { edge: "old", t: 0.8, speed: 0.15 },
     ];
-    retargetSparks(sparks, ["x", "y"], Math.random);
+    retargetSparks(sparks, ["x", "y"], rng);
     for (const s of sparks) expect(["x", "y"]).toContain(s.edge);
     expect(sparks[0].t).toBe(0.4);
     expect(sparks[1].speed).toBe(0.15);
   });
   it("pusta pula opróżnia listę", () => {
     const sparks: Spark<string>[] = [{ edge: "a", t: 0, speed: 0.2 }];
-    retargetSparks(sparks, [], Math.random);
+    retargetSparks(sparks, [], rng);
     expect(sparks).toHaveLength(0);
   });
 });

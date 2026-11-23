@@ -15,11 +15,13 @@ const NOW = 1_795_104_000_000;
 function runHelpers(
   stub: ReturnType<typeof makeHcStub>,
   args: string[],
-  extraEnv: Record<string, string> = {}
+  extraEnv: Record<string, string> = {},
+  timeoutMs?: number
 ) {
   const res = spawnSync("bash", [SCRIPT, ...args], {
     cwd: ROOT,
     encoding: "utf8",
+    timeout: timeoutMs,
     env: {
       ...stub.env,
       HELPERS_ROOT: "/x/Monolith",
@@ -297,13 +299,14 @@ describe("helpers.sh watch", () => {
 
   it("brak pomocników projektu: kończy się od razu kodem 0", () => {
     const stub = makeHcStub({ ls: { terminals: [] } });
-    const started = Date.now();
-    const res = runHelpers(stub, ["watch"], {
-      HELPERS_WATCH_SEC: "30",
-      HELPERS_WATCH_RECHECK_SEC: "0",
-    });
+    // Limit czasu zamiast pomiaru zegara: gdy `watch` czeka, spawnSync zabija proces i status = null (TDD-5).
+    const res = runHelpers(
+      stub,
+      ["watch"],
+      { HELPERS_WATCH_SEC: "30", HELPERS_WATCH_RECHECK_SEC: "0" },
+      10_000
+    );
     expect(res.status).toBe(0);
-    expect(Date.now() - started).toBeLessThan(10_000);
   });
 });
 

@@ -51,7 +51,7 @@ describe("formatYamlList / parseYamlList", () => {
   });
 
   it("rzuca błąd, gdy plik nie jest mapą", () => {
-    expect(() => parseYamlList("- a\n- b", "x")).toThrow();
+    expect(() => parseYamlList("- a\n- b", "x")).toThrow("plik YAML nie jest mapą z listą");
   });
 
   it("rzuca błąd, gdy klucz nie jest listą", () => {
@@ -59,7 +59,7 @@ describe("formatYamlList / parseYamlList", () => {
   });
 
   it("rzuca błąd, gdy element listy nie jest mapą", () => {
-    expect(() => parseYamlList("x:\n  - 1", "x")).toThrow();
+    expect(() => parseYamlList("x:\n  - 1", "x")).toThrow('element listy "x" nie jest mapą');
   });
 
   it("brak klucza listy daje pustą listę", () => {

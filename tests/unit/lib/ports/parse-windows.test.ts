@@ -57,6 +57,6 @@ describe("parseWindowsJson", () => {
   });
 
   it("niepoprawny JSON rzuca wyjątek (źródło oznaczy go jako error)", () => {
-    expect(() => parseWindowsJson("{nie json")).toThrow();
+    expect(() => parseWindowsJson("{nie json")).toThrow(SyntaxError);
   });
 });
