@@ -59,6 +59,8 @@ function EntryCard({
           </span>
         </span>
         <span className="asv-card__desc">{entry.summary}</span>
+      </button>
+      <div className="asv-card__foot">
         {projects.length > 0 && (
           <span className="asv-card__projects">
             {projects.map((id) => (
@@ -68,14 +70,14 @@ function EntryCard({
             ))}
           </span>
         )}
-      </button>
-      <div className="asv-card__foot">
-        <span className="asv-card__meta">{meta}</span>
-        {entry.kind === "skill" ? (
-          <CopyButton text={`/${entry.slug}`} ariaLabel={t("arsenal:arsenalCopyInvocation")} />
-        ) : (
-          <CopyButton text={entry.body} ariaLabel={t("arsenal:arsenalCopyPrompt")} />
-        )}
+        <span className="asv-card__end">
+          <span className="asv-card__meta">{meta}</span>
+          {entry.kind === "skill" ? (
+            <CopyButton text={`/${entry.slug}`} ariaLabel={t("arsenal:arsenalCopyInvocation")} />
+          ) : (
+            <CopyButton text={entry.body} ariaLabel={t("arsenal:arsenalCopyPrompt")} />
+          )}
+        </span>
       </div>
     </article>
   );

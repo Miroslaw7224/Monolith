@@ -87,6 +87,15 @@ describe("ArsenalSkillsView", () => {
     expect(side.getByRole("heading", { name: "test-driven-development" })).toBeVisible();
   });
 
+  it("chipy projektów leżą w stopce wiersza, poza przyciskiem wyboru", async () => {
+    setup();
+    const selectButton = await screen.findByRole("button", { name: /test-driven-development/ });
+    const row = selectButton.closest("article") as HTMLElement;
+    const chip = within(row).getByText("Projekt P");
+    expect(chip.closest(".asv-card__foot")).not.toBeNull();
+    expect(selectButton).not.toContainElement(chip);
+  });
+
   it("„Kopiuj” na karcie skilla kopiuje wywołanie, na karcie promptu treść", async () => {
     setup();
     const user = userEvent.setup();
