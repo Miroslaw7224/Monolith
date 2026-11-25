@@ -5,6 +5,7 @@ export function eventModifier(ev: CalendarEvent): string {
   if (ev.type === "task_deadline") return "kal-ev--deadline";
   if (ev.tags?.some((tag) => tag.toLowerCase() === "etat")) return "kal-ev--etat";
   if (ev.type === "meeting") return "kal-ev--meeting";
+  if (ev.type === "visit") return "kal-ev--visit";
   return "";
 }
 

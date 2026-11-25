@@ -75,6 +75,7 @@ export const planning = {
   calendarFormEventType: "Typ wydarzenia",
   calendarFormTypeWork: "Sesja pracy",
   calendarFormTypeMeeting: "Spotkanie",
+  calendarFormTypeVisit: "Wizyta",
   calendarFormDate: "Data",
   calendarFormStartTime: "Godzina rozpoczęcia",
   calendarFormDuration: "Czas trwania (kroki 15 min)",
