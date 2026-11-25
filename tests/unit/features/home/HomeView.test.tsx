@@ -1492,6 +1492,58 @@ describe("K1: układ wg makiety", () => {
     expect(within(row).getByText("Dane z firmy")).toBeInTheDocument();
   });
 
+  test("jutrzejsza wizyta: sekcja „Jutro” jest nad „Pilne” i pokazuje godzinę oraz czas", async () => {
+    respond({
+      ...EMPTY,
+      tomorrowVisits: [
+        { id: "v1", title: "Wizyta u kardiologa", startMinutes: 450, durationMinutes: 60 },
+      ],
+      queue: [
+        {
+          projectId: null,
+          name: "Ogólne",
+          owner: "personal",
+          items: [
+            {
+              kind: "undated",
+              title: "Zadzwonić do banku",
+              due: null,
+              projectName: null,
+              priority: null,
+              energy: null,
+              urgent: true,
+              source: { type: "task", taskId: "t-pilne" },
+            },
+          ],
+        },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const visit = await screen.findByRole("region", { name: "Jutro: wizyta" });
+    expect(within(visit).getByText("07:30")).toBeInTheDocument();
+    expect(within(visit).getByText("Wizyta u kardiologa")).toBeInTheDocument();
+    expect(within(visit).getByText("60 min")).toBeInTheDocument();
+    const urgent = screen.getByRole("region", { name: "Pilne" });
+    expect(visit.compareDocumentPosition(urgent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("jutrzejsza wizyta bez pilnych zadań: sekcja nadal się pokazuje", async () => {
+    respond({
+      ...EMPTY,
+      tomorrowVisits: [{ id: "v1", title: "Dentysta", startMinutes: 480, durationMinutes: 60 }],
+    });
+    render(<HomeView {...defaultProps} />);
+    expect(await screen.findByRole("region", { name: "Jutro: wizyta" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Pilne" })).not.toBeInTheDocument();
+  });
+
+  test("brak jutrzejszych wizyt: sekcji „Jutro: wizyta” nie ma", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByRole("region", { name: "Kolejka na dziś" });
+    expect(screen.queryByRole("region", { name: "Jutro: wizyta" })).not.toBeInTheDocument();
+  });
+
   test("brak pilnych zadań: sekcji „Pilne” nie ma", async () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);

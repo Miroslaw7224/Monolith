@@ -126,6 +126,22 @@ describe("HomeView po angielsku", () => {
     cleanup();
   });
 
+  test("tomorrow visit: region shows start time", async () => {
+    await act(async () => {
+      await setLanguage("en");
+    });
+    respond({
+      ...cockpitWithEnergyQueue,
+      queue: [],
+      tomorrowVisits: [
+        { id: "v1", title: "Cardiologist visit", startMinutes: 450, durationMinutes: 60 },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const visit = await screen.findByRole("region", { name: "Tomorrow: visit" });
+    expect(within(visit).getByText("07:30")).toBeInTheDocument();
+  });
+
   test("nagłówek dnia: Wednesday, November 11 (bez polskiej daty)", async () => {
     await act(async () => {
       await setLanguage("en");
