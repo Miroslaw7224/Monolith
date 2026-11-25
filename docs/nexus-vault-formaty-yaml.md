@@ -91,20 +91,20 @@ events:
     updated: "2026-11-13T20:40:04.823Z"
 ```
 
-| Pole               | Wymagane | Znaczenie                                                                                                                                        |
-| ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`               | tak      | 20 znaków alfanumerycznych, unikalne w całym katalogu `Calendar/` (nie tylko w pliku)                                                            |
-| `date`             | tak      | `"RRRR-MM-DD"` **w cudzysłowie**, data lokalna użytkownika (bez przesunięcia UTC)                                                                |
-| `start_minutes`    | tak      | minuty od północy czasu lokalnego, liczba: 09:00 = `540`, 19:00 = `1140`, 20:00 = `1200`                                                         |
-| `duration_minutes` | tak      | minuty, **wielokrotność 15** (inaczej API odrzuca; ręczny zapis to omija, więc pilnuj sam)                                                       |
-| `title`            | tak      | tekst; brak = pusty                                                                                                                              |
-| `tags`             | tak      | lista nazw kanonicznych tagów (może być `[]`); to nazwy, nie id tagów z `Resources/tags.yaml`                                                    |
-| `color`            | tak      | `"#RRGGBB"`; domyślnie `"#3B82F6"`                                                                                                               |
-| `type`             | tak      | `work`, `meeting` albo `visit` (wizyta: lekarz, dentysta; w Kokpicie przypomnienie dzień wcześniej); każda inna wartość jest czytana jako `work` |
-| `created`          | tak      | ISO 8601 UTC (`2026-11-13T20:27:15.954Z`)                                                                                                        |
-| `updated`          | nie      | ISO 8601 UTC; ustawiane przy edycji, rozstrzyga duplikaty `id`                                                                                   |
-| `link`             | nie      | adres spotkania, tylko `http(s)://…` bez spacji, do 500 znaków; inne schematy (np. `javascript:`) są przy odczycie odrzucane                     |
-| `brief`            | nie      | notatka przed spotkaniem, do 1000 znaków, wiele linii, każda linia = punkt                                                                       |
+| Pole               | Wymagane | Znaczenie                                                                                                                                       |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | tak      | 20 znaków alfanumerycznych, unikalne w całym katalogu `Calendar/` (nie tylko w pliku)                                                           |
+| `date`             | tak      | `"RRRR-MM-DD"` **w cudzysłowie**, data lokalna użytkownika (bez przesunięcia UTC)                                                               |
+| `start_minutes`    | tak      | minuty od północy czasu lokalnego, liczba: 09:00 = `540`, 19:00 = `1140`, 20:00 = `1200`                                                        |
+| `duration_minutes` | tak      | minuty, **wielokrotność 15** (inaczej API odrzuca; ręczny zapis to omija, więc pilnuj sam)                                                      |
+| `title`            | tak      | tekst; brak = pusty                                                                                                                             |
+| `tags`             | tak      | lista nazw kanonicznych tagów (może być `[]`); to nazwy, nie id tagów z `Resources/tags.yaml`                                                   |
+| `color`            | tak      | `"#RRGGBB"`; domyślnie `"#3B82F6"`                                                                                                              |
+| `type`             | tak      | `work`, `meeting` albo `visit` (wizyta: lekarz, dentysta; w Kokpicie przypomnienie od 3 dni przed); każda inna wartość jest czytana jako `work` |
+| `created`          | tak      | ISO 8601 UTC (`2026-11-13T20:27:15.954Z`)                                                                                                       |
+| `updated`          | nie      | ISO 8601 UTC; ustawiane przy edycji, rozstrzyga duplikaty `id`                                                                                  |
+| `link`             | nie      | adres spotkania, tylko `http(s)://…` bez spacji, do 500 znaków; inne schematy (np. `javascript:`) są przy odczycie odrzucane                    |
+| `brief`            | nie      | notatka przed spotkaniem, do 1000 znaków, wiele linii, każda linia = punkt                                                                      |
 
 Pola opcjonalne (`link`, `brief`, `updated`) są pomijane, gdy brak wartości (nigdy `null`, nigdy pusty tekst).
 

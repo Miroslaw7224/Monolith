@@ -1,5 +1,7 @@
 # Kalendarz: typ wydarzenia „wizyta” i przypomnienie w Kokpicie
 
+> **Zmiana 2026-11-25 (po zatwierdzeniu):** przypomnienie 3 dni przed wizytą, a nie 1 dzień (zob. §7). Pole `tomorrowVisits` z §3 i §5 nazywa się teraz `upcomingVisits`; decyzja D3 jest zastąpiona przez §7.
+
 Data: 2026-11-25. Status: zatwierdzony przez użytkownika (projekt przedstawiony w rozmowie 2026-11-25). Rozwija `2026-11-13-bc-calendar-design.md`.
 
 ## 1. Cel
@@ -54,3 +56,11 @@ Zapisy tylko przez istniejące API kalendarza do `Vault/Calendar/`; nie dotyka `
 ## 6. Po wdrożeniu
 
 Przez `PUT` zmienić typ wizyty u kardiologa (7.12.2026, id `SfqCY9dkuVxsVlUR6SCJ`) z `work` na `visit` i dopisać wizytę u dentysty (28.01.2027, 8:00, 60 min, tag `prywatny`, typ `visit`); `POST` dopiero po zgodzie na treść zapisu.
+
+## 7. Zmiana: okno 3 dni (2026-11-25)
+
+Użytkownik chce przypomnienia o wizytach 3 dni przed (nie dopiero dzień przed). Zrobione jako okno, nie pojedynczy dzień: wizyta jest na liście od dziś + 3 dni do dnia poprzedzającego wizytę (jednodniowe przypomnienie łatwo przeoczyć). Wizyta za 4 dni jeszcze się nie pokazuje, dzisiejsza jest w osi dnia.
+
+- `Cockpit.upcomingVisits: UpcomingVisit[]` (`{ id, date, title, startMinutes, durationMinutes }`, wg daty i godziny); `loadUpcomingVisits` pyta kalendarz o zakres `jutro … dziś + VISIT_REMINDER_DAYS (3)`.
+- Sekcja `kok-visit`: nagłówek „WIZYTY · najbliższe 3 dni” (region „Najbliższe wizyty”); wiersz: dzień (`meetingDayLabel`: „jutro” albo pełna data), godzina, tytuł, czas trwania.
+- Testy: zakres zapytania; jutro, pojutrze i za 3 dni są na liście; dziś i za 4 dni nie; sortowanie po dacie i godzinie; granica roku (30.12 widzi 2.01).
