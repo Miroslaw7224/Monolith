@@ -1351,7 +1351,7 @@
 
 .kok-alerts--pair {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
+  align-items: stretch; /* obie karty tej samej wysokości */
 }
 
 .kok-alerts > .kok-visit,
