@@ -170,5 +170,9 @@ scripts/ask-helper.sh [--role review|advice|task] [--timeout S] <agy|cursor> "pr
 - **Nie deleguj:** projektowania architektury, zmian w auth/uprawnieniach/zapisie danych, commitów i pushy,
   kasowania czegokolwiek, decyzji produktowych. Nie zlecaj dwóm agentom edycji tych samych plików równolegle.
 - Po `--role task` zawsze sprawdź wynik (`git diff`, testy) przed uznaniem za zrobione.
+- Przed końcem zadania sprawdź, czy któryś pomocnik nie czeka na zgodę (`scripts/helpers.sh status`, `hc read`): przeczytaj prośbę,
+  zatwierdź lub odrzuć według zgód powyżej, a nieaktualną anuluj. Pomocnik nie może zostać z wiszącym promptem.
+- Przed poprawką, zleceniem (WO, bug) lub pushem sprawdź, czy zmiana nie jest już na `origin/main` i czy PR nie jest scalony
+  (`git fetch origin main`, `git log origin/main`, `gh pr view`); zaraportuj w paru zdaniach i dopiero wtedy działaj.
 - Nie deleguj tylko po to, by delegować: proste rzeczy zrób sam. Pomocnik ma sens, gdy daje niezależne spojrzenie
   albo oszczędza mocny model.
