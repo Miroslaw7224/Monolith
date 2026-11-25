@@ -15,6 +15,7 @@ import {
   type GitSummary,
   type InboxSummary,
   type NextMeeting,
+  type TomorrowVisit,
   type OpenPrs,
   type Owner,
   type Pinned,
@@ -495,6 +496,30 @@ function loadWeekFocus(date: string, warnings: string[]): WeekFocus | null {
   }
 }
 
+/** Wizyty (`visit`) z jutrzejszego dnia, od najwcześniejszej; awaria kalendarza daje `[]` i jedno ostrzeżenie. */
+async function loadTomorrowVisits(today: Date, warnings: string[]): Promise<TomorrowVisit[]> {
+  const tomorrow = localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+  try {
+    const entries = await calendarServices.getCalendarEvents({
+      startDate: tomorrow,
+      endDate: tomorrow,
+    });
+    return entries
+      .filter((e) => e.type === "visit" && e.date === tomorrow)
+      .sort((a, b) => a.start_minutes - b.start_minutes)
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        startMinutes: e.start_minutes,
+        durationMinutes: e.duration_minutes,
+      }));
+  } catch (err) {
+    const message = `Kalendarz: ${reason(err)}`;
+    if (!warnings.includes(message)) warnings.push(message);
+    return [];
+  }
+}
+
 // ── API serwisu ────────────────────────────────────────────────────────────────
 
 /** Każde źródło w osobnym try/catch: awaria daje pustą sekcję i wpis w `warnings`, nie wyjątek. */
@@ -508,6 +533,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const nextMeeting: NextMeeting | null = todays
     ? { date, ...todays }
     : await loadUpcomingMeeting(today, date, warnings);
+  const tomorrowVisits = await loadTomorrowVisits(today, warnings);
   const git = loadGit(today, topics, warnings);
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
@@ -520,6 +546,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
     queue,
     events,
     nextMeeting,
+    tomorrowVisits,
     git,
     inbox,
     windows,

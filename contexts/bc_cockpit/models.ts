@@ -85,7 +85,7 @@ export type DayEvent = {
   title: string;
   startMinutes: number;
   durationMinutes: number;
-  type: "work" | "meeting";
+  type: "work" | "meeting" | "visit";
   color: string;
   /** Adres spotkania online (http/https) albo `null`. */
   link: string | null;
@@ -102,6 +102,14 @@ export type NextMeeting = {
   durationMinutes: number;
   /** Adres spotkania online (http/https) albo `null`. */
   link: string | null;
+};
+
+/** Wizyta (typ `visit`) z jutrzejszego dnia: przypomnienie w Kokpicie z wyprzedzeniem jednego dnia. */
+export type TomorrowVisit = {
+  id: string;
+  title: string;
+  startMinutes: number;
+  durationMinutes: number;
 };
 
 /** Git (tylko odczyt): commity dziś ze wszystkich projektów z dostępnym repo i gałąź pierwszego tematu. */
@@ -238,6 +246,8 @@ export type Cockpit = {
   queue: QueueGroup[];
   events: DayEvent[];
   nextMeeting: NextMeeting | null;
+  /** Wizyty z jutra, od najwcześniejszej; puste, gdy brak albo kalendarz zawiódł (jest wtedy ostrzeżenie). */
+  tomorrowVisits: TomorrowVisit[];
   /** `null`: żadne repozytorium nie jest dostępne (albo git zawiódł, wtedy jest też ostrzeżenie). */
   git: GitSummary | null;
   /** `null`, gdy plik inboxu nie dał się odczytać (jest wtedy ostrzeżenie). */

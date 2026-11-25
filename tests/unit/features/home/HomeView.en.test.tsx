@@ -61,6 +61,7 @@ const cockpitWithEnergyQueue: CockpitDto = {
   ],
   events: [],
   nextMeeting: null,
+  tomorrowVisits: [],
   git: null,
   inbox: null,
   windows: [],

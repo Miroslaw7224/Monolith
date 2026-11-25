@@ -11,6 +11,7 @@ const EMPTY: CockpitDto = {
   queue: [],
   events: [],
   nextMeeting: null,
+  tomorrowVisits: [],
   git: null,
   inbox: null,
   windows: [],
@@ -137,6 +138,7 @@ const FULL: CockpitDto = {
     durationMinutes: 30,
     link: "https://meet.google.com/gon-fztr-zrn",
   },
+  tomorrowVisits: [],
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
   inbox: { open: 2 },
   windows: [
