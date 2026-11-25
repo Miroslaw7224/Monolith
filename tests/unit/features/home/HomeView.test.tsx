@@ -11,7 +11,7 @@ const EMPTY: CockpitDto = {
   queue: [],
   events: [],
   nextMeeting: null,
-  tomorrowVisits: [],
+  upcomingVisits: [],
   git: null,
   inbox: null,
   windows: [],
@@ -138,7 +138,7 @@ const FULL: CockpitDto = {
     durationMinutes: 30,
     link: "https://meet.google.com/gon-fztr-zrn",
   },
-  tomorrowVisits: [],
+  upcomingVisits: [],
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
   inbox: { open: 2 },
   windows: [
@@ -1492,11 +1492,17 @@ describe("K1: układ wg makiety", () => {
     expect(within(row).getByText("Dane z firmy")).toBeInTheDocument();
   });
 
-  test("jutrzejsza wizyta: sekcja „Jutro” jest nad „Pilne” i pokazuje godzinę oraz czas", async () => {
+  test("nadchodząca wizyta: sekcja jest nad „Pilne” i pokazuje dzień, godzinę oraz czas", async () => {
     respond({
       ...EMPTY,
-      tomorrowVisits: [
-        { id: "v1", title: "Wizyta u kardiologa", startMinutes: 450, durationMinutes: 60 },
+      upcomingVisits: [
+        {
+          id: "v1",
+          date: "2026-11-14",
+          title: "Wizyta u kardiologa",
+          startMinutes: 450,
+          durationMinutes: 60,
+        },
       ],
       queue: [
         {
@@ -1519,7 +1525,8 @@ describe("K1: układ wg makiety", () => {
       ],
     });
     render(<HomeView {...defaultProps} />);
-    const visit = await screen.findByRole("region", { name: "Jutro: wizyta" });
+    const visit = await screen.findByRole("region", { name: "Najbliższe wizyty" });
+    expect(within(visit).getByText("jutro")).toBeInTheDocument();
     expect(within(visit).getByText("07:30")).toBeInTheDocument();
     expect(within(visit).getByText("Wizyta u kardiologa")).toBeInTheDocument();
     expect(within(visit).getByText("60 min")).toBeInTheDocument();
@@ -1527,21 +1534,31 @@ describe("K1: układ wg makiety", () => {
     expect(visit.compareDocumentPosition(urgent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  test("jutrzejsza wizyta bez pilnych zadań: sekcja nadal się pokazuje", async () => {
+  test("wizyta za 3 dni bez pilnych zadań: sekcja pokazuje pełną datę zamiast „jutro”", async () => {
     respond({
       ...EMPTY,
-      tomorrowVisits: [{ id: "v1", title: "Dentysta", startMinutes: 480, durationMinutes: 60 }],
+      upcomingVisits: [
+        {
+          id: "v1",
+          date: "2026-11-16",
+          title: "Dentysta",
+          startMinutes: 480,
+          durationMinutes: 60,
+        },
+      ],
     });
     render(<HomeView {...defaultProps} />);
-    expect(await screen.findByRole("region", { name: "Jutro: wizyta" })).toBeInTheDocument();
+    const visit = await screen.findByRole("region", { name: "Najbliższe wizyty" });
+    expect(within(visit).getByText(/16 listopada/)).toBeInTheDocument();
+    expect(within(visit).queryByText("jutro")).not.toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Pilne" })).not.toBeInTheDocument();
   });
 
-  test("brak jutrzejszych wizyt: sekcji „Jutro: wizyta” nie ma", async () => {
+  test("brak nadchodzących wizyt: sekcji „Najbliższe wizyty” nie ma", async () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);
     await screen.findByRole("region", { name: "Kolejka na dziś" });
-    expect(screen.queryByRole("region", { name: "Jutro: wizyta" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Najbliższe wizyty" })).not.toBeInTheDocument();
   });
 
   test("brak pilnych zadań: sekcji „Pilne” nie ma", async () => {

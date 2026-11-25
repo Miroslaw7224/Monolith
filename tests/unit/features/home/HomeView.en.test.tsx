@@ -61,7 +61,7 @@ const cockpitWithEnergyQueue: CockpitDto = {
   ],
   events: [],
   nextMeeting: null,
-  tomorrowVisits: [],
+  upcomingVisits: [],
   git: null,
   inbox: null,
   windows: [],
@@ -126,19 +126,26 @@ describe("HomeView po angielsku", () => {
     cleanup();
   });
 
-  test("tomorrow visit: region shows start time", async () => {
+  test("upcoming visit: region shows day and start time", async () => {
     await act(async () => {
       await setLanguage("en");
     });
     respond({
       ...cockpitWithEnergyQueue,
       queue: [],
-      tomorrowVisits: [
-        { id: "v1", title: "Cardiologist visit", startMinutes: 450, durationMinutes: 60 },
+      upcomingVisits: [
+        {
+          id: "v1",
+          date: "2026-11-12",
+          title: "Cardiologist visit",
+          startMinutes: 450,
+          durationMinutes: 60,
+        },
       ],
     });
     render(<HomeView {...defaultProps} />);
-    const visit = await screen.findByRole("region", { name: "Tomorrow: visit" });
+    const visit = await screen.findByRole("region", { name: "Upcoming visits" });
+    expect(within(visit).getByText("tomorrow")).toBeInTheDocument();
     expect(within(visit).getByText("07:30")).toBeInTheDocument();
   });
 

@@ -530,14 +530,15 @@ export function CockpitSections({
 
   return (
     <>
-      {data.tomorrowVisits.length > 0 ? (
+      {data.upcomingVisits.length > 0 ? (
         <section className="kok-visit" aria-label={t("home:cockpit.visitAria")}>
           <h3 className="kok-visit__title">
             <b>{t("home:cockpit.visitBold")}</b> · {t("home:cockpit.visitSub")}
           </h3>
           <ul className="kok-visit__list">
-            {data.tomorrowVisits.map((v) => (
+            {data.upcomingVisits.map((v) => (
               <li key={v.id} className="kok-visit__item">
+                <span className="kok-visit__day">{meetingDayLabel(v.date, data.date)}</span>
                 <span className="kok-visit__time">{hhmm(v.startMinutes)}</span>
                 <span className="kok-visit__name">{v.title}</span>
                 <span className="kok-visit__dur">

@@ -15,7 +15,7 @@ import {
   type GitSummary,
   type InboxSummary,
   type NextMeeting,
-  type TomorrowVisit,
+  type UpcomingVisit,
   type OpenPrs,
   type Owner,
   type Pinned,
@@ -496,19 +496,23 @@ function loadWeekFocus(date: string, warnings: string[]): WeekFocus | null {
   }
 }
 
-/** Wizyty (`visit`) z jutrzejszego dnia, od najwcześniejszej; awaria kalendarza daje `[]` i jedno ostrzeżenie. */
-async function loadTomorrowVisits(today: Date, warnings: string[]): Promise<TomorrowVisit[]> {
-  const tomorrow = localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1));
+/** Na ile dni przed wizytą Kokpit zaczyna o niej przypominać (od `dziś + 3` do dnia poprzedzającego wizytę). */
+const VISIT_REMINDER_DAYS = 3;
+
+/** Wizyty (`visit`) od jutra do dziś + `VISIT_REMINDER_DAYS`, wg daty i godziny; awaria kalendarza daje `[]` i jedno ostrzeżenie. */
+async function loadUpcomingVisits(today: Date, warnings: string[]): Promise<UpcomingVisit[]> {
+  const day = (offset: number) =>
+    localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + offset));
+  const from = day(1);
+  const to = day(VISIT_REMINDER_DAYS);
   try {
-    const entries = await calendarServices.getCalendarEvents({
-      startDate: tomorrow,
-      endDate: tomorrow,
-    });
+    const entries = await calendarServices.getCalendarEvents({ startDate: from, endDate: to });
     return entries
-      .filter((e) => e.type === "visit" && e.date === tomorrow)
-      .sort((a, b) => a.start_minutes - b.start_minutes)
+      .filter((e) => e.type === "visit" && e.date >= from && e.date <= to)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.start_minutes - b.start_minutes)
       .map((e) => ({
         id: e.id,
+        date: e.date,
         title: e.title,
         startMinutes: e.start_minutes,
         durationMinutes: e.duration_minutes,
@@ -533,7 +537,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
   const nextMeeting: NextMeeting | null = todays
     ? { date, ...todays }
     : await loadUpcomingMeeting(today, date, warnings);
-  const tomorrowVisits = await loadTomorrowVisits(today, warnings);
+  const upcomingVisits = await loadUpcomingVisits(today, warnings);
   const git = loadGit(today, topics, warnings);
   const inbox = loadInbox(warnings);
   const closing = loadClosing(date, warnings);
@@ -546,7 +550,7 @@ export async function getCockpit(today: Date = new Date()): Promise<Cockpit> {
     queue,
     events,
     nextMeeting,
-    tomorrowVisits,
+    upcomingVisits,
     git,
     inbox,
     windows,

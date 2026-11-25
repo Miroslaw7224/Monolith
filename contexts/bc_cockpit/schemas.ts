@@ -14,7 +14,7 @@ import type {
   ReviewRequest,
   ReviewRequests,
   Topic,
-  TomorrowVisit,
+  UpcomingVisit,
   WeekFocus,
   WeekReview,
 } from "./models";
@@ -71,7 +71,7 @@ export const SetQueueEnergySchema = looseObject({
 export type TopicDto = Topic;
 export type QueueGroupDto = QueueGroup;
 export type DayEventDto = DayEvent;
-export type TomorrowVisitDto = TomorrowVisit;
+export type UpcomingVisitDto = UpcomingVisit;
 export type DeepWindowDto = DeepWindow;
 export type CockpitDto = Cockpit;
 export type PinnedDto = Pinned;
@@ -151,8 +151,9 @@ export function toCockpitDto(c: Cockpit): CockpitDto {
       brief: e.brief,
     })),
     nextMeeting: c.nextMeeting ? { ...c.nextMeeting } : null,
-    tomorrowVisits: c.tomorrowVisits.map((v) => ({
+    upcomingVisits: c.upcomingVisits.map((v) => ({
       id: v.id,
+      date: v.date,
       title: v.title,
       startMinutes: v.startMinutes,
       durationMinutes: v.durationMinutes,

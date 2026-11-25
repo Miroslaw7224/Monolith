@@ -497,7 +497,7 @@ describe("następne spotkanie", () => {
   });
 });
 
-describe("jutrzejsze wizyty (tomorrowVisits)", () => {
+describe("nadchodzące wizyty (upcomingVisits, okno 3 dni)", () => {
   const entry = (date: string, over: Partial<CalendarEntry> = {}): CalendarEntry => ({
     id: `id-${date}-${over.title ?? "x"}`,
     date,
@@ -509,64 +509,78 @@ describe("jutrzejsze wizyty (tomorrowVisits)", () => {
     type: "visit",
     ...over,
   });
-
-  it("jutrzejsza wizyta trafia do tomorrowVisits, posortowana po godzinie", async () => {
+  /** Kalendarz oddaje wszystko z podanego zakresu dat (jak prawdziwy serwis). */
+  const calendar = (all: CalendarEntry[]) =>
     mockGetCalendarEvents.mockImplementation(async (r = {}) =>
-      r.startDate === "2026-11-14" && r.endDate === "2026-11-14"
-        ? [
-            entry("2026-11-14", { title: "Dentysta", start_minutes: 540 }),
-            entry("2026-11-14", { title: "Kardiolog", start_minutes: 450 }),
-          ]
-        : []
+      all.filter((e) => e.date >= (r.startDate ?? "") && e.date <= (r.endDate ?? "9999"))
     );
-    const { tomorrowVisits } = await getCockpit(TODAY);
-    expect(tomorrowVisits).toEqual([
-      { id: "id-2026-11-14-Kardiolog", title: "Kardiolog", startMinutes: 450, durationMinutes: 60 },
-      { id: "id-2026-11-14-Dentysta", title: "Dentysta", startMinutes: 540, durationMinutes: 60 },
-    ]);
+
+  it("pyta kalendarz o zakres od jutra do dziś + 3 dni", async () => {
+    await getCockpit(TODAY);
+    expect(mockGetCalendarEvents).toHaveBeenCalledWith({
+      startDate: "2026-11-14",
+      endDate: "2026-11-16",
+    });
   });
 
-  it("wizyta dziś, pojutrze, spotkanie, praca i termin jutro nie trafiają do tomorrowVisits", async () => {
+  it("wizyty z jutra, pojutrza i za 3 dni trafiają do listy, po dacie i godzinie", async () => {
+    calendar([
+      entry("2026-11-16", { title: "Za 3 dni" }),
+      entry("2026-11-14", { title: "Jutro późno", start_minutes: 540 }),
+      entry("2026-11-14", { title: "Jutro rano", start_minutes: 450 }),
+      entry("2026-11-15", { title: "Pojutrze" }),
+    ]);
+    const { upcomingVisits } = await getCockpit(TODAY);
+    expect(upcomingVisits.map((v) => [v.date, v.title])).toEqual([
+      ["2026-11-14", "Jutro rano"],
+      ["2026-11-14", "Jutro późno"],
+      ["2026-11-15", "Pojutrze"],
+      ["2026-11-16", "Za 3 dni"],
+    ]);
+    expect(upcomingVisits[0]).toEqual({
+      id: "id-2026-11-14-Jutro rano",
+      date: "2026-11-14",
+      title: "Jutro rano",
+      startMinutes: 450,
+      durationMinutes: 60,
+    });
+  });
+
+  it("wizyta dziś i za 4 dni nie trafia do listy; spotkanie, praca i termin też nie", async () => {
     mockGetCalendarEvents.mockResolvedValue([
       entry("2026-11-13", { title: "Dziś" }),
-      entry("2026-11-15", { title: "Pojutrze" }),
+      entry("2026-11-17", { title: "Za 4 dni" }),
       entry("2026-11-14", { title: "Spotkanie", type: "meeting" }),
       entry("2026-11-14", { title: "Praca", type: "work" }),
       entry("2026-11-14", { title: "Termin", type: "task_deadline" }),
     ]);
-    expect((await getCockpit(TODAY)).tomorrowVisits).toEqual([]);
+    expect((await getCockpit(TODAY)).upcomingVisits).toEqual([]);
   });
 
-  it("granica miesiąca i roku: 31.12 widzi wizytę z 1.01", async () => {
-    mockGetCalendarEvents.mockImplementation(async (r = {}) =>
-      r.startDate === "2027-01-01" ? [entry("2027-01-01", { title: "Noworoczna" })] : []
-    );
-    const { tomorrowVisits } = await getCockpit(new Date(2026, 11, 31, 10, 0));
-    expect(tomorrowVisits.map((v) => v.title)).toEqual(["Noworoczna"]);
+  it("granica miesiąca i roku: 30.12 widzi wizytę z 2.01", async () => {
+    calendar([entry("2027-01-02", { title: "Noworoczna" })]);
+    const { upcomingVisits } = await getCockpit(new Date(2026, 11, 30, 10, 0));
+    expect(upcomingVisits.map((v) => [v.date, v.title])).toEqual([["2027-01-02", "Noworoczna"]]);
   });
 
-  it("wizyta jutro nie zmienia nextMeeting ani osi dzisiejszego dnia", async () => {
-    mockGetCalendarEvents.mockResolvedValue([entry("2026-11-14")]);
+  it("wizyta w oknie nie zmienia nextMeeting ani osi dzisiejszego dnia", async () => {
+    calendar([entry("2026-11-14")]);
     const result = await getCockpit(TODAY);
     expect(result.nextMeeting).toBeNull();
     expect(result.events).toEqual([]);
   });
 
-  it("dzisiejsza wizyta jest na osi dnia (type visit), ale nie w tomorrowVisits", async () => {
-    mockGetCalendarEvents.mockImplementation(async (r = {}) =>
-      r.startDate === "2026-11-13" && r.endDate === "2026-11-13"
-        ? [entry("2026-11-13", { title: "Dziś" })]
-        : []
-    );
+  it("dzisiejsza wizyta jest na osi dnia (type visit), ale nie na liście nadchodzących", async () => {
+    calendar([entry("2026-11-13", { title: "Dziś" })]);
     const result = await getCockpit(TODAY);
     expect(result.events.map((e) => [e.title, e.type])).toEqual([["Dziś", "visit"]]);
-    expect(result.tomorrowVisits).toEqual([]);
+    expect(result.upcomingVisits).toEqual([]);
   });
 
   it("awaria kalendarza: pusta lista i jedno ostrzeżenie", async () => {
     mockGetCalendarEvents.mockRejectedValue(new Error("boom"));
     const result = await getCockpit(TODAY);
-    expect(result.tomorrowVisits).toEqual([]);
+    expect(result.upcomingVisits).toEqual([]);
     expect(result.warnings).toEqual(["Kalendarz: boom"]);
   });
 });
