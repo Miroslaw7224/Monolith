@@ -4,6 +4,7 @@ import { parseBody } from "@/lib/http/parseBody";
 import {
   CreateCalendarEventBodySchema,
   UpdateCalendarEventBodySchema,
+  normalizeEventType,
   toCalendarEventDto,
 } from "./schemas";
 import * as services from "./services";
@@ -35,7 +36,7 @@ export async function createCalendarEvent(request: NextRequest): Promise<NextRes
       title: (title ?? "") as string,
       tags: (Array.isArray(tags) ? tags : tags ? [tags] : []) as string[],
       color: (color ?? "#3B82F6") as string,
-      type: type === "meeting" ? "meeting" : "work",
+      type: normalizeEventType(type),
       link: typeof link === "string" ? link : undefined,
       brief: typeof brief === "string" ? brief : undefined,
     });
@@ -63,7 +64,7 @@ export async function updateCalendarEvent(
       title: body.title as string | undefined,
       tags: body.tags as string[] | undefined,
       color: body.color as string | undefined,
-      type: body.type !== undefined ? (body.type === "meeting" ? "meeting" : "work") : undefined,
+      type: body.type !== undefined ? normalizeEventType(body.type) : undefined,
       link: typeof body.link === "string" ? body.link : undefined,
       brief: typeof body.brief === "string" ? body.brief : undefined,
     });

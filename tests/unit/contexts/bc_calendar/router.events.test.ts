@@ -109,6 +109,16 @@ describe("POST /api/calendar/events", () => {
     });
   });
 
+  it("POST zachowuje typ visit", async () => {
+    mockCreateCalendarEvent.mockResolvedValue({ ...EVENT, type: "visit" });
+    const res = await POST(
+      post({ date: "2026-11-13", start_minutes: 450, duration_minutes: 60, type: "visit" })
+    );
+    expect(res.status).toBe(200);
+    expect(mockCreateCalendarEvent.mock.calls[0][0].type).toBe("visit");
+    expect((await res.json()).type).toBe("visit");
+  });
+
   it("stosuje domyślne: tytuł pusty, tags [], kolor #3B82F6, typ work", async () => {
     mockCreateCalendarEvent.mockResolvedValue(EVENT);
     await POST(post({ date: "2026-11-13", start_minutes: 0, duration_minutes: 30 }));

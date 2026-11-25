@@ -39,13 +39,15 @@ describe("PUT /api/calendar/events/[id]", () => {
     });
   });
 
-  it("zachowuje meeting, nieznany typ zamienia na work, brak typu zostaje undefined", async () => {
+  it("zachowuje meeting i visit, nieznany typ zamienia na work, brak typu zostaje undefined", async () => {
     mockUpdateCalendarEvent.mockResolvedValue(undefined);
     await PUT(request("PUT", { type: "meeting" }), { params });
+    await PUT(request("PUT", { type: "visit" }), { params });
     await PUT(request("PUT", { type: "foo" }), { params });
     await PUT(request("PUT", { title: "x" }), { params });
     expect(mockUpdateCalendarEvent.mock.calls.map((c) => c[1].type)).toEqual([
       "meeting",
+      "visit",
       "work",
       undefined,
     ]);

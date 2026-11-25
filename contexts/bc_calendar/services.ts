@@ -1,7 +1,7 @@
 import { DomainError } from "@/lib/errors";
 import * as taskService from "@/contexts/bc_tasks/services";
 import * as tagService from "@/contexts/bc_tags/services";
-import type { CalendarEntry } from "./models";
+import type { CalendarEntry, EventType } from "./models";
 import * as repositories from "./repositories";
 
 const DURATION_MULTIPLE_OF_15 = "duration_minutes must be a multiple of 15";
@@ -83,7 +83,7 @@ export async function createCalendarEvent(data: {
   title: string;
   tags: string[];
   color: string;
-  type?: "work" | "meeting";
+  type?: EventType;
   link?: string;
   brief?: string;
 }) {
@@ -105,7 +105,7 @@ export async function updateCalendarEvent(
     title: string;
     tags: string[];
     color: string;
-    type: "work" | "meeting";
+    type: EventType;
     link: string;
     brief: string;
   }>
