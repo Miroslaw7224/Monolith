@@ -530,54 +530,83 @@ export function CockpitSections({
 
   return (
     <>
-      {urgentEntries.length > 0 ? (
-        <section className="kok-urgent" aria-label={t("home:cockpit.urgentAria")}>
-          <h3 className="kok-urgent__title">
-            <b>{t("home:cockpit.urgentBold")}</b> · {t("home:cockpit.urgentSub")}
-          </h3>
-          <ul className="kok-list">
-            {urgentEntries.map(({ item, group }) => (
-              <li key={sourceKey(item)} className={`kok-list__item${itemKindClass(item)}`}>
-                <input
-                  className="kok-check"
-                  type="checkbox"
-                  aria-label={t("home:cockpit.doneCheckbox")}
-                  checked={busyKey === sourceKey(item)}
-                  disabled={busyKey !== null}
-                  onChange={() => void completeItem(item)}
-                />
-                <span className="kok-list__title">
-                  <button
-                    type="button"
-                    className="kok-list__open"
-                    onClick={() => {
-                      setQueueError(null);
-                      setPreview({ item, group });
-                    }}
-                  >
-                    {item.title}
-                  </button>
-                  <ItemProjectBadges item={item} />
-                </span>
-                <EnergySwitch
-                  title={item.title}
-                  energy={item.energy}
-                  disabled={busyKey !== null}
-                  onChange={(energy) => void setItemEnergy(item, energy)}
-                />
-                {item.kind === "overdue" && item.due ? (
-                  <span className="kok-badge kok-badge--danger">{item.due}</span>
-                ) : null}
-                {item.kind === "today" ? (
-                  <span className="kok-badge kok-badge--accent">{t("home:format.today")}</span>
-                ) : null}
-                {item.kind === "upcoming" && item.due ? (
-                  <span className="kok-badge">{t("home:cockpit.dueBy", { due: item.due })}</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
+      {data.upcomingVisits.length > 0 || urgentEntries.length > 0 ? (
+        <div
+          className={`kok-alerts${
+            data.upcomingVisits.length > 0 && urgentEntries.length > 0 ? " kok-alerts--pair" : ""
+          }`}
+        >
+          {data.upcomingVisits.length > 0 ? (
+            <section className="kok-visit" aria-label={t("home:cockpit.visitAria")}>
+              <h3 className="kok-visit__title">
+                <b>{t("home:cockpit.visitBold")}</b> · {t("home:cockpit.visitSub")}
+              </h3>
+              <ul className="kok-visit__list">
+                {data.upcomingVisits.map((v) => (
+                  <li key={v.id} className="kok-visit__item">
+                    <span className="kok-visit__day">{meetingDayLabel(v.date, data.date)}</span>
+                    <span className="kok-visit__time">{hhmm(v.startMinutes)}</span>
+                    <span className="kok-visit__name">{v.title}</span>
+                    <span className="kok-visit__dur">
+                      {t("home:cockpit.durationMin", { count: v.durationMinutes })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {urgentEntries.length > 0 ? (
+            <section className="kok-urgent" aria-label={t("home:cockpit.urgentAria")}>
+              <h3 className="kok-urgent__title">
+                <b>{t("home:cockpit.urgentBold")}</b> · {t("home:cockpit.urgentSub")}
+              </h3>
+              <ul className="kok-list">
+                {urgentEntries.map(({ item, group }) => (
+                  <li key={sourceKey(item)} className={`kok-list__item${itemKindClass(item)}`}>
+                    <input
+                      className="kok-check"
+                      type="checkbox"
+                      aria-label={t("home:cockpit.doneCheckbox")}
+                      checked={busyKey === sourceKey(item)}
+                      disabled={busyKey !== null}
+                      onChange={() => void completeItem(item)}
+                    />
+                    <span className="kok-list__title">
+                      <button
+                        type="button"
+                        className="kok-list__open"
+                        onClick={() => {
+                          setQueueError(null);
+                          setPreview({ item, group });
+                        }}
+                      >
+                        {item.title}
+                      </button>
+                      <ItemProjectBadges item={item} />
+                    </span>
+                    <EnergySwitch
+                      title={item.title}
+                      energy={item.energy}
+                      disabled={busyKey !== null}
+                      onChange={(energy) => void setItemEnergy(item, energy)}
+                    />
+                    {item.kind === "overdue" && item.due ? (
+                      <span className="kok-badge kok-badge--danger">{item.due}</span>
+                    ) : null}
+                    {item.kind === "today" ? (
+                      <span className="kok-badge kok-badge--accent">{t("home:format.today")}</span>
+                    ) : null}
+                    {item.kind === "upcoming" && item.due ? (
+                      <span className="kok-badge">
+                        {t("home:cockpit.dueBy", { due: item.due })}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
       ) : null}
       <section className="kok-tiles tiles" aria-label={t("home:cockpit.tilesAria")}>
         <div className="kok-tile kok-tile--accent tile tile--accent">

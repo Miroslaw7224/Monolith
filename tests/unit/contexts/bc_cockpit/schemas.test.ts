@@ -137,6 +137,15 @@ describe("mapery DTO", () => {
       durationMinutes: 30,
       link: "https://meet.google.com/abc-defg-hij",
     },
+    upcomingVisits: [
+      {
+        id: "v1",
+        date: "2026-11-14",
+        title: "Kardiolog",
+        startMinutes: 450,
+        durationMinutes: 60,
+      },
+    ],
     git: { commitsToday: 4, projectsWithCommits: 2, branch: "main" },
     inbox: { open: 3 },
     windows: [
@@ -163,6 +172,7 @@ describe("mapery DTO", () => {
       "pinnedIds",
       "queue",
       "topics",
+      "upcomingVisits",
       "warnings",
       "weekFocus",
       "windows",

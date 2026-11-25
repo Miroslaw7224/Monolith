@@ -690,6 +690,10 @@
   border-left-color: var(--accent) !important;
 }
 
+.kal-ev--visit {
+  border-left-color: var(--ok) !important;
+}
+
 .kal-ev--deadline {
   border: 1px dashed var(--warn);
   border-left: 3px solid var(--warn) !important;

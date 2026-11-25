@@ -15,7 +15,7 @@ export interface CalendarEventFormData {
   title: string;
   tags: string[];
   color: string;
-  type: "work" | "meeting";
+  type: "work" | "meeting" | "visit";
   /** Adres spotkania online; pusty tekst usuwa istniejący link. */
   link: string;
   /** Notatka przed spotkaniem (każda linia = punkt); pusty tekst usuwa istniejący brief. */
@@ -46,7 +46,7 @@ export function CalendarEventForm({
   const t = useT();
   const resolvedSubmitLabel = submitLabel ?? t("planning:calendarAddEntry");
   const [date, setDate] = useState(initial?.date ?? "");
-  const [eventType, setEventType] = useState<"work" | "meeting">(initial?.type ?? "work");
+  const [eventType, setEventType] = useState<"work" | "meeting" | "visit">(initial?.type ?? "work");
   const [startMinutes, setStartMinutes] = useState(
     initial?.start_minutes != null ? Math.round(initial.start_minutes / 15) * 15 : 9 * 60
   );
@@ -166,7 +166,7 @@ export function CalendarEventForm({
         <select
           value={eventType}
           onChange={(e) => {
-            const next = e.target.value as "work" | "meeting";
+            const next = e.target.value as "work" | "meeting" | "visit";
             setEventType(next);
             setDurationMinutes(EVENT_TYPE_DEFAULT_DURATION[next]);
           }}
@@ -174,6 +174,7 @@ export function CalendarEventForm({
         >
           <option value="work">{t("planning:calendarFormTypeWork")}</option>
           <option value="meeting">{t("planning:calendarFormTypeMeeting")}</option>
+          <option value="visit">{t("planning:calendarFormTypeVisit")}</option>
         </select>
       </div>
       <div className="kal-form-row">

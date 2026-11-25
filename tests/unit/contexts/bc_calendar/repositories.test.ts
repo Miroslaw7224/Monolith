@@ -119,6 +119,12 @@ describe("getCalendarEvents", () => {
     expect((await getCalendarEvents()).map((e) => e.title)).toEqual(["Dec"]);
   });
 
+  it("15b. reads type visit from the file as visit", async () => {
+    writeEvents(NOV, [{ ...E2, id: "v1", type: "visit" }]);
+    const events = await getCalendarEvents({ startDate: "2026-11-01", endDate: "2026-11-30" });
+    expect(events.find((e) => e.id === "v1")?.type).toBe("visit");
+  });
+
   it("15. a corrupted month file fails the read with its name", async () => {
     vault.write(NOV, "events: [unclosed");
     await expect(getCalendarEvents()).rejects.toThrow(/Calendar\/2026-11\.yaml/);
@@ -144,6 +150,15 @@ describe("createCalendarEvent", () => {
     const stored = readList(NOV, "events");
     expect(stored).toHaveLength(3);
     expect(stored[0]).toMatchObject({ id: "e1", x_note: "ręcznie" });
+  });
+
+  it("6c. keeps type visit; unknown type falls back to work", async () => {
+    seed();
+    const visit = await createCalendarEvent({ ...NEW, type: "visit" });
+    expect(visit.type).toBe("visit");
+    expect(readList(NOV, "events").at(-1)).toMatchObject({ id: visit.id, type: "visit" });
+    const unknown = await createCalendarEvent({ ...NEW, type: "foo" as unknown as "work" });
+    expect(unknown.type).toBe("work");
   });
 
   it("7. rejects an invalid date with 400 and creates nothing", async () => {
@@ -211,6 +226,17 @@ describe("updateCalendarEvent", () => {
     expect(await statusOf(updateCalendarEvent("nie-ma", { title: "x" }))).toBe(404);
     await updateCalendarEvent("e2", {});
     expect([vault.read(NOV), vault.read(DEC)]).toEqual(before);
+  });
+
+  it("changes type work to visit and keeps other fields", async () => {
+    seed();
+    await updateCalendarEvent("e1", { type: "visit" });
+    expect(readList(NOV, "events")[0]).toMatchObject({
+      id: "e1",
+      type: "visit",
+      title: "Nocna sesja",
+      x_note: "ręcznie",
+    });
   });
 
   it("rejects an invalid new date with 400 and writes nothing", async () => {

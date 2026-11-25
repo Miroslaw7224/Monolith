@@ -426,7 +426,10 @@ export function CalendarView({
                       duration_minutes: editingEvent.duration_minutes,
                       title: editingEvent.title,
                       tags: editingEvent.tags,
-                      type: editingEvent.type === "meeting" ? "meeting" : "work",
+                      type:
+                        editingEvent.type === "meeting" || editingEvent.type === "visit"
+                          ? editingEvent.type
+                          : "work",
                       link: editingEvent.link ?? "",
                       brief: editingEvent.brief ?? "",
                     }

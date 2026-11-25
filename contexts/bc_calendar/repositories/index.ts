@@ -1,5 +1,5 @@
 import { DomainError } from "@/lib/errors";
-import type { CalendarEvent } from "../models";
+import { normalizeEventType, type CalendarEvent, type EventType } from "../models";
 import { listVaultFiles } from "@/lib/nexus/vault-fs";
 import type { YamlRecord } from "@/lib/nexus/yaml-lists";
 import { readList } from "@/lib/nexus/yaml-store";
@@ -48,7 +48,7 @@ function toEvent(r: YamlRecord): CalendarEvent {
     title: str(r.title),
     tags: Array.isArray(r.tags) ? r.tags.map(String) : r.tags ? [String(r.tags)] : [],
     color: optStr(r.color) ?? "#3B82F6",
-    type: r.type === "meeting" ? "meeting" : "work",
+    type: normalizeEventType(r.type),
     link: safeLink(optStr(r.link)),
     brief: optStr(r.brief),
     created_at: optStr(r.created),
@@ -99,7 +99,7 @@ export async function createCalendarEvent(data: {
   title: string;
   tags: string[];
   color: string;
-  type?: "work" | "meeting";
+  type?: EventType;
   link?: string;
   brief?: string;
 }): Promise<CalendarEvent> {
@@ -112,7 +112,7 @@ export async function createCalendarEvent(data: {
     title: data.title,
     tags: data.tags ?? [],
     color: data.color ?? "#3B82F6",
-    type: data.type === "meeting" ? "meeting" : "work",
+    type: normalizeEventType(data.type),
     ...(data.link ? { link: data.link } : {}),
     ...(data.brief ? { brief: data.brief } : {}),
     created: nowIso(),
@@ -129,7 +129,7 @@ export async function updateCalendarEvent(
     title: string;
     tags: string[];
     color: string;
-    type: "work" | "meeting";
+    type: EventType;
     /** Pusty tekst usuwa link. */
     link: string;
     /** Pusty tekst usuwa brief. */
@@ -143,7 +143,7 @@ export async function updateCalendarEvent(
   if (data.title !== undefined) patch.title = data.title;
   if (data.tags !== undefined) patch.tags = data.tags;
   if (data.color !== undefined) patch.color = data.color;
-  if (data.type !== undefined) patch.type = data.type === "meeting" ? "meeting" : "work";
+  if (data.type !== undefined) patch.type = normalizeEventType(data.type);
   if (data.link !== undefined) patch.link = data.link === "" ? undefined : data.link;
   if (data.brief !== undefined) patch.brief = data.brief === "" ? undefined : data.brief;
   if (Object.keys(patch).length === 0) return;

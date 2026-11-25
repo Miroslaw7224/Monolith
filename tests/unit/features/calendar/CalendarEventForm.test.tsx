@@ -94,3 +94,35 @@ describe("CalendarEventForm: brief spotkania", () => {
     expect(onSubmit.mock.calls[1][0].brief).toBe("");
   });
 });
+
+function eventTypeSelect(container: HTMLElement) {
+  return container.querySelectorAll("select.kal-select")[0] as HTMLSelectElement;
+}
+
+describe("CalendarEventForm: typ wizyta", () => {
+  test("opcja „Wizyta” ustawia typ visit i domyślne 60 min", () => {
+    const onSubmit = vi.fn();
+    const { container } = render(
+      <CalendarEventForm
+        initial={{ date: "2026-12-07", title: "Kardiolog", type: "meeting" }}
+        onSubmit={onSubmit}
+        onCancel={() => {}}
+      />
+    );
+    fireEvent.change(eventTypeSelect(container), { target: { value: "visit" } });
+    fireEvent.click(screen.getByRole("button", { name: "Dodaj wpis" }));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ type: "visit", duration_minutes: 60 });
+  });
+
+  test("istniejąca wizyta otwiera się z typem Wizyta", () => {
+    const { container } = render(
+      <CalendarEventForm
+        initial={{ date: "2026-12-07", title: "Kardiolog", type: "visit" }}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />
+    );
+    expect(eventTypeSelect(container)).toHaveValue("visit");
+    expect(screen.getByRole("option", { name: "Wizyta" })).toBeInTheDocument();
+  });
+});

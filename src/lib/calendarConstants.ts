@@ -24,7 +24,8 @@ export function formatDuration(minutes: number): string {
   return m ? `${h}h ${m}min` : `${h}h`;
 }
 
-export const EVENT_TYPE_DEFAULT_DURATION: Record<"work" | "meeting", number> = {
+export const EVENT_TYPE_DEFAULT_DURATION: Record<"work" | "meeting" | "visit", number> = {
   work: 60,
   meeting: 30,
+  visit: 60,
 };

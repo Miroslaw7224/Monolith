@@ -61,6 +61,7 @@ const cockpitWithEnergyQueue: CockpitDto = {
   ],
   events: [],
   nextMeeting: null,
+  upcomingVisits: [],
   git: null,
   inbox: null,
   windows: [],
@@ -123,6 +124,29 @@ describe("HomeView po angielsku", () => {
   afterEach(() => {
     vi.useRealTimers();
     cleanup();
+  });
+
+  test("upcoming visit: region shows day and start time", async () => {
+    await act(async () => {
+      await setLanguage("en");
+    });
+    respond({
+      ...cockpitWithEnergyQueue,
+      queue: [],
+      upcomingVisits: [
+        {
+          id: "v1",
+          date: "2026-11-12",
+          title: "Cardiologist visit",
+          startMinutes: 450,
+          durationMinutes: 60,
+        },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const visit = await screen.findByRole("region", { name: "Upcoming visits" });
+    expect(within(visit).getByText("tomorrow")).toBeInTheDocument();
+    expect(within(visit).getByText("07:30")).toBeInTheDocument();
   });
 
   test("nagłówek dnia: Wednesday, November 11 (bez polskiej daty)", async () => {

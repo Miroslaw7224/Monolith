@@ -11,6 +11,7 @@ const EMPTY: CockpitDto = {
   queue: [],
   events: [],
   nextMeeting: null,
+  upcomingVisits: [],
   git: null,
   inbox: null,
   windows: [],
@@ -137,6 +138,7 @@ const FULL: CockpitDto = {
     durationMinutes: 30,
     link: "https://meet.google.com/gon-fztr-zrn",
   },
+  upcomingVisits: [],
   git: { commitsToday: 4, projectsWithCommits: 2, branch: "feat/k7" },
   inbox: { open: 2 },
   windows: [
@@ -1488,6 +1490,138 @@ describe("K1: układ wg makiety", () => {
     const row = within(urgent).getByText("Zapłacić fakturę firmową").closest("li") as HTMLElement;
     expect(within(row).getByText("Etat · Firma")).toBeInTheDocument();
     expect(within(row).getByText("Dane z firmy")).toBeInTheDocument();
+  });
+
+  test("nadchodząca wizyta: sekcja jest nad „Pilne” i pokazuje dzień, godzinę oraz czas", async () => {
+    respond({
+      ...EMPTY,
+      upcomingVisits: [
+        {
+          id: "v1",
+          date: "2026-11-14",
+          title: "Wizyta u kardiologa",
+          startMinutes: 450,
+          durationMinutes: 60,
+        },
+      ],
+      queue: [
+        {
+          projectId: null,
+          name: "Ogólne",
+          owner: "personal",
+          items: [
+            {
+              kind: "undated",
+              title: "Zadzwonić do banku",
+              due: null,
+              projectName: null,
+              priority: null,
+              energy: null,
+              urgent: true,
+              source: { type: "task", taskId: "t-pilne" },
+            },
+          ],
+        },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const visit = await screen.findByRole("region", { name: "Najbliższe wizyty" });
+    expect(within(visit).getByText("jutro")).toBeInTheDocument();
+    expect(within(visit).getByText("07:30")).toBeInTheDocument();
+    expect(within(visit).getByText("Wizyta u kardiologa")).toBeInTheDocument();
+    expect(within(visit).getByText("60 min")).toBeInTheDocument();
+    const urgent = screen.getByRole("region", { name: "Pilne" });
+    expect(visit.compareDocumentPosition(urgent) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("wizyta za 3 dni bez pilnych zadań: sekcja pokazuje pełną datę zamiast „jutro”", async () => {
+    respond({
+      ...EMPTY,
+      upcomingVisits: [
+        {
+          id: "v1",
+          date: "2026-11-16",
+          title: "Dentysta",
+          startMinutes: 480,
+          durationMinutes: 60,
+        },
+      ],
+    });
+    render(<HomeView {...defaultProps} />);
+    const visit = await screen.findByRole("region", { name: "Najbliższe wizyty" });
+    expect(within(visit).getByText(/16 listopada/)).toBeInTheDocument();
+    expect(within(visit).queryByText("jutro")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Pilne" })).not.toBeInTheDocument();
+  });
+
+  describe("układ wizyt i pilnych (kok-alerts)", () => {
+    const VISIT = {
+      id: "v1",
+      date: "2026-11-14",
+      title: "Kardiolog",
+      startMinutes: 450,
+      durationMinutes: 60,
+    };
+    const URGENT_QUEUE = [
+      {
+        projectId: null,
+        name: "Ogólne",
+        owner: "personal" as const,
+        items: [
+          {
+            kind: "undated" as const,
+            title: "Zadzwonić do banku",
+            due: null,
+            projectName: null,
+            priority: null,
+            energy: null,
+            urgent: true,
+            source: { type: "task" as const, taskId: "t-pilne" },
+          },
+        ],
+      },
+    ];
+
+    test("wizyty i pilne razem: dwie kolumny w jednym kontenerze", async () => {
+      respond({ ...EMPTY, upcomingVisits: [VISIT], queue: URGENT_QUEUE });
+      const { container } = render(<HomeView {...defaultProps} />);
+      const visit = await screen.findByRole("region", { name: "Najbliższe wizyty" });
+      const urgent = screen.getByRole("region", { name: "Pilne" });
+      const alerts = container.querySelector(".kok-alerts") as HTMLElement;
+      expect(alerts).toHaveClass("kok-alerts--pair");
+      expect(alerts).toContainElement(visit);
+      expect(alerts).toContainElement(urgent);
+    });
+
+    test("same wizyty: kontener bez klasy pair (pełna szerokość)", async () => {
+      respond({ ...EMPTY, upcomingVisits: [VISIT] });
+      const { container } = render(<HomeView {...defaultProps} />);
+      await screen.findByRole("region", { name: "Najbliższe wizyty" });
+      const alerts = container.querySelector(".kok-alerts") as HTMLElement;
+      expect(alerts).not.toHaveClass("kok-alerts--pair");
+    });
+
+    test("same pilne: kontener bez klasy pair (pełna szerokość)", async () => {
+      respond({ ...EMPTY, queue: URGENT_QUEUE });
+      const { container } = render(<HomeView {...defaultProps} />);
+      await screen.findByRole("region", { name: "Pilne" });
+      const alerts = container.querySelector(".kok-alerts") as HTMLElement;
+      expect(alerts).not.toHaveClass("kok-alerts--pair");
+    });
+
+    test("ani wizyt, ani pilnych: kontenera nie ma", async () => {
+      respond(FULL);
+      const { container } = render(<HomeView {...defaultProps} />);
+      await screen.findByRole("region", { name: "Kolejka na dziś" });
+      expect(container.querySelector(".kok-alerts")).toBeNull();
+    });
+  });
+
+  test("brak nadchodzących wizyt: sekcji „Najbliższe wizyty” nie ma", async () => {
+    respond(FULL);
+    render(<HomeView {...defaultProps} />);
+    await screen.findByRole("region", { name: "Kolejka na dziś" });
+    expect(screen.queryByRole("region", { name: "Najbliższe wizyty" })).not.toBeInTheDocument();
   });
 
   test("brak pilnych zadań: sekcji „Pilne” nie ma", async () => {

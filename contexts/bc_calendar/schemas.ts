@@ -2,6 +2,11 @@ import { z } from "zod";
 import { looseObject } from "@/lib/schema/looseObject";
 import type { CalendarEntry } from "./models";
 
+/** Typ z żądania HTTP: `meeting` i `visit` zostają, wszystko inne to `work` (warstwa plikowa ma własną kopię w `models.ts`: `schemas` nie importuje kodu z `models`, reguła 3). */
+export function normalizeEventType(value: unknown): "work" | "meeting" | "visit" {
+  return value === "meeting" || value === "visit" ? value : "work";
+}
+
 // ── wejście (zod) ──────────────────────────────────────────────────────────────
 
 export const CreateCalendarEventBodySchema = looseObject({
@@ -43,7 +48,7 @@ export type CalendarEventDto = {
   title: string;
   tags: string[];
   color: string;
-  type: "work" | "meeting" | "task_deadline";
+  type: "work" | "meeting" | "visit" | "task_deadline";
   link?: string;
   brief?: string;
   created_at?: string;
