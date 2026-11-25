@@ -1554,6 +1554,69 @@ describe("K1: układ wg makiety", () => {
     expect(screen.queryByRole("region", { name: "Pilne" })).not.toBeInTheDocument();
   });
 
+  describe("układ wizyt i pilnych (kok-alerts)", () => {
+    const VISIT = {
+      id: "v1",
+      date: "2026-11-14",
+      title: "Kardiolog",
+      startMinutes: 450,
+      durationMinutes: 60,
+    };
+    const URGENT_QUEUE = [
+      {
+        projectId: null,
+        name: "Ogólne",
+        owner: "personal" as const,
+        items: [
+          {
+            kind: "undated" as const,
+            title: "Zadzwonić do banku",
+            due: null,
+            projectName: null,
+            priority: null,
+            energy: null,
+            urgent: true,
+            source: { type: "task" as const, taskId: "t-pilne" },
+          },
+        ],
+      },
+    ];
+
+    test("wizyty i pilne razem: dwie kolumny w jednym kontenerze", async () => {
+      respond({ ...EMPTY, upcomingVisits: [VISIT], queue: URGENT_QUEUE });
+      const { container } = render(<HomeView {...defaultProps} />);
+      const visit = await screen.findByRole("region", { name: "Najbliższe wizyty" });
+      const urgent = screen.getByRole("region", { name: "Pilne" });
+      const alerts = container.querySelector(".kok-alerts") as HTMLElement;
+      expect(alerts).toHaveClass("kok-alerts--pair");
+      expect(alerts).toContainElement(visit);
+      expect(alerts).toContainElement(urgent);
+    });
+
+    test("same wizyty: kontener bez klasy pair (pełna szerokość)", async () => {
+      respond({ ...EMPTY, upcomingVisits: [VISIT] });
+      const { container } = render(<HomeView {...defaultProps} />);
+      await screen.findByRole("region", { name: "Najbliższe wizyty" });
+      const alerts = container.querySelector(".kok-alerts") as HTMLElement;
+      expect(alerts).not.toHaveClass("kok-alerts--pair");
+    });
+
+    test("same pilne: kontener bez klasy pair (pełna szerokość)", async () => {
+      respond({ ...EMPTY, queue: URGENT_QUEUE });
+      const { container } = render(<HomeView {...defaultProps} />);
+      await screen.findByRole("region", { name: "Pilne" });
+      const alerts = container.querySelector(".kok-alerts") as HTMLElement;
+      expect(alerts).not.toHaveClass("kok-alerts--pair");
+    });
+
+    test("ani wizyt, ani pilnych: kontenera nie ma", async () => {
+      respond(FULL);
+      const { container } = render(<HomeView {...defaultProps} />);
+      await screen.findByRole("region", { name: "Kolejka na dziś" });
+      expect(container.querySelector(".kok-alerts")).toBeNull();
+    });
+  });
+
   test("brak nadchodzących wizyt: sekcji „Najbliższe wizyty” nie ma", async () => {
     respond(FULL);
     render(<HomeView {...defaultProps} />);

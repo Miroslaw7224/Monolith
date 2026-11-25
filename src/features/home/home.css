@@ -1341,6 +1341,30 @@
   color: var(--danger);
 }
 
+/* Wizyty i „Pilne” obok siebie; gdy jest tylko jedna z sekcji, zajmuje całą szerokość */
+.kok-alerts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--s-4);
+  margin-bottom: var(--s-4);
+}
+
+.kok-alerts--pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.kok-alerts > .kok-visit,
+.kok-alerts > .kok-urgent {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .kok-alerts--pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Jutro: wizyty (typ visit), nad blokiem „Pilne” */
 .kok-visit {
   background: color-mix(in srgb, var(--ok) 7%, var(--surface));
@@ -1377,8 +1401,9 @@
 
 .kok-visit__item {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--s-3);
+  gap: var(--s-1) var(--s-3);
 }
 
 .kok-visit__time {
